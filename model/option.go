@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +18,23 @@ import (
 type Option struct {
 	Key   string `json:"key" gorm:"primaryKey"`
 	Value string `json:"value"`
+}
+
+var officialPricingOnly = common.GetEnvOrDefaultBool("OFFICIAL_PRICING_ONLY", false)
+
+var officialPricingOptionKeys = map[string]struct{}{
+	"ModelRatio":      {},
+	"CompletionRatio": {},
+	"CacheRatio":      {},
+	"ModelPrice":      {},
+}
+
+func isOfficialPricingLockedOption(key string) bool {
+	if !officialPricingOnly {
+		return false
+	}
+	_, ok := officialPricingOptionKeys[key]
+	return ok
 }
 
 func AllOption() ([]*Option, error) {
@@ -178,6 +196,9 @@ func InitOptionMap() {
 func loadOptionsFromDatabase() {
 	options, _ := AllOption()
 	for _, option := range options {
+		if isOfficialPricingLockedOption(option.Key) {
+			continue
+		}
 		err := updateOptionMap(option.Key, option.Value)
 		if err != nil {
 			common.SysLog("failed to update option map: " + err.Error())
@@ -194,6 +215,9 @@ func SyncOptions(frequency int) {
 }
 
 func UpdateOption(key string, value string) error {
+	if isOfficialPricingLockedOption(key) {
+		return fmt.Errorf("%s is locked by OFFICIAL_PRICING_ONLY", key)
+	}
 	// Save to database first
 	option := Option{
 		Key: key,

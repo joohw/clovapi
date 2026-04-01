@@ -702,6 +702,7 @@ func GetCompletionRatioCopy() map[string]float64 {
 
 // 转换模型名，减少渠道必须配置各种带参数模型
 func FormatMatchingModelName(name string) string {
+	name = normalizeProviderPrefixedModelName(name)
 
 	if strings.HasPrefix(name, "gemini-2.5-flash-lite") {
 		name = handleThinkingBudgetModel(name, "gemini-2.5-flash-lite", "gemini-2.5-flash-lite-thinking-*")
@@ -718,6 +719,65 @@ func FormatMatchingModelName(name string) string {
 		name = "gpt-4o-gizmo-*"
 	}
 	return name
+}
+
+// normalizeProviderPrefixedModelName maps selected provider-prefixed aliases
+// back to canonical names when a pricing config exists.
+func normalizeProviderPrefixedModelName(name string) string {
+	if !strings.Contains(name, "/") {
+		return name
+	}
+
+	parts := strings.SplitN(name, "/", 2)
+	if len(parts) != 2 || parts[1] == "" {
+		return name
+	}
+
+	// Normalize known provider alias from models.dev/openrouter naming.
+	if parts[0] == "xiaomimimo" {
+		normalized := "xiaomi/" + parts[1]
+		if hasBuiltinPricingConfig(normalized) {
+			return normalized
+		}
+	}
+
+	if hasBuiltinPricingConfig(name) {
+		return name
+	}
+
+	candidate := parts[1]
+	if hasBuiltinPricingConfig(candidate) {
+		return candidate
+	}
+	return name
+}
+
+func hasBuiltinPricingConfig(name string) bool {
+	if _, ok := defaultModelRatio[name]; ok {
+		return true
+	}
+	if _, ok := defaultModelPrice[name]; ok {
+		return true
+	}
+	if _, ok := defaultCompletionRatio[name]; ok {
+		return true
+	}
+	if _, ok := defaultCacheRatio[name]; ok {
+		return true
+	}
+	if _, ok := modelRatioMap.Get(name); ok {
+		return true
+	}
+	if _, ok := modelPriceMap.Get(name); ok {
+		return true
+	}
+	if _, ok := completionRatioMap.Get(name); ok {
+		return true
+	}
+	if _, ok := cacheRatioMap.Get(name); ok {
+		return true
+	}
+	return false
 }
 
 // result: 倍率or价格， usePrice， exist

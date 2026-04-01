@@ -16,6 +16,7 @@ func SetApiRouter(router *gin.Engine) {
 	apiRouter.Use(middleware.RouteTag("api"))
 	apiRouter.Use(gzip.Gzip(gzip.DefaultCompression))
 	apiRouter.Use(middleware.BodyStorageCleanup()) // 清理请求体存储
+	apiRouter.Use(middleware.ConversationStore())  // 采集请求/响应（默认关闭）
 	apiRouter.Use(middleware.GlobalAPIRateLimit())
 	{
 		apiRouter.GET("/setup", controller.GetSetup)
@@ -289,6 +290,10 @@ func SetApiRouter(router *gin.Engine) {
 		logRoute.GET("/search", middleware.AdminAuth(), controller.SearchAllLogs)
 		logRoute.GET("/self", middleware.UserAuth(), controller.GetUserLogs)
 		logRoute.GET("/self/search", middleware.UserAuth(), middleware.SearchRateLimit(), controller.SearchUserLogs)
+		logRoute.GET("/conversation", middleware.AdminAuth(), controller.GetConversationByRequestId)
+		logRoute.GET("/self/conversation", middleware.UserAuth(), controller.GetConversationSelfByRequestId)
+		logRoute.GET("/conversation/body", middleware.AdminAuth(), controller.GetConversationBodyByRequestId)
+		logRoute.GET("/self/conversation/body", middleware.UserAuth(), controller.GetConversationSelfBodyByRequestId)
 
 		dataRoute := apiRouter.Group("/data")
 		dataRoute.GET("/", middleware.AdminAuth(), controller.GetAllQuotaDates)

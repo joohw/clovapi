@@ -46,6 +46,14 @@ export default function SettingsLog(props) {
   const [loadingCleanHistoryLog, setLoadingCleanHistoryLog] = useState(false);
   const [inputs, setInputs] = useState({
     LogConsumeEnabled: false,
+    'conversation_store_setting.enabled': true,
+    'conversation_store_setting.mode': 'db',
+    'conversation_store_setting.sample_rate': 1,
+    'conversation_store_setting.max_capture_bytes': 0,
+    'conversation_store_setting.include_paths': '',
+    'conversation_store_setting.exclude_paths': '',
+    'conversation_store_setting.file_dir': './data/conversations',
+    'conversation_store_setting.redact_sensitive': true,
     historyTimestamp: dayjs().subtract(1, 'month').toDate(),
   });
   const refForm = useRef();
@@ -59,7 +67,21 @@ export default function SettingsLog(props) {
     if (!updateArray.length) return showWarning(t('你似乎并没有修改什么'));
     const requestQueue = updateArray.map((item) => {
       let value = '';
-      if (typeof inputs[item.key] === 'boolean') {
+      if (
+        item.key === 'conversation_store_setting.include_paths' ||
+        item.key === 'conversation_store_setting.exclude_paths'
+      ) {
+        const lines = String(inputs[item.key] || '')
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line !== '');
+        value = JSON.stringify(lines);
+      } else if (
+        item.key === 'conversation_store_setting.sample_rate' ||
+        item.key === 'conversation_store_setting.max_capture_bytes'
+      ) {
+        value = String(inputs[item.key] ?? '');
+      } else if (typeof inputs[item.key] === 'boolean') {
         value = String(inputs[item.key]);
       } else {
         value = inputs[item.key];
@@ -183,7 +205,19 @@ export default function SettingsLog(props) {
     const currentInputs = {};
     for (let key in props.options) {
       if (Object.keys(inputs).includes(key)) {
-        currentInputs[key] = props.options[key];
+        if (
+          key === 'conversation_store_setting.include_paths' ||
+          key === 'conversation_store_setting.exclude_paths'
+        ) {
+          try {
+            const parsed = JSON.parse(props.options[key] || '[]');
+            currentInputs[key] = Array.isArray(parsed) ? parsed.join('\n') : '';
+          } catch {
+            currentInputs[key] = '';
+          }
+        } else {
+          currentInputs[key] = props.options[key];
+        }
       }
     }
     currentInputs['historyTimestamp'] = inputs.historyTimestamp;
@@ -245,6 +279,127 @@ export default function SettingsLog(props) {
                     {t('清除历史日志')}
                   </Button>
                 </Spin>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.Switch
+                  field={'conversation_store_setting.enabled'}
+                  label={t('启用对话采集')}
+                  size='default'
+                  checkedText='｜'
+                  uncheckedText='〇'
+                  onChange={(value) => {
+                    setInputs({
+                      ...inputs,
+                      'conversation_store_setting.enabled': value,
+                    });
+                  }}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.Select
+                  field={'conversation_store_setting.mode'}
+                  label={t('采集存储模式')}
+                  optionList={[
+                    { label: 'DB', value: 'db' },
+                    { label: 'File', value: 'file' },
+                    { label: 'DB + File', value: 'db_and_file' },
+                  ]}
+                  onChange={(value) => {
+                    setInputs({
+                      ...inputs,
+                      'conversation_store_setting.mode': value,
+                    });
+                  }}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.Input
+                  field={'conversation_store_setting.sample_rate'}
+                  label={t('采样率(0~1)')}
+                  placeholder='1'
+                  onChange={(value) => {
+                    setInputs({
+                      ...inputs,
+                      'conversation_store_setting.sample_rate': value,
+                    });
+                  }}
+                />
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.Input
+                  field={'conversation_store_setting.max_capture_bytes'}
+                  label={t('最大捕获字节数')}
+                  placeholder='0'
+                  extraText={t('<=0 表示不截断并落盘')}
+                  onChange={(value) => {
+                    setInputs({
+                      ...inputs,
+                      'conversation_store_setting.max_capture_bytes': value,
+                    });
+                  }}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.Input
+                  field={'conversation_store_setting.file_dir'}
+                  label={t('文件存储目录')}
+                  placeholder='./data/conversations'
+                  onChange={(value) => {
+                    setInputs({
+                      ...inputs,
+                      'conversation_store_setting.file_dir': value,
+                    });
+                  }}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.Switch
+                  field={'conversation_store_setting.redact_sensitive'}
+                  label={t('脱敏敏感信息')}
+                  size='default'
+                  checkedText='｜'
+                  uncheckedText='〇'
+                  onChange={(value) => {
+                    setInputs({
+                      ...inputs,
+                      'conversation_store_setting.redact_sensitive': value,
+                    });
+                  }}
+                />
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col xs={24} sm={12} md={12} lg={12} xl={12}>
+                <Form.TextArea
+                  field={'conversation_store_setting.include_paths'}
+                  label={t('采集路径白名单(每行一个)')}
+                  placeholder={'/v1/chat/completions\n/pg/chat/completions'}
+                  autosize
+                  onChange={(value) => {
+                    setInputs({
+                      ...inputs,
+                      'conversation_store_setting.include_paths': value,
+                    });
+                  }}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={12} lg={12} xl={12}>
+                <Form.TextArea
+                  field={'conversation_store_setting.exclude_paths'}
+                  label={t('采集路径黑名单(每行一个)')}
+                  placeholder={'/api/status'}
+                  autosize
+                  onChange={(value) => {
+                    setInputs({
+                      ...inputs,
+                      'conversation_store_setting.exclude_paths': value,
+                    });
+                  }}
+                />
               </Col>
             </Row>
 

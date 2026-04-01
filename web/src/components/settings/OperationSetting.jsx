@@ -63,6 +63,14 @@ const OperationSetting = () => {
 
     /* 日志设置 */
     LogConsumeEnabled: false,
+    'conversation_store_setting.enabled': true,
+    'conversation_store_setting.mode': 'db',
+    'conversation_store_setting.sample_rate': 1,
+    'conversation_store_setting.max_capture_bytes': 0,
+    'conversation_store_setting.include_paths': '[]',
+    'conversation_store_setting.exclude_paths': '[]',
+    'conversation_store_setting.file_dir': './data/conversations',
+    'conversation_store_setting.redact_sensitive': true,
 
     /* 监控设置 */
     ChannelDisableThreshold: 0,

@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal } from '@douyinfe/semi-ui';
+import { Modal, Button, Space } from '@douyinfe/semi-ui';
 import {
   API,
   getTodayStartTimestamp,
@@ -184,6 +184,20 @@ export const useLogsData = () => {
     useState(null);
   const [showParamOverrideModal, setShowParamOverrideModal] = useState(false);
   const [paramOverrideTarget, setParamOverrideTarget] = useState(null);
+
+  const [showConversationDetailModal, setShowConversationDetailModal] =
+    useState(false);
+  const [conversationDetailTarget, setConversationDetailTarget] =
+    useState(null);
+
+  const openConversationDetailModal = (log) => {
+    const rid = log?.request_id;
+    if (!rid) {
+      return;
+    }
+    setConversationDetailTarget({ requestId: rid });
+    setShowConversationDetailModal(true);
+  };
 
   // Initialize default column visibility
   const initDefaultColumns = () => {
@@ -390,7 +404,21 @@ export const useLogsData = () => {
       if (logs[i].request_id) {
         expandDataLocal.push({
           key: t('Request ID'),
-          value: logs[i].request_id,
+          value: (
+            <Space wrap>
+              <span>{logs[i].request_id}</span>
+              <Button
+                size='small'
+                type='primary'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openConversationDetailModal(logs[i]);
+                }}
+              >
+                {t('详细日志')}
+              </Button>
+            </Space>
+          ),
         });
       }
       if (other?.ws || other?.audio) {
@@ -872,6 +900,9 @@ export const useLogsData = () => {
     showParamOverrideModal,
     setShowParamOverrideModal,
     paramOverrideTarget,
+    showConversationDetailModal,
+    setShowConversationDetailModal,
+    conversationDetailTarget,
 
     // Functions
     loadLogs,
@@ -884,6 +915,7 @@ export const useLogsData = () => {
     hasExpandableRows,
     setLogType,
     openParamOverrideModal,
+    openConversationDetailModal,
 
     // Translation
     t,

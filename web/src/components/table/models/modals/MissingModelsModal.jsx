@@ -34,7 +34,7 @@ const MissingModelsModal = ({ visible, onClose, onConfigureModel, t }) => {
         showError(res.data.message);
       }
     } catch (_) {
-      showError(t('获取未配置模型失败'));
+      showError("获取未配置模型失败");
     }
     setLoading(false);
   };
@@ -65,7 +65,7 @@ const MissingModelsModal = ({ visible, onClose, onConfigureModel, t }) => {
 
   const columns = [
     {
-      title: t('模型名称'),
+      title: "模型名称",
       dataIndex: 'model',
       render: (text) => (
         <div className='flex items-center'>
@@ -84,7 +84,7 @@ const MissingModelsModal = ({ visible, onClose, onConfigureModel, t }) => {
           size='small'
           onClick={() => onConfigureModel(record.model)}
         >
-          {t('配置')}
+          {"配置"}
         </Button>
       ),
     },
@@ -99,10 +99,10 @@ const MissingModelsModal = ({ visible, onClose, onConfigureModel, t }) => {
               strong
               className='!text-[var(--semi-color-text-0)] !text-base'
             >
-              {t('未配置的模型列表')}
+              {"未配置的模型列表"}
             </Typography.Text>
             <Typography.Text type='tertiary' size='small'>
-              {t('共')} {missingModels.length} {t('个未配置模型')}
+              {"共"} {missingModels.length} {"个未配置模型"}
             </Typography.Text>
           </div>
         </div>
@@ -120,7 +120,7 @@ const MissingModelsModal = ({ visible, onClose, onConfigureModel, t }) => {
             darkModeImage={
               <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
             }
-            description={t('暂无缺失模型')}
+            description={"暂无缺失模型"}
             style={{ padding: 30 }}
           />
         ) : (
@@ -128,7 +128,7 @@ const MissingModelsModal = ({ visible, onClose, onConfigureModel, t }) => {
             {/* 搜索框 */}
             <div className='flex items-center justify-end gap-2 w-full mb-4'>
               <Input
-                placeholder={t('搜索模型...')}
+                placeholder={"搜索模型..."}
                 value={searchKeyword}
                 onChange={(v) => {
                   setSearchKeyword(v);
@@ -164,7 +164,7 @@ const MissingModelsModal = ({ visible, onClose, onConfigureModel, t }) => {
                   />
                 }
                 description={
-                  searchKeyword ? t('未找到匹配的模型') : t('暂无缺失模型')
+                  searchKeyword ? "未找到匹配的模型" : "暂无缺失模型"
                 }
                 style={{ padding: 20 }}
               />

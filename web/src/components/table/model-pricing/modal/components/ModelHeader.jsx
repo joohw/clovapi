@@ -10,7 +10,7 @@ const CARD_STYLES = {
   icon: 'w-8 h-8 flex items-center justify-center',
 };
 
-const ModelHeader = ({ modelData, vendorsMap = {}, t }) => {
+const ModelHeader = ({ modelData, vendorsMap = {} }) => {
   // 获取模型图标（优先模型图标，其次供应商图标）
   const getModelIcon = () => {
     // 1) 优先使用模型自定义图标
@@ -62,11 +62,11 @@ const ModelHeader = ({ modelData, vendorsMap = {}, t }) => {
           className='!mb-0 !text-lg !font-medium'
           copyable={{
             content: modelData?.model_name || '',
-            onCopy: () => Toast.success({ content: t('已复制模型名称') }),
+            onCopy: () => Toast.success({ content: "已复制模型名称" }),
           }}
         >
           <span className='truncate max-w-60 font-bold'>
-            {modelData?.model_name || t('未知模型')}
+            {modelData?.model_name || "未知模型"}
           </span>
         </Paragraph>
       </div>

@@ -7,20 +7,14 @@ const ActionButtons = ({
   userState,
   isLoading,
   isMobile,
-  logout,
-  navigate,
-  t,
 }) => {
   return (
-    <div className='flex items-center gap-2 md:gap-3'>
+    <div className='flex items-center gap-2 md:gap-3 mr-2 md:mr-4'>
       <NewYearButton isNewYear={isNewYear} />
       <UserArea
         userState={userState}
         isLoading={isLoading}
         isMobile={isMobile}
-        logout={logout}
-        navigate={navigate}
-        t={t}
       />
     </div>
   );

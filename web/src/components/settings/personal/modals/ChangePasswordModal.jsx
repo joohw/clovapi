@@ -19,7 +19,7 @@ const ChangePasswordModal = ({
       title={
         <div className='flex items-center'>
           <IconLock className='mr-2 text-orange-500' />
-          {t('修改密码')}
+          {"修改密码"}
         </div>
       }
       visible={showChangePasswordModal}
@@ -32,11 +32,11 @@ const ChangePasswordModal = ({
       <div className='space-y-4 py-4'>
         <div>
           <Typography.Text strong className='block mb-2'>
-            {t('原密码')}
+            {"原密码"}
           </Typography.Text>
           <Input
             name='original_password'
-            placeholder={t('请输入原密码')}
+            placeholder={"请输入原密码"}
             type='password'
             value={inputs.original_password}
             onChange={(value) => handleInputChange('original_password', value)}
@@ -48,11 +48,11 @@ const ChangePasswordModal = ({
 
         <div>
           <Typography.Text strong className='block mb-2'>
-            {t('新密码')}
+            {"新密码"}
           </Typography.Text>
           <Input
             name='set_new_password'
-            placeholder={t('请输入新密码')}
+            placeholder={"请输入新密码"}
             type='password'
             value={inputs.set_new_password}
             onChange={(value) => handleInputChange('set_new_password', value)}
@@ -64,11 +64,11 @@ const ChangePasswordModal = ({
 
         <div>
           <Typography.Text strong className='block mb-2'>
-            {t('确认新密码')}
+            {"确认新密码"}
           </Typography.Text>
           <Input
             name='set_new_password_confirmation'
-            placeholder={t('请再次输入新密码')}
+            placeholder={"请再次输入新密码"}
             type='password'
             value={inputs.set_new_password_confirmation}
             onChange={(value) =>

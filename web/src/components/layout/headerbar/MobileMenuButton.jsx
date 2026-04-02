@@ -8,7 +8,6 @@ const MobileMenuButton = ({
   drawerOpen,
   collapsed,
   onToggle,
-  t,
 }) => {
   if (!isConsoleRoute || !isMobile) {
     return null;
@@ -24,7 +23,7 @@ const MobileMenuButton = ({
         )
       }
       aria-label={
-        (isMobile ? drawerOpen : collapsed) ? t('关闭侧边栏') : t('打开侧边栏')
+        (isMobile ? drawerOpen : collapsed) ? "关闭侧边栏" : "打开侧边栏"
       }
       onClick={onToggle}
       theme='borderless'

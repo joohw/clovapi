@@ -5,8 +5,6 @@ import App from '../../App';
 import { ToastContainer } from 'react-toastify';
 import React, { useContext, useEffect, useState } from 'react';
 import { useIsMobile } from '../../hooks/common/useIsMobile';
-import { useSidebarCollapsed } from '../../hooks/common/useSidebarCollapsed';
-import { useTranslation } from 'react-i18next';
 import {
   API,
   getLogo,
@@ -23,9 +21,7 @@ const PageLayout = () => {
   const [userState, userDispatch] = useContext(UserContext);
   const [, statusDispatch] = useContext(StatusContext);
   const isMobile = useIsMobile();
-  const [collapsed, , setCollapsed] = useSidebarCollapsed();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { i18n } = useTranslation();
   const location = useLocation();
 
   const shouldInnerPadding =
@@ -35,12 +31,6 @@ const PageLayout = () => {
 
   const isConsoleRoute = location.pathname.startsWith('/console');
   const showSider = isConsoleRoute && (!isMobile || drawerOpen);
-
-  useEffect(() => {
-    if (isMobile && drawerOpen && collapsed) {
-      setCollapsed(false);
-    }
-  }, [isMobile, drawerOpen, collapsed, setCollapsed]);
 
   const loadUser = () => {
     let user = localStorage.getItem('user');
@@ -80,14 +70,6 @@ const PageLayout = () => {
       }
     }
   }, []);
-
-  useEffect(() => {
-    const fixedLanguage = 'zh-CN';
-    localStorage.setItem('i18nextLng', fixedLanguage);
-    if (fixedLanguage !== i18n.language) {
-      i18n.changeLanguage(fixedLanguage);
-    }
-  }, [i18n]);
 
   return (
     <Layout

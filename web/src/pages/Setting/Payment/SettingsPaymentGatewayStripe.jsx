@@ -15,10 +15,7 @@ import {
   showError,
   showSuccess,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 export default function SettingsPaymentGateway(props) {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState({
     StripeApiSecret: '',
@@ -62,7 +59,7 @@ export default function SettingsPaymentGateway(props) {
 
   const submitStripeSetting = async () => {
     if (props.options.ServerAddress === '') {
-      showError(t('请先填写服务器地址'));
+      showError("请先填写服务器地址");
       return;
     }
 
@@ -128,13 +125,13 @@ export default function SettingsPaymentGateway(props) {
           showError(res.data.message);
         });
       } else {
-        showSuccess(t('更新成功'));
+        showSuccess("更新成功");
         // 更新本地存储的原始值
         setOriginInputs({ ...inputs });
         props.refresh?.();
       }
     } catch (error) {
-      showError(t('更新失败'));
+      showError("更新失败");
     }
     setLoading(false);
   };
@@ -146,7 +143,7 @@ export default function SettingsPaymentGateway(props) {
         onValueChange={handleFormChange}
         getFormApi={(api) => (formApiRef.current = api)}
       >
-        <Form.Section text={t('Stripe 设置')}>
+        <Form.Section text={"Stripe 设置"}>
           <Text>
             Stripe 密钥、Webhook 等设置请
             <a
@@ -169,7 +166,7 @@ export default function SettingsPaymentGateway(props) {
           </Text>
           <Banner
             type='info'
-            description={`Webhook 填：${props.options.ServerAddress ? removeTrailingSlash(props.options.ServerAddress) : t('网站地址')}/api/stripe/webhook`}
+            description={`Webhook 填：${props.options.ServerAddress ? removeTrailingSlash(props.options.ServerAddress) : "网站地址"}/api/stripe/webhook`}
           />
           <Banner
             type='warning'
@@ -179,26 +176,24 @@ export default function SettingsPaymentGateway(props) {
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.Input
                 field='StripeApiSecret'
-                label={t('API 密钥')}
-                placeholder={t(
-                  'sk_xxx 或 rk_xxx 的 Stripe 密钥，敏感信息不显示',
-                )}
+                label={"API 密钥"}
+                placeholder={"sk_xxx 或 rk_xxx 的 Stripe 密钥，敏感信息不显示"}
                 type='password'
               />
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.Input
                 field='StripeWebhookSecret'
-                label={t('Webhook 签名密钥')}
-                placeholder={t('whsec_xxx 的 Webhook 签名密钥，敏感信息不显示')}
+                label={"Webhook 签名密钥"}
+                placeholder={"whsec_xxx 的 Webhook 签名密钥，敏感信息不显示"}
                 type='password'
               />
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.Input
                 field='StripePriceId'
-                label={t('商品价格 ID')}
-                placeholder={t('price_xxx 的商品价格 ID，新建产品后可获得')}
+                label={"商品价格 ID"}
+                placeholder={"price_xxx 的商品价格 ID，新建产品后可获得"}
               />
             </Col>
           </Row>
@@ -210,15 +205,15 @@ export default function SettingsPaymentGateway(props) {
               <Form.InputNumber
                 field='StripeUnitPrice'
                 precision={2}
-                label={t('充值价格（x元/美金）')}
-                placeholder={t('例如：7，就是7元/美金')}
+                label={"充值价格（x元/美金）"}
+                placeholder={"例如：7，就是7元/美金"}
               />
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.InputNumber
                 field='StripeMinTopUp'
-                label={t('最低充值美元数量')}
-                placeholder={t('例如：2，就是最低充值2$')}
+                label={"最低充值美元数量"}
+                placeholder={"例如：2，就是最低充值2$"}
               />
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
@@ -227,11 +222,11 @@ export default function SettingsPaymentGateway(props) {
                 size='default'
                 checkedText='｜'
                 uncheckedText='〇'
-                label={t('允许在 Stripe 支付中输入促销码')}
+                label={"允许在 Stripe 支付中输入促销码"}
               />
             </Col>
           </Row>
-          <Button onClick={submitStripeSetting}>{t('更新 Stripe 设置')}</Button>
+          <Button onClick={submitStripeSetting}>{"更新 Stripe 设置"}</Button>
         </Form.Section>
       </Form>
     </Spin>

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Card, Button, Typography } from '@douyinfe/semi-ui';
-import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Settings, Server, AlertCircle, WifiOff } from 'lucide-react';
 
@@ -15,7 +14,6 @@ const DeploymentAccessGuard = ({
   connectionError,
   onRetry,
 }) => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleGoToSettings = () => {
@@ -27,7 +25,7 @@ const DeploymentAccessGuard = ({
       <div className='mt-[60px] px-2'>
         <Card loading={true} style={{ minHeight: '400px' }}>
           <div style={{ textAlign: 'center', padding: '50px 0' }}>
-            <Text type='secondary'>{t('加载设置中...')}</Text>
+            <Text type='secondary'>{"加载设置中..."}</Text>
           </div>
         </Card>
       </div>
@@ -94,7 +92,7 @@ const DeploymentAccessGuard = ({
                   fontWeight: '700',
                 }}
               >
-                {t('模型部署服务未启用')}
+                {"模型部署服务未启用"}
               </Title>
               <Text
                 style={{
@@ -104,7 +102,7 @@ const DeploymentAccessGuard = ({
                   display: 'block',
                 }}
               >
-                {t('访问模型部署功能需要先启用 io.net 部署服务')}
+                {"访问模型部署功能需要先启用 io.net 部署服务"}
               </Text>
             </div>
 
@@ -148,7 +146,7 @@ const DeploymentAccessGuard = ({
                     color: 'var(--semi-color-text-0)',
                   }}
                 >
-                  {t('需要配置的项目')}
+                  {"需要配置的项目"}
                 </Text>
               </div>
 
@@ -181,7 +179,7 @@ const DeploymentAccessGuard = ({
                       color: 'var(--semi-color-text-1)',
                     }}
                   >
-                    {t('启用 io.net 部署开关')}
+                    {"启用 io.net 部署开关"}
                   </Text>
                 </div>
                 <div
@@ -202,7 +200,7 @@ const DeploymentAccessGuard = ({
                       color: 'var(--semi-color-text-1)',
                     }}
                   >
-                    {t('配置有效的 io.net API Key')}
+                    {"配置有效的 io.net API Key"}
                   </Text>
                 </div>
               </div>
@@ -240,7 +238,7 @@ const DeploymentAccessGuard = ({
                 }}
               >
                 <Settings size={18} />
-                {t('前往设置页面')}
+                {"前往设置页面"}
               </div>
             </div>
 
@@ -253,7 +251,7 @@ const DeploymentAccessGuard = ({
                 lineHeight: '1.5',
               }}
             >
-              {t('配置完成后刷新页面即可使用模型部署功能')}
+              {"配置完成后刷新页面即可使用模型部署功能"}
             </Text>
           </Card>
         </div>
@@ -266,7 +264,7 @@ const DeploymentAccessGuard = ({
       <div className='mt-[60px] px-2'>
         <Card loading={true} style={{ minHeight: '400px' }}>
           <div style={{ textAlign: 'center', padding: '50px 0' }}>
-            <Text type='secondary'>{t('正在检查 io.net 连接...')}</Text>
+            <Text type='secondary'>{"正在检查 io.net 连接..."}</Text>
           </div>
         </Card>
       </div>
@@ -275,10 +273,10 @@ const DeploymentAccessGuard = ({
 
   if (connectionOk === false) {
     const isExpired = connectionError?.type === 'expired';
-    const title = isExpired ? t('接口密钥已过期') : t('无法连接 io.net');
+    const title = isExpired ? "接口密钥已过期" : "无法连接 io.net";
     const description = isExpired
-      ? t('当前 API 密钥已过期，请在设置中更新。')
-      : t('当前配置无法连接到 io.net。');
+      ? "当前 API 密钥已过期，请在设置中更新。"
+      : "当前配置无法连接到 io.net。";
     const detail = connectionError?.message || '';
 
     return (
@@ -373,11 +371,11 @@ const DeploymentAccessGuard = ({
                 icon={<Settings size={18} />}
                 onClick={handleGoToSettings}
               >
-                {t('前往设置')}
+                {"前往设置"}
               </Button>
               {onRetry ? (
                 <Button type='tertiary' onClick={onRetry}>
-                  {t('重试连接')}
+                  {"重试连接"}
                 </Button>
               ) : null}
             </div>

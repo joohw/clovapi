@@ -36,7 +36,6 @@ const Dashboard = () => {
     dashboardData.setPieData,
     dashboardData.setLineData,
     dashboardData.setModelColors,
-    dashboardData.t,
   );
 
   // ========== 统计数据 ==========
@@ -48,7 +47,6 @@ const Dashboard = () => {
     dashboardData.trendData,
     dashboardData.performanceMetrics,
     dashboardData.navigate,
-    dashboardData.t,
   );
 
   // ========== 数据处理 ==========
@@ -84,7 +82,6 @@ const Dashboard = () => {
         showSearchModal={dashboardData.showSearchModal}
         refresh={handleRefresh}
         loading={dashboardData.loading}
-        t={dashboardData.t}
       />
 
       <SearchModal
@@ -97,7 +94,6 @@ const Dashboard = () => {
         dataExportDefaultTime={dashboardData.dataExportDefaultTime}
         timeOptions={dashboardData.timeOptions}
         handleInputChange={dashboardData.handleInputChange}
-        t={dashboardData.t}
       />
 
       <StatsCards
@@ -122,7 +118,6 @@ const Dashboard = () => {
             CHART_CONFIG={CHART_CONFIG}
             FLEX_CENTER_GAP2={FLEX_CENTER_GAP2}
             hasApiInfoPanel={false}
-            t={dashboardData.t}
           />
         </div>
       </div>

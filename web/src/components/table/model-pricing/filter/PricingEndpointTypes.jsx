@@ -7,7 +7,6 @@ import SelectableButtonGroup from '../../../common/ui/SelectableButtonGroup';
  * @param {Function} setFilterEndpointType setter
  * @param {Array} models 模型列表
  * @param {boolean} loading 是否加载中
- * @param {Function} t i18n
  */
 const PricingEndpointTypes = ({
   filterEndpointType,
@@ -15,7 +14,6 @@ const PricingEndpointTypes = ({
   models = [],
   allModels = [],
   loading = false,
-  t,
 }) => {
   // 获取系统中所有端点类型（基于 allModels，如果未提供则退化为 models）
   const getAllEndpointTypes = () => {
@@ -55,7 +53,7 @@ const PricingEndpointTypes = ({
   const items = [
     {
       value: 'all',
-      label: t('全部端点'),
+      label: "全部端点",
       tagCount: getEndpointTypeCount('all'),
     },
     ...availableEndpointTypes.map((endpointType) => {
@@ -70,13 +68,12 @@ const PricingEndpointTypes = ({
 
   return (
     <SelectableButtonGroup
-      title={t('端点类型')}
+      title={"端点类型"}
       items={items}
       activeValue={filterEndpointType}
       onChange={setFilterEndpointType}
       loading={loading}
       variant='green'
-      t={t}
     />
   );
 };

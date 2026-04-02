@@ -1,12 +1,10 @@
 import { useState, useEffect, useContext, useRef, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { API, copy, showError, showInfo, showSuccess } from '../../helpers';
 import { Modal } from '@douyinfe/semi-ui';
 import { UserContext } from '../../context/User';
 import { StatusContext } from '../../context/Status';
 
 export const useModelPricingData = () => {
-  const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState('');
   const compositionRef = useRef({ isComposition: false });
   const [modalImageUrl, setModalImageUrl] = useState('');
@@ -234,9 +232,9 @@ export const useModelPricingData = () => {
 
   const copyText = async (text) => {
     if (await copy(text)) {
-      showSuccess(t('已复制：') + text);
+      showSuccess("已复制：" + text);
     } else {
-      Modal.error({ title: t('无法复制到剪贴板，请手动复制'), content: text });
+      Modal.error({ title: "无法复制到剪贴板，请手动复制", content: text });
     }
   };
 
@@ -260,13 +258,10 @@ export const useModelPricingData = () => {
     setSelectedGroup(group);
     setFilterGroup(group);
     if (group === 'all') {
-      showInfo(t('已切换至最优倍率视图，每个模型使用其最低倍率分组'));
+      showInfo("已切换至最优倍率视图，每个模型使用其最低倍率分组");
     } else {
       showInfo(
-        t('当前查看的分组为：{{group}}，倍率为：{{ratio}}', {
-          group: group,
-          ratio: groupRatio[group] ?? 1,
-        }),
+        `当前查看的分组为：${group}，倍率为：${groupRatio[group] ?? 1}`,
       );
     }
   };
@@ -349,8 +344,5 @@ export const useModelPricingData = () => {
 
     // 引用
     compositionRef,
-
-    // 国际化
-    t,
   };
 };

@@ -88,17 +88,16 @@ const resolveRateLimitWindows = (data) => {
   return { fiveHourWindow, weeklyWindow };
 };
 
-const formatDurationSeconds = (seconds, t) => {
-  const tt = typeof t === 'function' ? t : (v) => v;
+const formatDurationSeconds = (seconds) => {
   const s = Number(seconds);
   if (!Number.isFinite(s) || s <= 0) return '-';
   const total = Math.floor(s);
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
   const secs = total % 60;
-  if (hours > 0) return `${hours}${tt('小时')} ${minutes}${tt('分钟')}`;
-  if (minutes > 0) return `${minutes}${tt('分钟')} ${secs}${tt('秒')}`;
-  return `${secs}${tt('秒')}`;
+  if (hours > 0) return `${hours}小时 ${minutes}分钟`;
+  if (minutes > 0) return `${minutes}分钟 ${secs}秒`;
+  return `${secs}秒`;
 };
 
 const formatUnixSeconds = (unixSeconds) => {
@@ -116,8 +115,7 @@ const getDisplayText = (value) => {
   return String(value).trim();
 };
 
-const formatAccountTypeLabel = (value, t) => {
-  const tt = typeof t === 'function' ? t : (v) => v;
+const formatAccountTypeLabel = (value) => {
   const normalized = normalizePlanType(value);
   switch (normalized) {
     case 'free':
@@ -131,7 +129,7 @@ const formatAccountTypeLabel = (value, t) => {
     case 'enterprise':
       return 'Enterprise';
     default:
-      return getDisplayText(value) || tt('未识别');
+      return getDisplayText(value) || '未识别';
   }
 };
 
@@ -153,19 +151,17 @@ const getAccountTypeTagColor = (value) => {
   }
 };
 
-const resolveUsageStatusTag = (t, rateLimit) => {
-  const tt = typeof t === 'function' ? t : (v) => v;
+const resolveUsageStatusTag = (rateLimit) => {
   if (!rateLimit || Object.keys(rateLimit).length === 0) {
-    return <Tag color='grey'>{tt('待确认')}</Tag>;
+    return <Tag color='grey'>待确认</Tag>;
   }
   if (rateLimit?.allowed && !rateLimit?.limit_reached) {
-    return <Tag color='green'>{tt('可用')}</Tag>;
+    return <Tag color='green'>可用</Tag>;
   }
-  return <Tag color='red'>{tt('受限')}</Tag>;
+  return <Tag color='red'>受限</Tag>;
 };
 
-const AccountInfoValue = ({ t, value, onCopy, monospace = false }) => {
-  const tt = typeof t === 'function' ? t : (v) => v;
+const AccountInfoValue = ({ value, onCopy, monospace = false }) => {
   const text = getDisplayText(value);
   const hasValue = text !== '';
 
@@ -186,14 +182,13 @@ const AccountInfoValue = ({ t, value, onCopy, monospace = false }) => {
         disabled={!hasValue}
         onClick={() => onCopy?.(text)}
       >
-        {tt('复制')}
+        复制
       </Button>
     </div>
   );
 };
 
-const RateLimitWindowCard = ({ t, title, windowData }) => {
-  const tt = typeof t === 'function' ? t : (v) => v;
+const RateLimitWindowCard = ({ title, windowData }) => {
   const hasWindowData =
     !!windowData &&
     typeof windowData === 'object' &&
@@ -208,7 +203,7 @@ const RateLimitWindowCard = ({ t, title, windowData }) => {
       <div className='flex items-center justify-between gap-2'>
         <div className='font-medium'>{title}</div>
         <Text type='tertiary' size='small'>
-          {tt('重置时间：')}
+          重置时间：
           {formatUnixSeconds(resetAt)}
         </Text>
       </div>
@@ -227,38 +222,37 @@ const RateLimitWindowCard = ({ t, title, windowData }) => {
 
       <div className='mt-1 flex flex-wrap items-center gap-2 text-xs text-semi-color-text-2'>
         <div>
-          {tt('已使用：')}
+          已使用：
           {hasWindowData ? `${percent}%` : '-'}
         </div>
         <div>
-          {tt('距离重置：')}
-          {hasWindowData ? formatDurationSeconds(resetAfterSeconds, tt) : '-'}
+          距离重置：
+          {hasWindowData ? formatDurationSeconds(resetAfterSeconds) : '-'}
         </div>
         <div>
-          {tt('窗口：')}
-          {hasWindowData ? formatDurationSeconds(limitWindowSeconds, tt) : '-'}
+          窗口：
+          {hasWindowData ? formatDurationSeconds(limitWindowSeconds) : '-'}
         </div>
       </div>
     </div>
   );
 };
 
-const CodexUsageView = ({ t, record, payload, onCopy, onRefresh }) => {
-  const tt = typeof t === 'function' ? t : (v) => v;
+const CodexUsageView = ({ record, payload, onCopy, onRefresh }) => {
   const [showRawJson, setShowRawJson] = useState(false);
   const data = payload?.data ?? null;
   const rateLimit = data?.rate_limit ?? {};
   const { fiveHourWindow, weeklyWindow } = resolveRateLimitWindows(data);
   const upstreamStatus = payload?.upstream_status;
   const accountType = data?.plan_type ?? rateLimit?.plan_type;
-  const accountTypeLabel = formatAccountTypeLabel(accountType, tt);
+  const accountTypeLabel = formatAccountTypeLabel(accountType);
   const accountTypeTagColor = getAccountTypeTagColor(accountType);
-  const statusTag = resolveUsageStatusTag(tt, rateLimit);
+  const statusTag = resolveUsageStatusTag(rateLimit);
   const userId = data?.user_id;
   const email = data?.email;
   const accountId = data?.account_id;
   const errorMessage =
-    payload?.success === false ? getDisplayText(payload?.message) || tt('获取用量失败') : '';
+    payload?.success === false ? getDisplayText(payload?.message) || '获取用量失败' : '';
 
   const rawText =
     typeof data === 'string' ? data : JSON.stringify(data ?? payload, null, 2);
@@ -275,7 +269,7 @@ const CodexUsageView = ({ t, record, payload, onCopy, onRefresh }) => {
         <div className='flex flex-wrap items-start justify-between gap-2'>
           <div className='min-w-0'>
             <div className='text-xs font-medium text-semi-color-text-2'>
-              {tt('Codex 帐号')}
+              Codex 帐号
             </div>
             <div className='mt-2 flex flex-wrap items-center gap-2'>
               <Tag
@@ -289,13 +283,13 @@ const CodexUsageView = ({ t, record, payload, onCopy, onRefresh }) => {
               </Tag>
               {statusTag}
               <Tag color='grey' type='light' shape='circle'>
-                {tt('上游状态码：')}
+                上游状态码：
                 {upstreamStatus ?? '-'}
               </Tag>
             </div>
           </div>
           <Button size='small' type='tertiary' theme='outline' onClick={onRefresh}>
-            {tt('刷新')}
+            刷新
           </Button>
         </div>
 
@@ -303,18 +297,16 @@ const CodexUsageView = ({ t, record, payload, onCopy, onRefresh }) => {
           <Descriptions>
             <Descriptions.Item itemKey='User ID'>
               <AccountInfoValue
-                t={tt}
                 value={userId}
                 onCopy={onCopy}
                 monospace={true}
               />
             </Descriptions.Item>
-            <Descriptions.Item itemKey={tt('邮箱')}>
-              <AccountInfoValue t={tt} value={email} onCopy={onCopy} />
+            <Descriptions.Item itemKey='邮箱'>
+              <AccountInfoValue value={email} onCopy={onCopy} />
             </Descriptions.Item>
             <Descriptions.Item itemKey='Account ID'>
               <AccountInfoValue
-                t={tt}
                 value={accountId}
                 onCopy={onCopy}
                 monospace={true}
@@ -324,8 +316,8 @@ const CodexUsageView = ({ t, record, payload, onCopy, onRefresh }) => {
         </div>
 
         <div className='mt-2 text-xs text-semi-color-text-2'>
-          {tt('渠道：')}
-          {record?.name || '-'} ({tt('编号：')}
+          渠道：
+          {record?.name || '-'} (编号：
           {record?.id || '-'})
         </div>
       </div>
@@ -333,23 +325,21 @@ const CodexUsageView = ({ t, record, payload, onCopy, onRefresh }) => {
       <div>
         <div className='mb-2'>
           <div className='text-sm font-semibold text-semi-color-text-0'>
-            {tt('额度窗口')}
+            额度窗口
           </div>
           <Text type='tertiary' size='small'>
-            {tt('用于观察当前帐号在 Codex 上游的限额使用情况')}
+            用于观察当前帐号在 Codex 上游的限额使用情况
           </Text>
         </div>
       </div>
 
       <div className='grid grid-cols-1 gap-3 md:grid-cols-2'>
         <RateLimitWindowCard
-          t={tt}
-          title={tt('5小时窗口')}
+          title='5小时窗口'
           windowData={fiveHourWindow}
         />
         <RateLimitWindowCard
-          t={tt}
-          title={tt('每周窗口')}
+          title='每周窗口'
           windowData={weeklyWindow}
         />
       </div>
@@ -361,7 +351,7 @@ const CodexUsageView = ({ t, record, payload, onCopy, onRefresh }) => {
           setShowRawJson(keys.includes('raw-json'));
         }}
       >
-        <Collapse.Panel header={tt('原始 JSON')} itemKey='raw-json'>
+        <Collapse.Panel header='原始 JSON' itemKey='raw-json'>
           <div className='mb-2 flex justify-end'>
             <Button
               size='small'
@@ -370,7 +360,7 @@ const CodexUsageView = ({ t, record, payload, onCopy, onRefresh }) => {
               onClick={() => onCopy?.(rawText)}
               disabled={!rawText}
             >
-              {tt('复制')}
+              复制
             </Button>
           </div>
           <pre className='max-h-[50vh] overflow-y-auto rounded-lg bg-semi-color-fill-0 p-3 text-xs text-semi-color-text-0'>
@@ -382,8 +372,7 @@ const CodexUsageView = ({ t, record, payload, onCopy, onRefresh }) => {
   );
 };
 
-const CodexUsageLoader = ({ t, record, initialPayload, onCopy }) => {
-  const tt = typeof t === 'function' ? t : (v) => v;
+const CodexUsageLoader = ({ record, initialPayload, onCopy }) => {
   const [loading, setLoading] = useState(!initialPayload);
   const [payload, setPayload] = useState(initialPayload ?? null);
   const hasShownErrorRef = useRef(false);
@@ -405,19 +394,19 @@ const CodexUsageLoader = ({ t, record, initialPayload, onCopy }) => {
       setPayload(res?.data ?? null);
       if (!res?.data?.success && !hasShownErrorRef.current) {
         hasShownErrorRef.current = true;
-        showError(tt('获取用量失败'));
+        showError('获取用量失败');
       }
     } catch (error) {
       if (!mountedRef.current) return;
       if (!hasShownErrorRef.current) {
         hasShownErrorRef.current = true;
-        showError(tt('获取用量失败'));
+        showError('获取用量失败');
       }
       setPayload({ success: false, message: String(error) });
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [recordId, tt]);
+  }, [recordId]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -434,7 +423,7 @@ const CodexUsageLoader = ({ t, record, initialPayload, onCopy }) => {
   if (loading) {
     return (
       <div className='flex items-center justify-center py-10'>
-        <Spin spinning={true} size='large' tip={tt('加载中...')} />
+        <Spin spinning={true} size='large' tip='加载中...' />
       </div>
     );
   }
@@ -442,7 +431,7 @@ const CodexUsageLoader = ({ t, record, initialPayload, onCopy }) => {
   if (!payload) {
     return (
       <div className='flex flex-col gap-3'>
-        <Text type='danger'>{tt('获取用量失败')}</Text>
+        <Text type='danger'>获取用量失败</Text>
         <div className='flex justify-end'>
           <Button
             size='small'
@@ -450,7 +439,7 @@ const CodexUsageLoader = ({ t, record, initialPayload, onCopy }) => {
             theme='outline'
             onClick={fetchUsage}
           >
-            {tt('刷新')}
+            刷新
           </Button>
         </div>
       </div>
@@ -459,7 +448,6 @@ const CodexUsageLoader = ({ t, record, initialPayload, onCopy }) => {
 
   return (
     <CodexUsageView
-      t={tt}
       record={record}
       payload={payload}
       onCopy={onCopy}
@@ -468,17 +456,14 @@ const CodexUsageLoader = ({ t, record, initialPayload, onCopy }) => {
   );
 };
 
-export const openCodexUsageModal = ({ t, record, payload, onCopy }) => {
-  const tt = typeof t === 'function' ? t : (v) => v;
-
+export const openCodexUsageModal = ({ record, payload, onCopy }) => {
   Modal.info({
-    title: tt('Codex 帐号与用量'),
+    title: 'Codex 帐号与用量',
     centered: true,
     width: 900,
     style: { maxWidth: '95vw' },
     content: (
       <CodexUsageLoader
-        t={tt}
         record={record}
         initialPayload={payload}
         onCopy={onCopy}
@@ -487,7 +472,7 @@ export const openCodexUsageModal = ({ t, record, payload, onCopy }) => {
     footer: (
       <div className='flex justify-end gap-2'>
         <Button type='primary' theme='solid' onClick={() => Modal.destroyAll()}>
-          {tt('关闭')}
+          关闭
         </Button>
       </div>
     ),

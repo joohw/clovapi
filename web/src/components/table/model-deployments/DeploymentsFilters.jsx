@@ -26,13 +26,13 @@ const DeploymentsFilters = ({
   };
 
   const statusOptions = [
-    { label: t('全部状态'), value: '' },
-    { label: t('运行中'), value: 'running' },
-    { label: t('已完成'), value: 'completed' },
-    { label: t('失败'), value: 'failed' },
-    { label: t('部署请求中'), value: 'deployment requested' },
-    { label: t('终止请求中'), value: 'termination requested' },
-    { label: t('已销毁'), value: 'destroyed' },
+    { label: "全部状态", value: '' },
+    { label: "运行中", value: 'running' },
+    { label: "已完成", value: 'completed' },
+    { label: "失败", value: 'failed' },
+    { label: "部署请求中", value: 'deployment requested' },
+    { label: "终止请求中", value: 'termination requested' },
+    { label: "已销毁", value: 'destroyed' },
   ];
 
   return (
@@ -50,7 +50,7 @@ const DeploymentsFilters = ({
         <div className='w-full md:w-64'>
           <Form.Input
             field='searchKeyword'
-            placeholder={t('搜索部署名称')}
+            placeholder={"搜索部署名称"}
             prefix={<IconSearch />}
             showClear
             size='small'
@@ -61,7 +61,7 @@ const DeploymentsFilters = ({
         <div className='w-full md:w-48'>
           <Form.Select
             field='searchStatus'
-            placeholder={t('选择状态')}
+            placeholder={"选择状态"}
             optionList={statusOptions}
             className='w-full'
             showClear
@@ -80,7 +80,7 @@ const DeploymentsFilters = ({
             size='small'
             className='flex-1 md:flex-initial md:w-auto'
           >
-            {t('查询')}
+            {"查询"}
           </Button>
 
           <Button
@@ -91,7 +91,7 @@ const DeploymentsFilters = ({
             size='small'
             className='flex-1 md:flex-initial md:w-auto'
           >
-            {t('重置')}
+            {"重置"}
           </Button>
 
           <Button
@@ -100,7 +100,7 @@ const DeploymentsFilters = ({
             size='small'
             className='flex-1 md:flex-initial md:w-auto'
           >
-            {t('列设置')}
+            {"列设置"}
           </Button>
         </div>
       </div>

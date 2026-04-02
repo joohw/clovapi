@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import { SSE } from 'sse.js';
 import {
   API_ENDPOINTS,
@@ -20,8 +19,6 @@ export const useApiRequest = (
   sseSourceRef,
   saveMessages,
 ) => {
-  const { t } = useTranslation();
-
   // 处理消息自动关闭逻辑的公共函数
   const applyAutoCollapseLogic = useCallback(
     (message, isThinkingComplete = true) => {
@@ -257,7 +254,7 @@ export const useApiRequest = (
 
             newMessages[newMessages.length - 1] = {
               ...lastMessage,
-              content: t('请求发生错误: ') + error.message,
+              content: "请求发生错误: " + error.message,
               status: MESSAGE_STATUS.ERROR,
               ...autoCollapseState,
             };
@@ -266,7 +263,7 @@ export const useApiRequest = (
         });
       }
     },
-    [setDebugData, setActiveDebugTab, setMessage, t, applyAutoCollapseLogic],
+    [setDebugData, setActiveDebugTab, setMessage, applyAutoCollapseLogic],
   );
 
   // SSE请求
@@ -351,7 +348,7 @@ export const useApiRequest = (
           }));
           setActiveDebugTab(DEBUG_TABS.RESPONSE);
 
-          streamMessageUpdate(t('解析响应数据时发生错误'), 'content');
+          streamMessageUpdate("解析响应数据时发生错误", 'content');
           completeMessage(MESSAGE_STATUS.ERROR);
         }
       });
@@ -360,7 +357,7 @@ export const useApiRequest = (
         // 只有在流没有正常完成且连接状态异常时才处理错误
         if (!isStreamComplete && source.readyState !== 2) {
           console.error('SSE Error:', e);
-          const errorMessage = e.data || t('请求发生错误');
+          const errorMessage = e.data || "请求发生错误";
 
           const errorInfo = handleApiError(new Error(errorMessage));
           errorInfo.readyState = source.readyState;
@@ -403,7 +400,7 @@ export const useApiRequest = (
           setActiveDebugTab(DEBUG_TABS.RESPONSE);
 
           source.close();
-          streamMessageUpdate(t('连接已断开'), 'content');
+          streamMessageUpdate("连接已断开", 'content');
           completeMessage(MESSAGE_STATUS.ERROR);
         }
       });
@@ -420,7 +417,7 @@ export const useApiRequest = (
         }));
         setActiveDebugTab(DEBUG_TABS.RESPONSE);
 
-        streamMessageUpdate(t('建立连接时发生错误'), 'content');
+        streamMessageUpdate("建立连接时发生错误", 'content');
         completeMessage(MESSAGE_STATUS.ERROR);
       }
     },
@@ -429,7 +426,6 @@ export const useApiRequest = (
       setActiveDebugTab,
       streamMessageUpdate,
       completeMessage,
-      t,
       applyAutoCollapseLogic,
     ],
   );

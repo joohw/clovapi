@@ -8,11 +8,9 @@ import {
   showWarning,
   parseHttpStatusCodeRules,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
 import HttpStatusCodeRulesInput from '../../../components/settings/HttpStatusCodeRulesInput';
 
 export default function SettingsMonitoring(props) {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState({
     ChannelDisableThreshold: '',
@@ -37,14 +35,14 @@ export default function SettingsMonitoring(props) {
 
   function onSubmit() {
     const updateArray = compareObjects(inputs, inputsRow);
-    if (!updateArray.length) return showWarning(t('你似乎并没有修改什么'));
+    if (!updateArray.length) return showWarning("你似乎并没有修改什么");
     if (!parsedAutoDisableStatusCodes.ok) {
       const details =
         parsedAutoDisableStatusCodes.invalidTokens &&
         parsedAutoDisableStatusCodes.invalidTokens.length > 0
           ? `: ${parsedAutoDisableStatusCodes.invalidTokens.join(', ')}`
           : '';
-      return showError(`${t('自动禁用状态码格式不正确')}${details}`);
+      return showError(`${"自动禁用状态码格式不正确"}${details}`);
     }
     if (!parsedAutoRetryStatusCodes.ok) {
       const details =
@@ -52,7 +50,7 @@ export default function SettingsMonitoring(props) {
         parsedAutoRetryStatusCodes.invalidTokens.length > 0
           ? `: ${parsedAutoRetryStatusCodes.invalidTokens.join(', ')}`
           : '';
-      return showError(`${t('自动重试状态码格式不正确')}${details}`);
+      return showError(`${"自动重试状态码格式不正确"}${details}`);
     }
     const requestQueue = updateArray.map((item) => {
       let value = '';
@@ -77,13 +75,13 @@ export default function SettingsMonitoring(props) {
           if (res.includes(undefined)) return;
         } else if (requestQueue.length > 1) {
           if (res.includes(undefined))
-            return showError(t('部分保存失败，请重试'));
+            return showError("部分保存失败，请重试");
         }
-        showSuccess(t('保存成功'));
+        showSuccess("保存成功");
         props.refresh();
       })
       .catch(() => {
-        showError(t('保存失败，请重试'));
+        showError("保存失败，请重试");
       })
       .finally(() => {
         setLoading(false);
@@ -110,12 +108,12 @@ export default function SettingsMonitoring(props) {
           getFormApi={(formAPI) => (refForm.current = formAPI)}
           style={{ marginBottom: 15 }}
         >
-          <Form.Section text={t('监控设置')}>
+          <Form.Section text={"监控设置"}>
             <Row gutter={16}>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Switch
                   field={'monitor_setting.auto_test_channel_enabled'}
-                  label={t('定时测试所有通道')}
+                  label={"定时测试所有通道"}
                   size='default'
                   checkedText='｜'
                   uncheckedText='〇'
@@ -129,11 +127,11 @@ export default function SettingsMonitoring(props) {
               </Col>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
-                  label={t('自动测试所有通道间隔时间')}
+                  label={"自动测试所有通道间隔时间"}
                   step={1}
                   min={1}
-                  suffix={t('分钟')}
-                  extraText={t('每隔多少分钟测试一次所有通道')}
+                  suffix={"分钟"}
+                  extraText={"每隔多少分钟测试一次所有通道"}
                   placeholder={''}
                   field={'monitor_setting.auto_test_channel_minutes'}
                   onChange={(value) =>
@@ -149,13 +147,11 @@ export default function SettingsMonitoring(props) {
             <Row gutter={16}>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
-                  label={t('测试所有渠道的最长响应时间')}
+                  label={"测试所有渠道的最长响应时间"}
                   step={1}
                   min={0}
-                  suffix={t('秒')}
-                  extraText={t(
-                    '当运行通道全部测试时，超过此时间将自动禁用通道',
-                  )}
+                  suffix={"秒"}
+                  extraText={"当运行通道全部测试时，超过此时间将自动禁用通道"}
                   placeholder={''}
                   field={'ChannelDisableThreshold'}
                   onChange={(value) =>
@@ -168,11 +164,11 @@ export default function SettingsMonitoring(props) {
               </Col>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
-                  label={t('额度提醒阈值')}
+                  label={"额度提醒阈值"}
                   step={1}
                   min={0}
                   suffix={'Token'}
-                  extraText={t('低于此额度时将发送邮件提醒用户')}
+                  extraText={"低于此额度时将发送邮件提醒用户"}
                   placeholder={''}
                   field={'QuotaRemindThreshold'}
                   onChange={(value) =>
@@ -188,7 +184,7 @@ export default function SettingsMonitoring(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Switch
                   field={'AutomaticDisableChannelEnabled'}
-                  label={t('失败时自动禁用通道')}
+                  label={"失败时自动禁用通道"}
                   size='default'
                   checkedText='｜'
                   uncheckedText='〇'
@@ -203,7 +199,7 @@ export default function SettingsMonitoring(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Switch
                   field={'AutomaticEnableChannelEnabled'}
-                  label={t('成功时自动启用通道')}
+                  label={"成功时自动启用通道"}
                   size='default'
                   checkedText='｜'
                   uncheckedText='〇'
@@ -219,37 +215,31 @@ export default function SettingsMonitoring(props) {
             <Row gutter={16}>
               <Col xs={24} sm={16}>
                 <HttpStatusCodeRulesInput
-                  label={t('自动禁用状态码')}
-                  placeholder={t('例如：401, 403, 429, 500-599')}
-                  extraText={t(
-                    '支持填写单个状态码或范围（含首尾），使用逗号分隔',
-                  )}
+                  label={"自动禁用状态码"}
+                  placeholder={"例如：401, 403, 429, 500-599"}
+                  extraText={"支持填写单个状态码或范围（含首尾），使用逗号分隔"}
                   field={'AutomaticDisableStatusCodes'}
                   onChange={(value) =>
                     setInputs({ ...inputs, AutomaticDisableStatusCodes: value })
                   }
                   parsed={parsedAutoDisableStatusCodes}
-                  invalidText={t('自动禁用状态码格式不正确')}
+                  invalidText={"自动禁用状态码格式不正确"}
                 />
                 <HttpStatusCodeRulesInput
-                  label={t('自动重试状态码')}
-                  placeholder={t('例如：401, 403, 429, 500-599')}
-                  extraText={t(
-                    '支持填写单个状态码或范围（含首尾），使用逗号分隔；504 和 524 始终不重试，不受此处配置影响',
-                  )}
+                  label={"自动重试状态码"}
+                  placeholder={"例如：401, 403, 429, 500-599"}
+                  extraText={"支持填写单个状态码或范围（含首尾），使用逗号分隔；504 和 524 始终不重试，不受此处配置影响"}
                   field={'AutomaticRetryStatusCodes'}
                   onChange={(value) =>
                     setInputs({ ...inputs, AutomaticRetryStatusCodes: value })
                   }
                   parsed={parsedAutoRetryStatusCodes}
-                  invalidText={t('自动重试状态码格式不正确')}
+                  invalidText={"自动重试状态码格式不正确"}
                 />
                 <Form.TextArea
-                  label={t('自动禁用关键词')}
-                  placeholder={t('一行一个，不区分大小写')}
-                  extraText={t(
-                    '当上游通道返回错误中包含这些关键词时（不区分大小写），自动禁用通道',
-                  )}
+                  label={"自动禁用关键词"}
+                  placeholder={"一行一个，不区分大小写"}
+                  extraText={"当上游通道返回错误中包含这些关键词时（不区分大小写），自动禁用通道"}
                   field={'AutomaticDisableKeywords'}
                   autosize={{ minRows: 6, maxRows: 12 }}
                   onChange={(value) =>
@@ -260,7 +250,7 @@ export default function SettingsMonitoring(props) {
             </Row>
             <Row>
               <Button size='default' onClick={onSubmit}>
-                {t('保存监控设置')}
+                {"保存监控设置"}
               </Button>
             </Row>
           </Form.Section>

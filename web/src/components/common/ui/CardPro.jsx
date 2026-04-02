@@ -33,13 +33,12 @@ const CardPro = ({
   actionsArea,
   searchArea,
   paginationArea, // 新增分页区域
+  showHeaderDivider = true,
   // 卡片属性
-  shadows = '',
+  shadows,
   bordered = true,
   // 自定义样式
   style,
-  // 国际化函数
-  t = (key) => key,
   ...props
 }) => {
   const isMobile = useIsMobile();
@@ -67,8 +66,9 @@ const CardPro = ({
         )}
 
         {/* 第一个分隔线 - 在描述信息或统计信息后面 */}
-        {((type === 'type1' || type === 'type3') && descriptionArea) ||
-        (type === 'type2' && statsArea) ? (
+        {showHeaderDivider &&
+        (((type === 'type1' || type === 'type3') && descriptionArea) ||
+          (type === 'type2' && statsArea)) ? (
           <Divider margin='12px' />
         ) : null}
 
@@ -87,7 +87,7 @@ const CardPro = ({
                 theme='outline'
                 block
               >
-                {showMobileActions ? t('隐藏操作项') : t('显示操作项')}
+                {showMobileActions ? "隐藏操作项" : "显示操作项"}
               </Button>
             </div>
           </>
@@ -138,13 +138,15 @@ const CardPro = ({
   };
 
   const footerContent = renderFooter();
+  const cardShadows =
+    shadows === 'hover' || shadows === 'always' ? shadows : undefined;
 
   return (
     <Card
       className={`table-scroll-card !rounded-2xl ${className}`}
       title={headerContent}
       footer={footerContent}
-      shadows={shadows}
+      shadows={cardShadows}
       bordered={bordered}
       style={style}
       {...props}
@@ -160,7 +162,7 @@ CardPro.propTypes = {
   // 样式相关
   className: PropTypes.string,
   style: PropTypes.object,
-  shadows: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
+  shadows: PropTypes.oneOf(['hover', 'always']),
   bordered: PropTypes.bool,
   // 内容区域
   statsArea: PropTypes.node,
@@ -172,10 +174,9 @@ CardPro.propTypes = {
   ]),
   searchArea: PropTypes.node,
   paginationArea: PropTypes.node,
+  showHeaderDivider: PropTypes.bool,
   // 表格内容
   children: PropTypes.node,
-  // 国际化函数
-  t: PropTypes.func,
 };
 
 export default CardPro;

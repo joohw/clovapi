@@ -25,13 +25,13 @@ const DeleteUserModal = ({
 
   return (
     <Modal
-      title={t('确定是否要注销此用户？')}
+      title={"确定是否要注销此用户？"}
       visible={visible}
       onCancel={onCancel}
       onOk={handleConfirm}
       type='danger'
     >
-      {t('相当于删除用户，此修改将不可逆')}
+      {"相当于删除用户，此修改将不可逆"}
     </Modal>
   );
 };

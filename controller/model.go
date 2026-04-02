@@ -255,9 +255,16 @@ func DashboardListModels(c *gin.Context) {
 }
 
 func EnabledListModels(c *gin.Context) {
+	models := model.GetEnabledModels()
+	details, err := model.GetEnabledModelInfos()
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	c.JSON(200, gin.H{
 		"success": true,
-		"data":    model.GetEnabledModels(),
+		"data":    models,   // backward-compatible: keep original string list
+		"details": details,  // richer metadata for admin model pages
 	})
 }
 

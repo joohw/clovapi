@@ -4,7 +4,7 @@ import { resetPricingFilters } from '../../../../helpers/utils';
 import FilterModalContent from './components/FilterModalContent';
 import FilterModalFooter from './components/FilterModalFooter';
 
-const PricingFilterModal = ({ visible, onClose, sidebarProps, t }) => {
+const PricingFilterModal = ({ visible, onClose, sidebarProps }) => {
   const handleResetFilters = () =>
     resetPricingFilters({
       handleChange: sidebarProps.handleChange,
@@ -22,12 +22,12 @@ const PricingFilterModal = ({ visible, onClose, sidebarProps, t }) => {
     });
 
   const footer = (
-    <FilterModalFooter onReset={handleResetFilters} onConfirm={onClose} t={t} />
+    <FilterModalFooter onReset={handleResetFilters} onConfirm={onClose} />
   );
 
   return (
     <Modal
-      title={t('筛选')}
+      title={"筛选"}
       visible={visible}
       onCancel={onClose}
       footer={footer}
@@ -40,7 +40,7 @@ const PricingFilterModal = ({ visible, onClose, sidebarProps, t }) => {
         msOverflowStyle: 'none',
       }}
     >
-      <FilterModalContent sidebarProps={sidebarProps} t={t} />
+      <FilterModalContent sidebarProps={sidebarProps} />
     </Modal>
   );
 };

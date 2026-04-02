@@ -1,6 +1,5 @@
 import React, { useContext, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { Layout, Toast, Modal } from '@douyinfe/semi-ui';
 
 // Context
@@ -59,7 +58,6 @@ const generateAvatarDataUrl = (username) => {
 };
 
 const Playground = () => {
-  const { t } = useTranslation();
   const [userState] = useContext(UserContext);
   const isMobile = useIsMobile();
   const styleState = { isMobile };
@@ -369,9 +367,9 @@ const Playground = () => {
   // 处理URL参数
   useEffect(() => {
     if (searchParams.get('expired')) {
-      Toast.warning(t('登录过期，请重新登录！'));
+      Toast.warning("登录过期，请重新登录！");
     }
-  }, [searchParams, t]);
+  }, [searchParams]);
 
   // Playground 组件无需再监听窗口变化，isMobile 由 useIsMobile Hook 自动更新
 

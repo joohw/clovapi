@@ -6,10 +6,7 @@ import SettingsPaymentGatewayStripe from '../../pages/Setting/Payment/SettingsPa
 import SettingsPaymentGatewayCreem from '../../pages/Setting/Payment/SettingsPaymentGatewayCreem';
 import SettingsPaymentGatewayWaffo from '../../pages/Setting/Payment/SettingsPaymentGatewayWaffo';
 import { API, showError, toBoolean } from '../../helpers';
-import { useTranslation } from 'react-i18next';
-
 const PaymentSetting = () => {
-  const { t } = useTranslation();
   let [inputs, setInputs] = useState({
     ServerAddress: '',
     PayAddress: '',
@@ -91,7 +88,7 @@ const PaymentSetting = () => {
 
       setInputs(newInputs);
     } else {
-      showError(t(message));
+      showError(message);
     }
   };
 
@@ -100,7 +97,7 @@ const PaymentSetting = () => {
       setLoading(true);
       await getOptions();
     } catch (error) {
-      showError(t('刷新失败'));
+      showError("刷新失败");
     } finally {
       setLoading(false);
     }

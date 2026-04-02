@@ -3,10 +3,12 @@ package model
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 
 	"github.com/samber/lo"
 	"gorm.io/gorm"
@@ -26,6 +28,33 @@ type Ability struct {
 type AbilityWithChannel struct {
 	Ability
 	ChannelType int `json:"channel_type"`
+}
+
+type EnabledModelInfo struct {
+	ModelName              string                  `json:"model_name"`
+	Status                 int                     `json:"status"`
+	BillingType            string                  `json:"billing_type"`
+	QuotaType              int                     `json:"quota_type"`
+	ModelRatio             *float64                `json:"model_ratio,omitempty"`
+	ModelPrice             *float64                `json:"model_price,omitempty"`
+	CompletionRatio        *float64                `json:"completion_ratio,omitempty"`
+	CacheRatio             *float64                `json:"cache_ratio,omitempty"`
+	CreateCacheRatio       *float64                `json:"create_cache_ratio,omitempty"`
+	ImageRatio             *float64                `json:"image_ratio,omitempty"`
+	AudioRatio             *float64                `json:"audio_ratio,omitempty"`
+	AudioCompletionRatio   *float64                `json:"audio_completion_ratio,omitempty"`
+	ToolCall               bool                    `json:"tool_call"`
+	EnableGroups           []string                `json:"enable_groups,omitempty"`
+	SupportedEndpointTypes []constant.EndpointType `json:"supported_endpoint_types,omitempty"`
+	VendorID               int                     `json:"vendor_id,omitempty"`
+	Description            string                  `json:"description,omitempty"`
+	Icon                   string                  `json:"icon,omitempty"`
+	Tags                   string                  `json:"tags,omitempty"`
+}
+
+func float64Ptr(v float64) *float64 {
+	value := v
+	return &value
 }
 
 func GetAllEnableAbilityWithChannels() ([]AbilityWithChannel, error) {
@@ -50,6 +79,85 @@ func GetEnabledModels() []string {
 	// Find distinct models
 	DB.Table("abilities").Where("enabled = ?", true).Distinct("model").Pluck("model", &models)
 	return models
+}
+
+func GetEnabledModelInfos() ([]EnabledModelInfo, error) {
+	modelNames := GetEnabledModels()
+	if len(modelNames) == 0 {
+		return []EnabledModelInfo{}, nil
+	}
+
+	sort.Strings(modelNames)
+
+	pricingByModel := make(map[string]Pricing)
+	for _, pricing := range GetPricing() {
+		pricingByModel[pricing.ModelName] = pricing
+	}
+
+	var metas []Model
+	if err := DB.Select("model_name", "status", "vendor_id", "description", "icon", "tags").
+		Where("model_name IN ?", modelNames).
+		Find(&metas).Error; err != nil {
+		return nil, err
+	}
+	metaByModel := make(map[string]Model, len(metas))
+	for _, meta := range metas {
+		metaByModel[meta.ModelName] = meta
+	}
+
+	infos := make([]EnabledModelInfo, 0, len(modelNames))
+	for _, modelName := range modelNames {
+		info := EnabledModelInfo{
+			ModelName:   modelName,
+			Status:      1,
+			BillingType: "unknown",
+		}
+
+		if pricing, ok := pricingByModel[modelName]; ok {
+			info.QuotaType = pricing.QuotaType
+			info.ToolCall = pricing.ToolCall
+			info.EnableGroups = pricing.EnableGroup
+			info.SupportedEndpointTypes = pricing.SupportedEndpointTypes
+			info.VendorID = pricing.VendorID
+			info.Description = pricing.Description
+			info.Icon = pricing.Icon
+			info.Tags = pricing.Tags
+
+			if pricing.QuotaType == 1 {
+				info.BillingType = "per-request"
+				info.ModelPrice = float64Ptr(pricing.ModelPrice)
+			} else {
+				info.BillingType = "per-token"
+				info.ModelRatio = float64Ptr(pricing.ModelRatio)
+				info.CompletionRatio = float64Ptr(pricing.CompletionRatio)
+			}
+			info.CacheRatio = pricing.CacheRatio
+			info.CreateCacheRatio = pricing.CreateCacheRatio
+			info.ImageRatio = pricing.ImageRatio
+			info.AudioRatio = pricing.AudioRatio
+			info.AudioCompletionRatio = pricing.AudioCompletionRatio
+		}
+
+		if meta, ok := metaByModel[modelName]; ok {
+			info.Status = meta.Status
+			if info.VendorID == 0 {
+				info.VendorID = meta.VendorID
+			}
+			if info.Description == "" {
+				info.Description = meta.Description
+			}
+			if info.Icon == "" {
+				info.Icon = meta.Icon
+			}
+			if info.Tags == "" {
+				info.Tags = meta.Tags
+			}
+		}
+
+		infos = append(infos, info)
+	}
+
+	return infos, nil
 }
 
 func GetAllEnableAbilities() []Ability {

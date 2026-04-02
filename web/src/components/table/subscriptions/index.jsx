@@ -25,7 +25,6 @@ const SubscriptionsPage = () => {
     openCreate,
     compactMode,
     setCompactMode,
-    t,
   } = subscriptionsData;
 
   return (
@@ -36,7 +35,6 @@ const SubscriptionsPage = () => {
         editingPlan={editingPlan}
         placement={sheetPlacement}
         refresh={refresh}
-        t={t}
       />
 
       <CardPro
@@ -45,18 +43,17 @@ const SubscriptionsPage = () => {
           <SubscriptionsDescription
             compactMode={compactMode}
             setCompactMode={setCompactMode}
-            t={t}
           />
         }
         actionsArea={
           <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-2 w-full'>
             {/* Mobile: actions first; Desktop: actions left */}
             <div className='order-1 md:order-0 w-full md:w-auto'>
-              <SubscriptionsActions openCreate={openCreate} t={t} />
+              <SubscriptionsActions openCreate={openCreate} />
             </div>
             <Banner
               type='info'
-              description={t('Stripe/Creem 需在第三方平台创建商品并填入 ID')}
+              description={"Stripe/Creem 需在第三方平台创建商品并填入 ID"}
               closeIcon={null}
               // Mobile: banner below; Desktop: banner right
               className='!rounded-lg order-2 md:order-1'
@@ -71,9 +68,7 @@ const SubscriptionsPage = () => {
           onPageChange: subscriptionsData.handlePageChange,
           onPageSizeChange: subscriptionsData.handlePageSizeChange,
           isMobile,
-          t: subscriptionsData.t,
         })}
-        t={t}
       >
         <SubscriptionsTable {...subscriptionsData} enableEpay={enableEpay} />
       </CardPro>

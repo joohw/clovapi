@@ -8,7 +8,6 @@ import {
   showWarning,
   verifyJSON,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
 import Text from '@douyinfe/semi-ui/lib/es/typography/text';
 
 const GEMINI_SETTING_EXAMPLE = {
@@ -30,8 +29,6 @@ const DEFAULT_GEMINI_INPUTS = {
 };
 
 export default function SettingGeminiModel(props) {
-  const { t } = useTranslation();
-
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState(DEFAULT_GEMINI_INPUTS);
   const refForm = useRef();
@@ -42,7 +39,7 @@ export default function SettingGeminiModel(props) {
       .validate()
       .then(() => {
         const updateArray = compareObjects(inputs, inputsRow);
-        if (!updateArray.length) return showWarning(t('你似乎并没有修改什么'));
+        if (!updateArray.length) return showWarning("你似乎并没有修改什么");
         const requestQueue = updateArray.map((item) => {
           let value = String(inputs[item.key]);
           return API.put('/api/option/', {
@@ -57,13 +54,13 @@ export default function SettingGeminiModel(props) {
               if (res.includes(undefined)) return;
             } else if (requestQueue.length > 1) {
               if (res.includes(undefined))
-                return showError(t('部分保存失败，请重试'));
+                return showError("部分保存失败，请重试");
             }
-            showSuccess(t('保存成功'));
+            showSuccess("保存成功");
             props.refresh();
           })
           .catch(() => {
-            showError(t('保存失败，请重试'));
+            showError("保存失败，请重试");
           })
           .finally(() => {
             setLoading(false);
@@ -71,7 +68,7 @@ export default function SettingGeminiModel(props) {
       })
       .catch((error) => {
         console.error('Validation failed:', error);
-        showError(t('请检查输入'));
+        showError("请检查输入");
       });
   }
 
@@ -95,27 +92,25 @@ export default function SettingGeminiModel(props) {
           getFormApi={(formAPI) => (refForm.current = formAPI)}
           style={{ marginBottom: 15 }}
         >
-          <Form.Section text={t('Gemini设置')}>
+          <Form.Section text={"Gemini设置"}>
             <Row>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.TextArea
-                  label={t('Gemini安全设置')}
+                  label={"Gemini安全设置"}
                   placeholder={
-                    t('为一个 JSON 文本，例如：') +
+                    "为一个 JSON 文本，例如：" +
                     '\n' +
                     JSON.stringify(GEMINI_SETTING_EXAMPLE, null, 2)
                   }
                   field={'gemini.safety_settings'}
-                  extraText={t(
-                    'default为默认设置，可单独设置每个分类的安全等级',
-                  )}
+                  extraText={"default为默认设置，可单独设置每个分类的安全等级"}
                   autosize={{ minRows: 6, maxRows: 12 }}
                   trigger='blur'
                   stopValidateWithError
                   rules={[
                     {
                       validator: (rule, value) => verifyJSON(value),
-                      message: t('不是合法的 JSON 字符串'),
+                      message: "不是合法的 JSON 字符串",
                     },
                   ]}
                   onChange={(value) =>
@@ -127,21 +122,21 @@ export default function SettingGeminiModel(props) {
             <Row>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.TextArea
-                  label={t('Gemini版本设置')}
+                  label={"Gemini版本设置"}
                   placeholder={
-                    t('为一个 JSON 文本，例如：') +
+                    "为一个 JSON 文本，例如：" +
                     '\n' +
                     JSON.stringify(GEMINI_VERSION_EXAMPLE, null, 2)
                   }
                   field={'gemini.version_settings'}
-                  extraText={t('default为默认设置，可单独设置每个模型的版本')}
+                  extraText={"default为默认设置，可单独设置每个模型的版本"}
                   autosize={{ minRows: 6, maxRows: 12 }}
                   trigger='blur'
                   stopValidateWithError
                   rules={[
                     {
                       validator: (rule, value) => verifyJSON(value),
-                      message: t('不是合法的 JSON 字符串'),
+                      message: "不是合法的 JSON 字符串",
                     },
                   ]}
                   onChange={(value) =>
@@ -153,11 +148,9 @@ export default function SettingGeminiModel(props) {
             <Row>
               <Col span={16}>
                 <Form.Switch
-                  label={t('启用FunctionCall思维签名填充')}
+                  label={"启用FunctionCall思维签名填充"}
                   field={'gemini.function_call_thought_signature_enabled'}
-                  extraText={t(
-                    '仅为使用OpenAI格式的Gemini/Vertex渠道填充thoughtSignature',
-                  )}
+                  extraText={"仅为使用OpenAI格式的Gemini/Vertex渠道填充thoughtSignature"}
                   onChange={(value) =>
                     setInputs({
                       ...inputs,
@@ -170,11 +163,9 @@ export default function SettingGeminiModel(props) {
             <Row>
               <Col span={16}>
                 <Form.Switch
-                  label={t('移除 functionResponse.id 字段')}
+                  label={"移除 functionResponse.id 字段"}
                   field={'gemini.remove_function_response_id_enabled'}
-                  extraText={t(
-                    'Vertex AI 不支持 functionResponse.id 字段，开启后将自动移除该字段',
-                  )}
+                  extraText={"Vertex AI 不支持 functionResponse.id 字段，开启后将自动移除该字段"}
                   onChange={(value) =>
                     setInputs({
                       ...inputs,
@@ -188,9 +179,9 @@ export default function SettingGeminiModel(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.TextArea
                   field={'gemini.supported_imagine_models'}
-                  label={t('支持的图像模型')}
+                  label={"支持的图像模型"}
                   placeholder={
-                    t('例如：') +
+                    "例如：" +
                     '\n' +
                     JSON.stringify(
                       ['gemini-2.0-flash-exp-image-generation'],
@@ -209,7 +200,7 @@ export default function SettingGeminiModel(props) {
                   rules={[
                     {
                       validator: (rule, value) => verifyJSON(value),
-                      message: t('不是合法的 JSON 字符串'),
+                      message: "不是合法的 JSON 字符串",
                     },
                   ]}
                 />
@@ -217,26 +208,24 @@ export default function SettingGeminiModel(props) {
             </Row>
           </Form.Section>
 
-          <Form.Section text={t('Gemini思考适配设置')}>
+          <Form.Section text={"Gemini思考适配设置"}>
             <Row>
               <Col span={16}>
                 <Text>
-                  {t(
+                  {
                     '和Claude不同，默认情况下Gemini的思考模型会自动决定要不要思考，就算不开启适配模型也可以正常使用，' +
                       '如果您需要计费，推荐设置无后缀模型价格按思考价格设置。' +
-                      '支持使用 gemini-2.5-pro-preview-06-05-thinking-128 格式来精确传递思考预算。',
-                  )}
+                      '支持使用 gemini-2.5-pro-preview-06-05-thinking-128 格式来精确传递思考预算。'
+                  }
                 </Text>
               </Col>
             </Row>
             <Row>
               <Col span={16}>
                 <Form.Switch
-                  label={t('启用Gemini思考后缀适配')}
+                  label={"启用Gemini思考后缀适配"}
                   field={'gemini.thinking_adapter_enabled'}
-                  extraText={t(
-                    '适配 -thinking、-thinking-预算数字 和 -nothinking 后缀',
-                  )}
+                  extraText={"适配 -thinking、-thinking-预算数字 和 -nothinking 后缀"}
                   onChange={(value) =>
                     setInputs({
                       ...inputs,
@@ -249,19 +238,17 @@ export default function SettingGeminiModel(props) {
             <Row>
               <Col span={16}>
                 <Text>
-                  {t(
-                    'Gemini思考适配 BudgetTokens = MaxTokens * BudgetTokens 百分比',
-                  )}
+                  {"Gemini思考适配 BudgetTokens = MaxTokens * BudgetTokens 百分比"}
                 </Text>
               </Col>
             </Row>
             <Row>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
-                  label={t('思考预算占比')}
+                  label={"思考预算占比"}
                   field={'gemini.thinking_adapter_budget_tokens_percentage'}
                   initValue={''}
-                  extraText={t('0.002-1之间的小数')}
+                  extraText={"0.002-1之间的小数"}
                   min={0.002}
                   max={1}
                   onChange={(value) =>
@@ -277,7 +264,7 @@ export default function SettingGeminiModel(props) {
 
           <Row>
             <Button size='default' onClick={onSubmit}>
-              {t('保存')}
+              {"保存"}
             </Button>
           </Row>
         </Form>

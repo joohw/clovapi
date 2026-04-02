@@ -18,10 +18,7 @@ import {
   showSuccess,
   showWarning,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 export default function GeneralSettings(props) {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [showQuotaWarning, setShowQuotaWarning] = useState(false);
   const [inputs, setInputs] = useState({
@@ -50,7 +47,7 @@ export default function GeneralSettings(props) {
 
   function onSubmit() {
     const updateArray = compareObjects(inputs, inputsRow);
-    if (!updateArray.length) return showWarning(t('你似乎并没有修改什么'));
+    if (!updateArray.length) return showWarning("你似乎并没有修改什么");
     const requestQueue = updateArray.map((item) => {
       let value = '';
       if (typeof inputs[item.key] === 'boolean') {
@@ -70,13 +67,13 @@ export default function GeneralSettings(props) {
           if (res.includes(undefined)) return;
         } else if (requestQueue.length > 1) {
           if (res.includes(undefined))
-            return showError(t('部分保存失败，请重试'));
+            return showError("部分保存失败，请重试");
         }
-        showSuccess(t('保存成功'));
+        showSuccess("保存成功");
         props.refresh();
       })
       .catch(() => {
-        showError(t('保存失败，请重试'));
+        showError("保存失败，请重试");
       })
       .finally(() => {
         setLoading(false);
@@ -149,14 +146,14 @@ export default function GeneralSettings(props) {
           getFormApi={(formAPI) => (refForm.current = formAPI)}
           style={{ marginBottom: 15 }}
         >
-          <Form.Section text={t('通用设置')}>
+          <Form.Section text={"通用设置"}>
             <Row gutter={16}>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Input
                   field={'TopUpLink'}
-                  label={t('充值链接')}
+                  label={"充值链接"}
                   initValue={''}
-                  placeholder={t('例如发卡网站的购买链接')}
+                  placeholder={"例如发卡网站的购买链接"}
                   onChange={handleFieldChange('TopUpLink')}
                   showClear
                 />
@@ -164,9 +161,9 @@ export default function GeneralSettings(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Input
                   field={'general_setting.docs_link'}
-                  label={t('文档地址')}
+                  label={"文档地址"}
                   initValue={''}
-                  placeholder={t('例如 https://docs.newapi.pro')}
+                  placeholder={"例如 https://docs.newapi.pro"}
                   onChange={handleFieldChange('general_setting.docs_link')}
                   showClear
                 />
@@ -175,15 +172,15 @@ export default function GeneralSettings(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Input
                   field={'RetryTimes'}
-                  label={t('失败重试次数')}
+                  label={"失败重试次数"}
                   initValue={''}
-                  placeholder={t('失败重试次数')}
+                  placeholder={"失败重试次数"}
                   onChange={handleFieldChange('RetryTimes')}
                   showClear
                 />
               </Col>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
-                <Form.Slot label={t('站点额度展示类型及汇率')}>
+                <Form.Slot label={"站点额度展示类型及汇率"}>
                   <InputGroup style={{ width: '100%' }}>
                     <Input
                       prefix={'1 USD = '}
@@ -205,7 +202,7 @@ export default function GeneralSettings(props) {
                       <Select.Option value='CNY'>CNY (¥)</Select.Option>
                       <Select.Option value='TOKENS'>Tokens</Select.Option>
                       <Select.Option value='CUSTOM'>
-                        {t('自定义货币')}
+                        {"自定义货币"}
                       </Select.Option>
                     </Select>
                   </InputGroup>
@@ -214,8 +211,8 @@ export default function GeneralSettings(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Input
                   field={'general_setting.custom_currency_symbol'}
-                  label={t('自定义货币符号')}
-                  placeholder={t('例如 €, £, Rp, ₩, ₹...')}
+                  label={"自定义货币符号"}
+                  placeholder={"例如 €, £, Rp, ₩, ₹..."}
                   onChange={handleFieldChange(
                     'general_setting.custom_currency_symbol',
                   )}
@@ -230,7 +227,7 @@ export default function GeneralSettings(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Switch
                   field={'DisplayTokenStatEnabled'}
-                  label={t('额度查询接口返回令牌额度而非用户额度')}
+                  label={"额度查询接口返回令牌额度而非用户额度"}
                   size='default'
                   checkedText='｜'
                   uncheckedText='〇'
@@ -240,7 +237,7 @@ export default function GeneralSettings(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Switch
                   field={'DefaultCollapseSidebar'}
-                  label={t('默认折叠侧边栏')}
+                  label={"默认折叠侧边栏"}
                   size='default'
                   checkedText='｜'
                   uncheckedText='〇'
@@ -250,7 +247,7 @@ export default function GeneralSettings(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Switch
                   field={'DemoSiteEnabled'}
-                  label={t('演示站点模式')}
+                  label={"演示站点模式"}
                   size='default'
                   checkedText='｜'
                   uncheckedText='〇'
@@ -260,8 +257,8 @@ export default function GeneralSettings(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Switch
                   field={'SelfUseModeEnabled'}
-                  label={t('自用模式')}
-                  extraText={t('开启后不限制：必须设置模型倍率')}
+                  label={"自用模式"}
+                  extraText={"开启后不限制：必须设置模型倍率"}
                   size='default'
                   checkedText='｜'
                   uncheckedText='〇'
@@ -272,11 +269,11 @@ export default function GeneralSettings(props) {
             <Row gutter={16}>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
-                  label={t('用户最大令牌数量')}
+                  label={"用户最大令牌数量"}
                   field={'token_setting.max_user_tokens'}
                   step={1}
                   min={1}
-                  extraText={t('每个用户最多可创建的令牌数量，默认 1000，设置过大可能会影响性能')}
+                  extraText={"每个用户最多可创建的令牌数量，默认 1000，设置过大可能会影响性能"}
                   placeholder={'1000'}
                   onChange={handleFieldChange('token_setting.max_user_tokens')}
                 />
@@ -284,7 +281,7 @@ export default function GeneralSettings(props) {
             </Row>
             <Row>
               <Button size='default' onClick={onSubmit}>
-                {t('保存通用设置')}
+                {"保存通用设置"}
               </Button>
             </Row>
           </Form.Section>
@@ -292,7 +289,7 @@ export default function GeneralSettings(props) {
       </Spin>
 
       <Modal
-        title={t('警告')}
+        title={"警告"}
         visible={showQuotaWarning}
         onOk={() => setShowQuotaWarning(false)}
         onCancel={() => setShowQuotaWarning(false)}
@@ -301,9 +298,7 @@ export default function GeneralSettings(props) {
       >
         <Banner
           type='warning'
-          description={t(
-            '此设置用于系统内部计算，默认值500000是为了精确到6位小数点设计，不推荐修改。',
-          )}
+          description={"此设置用于系统内部计算，默认值500000是为了精确到6位小数点设计，不推荐修改。"}
           bordered
           fullMode={false}
           closeIcon={null}

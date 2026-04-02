@@ -113,13 +113,13 @@ const formatRemainingMinutes = (minutes, t) => {
   const parts = [];
 
   if (days > 0) {
-    parts.push(`${days}${t('天')}`);
+    parts.push(`${days}${"天"}`);
   }
   if (hours > 0) {
-    parts.push(`${hours}${t('小时')}`);
+    parts.push(`${hours}${"小时"}`);
   }
   if (parts.length === 0 || mins > 0) {
-    parts.push(`${mins}${t('分钟')}`);
+    parts.push(`${mins}${"分钟"}`);
   }
 
   return parts.join(' ');
@@ -162,8 +162,8 @@ const renderStatus = (status, t) => {
   const config = STATUS_TAG_CONFIG[normalizedStatus] || DEFAULT_STATUS_CONFIG;
   const statusText = typeof status === 'string' ? status : '';
   const labelText = config.labelKey
-    ? t(config.labelKey)
-    : statusText || t('未知状态');
+    ? config.labelKey
+    : statusText || "未知状态";
 
   return (
     <Tag
@@ -182,9 +182,9 @@ const ContainerNameCell = ({ text, record, t }) => {
   const handleCopyId = async () => {
     try {
       await navigator.clipboard.writeText(record.id);
-      showSuccess(t('已复制 ID 到剪贴板'));
+      showSuccess("已复制 ID 到剪贴板");
     } catch (err) {
-      showError(t('复制失败'));
+      showError("复制失败");
     }
   };
 
@@ -198,7 +198,7 @@ const ContainerNameCell = ({ text, record, t }) => {
         size='small'
         className='text-xs cursor-pointer hover:text-blue-600 transition-colors select-all'
         onClick={handleCopyId}
-        title={t('点击复制ID')}
+        title={"点击复制ID"}
       >
         ID: {record.id}
       </Typography.Text>
@@ -244,7 +244,7 @@ const renderInstanceCount = (count, record, t) => {
 
   return (
     <Tag color={countColor} size='small' shape='circle'>
-      {count || 0} {t('个实例')}
+      {count || 0} {"个实例"}
     </Tag>
   );
 };
@@ -270,17 +270,17 @@ export const getDeploymentsColumns = ({
 }) => {
   const columns = [
     {
-      title: t('容器名称'),
+      title: "容器名称",
       dataIndex: 'container_name',
       key: COLUMN_KEYS.container_name,
       width: 300,
       ellipsis: true,
       render: (text, record) => (
-        <ContainerNameCell text={text} record={record} t={t} />
+        <ContainerNameCell text={text} record={record} />
       ),
     },
     {
-      title: t('状态'),
+      title: "状态",
       dataIndex: 'status',
       key: COLUMN_KEYS.status,
       width: 140,
@@ -289,7 +289,7 @@ export const getDeploymentsColumns = ({
       ),
     },
     {
-      title: t('服务商'),
+      title: "服务商",
       dataIndex: 'provider',
       key: COLUMN_KEYS.provider,
       width: 140,
@@ -312,12 +312,12 @@ export const getDeploymentsColumns = ({
             size='small'
             className='text-xs text-gray-500'
           >
-            {t('暂无')}
+            {"暂无"}
           </Typography.Text>
         ),
     },
     {
-      title: t('剩余时间'),
+      title: "剩余时间",
       dataIndex: 'time_remaining',
       key: COLUMN_KEYS.time_remaining,
       width: 200,
@@ -329,19 +329,19 @@ export const getDeploymentsColumns = ({
           percentUsed === null ? null : clampPercent(100 - percentUsed);
         const theme = getRemainingTheme(percentRemaining);
         const statusDisplayMap = {
-          completed: t('已完成'),
-          destroyed: t('已销毁'),
-          failed: t('失败'),
-          error: t('失败'),
-          stopped: t('已停止'),
-          pending: t('待部署'),
-          deploying: t('部署中'),
-          'deployment requested': t('部署请求中'),
-          'termination requested': t('终止中'),
+          completed: "已完成",
+          destroyed: "已销毁",
+          failed: "失败",
+          error: "失败",
+          stopped: "已停止",
+          pending: "待部署",
+          deploying: "部署中",
+          'deployment requested': "部署请求中",
+          'termination requested': "终止中",
         };
         const statusOverride = statusDisplayMap[normalizedStatus];
         const baseTimeDisplay =
-          text && String(text).trim() !== '' ? text : t('计算中');
+          text && String(text).trim() !== '' ? text : "计算中";
         const timeDisplay = baseTimeDisplay;
         const humanReadable = formatRemainingMinutes(
           record.compute_minutes_remaining,
@@ -379,20 +379,20 @@ export const getDeploymentsColumns = ({
                 {humanReadable && (
                   <span className='flex items-center gap-1'>
                     <FaClock className='text-[11px]' />
-                    {t('约')} {humanReadable}
+                    {"约"} {humanReadable}
                   </span>
                 )}
                 {percentUsed !== null && (
                   <span className='flex items-center gap-1'>
                     <FaCheckCircle className='text-[11px]' />
-                    {t('已用')} {percentUsed}%
+                    {"已用"} {percentUsed}%
                   </span>
                 )}
               </div>
             )}
             {showProgress && showRemainingMeta && (
               <div className='text-[10px]' style={{ color: theme.textColor }}>
-                {t('剩余')} {record.compute_minutes_remaining} {t('分钟')}
+                {"剩余"} {record.compute_minutes_remaining} {"分钟"}
               </div>
             )}
           </div>
@@ -400,7 +400,7 @@ export const getDeploymentsColumns = ({
       },
     },
     {
-      title: t('硬件配置'),
+      title: "硬件配置",
       dataIndex: 'hardware_info',
       key: COLUMN_KEYS.hardware_info,
       width: 220,
@@ -420,7 +420,7 @@ export const getDeploymentsColumns = ({
       ),
     },
     {
-      title: t('创建时间'),
+      title: "创建时间",
       dataIndex: 'created_at',
       key: COLUMN_KEYS.created_at,
       width: 150,
@@ -429,7 +429,7 @@ export const getDeploymentsColumns = ({
       ),
     },
     {
-      title: t('操作'),
+      title: "操作",
       key: COLUMN_KEYS.actions,
       fixed: 'right',
       width: 120,
@@ -450,7 +450,7 @@ export const getDeploymentsColumns = ({
             case 'running':
               return {
                 icon: <FaInfoCircle className='text-xs' />,
-                text: t('查看详情'),
+                text: "查看详情",
                 onClick: () => onViewDetails?.(record),
                 type: 'secondary',
                 theme: 'borderless',
@@ -459,7 +459,7 @@ export const getDeploymentsColumns = ({
             case 'error':
               return {
                 icon: <FaPlay className='text-xs' />,
-                text: t('重试'),
+                text: "重试",
                 onClick: () => startDeployment(id),
                 type: 'primary',
                 theme: 'solid',
@@ -467,7 +467,7 @@ export const getDeploymentsColumns = ({
             case 'stopped':
               return {
                 icon: <FaPlay className='text-xs' />,
-                text: t('启动'),
+                text: "启动",
                 onClick: () => startDeployment(id),
                 type: 'primary',
                 theme: 'solid',
@@ -476,7 +476,7 @@ export const getDeploymentsColumns = ({
             case 'deploying':
               return {
                 icon: <FaClock className='text-xs' />,
-                text: t('部署中'),
+                text: "部署中",
                 onClick: () => {},
                 type: 'secondary',
                 theme: 'light',
@@ -485,7 +485,7 @@ export const getDeploymentsColumns = ({
             case 'pending':
               return {
                 icon: <FaClock className='text-xs' />,
-                text: t('待部署'),
+                text: "待部署",
                 onClick: () => {},
                 type: 'secondary',
                 theme: 'light',
@@ -494,7 +494,7 @@ export const getDeploymentsColumns = ({
             case 'termination requested':
               return {
                 icon: <FaClock className='text-xs' />,
-                text: t('终止中'),
+                text: "终止中",
                 onClick: () => {},
                 type: 'secondary',
                 theme: 'light',
@@ -505,7 +505,7 @@ export const getDeploymentsColumns = ({
             default:
               return {
                 icon: <FaInfoCircle className='text-xs' />,
-                text: t('已结束'),
+                text: "已结束",
                 onClick: () => {},
                 type: 'tertiary',
                 theme: 'borderless',
@@ -528,7 +528,7 @@ export const getDeploymentsColumns = ({
                 onClick={() => onViewDetails?.(record)}
                 icon={<FaInfoCircle className='text-xs' />}
               >
-                {t('查看详情')}
+                {"查看详情"}
               </Button>
             </div>
           );
@@ -541,7 +541,7 @@ export const getDeploymentsColumns = ({
             onClick={() => onViewDetails?.(record)}
             icon={<FaInfoCircle />}
           >
-            {t('查看详情')}
+            {"查看详情"}
           </Dropdown.Item>,
         ];
 
@@ -552,7 +552,7 @@ export const getDeploymentsColumns = ({
               onClick={() => onViewLogs?.(record)}
               icon={<FaTerminal />}
             >
-              {t('查看日志')}
+              {"查看日志"}
             </Dropdown.Item>,
           );
         }
@@ -566,7 +566,7 @@ export const getDeploymentsColumns = ({
                 onClick={() => onSyncToChannel(record)}
                 icon={<FaLink />}
               >
-                {t('同步到渠道')}
+                {"同步到渠道"}
               </Dropdown.Item>,
             );
           }
@@ -578,7 +578,7 @@ export const getDeploymentsColumns = ({
               onClick={() => startDeployment(id)}
               icon={<FaPlay />}
             >
-              {t('重试')}
+              {"重试"}
             </Dropdown.Item>,
           );
         }
@@ -589,7 +589,7 @@ export const getDeploymentsColumns = ({
               onClick={() => startDeployment(id)}
               icon={<FaPlay />}
             >
-              {t('启动')}
+              {"启动"}
             </Dropdown.Item>,
           );
         }
@@ -611,14 +611,14 @@ export const getDeploymentsColumns = ({
               onClick={() => onExtendDuration?.(record)}
               icon={<FaPlus />}
             >
-              {t('延长时长')}
+              {"延长时长"}
             </Dropdown.Item>,
           );
         }
         // if (!isEnded && normalizedStatus === 'running') {
         //   configItems.push(
         //     <Dropdown.Item key="update-config" onClick={() => onUpdateConfig?.(record)} icon={<FaCog />}>
-        //       {t('更新配置')}
+        //       {"更新配置"}
         //     </Dropdown.Item>,
         //   );
         // }
@@ -636,7 +636,7 @@ export const getDeploymentsColumns = ({
               onClick={handleDelete}
               icon={<FaTrash />}
             >
-              {t('销毁容器')}
+              {"销毁容器"}
             </Dropdown.Item>,
           );
         }

@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   Button,
   Card,
@@ -945,7 +944,7 @@ const buildConditionPayload = (condition) => {
   return payload;
 };
 
-const validateOperations = (operations, t) => {
+const validateOperations = (operations) => {
   for (let i = 0; i < operations.length; i++) {
     const op = operations[i];
     const mode = op.mode || 'set';
@@ -956,40 +955,40 @@ const validateOperations = (operations, t) => {
     const toValue = op.to.trim();
 
     if (meta.path && !pathValue) {
-      return t('第 {{line}} 条操作缺少目标路径', { line });
+      return "第 {{line}} 条操作缺少目标路径";
     }
     if (FROM_REQUIRED_MODES.has(mode) && !fromValue) {
       if (!(meta.pathAlias && pathValue)) {
-        return t('第 {{line}} 条操作缺少来源字段', { line });
+        return "第 {{line}} 条操作缺少来源字段";
       }
     }
     if (TO_REQUIRED_MODES.has(mode) && !toValue) {
       if (!(meta.pathAlias && pathValue)) {
-        return t('第 {{line}} 条操作缺少目标字段', { line });
+        return "第 {{line}} 条操作缺少目标字段";
       }
     }
     if (meta.from && !fromValue) {
-      return t('第 {{line}} 条操作缺少来源字段', { line });
+      return "第 {{line}} 条操作缺少来源字段";
     }
     if (meta.to && !toValue) {
-      return t('第 {{line}} 条操作缺少目标字段', { line });
+      return "第 {{line}} 条操作缺少目标字段";
     }
     if (
       VALUE_REQUIRED_MODES.has(mode) &&
       String(op.value_text ?? '').trim() === ''
     ) {
-      return t('第 {{line}} 条操作缺少值', { line });
+      return "第 {{line}} 条操作缺少值";
     }
     if (mode === 'return_error') {
       const raw = String(op.value_text ?? '').trim();
       if (!raw) {
-        return t('第 {{line}} 条操作缺少值', { line });
+        return "第 {{line}} 条操作缺少值";
       }
       try {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
           if (!String(parsed.message || '').trim()) {
-            return t('第 {{line}} 条 return_error 需要 message 字段', { line });
+            return "第 {{line}} 条 return_error 需要 message 字段";
           }
         }
       } catch (error) {
@@ -1000,7 +999,7 @@ const validateOperations = (operations, t) => {
     if (mode === 'prune_objects') {
       const raw = String(op.value_text ?? '').trim();
       if (!raw) {
-        return t('第 {{line}} 条 prune_objects 缺少条件', { line });
+        return "第 {{line}} 条 prune_objects 缺少条件";
       }
       try {
         const parsed = JSON.parse(raw);
@@ -1021,9 +1020,7 @@ const validateOperations = (operations, t) => {
             !Array.isArray(parsed.conditions) &&
             Object.keys(parsed.conditions).length > 0;
           if (!hasType && !hasWhere && !hasConditionsArray && !hasConditionsObject) {
-            return t('第 {{line}} 条 prune_objects 需要至少一个匹配条件', {
-              line,
-            });
+            return "第 {{line}} 条 prune_objects 需要至少一个匹配条件";
           }
         }
       } catch (error) {
@@ -1034,12 +1031,12 @@ const validateOperations = (operations, t) => {
     if (mode === 'pass_headers') {
       const raw = String(op.value_text ?? '').trim();
       if (!raw) {
-        return t('第 {{line}} 条请求头透传缺少请求头名称', { line });
+        return "第 {{line}} 条请求头透传缺少请求头名称";
       }
       const parsed = parseLooseValue(raw);
       const headers = parsePassHeaderNames(parsed);
       if (headers.length === 0) {
-        return t('第 {{line}} 条请求头透传格式无效', { line });
+        return "第 {{line}} 条请求头透传格式无效";
       }
     }
   }
@@ -1047,8 +1044,6 @@ const validateOperations = (operations, t) => {
 };
 
 const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
-  const { t } = useTranslation();
-
   const [editMode, setEditMode] = useState('visual');
   const [visualMode, setVisualMode] = useState('operations');
   const [legacyValue, setLegacyValue] = useState('');
@@ -1194,7 +1189,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
       if (filteredOps.length === 0) return '';
 
       if (validate) {
-        const message = validateOperations(filteredOps, t);
+        const message = validateOperations(filteredOps);
         if (message) {
           throw new Error(message);
         }
@@ -1255,7 +1250,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
 
       return JSON.stringify({ operations: payloadOps }, null, 2);
     },
-    [t],
+    [],
   );
 
   const buildVisualJson = useCallback(() => {
@@ -1263,16 +1258,16 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
       const trimmed = legacyValue.trim();
       if (!trimmed) return '';
       if (!verifyJSON(trimmed)) {
-        throw new Error(t('参数覆盖必须是合法的 JSON 格式！'));
+        throw new Error("参数覆盖必须是合法的 JSON 格式！");
       }
       const parsed = JSON.parse(trimmed);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error(t('旧格式必须是 JSON 对象'));
+        throw new Error("旧格式必须是 JSON 对象");
       }
       return JSON.stringify(parsed, null, 2);
     }
     return buildOperationsJson(operations, { validate: true });
-  }, [buildOperationsJson, legacyValue, operations, t, visualMode]);
+  }, [buildOperationsJson, legacyValue, operations, visualMode]);
 
   const switchToJsonMode = () => {
     if (editMode === 'json') return;
@@ -1286,7 +1281,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
       } else {
         setJsonText(buildOperationsJson(operations, { validate: false }));
       }
-      setJsonError(error.message || t('参数配置有误'));
+      setJsonError(error.message || "参数配置有误");
     }
     setEditMode('json');
   };
@@ -1305,7 +1300,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
       return;
     }
     if (!verifyJSON(trimmed)) {
-      showError(t('参数覆盖必须是合法的 JSON 格式！'));
+      showError("参数覆盖必须是合法的 JSON 格式！");
       return;
     }
     const parsed = JSON.parse(trimmed);
@@ -1341,7 +1336,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
       setTemplatePresetKey('legacy_default');
       return;
     }
-    showError(t('参数覆盖必须是合法的 JSON 对象'));
+    showError("参数覆盖必须是合法的 JSON 对象");
   };
 
   const fillLegacyTemplate = (legacyPayload) => {
@@ -1376,12 +1371,12 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
       const trimmed = legacyValue.trim();
       if (trimmed) {
         if (!verifyJSON(trimmed)) {
-          showError(t('当前旧格式 JSON 不合法，无法追加模板'));
+          showError("当前旧格式 JSON 不合法，无法追加模板");
           return;
         }
         const parsed = JSON.parse(trimmed);
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-          showError(t('当前旧格式不是 JSON 对象，无法追加模板'));
+          showError("当前旧格式不是 JSON 对象，无法追加模板");
           return;
         }
         parsedCurrent = parsed;
@@ -1463,7 +1458,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
 
   const applyBuiltinField = (fieldKey, target = 'path') => {
     if (!selectedOperation) {
-      showError(t('请先选择一条规则'));
+      showError("请先选择一条规则");
       return;
     }
     const mode = selectedOperation.mode || 'set';
@@ -1484,7 +1479,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
       });
       return;
     }
-    showError(t('当前规则不支持写入到该位置'));
+    showError("当前规则不支持写入到该位置");
   };
 
   const openFieldGuide = (target = 'path') => {
@@ -1495,9 +1490,9 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
   const copyBuiltinField = async (fieldKey) => {
     const ok = await copy(fieldKey);
     if (ok) {
-      showSuccess(t('已复制字段：{{name}}', { name: fieldKey }));
+      showSuccess(`已复制字段：${fieldKey}`);
     } else {
-      showError(t('复制失败'));
+      showError("复制失败");
     }
   };
 
@@ -1519,10 +1514,10 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
   }, [fieldGuideKeyword]);
 
   const fieldGuideActionLabel = useMemo(() => {
-    if (fieldGuideTarget === 'from') return t('填入来源');
-    if (fieldGuideTarget === 'to') return t('填入目标');
-    return t('填入路径');
-  }, [fieldGuideTarget, t]);
+    if (fieldGuideTarget === 'from') return "填入来源";
+    if (fieldGuideTarget === 'to') return "填入目标";
+    return "填入路径";
+  }, [fieldGuideTarget]);
 
   const fieldGuideFieldCount = useMemo(
     () =>
@@ -1546,18 +1541,18 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
     const raw = String(selectedOperation.value_text || '').trim();
     if (!raw) return;
     if (!verifyJSON(raw)) {
-      showError(t('当前值不是合法 JSON，无法格式化'));
+      showError("当前值不是合法 JSON，无法格式化");
       return;
     }
     try {
       updateOperation(selectedOperation.id, {
         value_text: JSON.stringify(JSON.parse(raw), null, 2),
       });
-      showSuccess(t('JSON 已格式化'));
+      showSuccess("JSON 已格式化");
     } catch (error) {
-      showError(t('当前值不是合法 JSON，无法格式化'));
+      showError("当前值不是合法 JSON，无法格式化");
     }
-  }, [selectedOperation, t, updateOperation]);
+  }, [selectedOperation, updateOperation]);
 
   const updateReturnErrorDraft = (operationId, draftPatch = {}) => {
     const current = operations.find((item) => item.id === operationId);
@@ -1819,7 +1814,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
       return;
     }
     if (!verifyJSON(trimmed)) {
-      setJsonError(t('JSON格式错误'));
+      setJsonError("JSON格式错误");
       return;
     }
     setJsonError('');
@@ -1829,7 +1824,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
     const trimmed = jsonText.trim();
     if (!trimmed) return;
     if (!verifyJSON(trimmed)) {
-      showError(t('参数覆盖必须是合法的 JSON 格式！'));
+      showError("参数覆盖必须是合法的 JSON 格式！");
       return;
     }
     setJsonText(JSON.stringify(JSON.parse(trimmed), null, 2));
@@ -1844,9 +1839,9 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
       buildVisualJson();
       return '';
     } catch (error) {
-      return error?.message || t('参数配置有误');
+      return error?.message || "参数配置有误";
     }
-  }, [buildVisualJson, editMode, t]);
+  }, [buildVisualJson, editMode]);
 
   const handleSave = () => {
     try {
@@ -1857,7 +1852,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
           result = '';
         } else {
           if (!verifyJSON(trimmed)) {
-            throw new Error(t('参数覆盖必须是合法的 JSON 格式！'));
+            throw new Error("参数覆盖必须是合法的 JSON 格式！");
           }
           result = JSON.stringify(JSON.parse(trimmed), null, 2);
         }
@@ -1873,14 +1868,14 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
   return (
     <>
       <Modal
-      title={t('参数覆盖')}
+      title={"参数覆盖"}
       visible={visible}
       width={1120}
       bodyStyle={{ maxHeight: '76vh', overflowY: 'auto', paddingTop: 10 }}
       onCancel={onCancel}
       onOk={handleSave}
-      okText={t('保存')}
-      cancelText={t('取消')}
+      okText={"保存"}
+      cancelText={"取消"}
     >
       <Space vertical align='start' spacing={14} style={{ width: '100%' }}>
         <Card
@@ -1892,20 +1887,20 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
         >
           <div className='flex items-start justify-between gap-3'>
             <Space wrap spacing={8}>
-              <Tag color='grey'>{t('编辑方式')}</Tag>
+              <Tag color='grey'>{"编辑方式"}</Tag>
               <Button
                 type={editMode === 'visual' ? 'primary' : 'tertiary'}
                 onClick={switchToVisualMode}
               >
-                {t('可视化')}
+                {"可视化"}
               </Button>
               <Button
                 type={editMode === 'json' ? 'primary' : 'tertiary'}
                 onClick={switchToJsonMode}
               >
-                {t('JSON 文本')}
+                {"JSON 文本"}
               </Button>
-              <Tag color='grey'>{t('模板')}</Tag>
+              <Tag color='grey'>{"模板"}</Tag>
               <Select
                 value={templateGroupKey}
                 optionList={TEMPLATE_GROUP_OPTIONS}
@@ -1922,12 +1917,12 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                 }
                 style={{ width: 260 }}
               />
-              <Button onClick={fillTemplateFromLibrary}>{t('填充模板')}</Button>
+              <Button onClick={fillTemplateFromLibrary}>{"填充模板"}</Button>
               <Button type='tertiary' onClick={appendTemplateFromLibrary}>
-                {t('追加模板')}
+                {"追加模板"}
               </Button>
               <Button type='tertiary' onClick={resetEditorState}>
-                {t('重置')}
+                {"重置"}
               </Button>
             </Space>
           </div>
@@ -1943,7 +1938,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                   background: 'var(--semi-color-fill-0)',
                 }}
               >
-                <Text className='mb-2 block'>{t('旧格式（JSON 对象）')}</Text>
+                <Text className='mb-2 block'>{"旧格式（JSON 对象）"}</Text>
                 <TextArea
                   value={legacyValue}
                   autosize={{ minRows: 10, maxRows: 20 }}
@@ -1952,18 +1947,18 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                   showClear
                 />
                 <Text type='tertiary' size='small' className='mt-2 block'>
-                  {t('这里直接编辑 JSON 对象。适合简单覆盖参数的场景。')}
+                  {"这里直接编辑 JSON 对象。适合简单覆盖参数的场景。"}
                 </Text>
               </Card>
             ) : (
               <div>
                 <div className='flex items-center justify-between mb-3'>
                   <Space>
-                    <Text>{t('新格式（规则 + 条件）')}</Text>
-                    <Tag color='cyan'>{`${t('规则')}: ${operationCount}`}</Tag>
+                    <Text>{"新格式（规则 + 条件）"}</Text>
+                    <Tag color='cyan'>{`${"规则"}: ${operationCount}`}</Tag>
                   </Space>
                   <Button icon={<IconPlus />} onClick={addOperation}>
-                    {t('新增规则')}
+                    {"新增规则"}
                   </Button>
                 </div>
 
@@ -1981,7 +1976,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                       }}
                     >
                       <div className='flex items-center justify-between'>
-                        <Text strong>{t('规则导航')}</Text>
+                        <Text strong>{"规则导航"}</Text>
                         <Tag color='grey'>{`${operationCount}/${operations.length}`}</Tag>
                       </div>
 
@@ -2001,7 +1996,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
 
                       <Input
                         value={operationSearch}
-                        placeholder={t('搜索规则（描述 / 类型 / 路径 / 来源 / 目标）')}
+                        placeholder={"搜索规则（描述 / 类型 / 路径 / 来源 / 目标）"}
                         onChange={(nextValue) =>
                           setOperationSearch(nextValue || '')
                         }
@@ -2014,7 +2009,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                       >
                         {filteredOperations.length === 0 ? (
                           <Text type='tertiary' size='small'>
-                            {t('没有匹配的规则')}
+                            {"没有匹配的规则"}
                           </Text>
                         ) : (
                           <div
@@ -2139,7 +2134,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                         'set'}
                                     </Tag>
                                     <Text type='tertiary' size='small'>
-                                      {t('条件数')}
+                                      {"条件数"}
                                     </Text>
                                   </Space>
                                 </div>
@@ -2190,14 +2185,14 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                     duplicateOperation(selectedOperation.id)
                                   }
                                 >
-                                  {t('复制')}
+                                  {"复制"}
                                 </Button>
                                 <Button
                                   size='small'
                                   type='danger'
                                   theme='borderless'
                                   icon={<IconDelete />}
-                                  aria-label={t('删除规则')}
+                                  aria-label={"删除规则"}
                                   onClick={() =>
                                     removeOperation(selectedOperation.id)
                                   }
@@ -2208,7 +2203,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                             <Row gutter={12}>
                               <Col xs={24} md={8}>
                                 <Text type='tertiary' size='small'>
-                                  {t('操作类型')}
+                                  {"操作类型"}
                                 </Text>
                                 <Select
                                   value={mode}
@@ -2225,8 +2220,8 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                 <Col xs={24} md={16}>
                                   <Text type='tertiary' size='small'>
                                     {meta.pathOptional
-                                      ? t('目标路径（可选）')
-                                      : t(getModePathLabel(mode))}
+                                      ? "目标路径（可选）"
+                                      : getModePathLabel(mode)}
                                   </Text>
                                   <Input
                                     value={selectedOperation.path}
@@ -2250,11 +2245,11 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                             </Text>
                             <div className='mt-2'>
                               <Text type='tertiary' size='small'>
-                                {t('规则描述（可选）')}
+                                {"规则描述（可选）"}
                               </Text>
                               <Input
                                 value={selectedOperation.description || ''}
-                                placeholder={t('例如：清理工具参数，避免上游校验错误')}
+                                placeholder={"例如：清理工具参数，避免上游校验错误"}
                                 onChange={(nextValue) =>
                                   updateOperation(selectedOperation.id, {
                                     description: nextValue || '',
@@ -2278,10 +2273,10 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                   }}
                                 >
                                   <div className='flex items-center justify-between mb-2'>
-                                    <Text strong>{t('自定义错误响应')}</Text>
+                                    <Text strong>{"自定义错误响应"}</Text>
                                     <Space spacing={6} align='center'>
                                       <Text type='tertiary' size='small'>
-                                        {t('模式')}
+                                        {"模式"}
                                       </Text>
                                       <Button
                                         size='small'
@@ -2297,7 +2292,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                           )
                                         }
                                       >
-                                        {t('简洁')}
+                                        {"简洁"}
                                       </Button>
                                       <Button
                                         size='small'
@@ -2313,18 +2308,18 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                           )
                                         }
                                       >
-                                        {t('高级')}
+                                        {"高级"}
                                       </Button>
                                     </Space>
                                   </div>
 
                                   <Text type='tertiary' size='small'>
-                                    {t('错误消息（必填）')}
+                                    {"错误消息（必填）"}
                                   </Text>
                                   <TextArea
                                     value={returnErrorDraft.message}
                                     autosize={{ minRows: 2, maxRows: 4 }}
-                                    placeholder={t('例如：该请求不满足准入策略')}
+                                    placeholder={"例如：该请求不满足准入策略"}
                                     onChange={(nextValue) =>
                                       updateReturnErrorDraft(
                                         selectedOperation.id,
@@ -2339,16 +2334,14 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                       size='small'
                                       className='mt-2 block'
                                     >
-                                      {t(
-                                        '简洁模式仅返回 message；状态码和错误类型将使用系统默认值。',
-                                      )}
+                                      {"简洁模式仅返回 message；状态码和错误类型将使用系统默认值。"}
                                     </Text>
                                   ) : (
                                     <>
                                       <Row gutter={12} style={{ marginTop: 10 }}>
                                         <Col xs={24} md={8}>
                                           <Text type='tertiary' size='small'>
-                                            {t('状态码')}
+                                            {"状态码"}
                                           </Text>
                                           <Input
                                             value={String(
@@ -2369,7 +2362,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                         </Col>
                                         <Col xs={24} md={8}>
                                           <Text type='tertiary' size='small'>
-                                            {t('错误代码（可选）')}
+                                            {"错误代码（可选）"}
                                           </Text>
                                           <Input
                                             value={returnErrorDraft.code}
@@ -2384,7 +2377,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                         </Col>
                                         <Col xs={24} md={8}>
                                           <Text type='tertiary' size='small'>
-                                            {t('错误类型（可选）')}
+                                            {"错误类型（可选）"}
                                           </Text>
                                           <Input
                                             value={returnErrorDraft.type}
@@ -2400,7 +2393,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                       </Row>
                                       <div className='mt-2 flex items-center gap-2'>
                                         <Text type='tertiary' size='small'>
-                                          {t('重试建议')}
+                                          {"重试建议"}
                                         </Text>
                                         <Button
                                           size='small'
@@ -2416,7 +2409,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                             )
                                           }
                                         >
-                                          {t('停止重试')}
+                                          {"停止重试"}
                                         </Button>
                                         <Button
                                           size='small'
@@ -2432,7 +2425,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                             )
                                           }
                                         >
-                                          {t('允许重试')}
+                                          {"允许重试"}
                                         </Button>
                                       </div>
                                       <Space wrap style={{ marginTop: 8 }}>
@@ -2451,7 +2444,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                             )
                                           }
                                         >
-                                          {t('参数错误')}
+                                          {"参数错误"}
                                         </Tag>
                                         <Tag
                                           size='small'
@@ -2468,7 +2461,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                             )
                                           }
                                         >
-                                          {t('未授权')}
+                                          {"未授权"}
                                         </Tag>
                                         <Tag
                                           size='small'
@@ -2485,7 +2478,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                             )
                                           }
                                         >
-                                          {t('限流')}
+                                          {"限流"}
                                         </Tag>
                                       </Space>
                                     </>
@@ -2500,10 +2493,10 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                   }}
                                 >
                                   <div className='flex items-center justify-between mb-2'>
-                                    <Text strong>{t('对象清理规则')}</Text>
+                                    <Text strong>{"对象清理规则"}</Text>
                                     <Space spacing={6} align='center'>
                                       <Text type='tertiary' size='small'>
-                                        {t('模式')}
+                                        {"模式"}
                                       </Text>
                                       <Button
                                         size='small'
@@ -2519,7 +2512,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                           )
                                         }
                                       >
-                                        {t('简洁')}
+                                        {"简洁"}
                                       </Button>
                                       <Button
                                         size='small'
@@ -2535,13 +2528,13 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                           )
                                         }
                                       >
-                                        {t('高级')}
+                                        {"高级"}
                                       </Button>
                                     </Space>
                                   </div>
 
                                   <Text type='tertiary' size='small'>
-                                    {t('类型（常用）')}
+                                    {"类型（常用）"}
                                   </Text>
                                   <Input
                                     value={pruneObjectsDraft.typeText}
@@ -2560,22 +2553,20 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                       size='small'
                                       className='mt-2 block'
                                     >
-                                      {t(
-                                        '简洁模式：按 type 全量清理对象，例如 redacted_thinking。',
-                                      )}
+                                      {"简洁模式：按 type 全量清理对象，例如 redacted_thinking。"}
                                     </Text>
                                   ) : (
                                     <>
                                       <Row gutter={12} style={{ marginTop: 10 }}>
                                         <Col xs={24} md={12}>
                                           <Text type='tertiary' size='small'>
-                                            {t('逻辑')}
+                                            {"逻辑"}
                                           </Text>
                                           <Select
                                             value={pruneObjectsDraft.logic}
                                             optionList={[
-                                              { label: t('全部满足（AND）'), value: 'AND' },
-                                              { label: t('任一满足（OR）'), value: 'OR' },
+                                              { label: "全部满足（AND）", value: 'AND' },
+                                              { label: "任一满足（OR）", value: 'OR' },
                                             ]}
                                             style={{ width: '100%' }}
                                             onChange={(nextValue) =>
@@ -2588,7 +2579,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                         </Col>
                                         <Col xs={24} md={12}>
                                           <Text type='tertiary' size='small'>
-                                            {t('递归策略')}
+                                            {"递归策略"}
                                           </Text>
                                           <Space spacing={6} style={{ marginTop: 2 }}>
                                             <Button
@@ -2605,7 +2596,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                                 )
                                               }
                                             >
-                                              {t('递归')}
+                                              {"递归"}
                                             </Button>
                                             <Button
                                               size='small'
@@ -2621,7 +2612,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                                 )
                                               }
                                             >
-                                              {t('仅当前层')}
+                                              {"仅当前层"}
                                             </Button>
                                           </Space>
                                         </Col>
@@ -2635,7 +2626,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                       >
                                         <div className='flex items-center justify-between mb-2'>
                                           <Text strong>
-                                            {t('附加条件')}
+                                            {"附加条件"}
                                           </Text>
                                           <Button
                                             size='small'
@@ -2644,14 +2635,12 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                               addPruneRule(selectedOperation.id)
                                             }
                                           >
-                                            {t('新增条件')}
+                                            {"新增条件"}
                                           </Button>
                                         </div>
                                         {(pruneObjectsDraft.rules || []).length === 0 ? (
                                           <Text type='tertiary' size='small'>
-                                            {t(
-                                              '未添加附加条件时，仅使用上方 type 进行清理。',
-                                            )}
+                                            {"未添加附加条件时，仅使用上方 type 进行清理。"}
                                           </Text>
                                         ) : (
                                           <div className='flex flex-col gap-2'>
@@ -2683,7 +2672,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                                         )
                                                       }
                                                     >
-                                                      {t('删除条件')}
+                                                      {"删除条件"}
                                                     </Button>
                                                   </div>
                                                   <Row gutter={8}>
@@ -2692,7 +2681,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                                         type='tertiary'
                                                         size='small'
                                                       >
-                                                        {t('字段路径')}
+                                                        {"字段路径"}
                                                       </Text>
                                                       <Input
                                                         value={rule.path}
@@ -2711,7 +2700,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                                         type='tertiary'
                                                         size='small'
                                                       >
-                                                        {t('匹配方式')}
+                                                        {"匹配方式"}
                                                       </Text>
                                                       <Select
                                                         value={rule.mode}
@@ -2733,7 +2722,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                                         type='tertiary'
                                                         size='small'
                                                       >
-                                                        {t('匹配值（可选）')}
+                                                        {"匹配值（可选）"}
                                                       </Text>
                                                       <Input
                                                         value={rule.value_text}
@@ -2774,7 +2763,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                                         )
                                                       }
                                                     >
-                                                      {t('条件取反')}
+                                                      {"条件取反"}
                                                     </Button>
                                                     <Button
                                                       size='small'
@@ -2794,7 +2783,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                                         )
                                                       }
                                                     >
-                                                      {t('字段缺失视为命中')}
+                                                      {"字段缺失视为命中"}
                                                     </Button>
                                                   </Space>
                                                 </div>
@@ -2810,7 +2799,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                 <div className='mt-2'>
                                   <div className='flex items-center justify-between gap-2'>
                                     <Text type='tertiary' size='small'>
-                                      {t(getModeValueLabel(mode))}
+                                      {getModeValueLabel(mode)}
                                     </Text>
                                     {mode === 'set_header' ? (
                                       <Space spacing={6}>
@@ -2821,14 +2810,14 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                             setHeaderValueExampleVisible(true)
                                           }
                                         >
-                                          {t('查看 JSON 示例')}
+                                          {"查看 JSON 示例"}
                                         </Button>
                                         <Button
                                           size='small'
                                           type='tertiary'
                                           onClick={formatSelectedOperationValueAsJson}
                                         >
-                                          {t('格式化 JSON')}
+                                          {"格式化 JSON"}
                                         </Button>
                                       </Space>
                                     ) : null}
@@ -2839,7 +2828,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                       size='small'
                                       className='mt-1 mb-2 block'
                                     >
-                                      {t('纯字符串会直接覆盖整条请求头，或者点击“查看 JSON 示例”按 token 规则处理。')}
+                                      {"纯字符串会直接覆盖整条请求头，或者点击“查看 JSON 示例”按 token 规则处理。"}
                                     </Text>
                                   ) : null}
                                   <TextArea
@@ -2862,8 +2851,8 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                   checked={Boolean(
                                     selectedOperation.keep_origin,
                                   )}
-                                  checkedText={t('开')}
-                                  uncheckedText={t('关')}
+                                  checkedText={"开"}
+                                  uncheckedText={"关"}
                                   onChange={(nextValue) =>
                                     updateOperation(selectedOperation.id, {
                                       keep_origin: nextValue,
@@ -2875,7 +2864,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                   size='small'
                                   className='leading-6'
                                 >
-                                  {t('保留原值（目标已有值时不覆盖）')}
+                                  {"保留原值（目标已有值时不覆盖）"}
                                 </Text>
                               </div>
                             ) : null}
@@ -2883,12 +2872,12 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                             {mode === 'sync_fields' ? (
                               <div className='mt-2'>
                                 <Text type='tertiary' size='small'>
-                                  {t('同步端点')}
+                                  {"同步端点"}
                                 </Text>
                                 <Row gutter={12} style={{ marginTop: 6 }}>
                                   <Col xs={24} md={12}>
                                     <Text type='tertiary' size='small'>
-                                      {t('来源端点')}
+                                      {"来源端点"}
                                     </Text>
                                     <div className='flex gap-2'>
                                       <Select
@@ -2926,7 +2915,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                   </Col>
                                   <Col xs={24} md={12}>
                                     <Text type='tertiary' size='small'>
-                                      {t('目标端点')}
+                                      {"目标端点"}
                                     </Text>
                                     <div className='flex gap-2'>
                                       <Select
@@ -3001,7 +2990,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                 {meta.from || meta.to === false ? (
                                   <Col xs={24} md={12}>
                                     <Text type='tertiary' size='small'>
-                                      {t(getModeFromLabel(mode))}
+                                      {getModeFromLabel(mode)}
                                     </Text>
                                     <Input
                                       value={selectedOperation.from}
@@ -3017,7 +3006,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                 {meta.to || meta.to === false ? (
                                   <Col xs={24} md={12}>
                                     <Text type='tertiary' size='small'>
-                                      {t(getModeToLabel(mode))}
+                                      {getModeToLabel(mode)}
                                     </Text>
                                     <Input
                                       value={selectedOperation.to}
@@ -3041,12 +3030,12 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                             >
                               <div className='flex items-center justify-between mb-2'>
                                 <Space align='center'>
-                                  <Text>{t('条件规则')}</Text>
+                                  <Text>{"条件规则"}</Text>
                                   <Select
                                     value={selectedOperation.logic || 'OR'}
                                     optionList={[
-                                      { label: t('满足任一条件（OR）'), value: 'OR' },
-                                      { label: t('必须全部满足（AND）'), value: 'AND' },
+                                      { label: "满足任一条件（OR）", value: 'OR' },
+                                      { label: "必须全部满足（AND）", value: 'AND' },
                                     ]}
                                     size='small'
                                     style={{ width: 180 }}
@@ -3063,14 +3052,14 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                     type='tertiary'
                                     onClick={expandAllSelectedConditions}
                                   >
-                                    {t('全部展开')}
+                                    {"全部展开"}
                                   </Button>
                                   <Button
                                     size='small'
                                     type='tertiary'
                                     onClick={collapseAllSelectedConditions}
                                   >
-                                    {t('全部收起')}
+                                    {"全部收起"}
                                   </Button>
                                   <Button
                                     icon={<IconPlus />}
@@ -3079,14 +3068,14 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                       addCondition(selectedOperation.id)
                                     }
                                   >
-                                    {t('新增条件')}
+                                    {"新增条件"}
                                   </Button>
                                 </Space>
                               </div>
 
                               {conditions.length === 0 ? (
                                 <Text type='tertiary' size='small'>
-                                  {t('没有条件时，默认总是执行该操作。')}
+                                  {"没有条件时，默认总是执行该操作。"}
                                 </Text>
                               ) : (
                                 <Collapse
@@ -3111,7 +3100,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                             </Tag>
                                             <Text type='tertiary' size='small'>
                                               {condition.path ||
-                                                t('未设置路径')}
+                                                "未设置路径"}
                                             </Text>
                                           </Space>
                                         }
@@ -3119,7 +3108,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                         <div>
                                           <div className='flex items-center justify-between mb-2'>
                                             <Text type='tertiary' size='small'>
-                                              {t('条件项设置')}
+                                              {"条件项设置"}
                                             </Text>
                                             <Button
                                               theme='borderless'
@@ -3133,7 +3122,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                                 )
                                               }
                                             >
-                                              {t('删除条件')}
+                                              {"删除条件"}
                                             </Button>
                                           </div>
                                           <Row gutter={12}>
@@ -3142,7 +3131,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                                 type='tertiary'
                                                 size='small'
                                               >
-                                                {t('字段路径')}
+                                                {"字段路径"}
                                               </Text>
                                               <Input
                                                 value={condition.path}
@@ -3161,7 +3150,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                                 type='tertiary'
                                                 size='small'
                                               >
-                                                {t('匹配方式')}
+                                                {"匹配方式"}
                                               </Text>
                                               <Select
                                                 value={condition.mode}
@@ -3183,7 +3172,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                                 type='tertiary'
                                                 size='small'
                                               >
-                                                {t('匹配值')}
+                                                {"匹配值"}
                                               </Text>
                                               <Input
                                                 value={condition.value_text}
@@ -3201,14 +3190,14 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                           <div className='mt-2 flex flex-wrap gap-3'>
                                             <div className='flex items-center gap-2'>
                                               <Text type='tertiary' size='small'>
-                                                {t('条件取反')}
+                                                {"条件取反"}
                                               </Text>
                                               <Switch
                                                 checked={Boolean(
                                                   condition.invert,
                                                 )}
-                                                checkedText={t('开')}
-                                                uncheckedText={t('关')}
+                                                checkedText={"开"}
+                                                uncheckedText={"关"}
                                                 onChange={(nextValue) =>
                                                   updateCondition(
                                                     selectedOperation.id,
@@ -3220,14 +3209,14 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                                             </div>
                                             <div className='flex items-center gap-2'>
                                               <Text type='tertiary' size='small'>
-                                                {t('字段缺失视为命中')}
+                                                {"字段缺失视为命中"}
                                               </Text>
                                               <Switch
                                                 checked={Boolean(
                                                   condition.pass_missing_key,
                                                 )}
-                                                checkedText={t('开')}
-                                                uncheckedText={t('关')}
+                                                checkedText={"开"}
+                                                uncheckedText={"关"}
                                                 onChange={(nextValue) =>
                                                   updateCondition(
                                                     selectedOperation.id,
@@ -3259,7 +3248,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                         }}
                       >
                         <Text type='tertiary'>
-                          {t('请选择一条规则进行编辑。')}
+                          {"请选择一条规则进行编辑。"}
                         </Text>
                       </Card>
                     )}
@@ -3273,7 +3262,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                         }}
                       >
                         <Space>
-                          <Tag color='red'>{t('暂存错误')}</Tag>
+                          <Tag color='red'>{"暂存错误"}</Tag>
                           <Text type='danger'>{visualValidationError}</Text>
                         </Space>
                       </Card>
@@ -3286,8 +3275,8 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
         ) : (
           <div style={{ width: '100%' }}>
             <Space style={{ marginBottom: 8 }} wrap>
-              <Button onClick={formatJson}>{t('格式化')}</Button>
-              <Tag color='grey'>{t('高级文本编辑')}</Tag>
+              <Button onClick={formatJson}>{"格式化"}</Button>
+              <Tag color='grey'>{"高级文本编辑"}</Tag>
             </Space>
             <TextArea
               value={jsonText}
@@ -3297,7 +3286,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
               showClear
             />
             <Text type='tertiary' size='small' className='mt-2 block'>
-              {t('直接编辑 JSON 文本，保存时会校验格式。')}
+              {"直接编辑 JSON 文本，保存时会校验格式。"}
             </Text>
             {jsonError ? (
               <Text className='text-red-500 text-xs mt-2'>{jsonError}</Text>
@@ -3308,7 +3297,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
       </Modal>
 
       <Modal
-        title={t('anthropic-beta JSON 示例')}
+        title={"anthropic-beta JSON 示例"}
         visible={headerValueExampleVisible}
         width={760}
         footer={null}
@@ -3317,7 +3306,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
       >
         <Space vertical align='start' spacing={12} style={{ width: '100%' }}>
           <Text type='tertiary' size='small'>
-            {t('下面是带注释的示例，仅用于参考；实际保存时请删除注释。')}
+            {"下面是带注释的示例，仅用于参考；实际保存时请删除注释。"}
           </Text>
           <TextArea
             value={HEADER_VALUE_JSONC_EXAMPLE}
@@ -3345,7 +3334,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
           <div className='flex items-start justify-between gap-3'>
             <div>
               <Text strong style={{ fontSize: 22, lineHeight: '30px' }}>
-                {t('字段速查')}
+                {"字段速查"}
               </Text>
               <Text
                 type='tertiary'
@@ -3353,12 +3342,10 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                 className='block mt-1'
                 style={{ maxWidth: 560 }}
               >
-                {t(
-                  '先搜索，再一键复制字段名或填入当前规则。字段名为系统内部路径，可直接用于路径 / 来源 / 目标。',
-                )}
+                {"先搜索，再一键复制字段名或填入当前规则。字段名为系统内部路径，可直接用于路径 / 来源 / 目标。"}
               </Text>
             </div>
-            <Tag color='blue'>{`${fieldGuideFieldCount} ${t('个字段')}`}</Tag>
+            <Tag color='blue'>{`${fieldGuideFieldCount} ${"个字段"}`}</Tag>
           </div>
 
           <Card
@@ -3372,7 +3359,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
               <Input
                 value={fieldGuideKeyword}
                 onChange={(nextValue) => setFieldGuideKeyword(nextValue || '')}
-                placeholder={t('搜索字段名 / 中文说明')}
+                placeholder={"搜索字段名 / 中文说明"}
                 showClear
                 style={{ flex: 1 }}
               />
@@ -3395,7 +3382,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                 background: 'var(--semi-color-fill-0)',
               }}
             >
-              <Text type='tertiary'>{t('没有匹配的字段')}</Text>
+              <Text type='tertiary'>{"没有匹配的字段"}</Text>
             </Card>
           ) : (
             <div className='flex flex-col gap-2'>
@@ -3412,7 +3399,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                     <Text strong style={{ fontSize: 18 }}>
                       {section.title}
                     </Text>
-                    <Tag color='grey'>{`${section.fields.length} ${t('项')}`}</Tag>
+                    <Tag color='grey'>{`${section.fields.length} ${"项"}`}</Tag>
                   </div>
                   <div
                     style={{
@@ -3465,7 +3452,7 @@ const ParamOverrideEditorModal = ({ visible, value, onSave, onCancel }) => {
                             type='tertiary'
                             onClick={() => copyBuiltinField(field.key)}
                           >
-                            {t('复制')}
+                            {"复制"}
                           </Button>
                           <Button
                             size='small'

@@ -11,7 +11,6 @@ import { useIsMobile } from '../../../hooks/common/useIsMobile';
 const CompactModeToggle = ({
   compactMode,
   setCompactMode,
-  t,
   size = 'small',
   type = 'tertiary',
   className = '',
@@ -32,7 +31,7 @@ const CompactModeToggle = ({
       onClick={() => setCompactMode(!compactMode)}
       {...props}
     >
-      {compactMode ? t('自适应列表') : t('紧凑列表')}
+      {compactMode ? "自适应列表" : "紧凑列表"}
     </Button>
   );
 };
@@ -40,7 +39,6 @@ const CompactModeToggle = ({
 CompactModeToggle.propTypes = {
   compactMode: PropTypes.bool.isRequired,
   setCompactMode: PropTypes.func.isRequired,
-  t: PropTypes.func.isRequired,
   size: PropTypes.string,
   type: PropTypes.string,
   className: PropTypes.string,

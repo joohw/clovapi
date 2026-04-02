@@ -29,8 +29,6 @@ import {
   IconSetting,
 } from '@douyinfe/semi-icons';
 import { getChannelModels } from '../../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 const { Text, Title } = Typography;
 
 const MODEL_MAPPING_EXAMPLE = {
@@ -38,7 +36,6 @@ const MODEL_MAPPING_EXAMPLE = {
 };
 
 const EditTagModal = (props) => {
-  const { t } = useTranslation();
   const { visible, tag, handleClose, refresh } = props;
   const [loading, setLoading] = useState(false);
   const [originModelOptions, setOriginModelOptions] = useState([]);
@@ -71,10 +68,8 @@ const EditTagModal = (props) => {
     if (!keyword || modelSearchMatchedCount !== 0) {
       return '';
     }
-    return t('未匹配到模型，按回车键可将「{{name}}」作为自定义模型名添加', {
-      name: keyword,
-    });
-  }, [modelSearchMatchedCount, modelSearchValue, t]);
+    return `未匹配到模型，按回车键可将「${keyword}」作为自定义模型名添加`;
+  }, [modelSearchMatchedCount, modelSearchValue]);
   const formApiRef = useRef(null);
   const getInitValues = () => ({ ...originInputs });
 
@@ -341,13 +336,10 @@ const EditTagModal = (props) => {
 
     if (addedModels.length > 0) {
       showSuccess(
-        t('已新增 {{count}} 个模型：{{list}}', {
-          count: addedModels.length,
-          list: addedModels.join(', '),
-        }),
+        `已新增 ${addedModels.length} 个模型：${addedModels.join(', ')}`,
       );
     } else {
-      showInfo(t('未发现新增模型'));
+      showInfo("未发现新增模型");
     }
   };
 
@@ -357,10 +349,10 @@ const EditTagModal = (props) => {
       title={
         <Space>
           <Tag color='blue' shape='circle'>
-            {t('编辑')}
+            {"编辑"}
           </Tag>
           <Title heading={4} className='m-0'>
-            {t('编辑标签')}
+            {"编辑标签"}
           </Title>
         </Space>
       }
@@ -377,7 +369,7 @@ const EditTagModal = (props) => {
               loading={loading}
               icon={<IconSave />}
             >
-              {t('保存')}
+              {"保存"}
             </Button>
             <Button
               theme='light'
@@ -385,7 +377,7 @@ const EditTagModal = (props) => {
               onClick={handleClose}
               icon={<IconClose />}
             >
-              {t('取消')}
+              {"取消"}
             </Button>
           </Space>
         </div>
@@ -408,24 +400,24 @@ const EditTagModal = (props) => {
                     <IconBookmark size={16} />
                   </Avatar>
                   <div>
-                    <Text className='text-lg font-medium'>{t('标签信息')}</Text>
+                    <Text className='text-lg font-medium'>{"标签信息"}</Text>
                     <div className='text-xs text-gray-600'>
-                      {t('标签的基本配置')}
+                      {"标签的基本配置"}
                     </div>
                   </div>
                 </div>
 
                 <Banner
                   type='warning'
-                  description={t('所有编辑均为覆盖操作，留空则不更改')}
+                  description={"所有编辑均为覆盖操作，留空则不更改"}
                   className='!rounded-lg mb-4'
                 />
 
                 <div className='space-y-4'>
                   <Form.Input
                     field='new_tag'
-                    label={t('标签名称')}
-                    placeholder={t('请输入新标签，留空则解散标签')}
+                    label={"标签名称"}
+                    placeholder={"请输入新标签，留空则解散标签"}
                     onChange={(value) => handleInputChange('new_tag', value)}
                   />
                 </div>
@@ -442,9 +434,9 @@ const EditTagModal = (props) => {
                     <IconCode size={16} />
                   </Avatar>
                   <div>
-                    <Text className='text-lg font-medium'>{t('模型配置')}</Text>
+                    <Text className='text-lg font-medium'>{"模型配置"}</Text>
                     <div className='text-xs text-gray-600'>
-                      {t('模型选择和映射设置')}
+                      {"模型选择和映射设置"}
                     </div>
                   </div>
                 </div>
@@ -452,15 +444,13 @@ const EditTagModal = (props) => {
                 <div className='space-y-4'>
                   <Banner
                     type='info'
-                    description={t(
-                      '当前模型列表为该标签下所有渠道模型列表最长的一个，并非所有渠道的并集，请注意可能导致某些渠道模型丢失。',
-                    )}
+                    description={"当前模型列表为该标签下所有渠道模型列表最长的一个，并非所有渠道的并集，请注意可能导致某些渠道模型丢失。"}
                     className='!rounded-lg mb-4'
                   />
                   <Form.Select
                     field='models'
-                    label={t('模型')}
-                    placeholder={t('请选择该渠道所支持的模型，留空则不更改')}
+                    label={"模型"}
+                    placeholder={"请选择该渠道所支持的模型，留空则不更改"}
                     multiple
                     filter={selectFilter}
                     allowCreate
@@ -481,8 +471,8 @@ const EditTagModal = (props) => {
 
                   <Form.Input
                     field='custom_model'
-                    label={t('自定义模型名称')}
-                    placeholder={t('输入自定义模型名称')}
+                    label={"自定义模型名称"}
+                    placeholder={"输入自定义模型名称"}
                     onChange={(value) => setCustomModel(value.trim())}
                     suffix={
                       <Button
@@ -490,17 +480,15 @@ const EditTagModal = (props) => {
                         type='primary'
                         onClick={addCustomModels}
                       >
-                        {t('填入')}
+                        {"填入"}
                       </Button>
                     }
                   />
 
                   <Form.TextArea
                     field='model_mapping'
-                    label={t('模型重定向')}
-                    placeholder={t(
-                      '此项可选，用于修改请求体中的模型名称，为一个 JSON 字符串，键为请求中模型名称，值为要替换的模型名称，留空则不更改',
-                    )}
+                    label={"模型重定向"}
+                    placeholder={"此项可选，用于修改请求体中的模型名称，为一个 JSON 字符串，键为请求中模型名称，值为要替换的模型名称，留空则不更改"}
                     autosize
                     onChange={(value) =>
                       handleInputChange('model_mapping', value)
@@ -516,7 +504,7 @@ const EditTagModal = (props) => {
                             )
                           }
                         >
-                          {t('填入模板')}
+                          {"填入模板"}
                         </Text>
                         <Text
                           className='!text-semi-color-primary cursor-pointer'
@@ -527,13 +515,13 @@ const EditTagModal = (props) => {
                             )
                           }
                         >
-                          {t('清空重定向')}
+                          {"清空重定向"}
                         </Text>
                         <Text
                           className='!text-semi-color-primary cursor-pointer'
                           onClick={() => handleInputChange('model_mapping', '')}
                         >
-                          {t('不更改')}
+                          {"不更改"}
                         </Text>
                       </Space>
                     }
@@ -552,9 +540,9 @@ const EditTagModal = (props) => {
                     <IconSetting size={16} />
                   </Avatar>
                   <div>
-                    <Text className='text-lg font-medium'>{t('高级设置')}</Text>
+                    <Text className='text-lg font-medium'>{"高级设置"}</Text>
                     <div className='text-xs text-gray-600'>
-                      {t('渠道的高级配置选项')}
+                      {"渠道的高级配置选项"}
                     </div>
                   </div>
                 </div>
@@ -562,14 +550,14 @@ const EditTagModal = (props) => {
                 <div className='space-y-4'>
                   <Form.TextArea
                     field='param_override'
-                    label={t('参数覆盖')}
+                    label={"参数覆盖"}
                     placeholder={
-                      t('此项可选，用于覆盖请求参数。不支持覆盖 stream 参数') +
+                      "此项可选，用于覆盖请求参数。不支持覆盖 stream 参数" +
                       '\n' +
-                      t('旧格式（直接覆盖）：') +
+                      "旧格式（直接覆盖）：" +
                       '\n{\n  "temperature": 0,\n  "max_tokens": 1000\n}' +
                       '\n\n' +
-                      t('新格式（支持条件判断与json自定义）：') +
+                      "新格式（支持条件判断与json自定义）：" +
                       '\n{\n  "operations": [\n    {\n      "path": "temperature",\n      "mode": "set",\n      "value": 0.7,\n      "conditions": [\n        {\n          "path": "model",\n          "mode": "prefix",\n          "value": "gpt"\n        }\n      ]\n    }\n  ]\n}'
                     }
                     autosize
@@ -588,7 +576,7 @@ const EditTagModal = (props) => {
                             )
                           }
                         >
-                          {t('旧格式模板')}
+                          {"旧格式模板"}
                         </Text>
                         <Text
                           className='!text-semi-color-primary cursor-pointer'
@@ -619,7 +607,7 @@ const EditTagModal = (props) => {
                             )
                           }
                         >
-                          {t('新格式模板')}
+                          {"新格式模板"}
                         </Text>
                         <Text
                           className='!text-semi-color-primary cursor-pointer'
@@ -627,7 +615,7 @@ const EditTagModal = (props) => {
                             handleInputChange('param_override', null)
                           }
                         >
-                          {t('不更改')}
+                          {"不更改"}
                         </Text>
                       </div>
                     }
@@ -635,11 +623,11 @@ const EditTagModal = (props) => {
 
                   <Form.TextArea
                     field='header_override'
-                    label={t('请求头覆盖')}
+                    label={"请求头覆盖"}
                     placeholder={
-                      t('此项可选，用于覆盖请求头参数') +
+                      "此项可选，用于覆盖请求头参数" +
                       '\n' +
-                      t('格式示例：') +
+                      "格式示例：" +
                       '\n{\n  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0",\n  "Authorization": "Bearer {api_key}"\n}'
                     }
                     autosize
@@ -667,7 +655,7 @@ const EditTagModal = (props) => {
                               )
                             }
                           >
-                            {t('填入模板')}
+                            {"填入模板"}
                           </Text>
                           <Text
                             className='!text-semi-color-primary cursor-pointer'
@@ -675,16 +663,16 @@ const EditTagModal = (props) => {
                               handleInputChange('header_override', null)
                             }
                           >
-                            {t('不更改')}
+                            {"不更改"}
                           </Text>
                         </div>
                         <div>
                           <Text type='tertiary' size='small'>
-                            {t('支持变量：')}
+                            {"支持变量："}
                           </Text>
                           <div className='text-xs text-tertiary ml-2'>
                             <div>
-                              {t('渠道密钥')}: {'{api_key}'}
+                              {"渠道密钥"}: {'{api_key}'}
                             </div>
                           </div>
                         </div>
@@ -701,9 +689,9 @@ const EditTagModal = (props) => {
                     <IconUser size={16} />
                   </Avatar>
                   <div>
-                    <Text className='text-lg font-medium'>{t('分组设置')}</Text>
+                    <Text className='text-lg font-medium'>{"分组设置"}</Text>
                     <div className='text-xs text-gray-600'>
-                      {t('用户分组配置')}
+                      {"用户分组配置"}
                     </div>
                   </div>
                 </div>
@@ -711,13 +699,11 @@ const EditTagModal = (props) => {
                 <div className='space-y-4'>
                   <Form.Select
                     field='groups'
-                    label={t('分组')}
-                    placeholder={t('请选择可以使用该渠道的分组，留空则不更改')}
+                    label={"分组"}
+                    placeholder={"请选择可以使用该渠道的分组，留空则不更改"}
                     multiple
                     allowAdditions
-                    additionLabel={t(
-                      '请在系统设置页面编辑分组倍率以添加新的分组：',
-                    )}
+                    additionLabel={"请在系统设置页面编辑分组倍率以添加新的分组："}
                     optionList={groupOptions}
                     style={{ width: '100%' }}
                     onChange={(value) => handleInputChange('groups', value)}

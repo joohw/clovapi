@@ -33,7 +33,7 @@ const renderStatus = (status, record, t) => {
   if (isExpired(record)) {
     return (
       <Tag color='orange' shape='circle'>
-        {t('已过期')}
+        {"已过期"}
       </Tag>
     );
   }
@@ -42,14 +42,14 @@ const renderStatus = (status, record, t) => {
   if (statusConfig) {
     return (
       <Tag color={statusConfig.color} shape='circle'>
-        {t(statusConfig.text)}
+        {statusConfig.text}
       </Tag>
     );
   }
 
   return (
     <Tag color='black' shape='circle'>
-      {t('未知状态')}
+      {"未知状态"}
     </Tag>
   );
 };
@@ -70,15 +70,15 @@ export const getRedemptionsColumns = ({
 }) => {
   return [
     {
-      title: t('ID'),
+      title: "ID",
       dataIndex: 'id',
     },
     {
-      title: t('名称'),
+      title: "名称",
       dataIndex: 'name',
     },
     {
-      title: t('状态'),
+      title: "状态",
       dataIndex: 'status',
       key: 'status',
       render: (text, record) => {
@@ -86,7 +86,7 @@ export const getRedemptionsColumns = ({
       },
     },
     {
-      title: t('额度'),
+      title: "额度",
       dataIndex: 'quota',
       render: (text) => {
         return (
@@ -99,24 +99,24 @@ export const getRedemptionsColumns = ({
       },
     },
     {
-      title: t('创建时间'),
+      title: "创建时间",
       dataIndex: 'created_time',
       render: (text) => {
         return <div>{renderTimestamp(text)}</div>;
       },
     },
     {
-      title: t('过期时间'),
+      title: "过期时间",
       dataIndex: 'expired_time',
       render: (text) => {
-        return <div>{text === 0 ? t('永不过期') : renderTimestamp(text)}</div>;
+        return <div>{text === 0 ? "永不过期" : renderTimestamp(text)}</div>;
       },
     },
     {
-      title: t('兑换人ID'),
+      title: "兑换人ID",
       dataIndex: 'used_user_id',
       render: (text) => {
-        return <div>{text === 0 ? t('无') : text}</div>;
+        return <div>{text === 0 ? "无" : text}</div>;
       },
     },
     {
@@ -129,7 +129,7 @@ export const getRedemptionsColumns = ({
         const moreMenuItems = [
           {
             node: 'item',
-            name: t('删除'),
+            name: "删除",
             type: 'danger',
             onClick: () => {
               showDeleteRedemptionModal(record);
@@ -140,7 +140,7 @@ export const getRedemptionsColumns = ({
         if (record.status === REDEMPTION_STATUS.UNUSED && !isExpired(record)) {
           moreMenuItems.push({
             node: 'item',
-            name: t('禁用'),
+            name: "禁用",
             type: 'warning',
             onClick: () => {
               manageRedemption(record.id, REDEMPTION_ACTIONS.DISABLE, record);
@@ -149,7 +149,7 @@ export const getRedemptionsColumns = ({
         } else if (!isExpired(record)) {
           moreMenuItems.push({
             node: 'item',
-            name: t('启用'),
+            name: "启用",
             type: 'secondary',
             onClick: () => {
               manageRedemption(record.id, REDEMPTION_ACTIONS.ENABLE, record);
@@ -166,7 +166,7 @@ export const getRedemptionsColumns = ({
               position='top'
             >
               <Button type='tertiary' size='small'>
-                {t('查看')}
+                {"查看"}
               </Button>
             </Popover>
             <Button
@@ -175,7 +175,7 @@ export const getRedemptionsColumns = ({
                 await copyText(record.key);
               }}
             >
-              {t('复制')}
+              {"复制"}
             </Button>
             <Button
               type='tertiary'
@@ -186,7 +186,7 @@ export const getRedemptionsColumns = ({
               }}
               disabled={record.status !== REDEMPTION_STATUS.UNUSED}
             >
-              {t('编辑')}
+              {"编辑"}
             </Button>
             <Dropdown
               trigger='click'

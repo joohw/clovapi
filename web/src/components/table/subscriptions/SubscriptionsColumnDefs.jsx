@@ -19,30 +19,30 @@ function formatDuration(plan, t) {
   if (!plan) return '';
   const u = plan.duration_unit || 'month';
   if (u === 'custom') {
-    return `${t('自定义')} ${plan.custom_seconds || 0}s`;
+    return `${"自定义"} ${plan.custom_seconds || 0}s`;
   }
   const unitMap = {
-    year: t('年'),
-    month: t('月'),
-    day: t('日'),
-    hour: t('小时'),
+    year: "年",
+    month: "月",
+    day: "日",
+    hour: "小时",
   };
   return `${plan.duration_value || 0}${unitMap[u] || u}`;
 }
 
 function formatResetPeriod(plan, t) {
   const period = plan?.quota_reset_period || 'never';
-  if (period === 'daily') return t('每天');
-  if (period === 'weekly') return t('每周');
-  if (period === 'monthly') return t('每月');
+  if (period === 'daily') return "每天";
+  if (period === 'weekly') return "每周";
+  if (period === 'monthly') return "每月";
   if (period === 'custom') {
     const seconds = Number(plan?.quota_reset_custom_seconds || 0);
-    if (seconds >= 86400) return `${Math.floor(seconds / 86400)} ${t('天')}`;
-    if (seconds >= 3600) return `${Math.floor(seconds / 3600)} ${t('小时')}`;
-    if (seconds >= 60) return `${Math.floor(seconds / 60)} ${t('分钟')}`;
-    return `${seconds} ${t('秒')}`;
+    if (seconds >= 86400) return `${Math.floor(seconds / 86400)} ${"天"}`;
+    if (seconds >= 3600) return `${Math.floor(seconds / 3600)} ${"小时"}`;
+    if (seconds >= 60) return `${Math.floor(seconds / 60)} ${"分钟"}`;
+    return `${seconds} ${"秒"}`;
   }
-  return t('不重置');
+  return "不重置";
 }
 
 const renderPlanTitle = (text, record, t) => {
@@ -58,29 +58,29 @@ const renderPlanTitle = (text, record, t) => {
       )}
       <Divider margin={12} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        <Text type='tertiary'>{t('价格')}</Text>
+        <Text type='tertiary'>{"价格"}</Text>
         <Text strong style={{ color: 'var(--semi-color-success)' }}>
           {convertUSDToCurrency(Number(plan?.price_amount || 0), 2)}
         </Text>
-        <Text type='tertiary'>{t('总额度')}</Text>
+        <Text type='tertiary'>{"总额度"}</Text>
         {plan?.total_amount > 0 ? (
-          <Tooltip content={`${t('原生额度')}：${plan.total_amount}`}>
+          <Tooltip content={`${"原生额度"}：${plan.total_amount}`}>
             <Text>{renderQuota(plan.total_amount)}</Text>
           </Tooltip>
         ) : (
-          <Text>{t('不限')}</Text>
+          <Text>{"不限"}</Text>
         )}
-        <Text type='tertiary'>{t('升级分组')}</Text>
-        <Text>{plan?.upgrade_group ? plan.upgrade_group : t('不升级')}</Text>
-        <Text type='tertiary'>{t('购买上限')}</Text>
+        <Text type='tertiary'>{"升级分组"}</Text>
+        <Text>{plan?.upgrade_group ? plan.upgrade_group : "不升级"}</Text>
+        <Text type='tertiary'>{"购买上限"}</Text>
         <Text>
           {plan?.max_purchase_per_user > 0
             ? plan.max_purchase_per_user
-            : t('不限')}
+            : "不限"}
         </Text>
-        <Text type='tertiary'>{t('有效期')}</Text>
+        <Text type='tertiary'>{"有效期"}</Text>
         <Text>{formatDuration(plan, t)}</Text>
-        <Text type='tertiary'>{t('重置')}</Text>
+        <Text type='tertiary'>{"重置"}</Text>
         <Text>{formatResetPeriod(plan, t)}</Text>
       </div>
     </div>
@@ -118,7 +118,7 @@ const renderPurchaseLimit = (text, record, t) => {
   const limit = Number(record?.plan?.max_purchase_per_user || 0);
   return (
     <Text type={limit > 0 ? 'secondary' : 'tertiary'}>
-      {limit > 0 ? limit : t('不限')}
+      {limit > 0 ? limit : "不限"}
     </Text>
   );
 };
@@ -135,7 +135,7 @@ const renderEnabled = (text, record, t) => {
       type='light'
       prefixIcon={<Badge dot type='success' />}
     >
-      {t('启用')}
+      {"启用"}
     </Tag>
   ) : (
     <Tag
@@ -144,7 +144,7 @@ const renderEnabled = (text, record, t) => {
       type='light'
       prefixIcon={<Badge dot type='danger' />}
     >
-      {t('禁用')}
+      {"禁用"}
     </Tag>
   );
 };
@@ -154,11 +154,11 @@ const renderTotalAmount = (text, record, t) => {
   return (
     <Text type={total > 0 ? 'secondary' : 'tertiary'}>
       {total > 0 ? (
-        <Tooltip content={`${t('原生额度')}：${total}`}>
+        <Tooltip content={`${"原生额度"}：${total}`}>
           <span>{renderQuota(total)}</span>
         </Tooltip>
       ) : (
-        t('不限')
+        "不限"
       )}
     </Text>
   );
@@ -168,7 +168,7 @@ const renderUpgradeGroup = (text, record, t) => {
   const group = record?.plan?.upgrade_group || '';
   return (
     <Text type={group ? 'secondary' : 'tertiary'}>
-      {group ? group : t('不升级')}
+      {group ? group : "不升级"}
     </Text>
   );
 };
@@ -202,7 +202,7 @@ const renderPaymentConfig = (text, record, t, enableEpay) => {
       )}
       {hasEpay && (
         <Tag color='light-green' shape='circle'>
-          {t('易支付')}
+          {"易支付"}
         </Tag>
       )}
     </Space>
@@ -215,15 +215,15 @@ const renderOperations = (text, record, { openEdit, setPlanEnabled, t }) => {
   const handleToggle = () => {
     if (isEnabled) {
       Modal.confirm({
-        title: t('确认禁用'),
-        content: t('禁用后用户端不再展示，但历史订单不受影响。是否继续？'),
+        title: "确认禁用",
+        content: "禁用后用户端不再展示，但历史订单不受影响。是否继续？",
         centered: true,
         onOk: () => setPlanEnabled(record, false),
       });
     } else {
       Modal.confirm({
-        title: t('确认启用'),
-        content: t('启用后套餐将在用户端展示。是否继续？'),
+        title: "确认启用",
+        content: "启用后套餐将在用户端展示。是否继续？",
         centered: true,
         onOk: () => setPlanEnabled(record, true),
       });
@@ -238,11 +238,11 @@ const renderOperations = (text, record, { openEdit, setPlanEnabled, t }) => {
         size='small'
         onClick={() => openEdit(record)}
       >
-        {t('编辑')}
+        {"编辑"}
       </Button>
       {isEnabled ? (
         <Button theme='light' type='danger' size='small' onClick={handleToggle}>
-          {t('禁用')}
+          {"禁用"}
         </Button>
       ) : (
         <Button
@@ -251,7 +251,7 @@ const renderOperations = (text, record, { openEdit, setPlanEnabled, t }) => {
           size='small'
           onClick={handleToggle}
         >
-          {t('启用')}
+          {"启用"}
         </Button>
       )}
     </Space>
@@ -272,62 +272,62 @@ export const getSubscriptionsColumns = ({
       render: (text) => <Text type='tertiary'>#{text}</Text>,
     },
     {
-      title: t('套餐'),
+      title: "套餐",
       dataIndex: ['plan', 'title'],
       width: 200,
       render: (text, record) => renderPlanTitle(text, record, t),
     },
     {
-      title: t('价格'),
+      title: "价格",
       dataIndex: ['plan', 'price_amount'],
       width: 100,
       render: (text) => renderPrice(text),
     },
     {
-      title: t('购买上限'),
+      title: "购买上限",
       width: 90,
       render: (text, record) => renderPurchaseLimit(text, record, t),
     },
     {
-      title: t('优先级'),
+      title: "优先级",
       dataIndex: ['plan', 'sort_order'],
       width: 80,
       render: (text) => <Text type='tertiary'>{Number(text || 0)}</Text>,
     },
     {
-      title: t('有效期'),
+      title: "有效期",
       width: 100,
       render: (text, record) => renderDuration(text, record, t),
     },
     {
-      title: t('重置'),
+      title: "重置",
       width: 80,
       render: (text, record) => renderResetPeriod(text, record, t),
     },
     {
-      title: t('状态'),
+      title: "状态",
       dataIndex: ['plan', 'enabled'],
       width: 80,
       render: (text, record) => renderEnabled(text, record, t),
     },
     {
-      title: t('支付渠道'),
+      title: "支付渠道",
       width: 180,
       render: (text, record) =>
         renderPaymentConfig(text, record, t, enableEpay),
     },
     {
-      title: t('总额度'),
+      title: "总额度",
       width: 100,
       render: (text, record) => renderTotalAmount(text, record, t),
     },
     {
-      title: t('升级分组'),
+      title: "升级分组",
       width: 100,
       render: (text, record) => renderUpgradeGroup(text, record, t),
     },
     {
-      title: t('操作'),
+      title: "操作",
       dataIndex: 'operate',
       fixed: 'right',
       width: 160,

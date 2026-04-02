@@ -44,24 +44,22 @@ const COMPONENT_STYLES = {
 
 const CONTENT_TEXTS = {
   unknown: {
-    displayName: (t) => t('未知供应商'),
-    description: (t) =>
-      t(
-        '包含来自未知或未标明供应商的AI模型，这些模型可能来自小型供应商或开源项目。',
-      ),
+    displayName: "未知供应商",
+    description:
+      "包含来自未知或未标明供应商的AI模型，这些模型可能来自小型供应商或开源项目。",
   },
   all: {
-    description: (t) =>
-      t('查看所有可用的AI模型供应商，包括众多知名供应商的模型。'),
+    description:
+      "查看所有可用的AI模型供应商，包括众多知名供应商的模型。",
   },
   fallback: {
-    description: (t) => t('该供应商提供多种AI模型，适用于不同的应用场景。'),
+    description: "该供应商提供多种AI模型，适用于不同的应用场景。",
   },
 };
 
-const getVendorDisplayName = (vendorName, t) => {
+const getVendorDisplayName = (vendorName) => {
   return vendorName === CONFIG.UNKNOWN_VENDOR
-    ? CONTENT_TEXTS.unknown.displayName(t)
+    ? CONTENT_TEXTS.unknown.displayName
     : vendorName;
 };
 
@@ -98,12 +96,12 @@ const createAvatarContent = (vendor, isAllVendors) => {
   );
 };
 
-const renderVendorAvatar = (vendor, t, isAllVendors = false) => {
+const renderVendorAvatar = (vendor, isAllVendors = false) => {
   if (!vendor) {
     return createDefaultAvatar();
   }
 
-  const displayName = getVendorDisplayName(vendor.name, t);
+  const displayName = getVendorDisplayName(vendor.name);
   const avatarContent = createAvatarContent(vendor, isAllVendors);
 
   return (
@@ -118,7 +116,6 @@ const PricingVendorIntro = memo(
     filterVendor,
     models = [],
     allModels = [],
-    t,
     selectedRowKeys = [],
     copyText,
     handleChange,
@@ -151,7 +148,7 @@ const PricingVendorIntro = memo(
     const renderDescriptionModal = useCallback(
       () => (
         <Modal
-          title={t('供应商介绍')}
+          title={"供应商介绍"}
           visible={descModalVisible}
           onCancel={handleCloseDescModal}
           footer={null}
@@ -164,7 +161,7 @@ const PricingVendorIntro = memo(
           <div className='text-sm mb-4'>{descModalContent}</div>
         </Modal>
       ),
-      [descModalVisible, descModalContent, handleCloseDescModal, isMobile, t],
+      [descModalVisible, descModalContent, handleCloseDescModal, isMobile],
     );
 
     const vendorInfo = useMemo(() => {
@@ -200,13 +197,13 @@ const PricingVendorIntro = memo(
         vendorList.push({
           name: CONFIG.UNKNOWN_VENDOR,
           icon: null,
-          description: CONTENT_TEXTS.unknown.description(t),
+          description: CONTENT_TEXTS.unknown.description,
           count: unknownCount,
         });
       }
 
       return vendorList;
-    }, [allModels, models, t]);
+    }, [allModels, models]);
 
     const currentModelCount = models.length;
 
@@ -226,15 +223,15 @@ const PricingVendorIntro = memo(
     const getVendorDescription = useCallback(
       (vendorKey) => {
         if (vendorKey === 'all') {
-          return CONTENT_TEXTS.all.description(t);
+          return CONTENT_TEXTS.all.description;
         }
         if (vendorKey === CONFIG.UNKNOWN_VENDOR) {
-          return CONTENT_TEXTS.unknown.description(t);
+          return CONTENT_TEXTS.unknown.description;
         }
         const vendor = vendorInfo.find((v) => v.name === vendorKey);
-        return vendor?.description || CONTENT_TEXTS.fallback.description(t);
+        return vendor?.description || CONTENT_TEXTS.fallback.description;
       },
-      [vendorInfo, t],
+      [vendorInfo],
     );
 
     const createCoverStyle = useCallback(
@@ -266,7 +263,6 @@ const PricingVendorIntro = memo(
           siteDisplayType={siteDisplayType}
           showRatio={showRatio}
           setShowRatio={setShowRatio}
-          t={t}
         />
       ),
       [
@@ -285,7 +281,6 @@ const PricingVendorIntro = memo(
         siteDisplayType,
         showRatio,
         setShowRatio,
-        t,
       ],
     );
 
@@ -313,7 +308,7 @@ const PricingVendorIntro = memo(
                       size='small'
                       className='self-center'
                     >
-                      {t('共 {{count}} 个模型', { count })}
+                      {"共 {{count}} 个模型"}
                     </Tag>
                   </div>
                   <Paragraph
@@ -334,7 +329,7 @@ const PricingVendorIntro = memo(
           {renderSearchActions()}
         </Card>
       ),
-      [renderSearchActions, createCoverStyle, handleOpenDescModal, t],
+      [renderSearchActions, createCoverStyle, handleOpenDescModal],
     );
 
     const renderAllVendorsAvatar = useCallback(() => {
@@ -342,12 +337,12 @@ const PricingVendorIntro = memo(
         vendorInfo.length > 0
           ? vendorInfo[currentOffset % vendorInfo.length]
           : null;
-      return renderVendorAvatar(currentVendor, t, true);
-    }, [vendorInfo, currentOffset, t]);
+      return renderVendorAvatar(currentVendor, true);
+    }, [vendorInfo, currentOffset]);
 
     if (filterVendor === 'all') {
       const headerCard = renderHeaderCard({
-        title: t('全部供应商'),
+        title: "全部供应商",
         count: currentModelCount,
         description: getVendorDescription('all'),
         rightContent: renderAllVendorsAvatar(),
@@ -366,14 +361,14 @@ const PricingVendorIntro = memo(
       return null;
     }
 
-    const vendorDisplayName = getVendorDisplayName(currentVendor.name, t);
+    const vendorDisplayName = getVendorDisplayName(currentVendor.name);
 
     const headerCard = renderHeaderCard({
       title: vendorDisplayName,
       count: currentModelCount,
       description:
         currentVendor.description || getVendorDescription(currentVendor.name),
-      rightContent: renderVendorAvatar(currentVendor, t, false),
+      rightContent: renderVendorAvatar(currentVendor, false),
       primaryDarkerChannel: THEME_COLORS.specific.primary,
     });
 

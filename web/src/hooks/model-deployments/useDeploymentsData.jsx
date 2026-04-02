@@ -1,11 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { API, showError, showSuccess } from '../../helpers';
 import { ITEMS_PER_PAGE } from '../../constants';
 import { useTableCompactMode } from '../common/useTableCompactMode';
 
 export const useDeploymentsData = () => {
-  const { t } = useTranslation();
   const [compactMode, setCompactMode] = useTableCompactMode('deployments');
   const requestSeq = useRef(0);
 
@@ -195,7 +193,7 @@ export const useDeploymentsData = () => {
     } catch (error) {
       if (seq !== requestSeq.current) return;
       console.error(error);
-      showError(isSearchMode ? t('搜索失败') : t('获取部署列表失败'));
+      showError(isSearchMode ? "搜索失败" : "获取部署列表失败");
       setDeployments([]);
       setDeploymentCount(0);
     } finally {
@@ -265,14 +263,14 @@ export const useDeploymentsData = () => {
     try {
       const res = await API.post(`/api/deployments/${deploymentId}/start`);
       if (res.data.success) {
-        showSuccess(t('部署启动成功'));
+        showSuccess("部署启动成功");
         await refresh();
       } else {
         showError(res.data.message);
       }
     } catch (error) {
       console.error(error);
-      showError(t('启动部署失败'));
+      showError("启动部署失败");
     }
   };
 
@@ -280,14 +278,14 @@ export const useDeploymentsData = () => {
     try {
       const res = await API.post(`/api/deployments/${deploymentId}/restart`);
       if (res.data.success) {
-        showSuccess(t('部署重启成功'));
+        showSuccess("部署重启成功");
         await refresh();
       } else {
         showError(res.data.message);
       }
     } catch (error) {
       console.error(error);
-      showError(t('重启部署失败'));
+      showError("重启部署失败");
     }
   };
 
@@ -295,20 +293,20 @@ export const useDeploymentsData = () => {
     try {
       const res = await API.delete(`/api/deployments/${deploymentId}`);
       if (res.data.success) {
-        showSuccess(t('部署删除成功'));
+        showSuccess("部署删除成功");
         await refresh();
       } else {
         showError(res.data.message);
       }
     } catch (error) {
       console.error(error);
-      showError(t('删除部署失败'));
+      showError("删除部署失败");
     }
   };
 
   const syncDeploymentToChannel = async (deployment) => {
     if (!deployment?.id) {
-      showError(t('同步渠道失败：缺少部署信息'));
+      showError("同步渠道失败：缺少部署信息");
       return;
     }
 
@@ -317,7 +315,7 @@ export const useDeploymentsData = () => {
         `/api/deployments/${deployment.id}/containers`,
       );
       if (!containersResp.data?.success) {
-        showError(containersResp.data?.message || t('获取容器信息失败'));
+        showError(containersResp.data?.message || "获取容器信息失败");
         return;
       }
 
@@ -325,14 +323,14 @@ export const useDeploymentsData = () => {
       const activeContainer = containers.find((ctr) => ctr?.public_url);
 
       if (!activeContainer?.public_url) {
-        showError(t('未找到可用的容器访问地址'));
+        showError("未找到可用的容器访问地址");
         return;
       }
 
       const rawUrl = String(activeContainer.public_url).trim();
       const baseUrl = rawUrl.replace(/\/+$/, '');
       if (!baseUrl) {
-        showError(t('容器访问地址无效'));
+        showError("容器访问地址无效");
         return;
       }
 
@@ -381,13 +379,13 @@ export const useDeploymentsData = () => {
 
       const createResp = await API.post('/api/channel/', payload);
       if (createResp.data?.success) {
-        showSuccess(t('已同步到渠道'));
+        showSuccess("已同步到渠道");
       } else {
-        showError(createResp.data?.message || t('同步渠道失败'));
+        showError(createResp.data?.message || "同步渠道失败");
       }
     } catch (error) {
       console.error(error);
-      showError(t('同步渠道失败'));
+      showError("同步渠道失败");
     }
   };
 
@@ -397,7 +395,7 @@ export const useDeploymentsData = () => {
         name: newName,
       });
       if (res.data.success) {
-        showSuccess(t('部署名称更新成功'));
+        showSuccess("部署名称更新成功");
         await refresh();
         return true;
       } else {
@@ -406,7 +404,7 @@ export const useDeploymentsData = () => {
       }
     } catch (error) {
       console.error(error);
-      showError(t('更新部署名称失败'));
+      showError("更新部署名称失败");
       return false;
     }
   };
@@ -419,7 +417,7 @@ export const useDeploymentsData = () => {
       const ids = selectedKeys.map((deployment) => deployment.id);
       const res = await API.post('/api/deployments/batch_delete', { ids });
       if (res.data.success) {
-        showSuccess(t('批量删除成功'));
+        showSuccess("批量删除成功");
         setSelectedKeys([]);
         await refresh();
       } else {
@@ -427,7 +425,7 @@ export const useDeploymentsData = () => {
       }
     } catch (error) {
       console.error(error);
-      showError(t('批量删除失败'));
+      showError("批量删除失败");
     }
   };
 
@@ -496,8 +494,5 @@ export const useDeploymentsData = () => {
 
     // Batch operations
     batchDeleteDeployments,
-
-    // Translation
-    t,
   };
 };

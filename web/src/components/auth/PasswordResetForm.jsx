@@ -1,22 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import {
   API,
-  getLogo,
   showError,
   showInfo,
   showSuccess,
-  getSystemName,
 } from '../../helpers';
 import Turnstile from 'react-turnstile';
-import { Button, Card, Form, Typography } from '@douyinfe/semi-ui';
-import { IconMail } from '@douyinfe/semi-icons';
+import { Button, Card, Typography } from '@douyinfe/semi-ui';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-
 const { Text, Title } = Typography;
 
 const PasswordResetForm = () => {
-  const { t } = useTranslation();
   const [inputs, setInputs] = useState({
     email: '',
   });
@@ -28,9 +22,6 @@ const PasswordResetForm = () => {
   const [turnstileToken, setTurnstileToken] = useState('');
   const [disableButton, setDisableButton] = useState(false);
   const [countdown, setCountdown] = useState(30);
-
-  const logo = getLogo();
-  const systemName = getSystemName();
 
   useEffect(() => {
     let status = localStorage.getItem('status');
@@ -61,12 +52,13 @@ const PasswordResetForm = () => {
   }
 
   async function handleSubmit(e) {
+    e?.preventDefault?.();
     if (!email) {
-      showError(t('请输入邮箱地址'));
+      showError("请输入邮箱地址");
       return;
     }
     if (turnstileEnabled && turnstileToken === '') {
-      showInfo(t('请稍后几秒重试，Turnstile 正在检查用户环境！'));
+      showInfo("请稍后几秒重试，Turnstile 正在检查用户环境！");
       return;
     }
     setDisableButton(true);
@@ -76,7 +68,7 @@ const PasswordResetForm = () => {
     );
     const { success, message } = res.data;
     if (success) {
-      showSuccess(t('重置邮件发送成功，请检查邮箱！'));
+      showSuccess("重置邮件发送成功，请检查邮箱！");
       setInputs({ ...inputs, email: '' });
     } else {
       showError(message);
@@ -89,30 +81,32 @@ const PasswordResetForm = () => {
       <div className='w-full max-w-sm mt-[60px]'>
         <div className='flex flex-col items-center'>
           <div className='w-full max-w-md'>
-            <div className='flex items-center justify-center mb-6 gap-2'>
-              <img src={logo} alt='Logo' className='h-10 rounded-full' />
-              <Title heading={3} className='!text-gray-800'>
-                {systemName}
-              </Title>
-            </div>
-
             <Card className='border-0 !rounded-2xl overflow-hidden'>
               <div className='flex justify-center pt-6 pb-2'>
                 <Title heading={3} className='text-gray-800 dark:text-gray-200'>
-                  {t('密码重置')}
+                  {"密码重置"}
                 </Title>
               </div>
               <div className='px-2 py-8'>
-                <Form className='space-y-3'>
-                  <Form.Input
-                    field='email'
-                    label={t('邮箱')}
-                    placeholder={t('请输入您的邮箱地址')}
-                    name='email'
-                    value={email}
-                    onChange={handleChange}
-                    prefix={<IconMail />}
-                  />
+                <form className='space-y-3 login-clean-form' onSubmit={handleSubmit}>
+                  <div>
+                    <label
+                      htmlFor='reset-email'
+                      className='block text-sm mb-1 text-semi-color-text-1'
+                    >
+                      {"邮箱"}
+                    </label>
+                    <input
+                      id='reset-email'
+                      name='email'
+                      type='email'
+                      value={email}
+                      placeholder='请输入您的邮箱地址'
+                      autoComplete='email'
+                      onChange={(e) => handleChange(e.target.value)}
+                      className='login-clean-native-input'
+                    />
+                  </div>
 
                   <div className='space-y-2 pt-2'>
                     <Button
@@ -125,20 +119,20 @@ const PasswordResetForm = () => {
                       disabled={disableButton}
                     >
                       {disableButton
-                        ? `${t('重试')} (${countdown})`
-                        : t('提交')}
+                        ? `${"重试"} (${countdown})`
+                        : "提交"}
                     </Button>
                   </div>
-                </Form>
+                </form>
 
                 <div className='mt-6 text-center text-sm'>
                   <Text>
-                    {t('想起来了？')}{' '}
+                    {"想起来了？"}{' '}
                     <Link
                       to='/login'
                       className='text-blue-600 hover:text-blue-800 font-medium'
                     >
-                      {t('登录')}
+                      {"登录"}
                     </Link>
                   </Text>
                 </div>

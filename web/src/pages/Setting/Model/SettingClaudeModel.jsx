@@ -8,7 +8,6 @@ import {
   showWarning,
   verifyJSON,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
 import Text from '@douyinfe/semi-ui/lib/es/typography/text';
 
 const CLAUDE_HEADER = {
@@ -38,8 +37,6 @@ const CLAUDE_DEFAULT_MAX_TOKENS = {
 };
 
 export default function SettingClaudeModel(props) {
-  const { t } = useTranslation();
-
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState({
     'claude.model_headers_settings': '',
@@ -52,7 +49,7 @@ export default function SettingClaudeModel(props) {
 
   function onSubmit() {
     const updateArray = compareObjects(inputs, inputsRow);
-    if (!updateArray.length) return showWarning(t('你似乎并没有修改什么'));
+    if (!updateArray.length) return showWarning("你似乎并没有修改什么");
     const requestQueue = updateArray.map((item) => {
       let value = String(inputs[item.key]);
 
@@ -68,13 +65,13 @@ export default function SettingClaudeModel(props) {
           if (res.includes(undefined)) return;
         } else if (requestQueue.length > 1) {
           if (res.includes(undefined))
-            return showError(t('部分保存失败，请重试'));
+            return showError("部分保存失败，请重试");
         }
-        showSuccess(t('保存成功'));
+        showSuccess("保存成功");
         props.refresh();
       })
       .catch(() => {
-        showError(t('保存失败，请重试'));
+        showError("保存失败，请重试");
       })
       .finally(() => {
         setLoading(false);
@@ -101,30 +98,28 @@ export default function SettingClaudeModel(props) {
           getFormApi={(formAPI) => (refForm.current = formAPI)}
           style={{ marginBottom: 15 }}
         >
-          <Form.Section text={t('Claude设置')}>
+          <Form.Section text={"Claude设置"}>
             <Row>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.TextArea
-                  label={t('Claude请求头追加')}
+                  label={"Claude请求头追加"}
                   field={'claude.model_headers_settings'}
                   placeholder={
-                    t('为一个 JSON 文本，例如：') +
+                    "为一个 JSON 文本，例如：" +
                     '\n' +
                     JSON.stringify(CLAUDE_HEADER, null, 2)
                   }
                   extraText={
                     <div>
                       <div>
-                        {t(
-                          'Claude会在原有请求头基础上追加这些值，不会覆盖已有同名请求头；重复值会自动忽略。',
-                        )}
+                        {"Claude会在原有请求头基础上追加这些值，不会覆盖已有同名请求头；重复值会自动忽略。"}
                       </div>
                       <div className='mt-2 whitespace-pre-wrap font-mono text-xs'>
-                        {`${t('前：')}\n${CLAUDE_HEADER_APPEND_BEFORE}\n\n${t('配置：')}\n${JSON.stringify(
+                        {`${"前："}\n${CLAUDE_HEADER_APPEND_BEFORE}\n\n${"配置："}\n${JSON.stringify(
                           CLAUDE_HEADER_APPEND_CONFIG,
                           null,
                           2,
-                        )}\n\n${t('后：')}\n${CLAUDE_HEADER_APPEND_AFTER}`}
+                        )}\n\n${"后："}\n${CLAUDE_HEADER_APPEND_AFTER}`}
                       </div>
                     </div>
                   }
@@ -134,7 +129,7 @@ export default function SettingClaudeModel(props) {
                   rules={[
                     {
                       validator: (rule, value) => verifyJSON(value),
-                      message: t('不是合法的 JSON 字符串'),
+                      message: "不是合法的 JSON 字符串",
                     },
                   ]}
                   onChange={(value) =>
@@ -149,15 +144,15 @@ export default function SettingClaudeModel(props) {
             <Row>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.TextArea
-                  label={t('缺省 MaxTokens')}
+                  label={"缺省 MaxTokens"}
                   field={'claude.default_max_tokens'}
                   placeholder={
-                    t('为一个 JSON 文本，例如：') +
+                    "为一个 JSON 文本，例如：" +
                     '\n' +
                     JSON.stringify(CLAUDE_DEFAULT_MAX_TOKENS, null, 2)
                   }
                   extraText={
-                    t('示例') +
+                    "示例" +
                     '\n' +
                     JSON.stringify(CLAUDE_DEFAULT_MAX_TOKENS, null, 2)
                   }
@@ -167,7 +162,7 @@ export default function SettingClaudeModel(props) {
                   rules={[
                     {
                       validator: (rule, value) => verifyJSON(value),
-                      message: t('不是合法的 JSON 字符串'),
+                      message: "不是合法的 JSON 字符串",
                     },
                   ]}
                   onChange={(value) =>
@@ -179,7 +174,7 @@ export default function SettingClaudeModel(props) {
             <Row>
               <Col span={16}>
                 <Form.Switch
-                  label={t('启用Claude思考适配（-thinking后缀）')}
+                  label={"启用Claude思考适配（-thinking后缀）"}
                   field={'claude.thinking_adapter_enabled'}
                   onChange={(value) =>
                     setInputs({
@@ -194,19 +189,17 @@ export default function SettingClaudeModel(props) {
               <Col span={16}>
                 {/*//展示MaxTokens和BudgetTokens的计算公式, 并展示实际数字*/}
                 <Text>
-                  {t(
-                    'Claude思考适配 BudgetTokens = MaxTokens * BudgetTokens 百分比',
-                  )}
+                  {"Claude思考适配 BudgetTokens = MaxTokens * BudgetTokens 百分比"}
                 </Text>
               </Col>
             </Row>
             <Row>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
-                  label={t('思考适配 BudgetTokens 百分比')}
+                  label={"思考适配 BudgetTokens 百分比"}
                   field={'claude.thinking_adapter_budget_tokens_percentage'}
                   initValue={''}
-                  extraText={t('0.1以上的小数')}
+                  extraText={"0.1以上的小数"}
                   min={0.1}
                   onChange={(value) =>
                     setInputs({
@@ -220,7 +213,7 @@ export default function SettingClaudeModel(props) {
 
             <Row>
               <Button size='default' onClick={onSubmit}>
-                {t('保存')}
+                {"保存"}
               </Button>
             </Row>
           </Form.Section>

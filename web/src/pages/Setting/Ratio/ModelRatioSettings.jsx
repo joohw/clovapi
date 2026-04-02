@@ -16,8 +16,6 @@ import {
   showWarning,
   verifyJSON,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 export default function ModelRatioSettings(props) {
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState({
@@ -33,8 +31,6 @@ export default function ModelRatioSettings(props) {
   });
   const refForm = useRef();
   const [inputsRow, setInputsRow] = useState(inputs);
-  const { t } = useTranslation();
-
   async function onSubmit() {
     try {
       await refForm.current
@@ -42,7 +38,7 @@ export default function ModelRatioSettings(props) {
         .then(() => {
           const updateArray = compareObjects(inputs, inputsRow);
           if (!updateArray.length)
-            return showWarning(t('你似乎并没有修改什么'));
+            return showWarning("你似乎并没有修改什么");
 
           const requestQueue = updateArray.map((item) => {
             const value =
@@ -58,8 +54,8 @@ export default function ModelRatioSettings(props) {
               if (res.includes(undefined)) {
                 return showError(
                   requestQueue.length > 1
-                    ? t('部分保存失败，请重试')
-                    : t('保存失败'),
+                    ? "部分保存失败，请重试"
+                    : "保存失败",
                 );
               }
 
@@ -69,22 +65,22 @@ export default function ModelRatioSettings(props) {
                 }
               }
 
-              showSuccess(t('保存成功'));
+              showSuccess("保存成功");
               props.refresh();
             })
             .catch((error) => {
               console.error('Unexpected error:', error);
-              showError(t('保存失败，请重试'));
+              showError("保存失败，请重试");
             })
             .finally(() => {
               setLoading(false);
             });
         })
         .catch(() => {
-          showError(t('请检查输入'));
+          showError("请检查输入");
         });
     } catch (error) {
-      showError(t('请检查输入'));
+      showError("请检查输入");
       console.error(error);
     }
   }
@@ -125,11 +121,9 @@ export default function ModelRatioSettings(props) {
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('模型固定价格')}
-              extraText={t('一次调用消耗多少刀，优先级大于模型倍率')}
-              placeholder={t(
-                '为一个 JSON 文本，键为模型名称，值为一次调用消耗多少刀，比如 "gpt-4-gizmo-*": 0.1，一次消耗0.1刀',
-              )}
+              label={"模型固定价格"}
+              extraText={"一次调用消耗多少刀，优先级大于模型倍率"}
+              placeholder={"为一个 JSON 文本，键为模型名称，值为一次调用消耗多少刀，比如 \"gpt-4-gizmo-*\": 0.1，一次消耗0.1刀"}
               field={'ModelPrice'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
@@ -147,8 +141,8 @@ export default function ModelRatioSettings(props) {
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('模型倍率')}
-              placeholder={t('为一个 JSON 文本，键为模型名称，值为倍率')}
+              label={"模型倍率"}
+              placeholder={"为一个 JSON 文本，键为模型名称，值为倍率"}
               field={'ModelRatio'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
@@ -166,8 +160,8 @@ export default function ModelRatioSettings(props) {
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('提示缓存倍率')}
-              placeholder={t('为一个 JSON 文本，键为模型名称，值为倍率')}
+              label={"提示缓存倍率"}
+              placeholder={"为一个 JSON 文本，键为模型名称，值为倍率"}
               field={'CacheRatio'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
@@ -185,11 +179,9 @@ export default function ModelRatioSettings(props) {
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('缓存创建倍率')}
-              extraText={t(
-                '默认为 5m 缓存创建倍率；1h 缓存创建倍率按固定乘法自动计算（当前为 1.6x）',
-              )}
-              placeholder={t('为一个 JSON 文本，键为模型名称，值为倍率')}
+              label={"缓存创建倍率"}
+              extraText={"默认为 5m 缓存创建倍率；1h 缓存创建倍率按固定乘法自动计算（当前为 1.6x）"}
+              placeholder={"为一个 JSON 文本，键为模型名称，值为倍率"}
               field={'CreateCacheRatio'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
@@ -209,9 +201,9 @@ export default function ModelRatioSettings(props) {
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('模型补全倍率（仅对自定义模型有效）')}
-              extraText={t('仅对自定义模型有效')}
-              placeholder={t('为一个 JSON 文本，键为模型名称，值为倍率')}
+              label={"模型补全倍率（仅对自定义模型有效）"}
+              extraText={"仅对自定义模型有效"}
+              placeholder={"为一个 JSON 文本，键为模型名称，值为倍率"}
               field={'CompletionRatio'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
@@ -231,13 +223,9 @@ export default function ModelRatioSettings(props) {
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('图片输入倍率（仅部分模型支持该计费）')}
-              extraText={t(
-                '图片输入相关的倍率设置，键为模型名称，值为倍率，仅部分模型支持该计费',
-              )}
-              placeholder={t(
-                '为一个 JSON 文本，键为模型名称，值为倍率，例如：{"gpt-image-1": 2}',
-              )}
+              label={"图片输入倍率（仅部分模型支持该计费）"}
+              extraText={"图片输入相关的倍率设置，键为模型名称，值为倍率，仅部分模型支持该计费"}
+              placeholder={"为一个 JSON 文本，键为模型名称，值为倍率，例如：{\"gpt-image-1\": 2}"}
               field={'ImageRatio'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
@@ -255,11 +243,9 @@ export default function ModelRatioSettings(props) {
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('音频倍率（仅部分模型支持该计费）')}
-              extraText={t('音频输入相关的倍率设置，键为模型名称，值为倍率')}
-              placeholder={t(
-                '为一个 JSON 文本，键为模型名称，值为倍率，例如：{"gpt-4o-audio-preview": 16}',
-              )}
+              label={"音频倍率（仅部分模型支持该计费）"}
+              extraText={"音频输入相关的倍率设置，键为模型名称，值为倍率"}
+              placeholder={"为一个 JSON 文本，键为模型名称，值为倍率，例如：{\"gpt-4o-audio-preview\": 16}"}
               field={'AudioRatio'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
@@ -277,13 +263,9 @@ export default function ModelRatioSettings(props) {
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('音频补全倍率（仅部分模型支持该计费）')}
-              extraText={t(
-                '音频输出补全相关的倍率设置，键为模型名称，值为倍率',
-              )}
-              placeholder={t(
-                '为一个 JSON 文本，键为模型名称，值为倍率，例如：{"gpt-4o-realtime": 2}',
-              )}
+              label={"音频补全倍率（仅部分模型支持该计费）"}
+              extraText={"音频输出补全相关的倍率设置，键为模型名称，值为倍率"}
+              placeholder={"为一个 JSON 文本，键为模型名称，值为倍率，例如：{\"gpt-4o-realtime\": 2}"}
               field={'AudioCompletionRatio'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
@@ -303,7 +285,7 @@ export default function ModelRatioSettings(props) {
         <Row gutter={16}>
           <Col span={16}>
             <Form.Switch
-              label={t('暴露倍率接口')}
+              label={"暴露倍率接口"}
               field={'ExposeRatioEnabled'}
               onChange={(value) =>
                 setInputs({ ...inputs, ExposeRatioEnabled: value })
@@ -313,15 +295,15 @@ export default function ModelRatioSettings(props) {
         </Row>
       </Form>
       <Space>
-        <Button onClick={onSubmit}>{t('保存模型倍率设置')}</Button>
+        <Button onClick={onSubmit}>{"保存模型倍率设置"}</Button>
         <Popconfirm
-          title={t('确定重置模型倍率吗？')}
-          content={t('此修改将不可逆')}
+          title={"确定重置模型倍率吗？"}
+          content={"此修改将不可逆"}
           okType={'danger'}
           position={'top'}
           onConfirm={resetModelRatio}
         >
-          <Button type={'danger'}>{t('重置模型倍率')}</Button>
+          <Button type={'danger'}>{"重置模型倍率"}</Button>
         </Popconfirm>
       </Space>
     </Spin>

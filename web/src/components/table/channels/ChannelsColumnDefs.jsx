@@ -39,7 +39,7 @@ const renderType = (type, record = {}, t) => {
   for (let i = 0; i < CHANNEL_OPTIONS.length; i++) {
     type2label[CHANNEL_OPTIONS[i].value] = CHANNEL_OPTIONS[i];
   }
-  type2label[0] = { value: 0, label: t('未知类型'), color: 'grey' };
+  type2label[0] = { value: 0, label: "未知类型", color: 'grey' };
 
   let icon = getChannelIcon(type);
 
@@ -96,11 +96,11 @@ const renderType = (type, record = {}, t) => {
         content={
           <div className='max-w-xs'>
             <div className='text-xs text-gray-600'>
-              {t('来源于 IO.NET 部署')}
+              {"来源于 IO.NET 部署"}
             </div>
             {ionetMeta?.deployment_id && (
               <div className='text-xs text-gray-500 mt-1'>
-                {t('部署 ID')}: {ionetMeta.deployment_id}
+                {"部署 ID"}: {ionetMeta.deployment_id}
               </div>
             )}
           </div>
@@ -124,7 +124,7 @@ const renderType = (type, record = {}, t) => {
 const renderTagType = (t) => {
   return (
     <Tag color='light-blue' shape='circle' type='light'>
-      {t('标签聚合')}
+      {"标签聚合"}
     </Tag>
   );
 };
@@ -145,25 +145,25 @@ const renderStatus = (status, channelInfo = undefined, t) => {
     case 1:
       return (
         <Tag color='green' shape='circle'>
-          {t('已启用')}
+          {"已启用"}
         </Tag>
       );
     case 2:
       return (
         <Tag color='red' shape='circle'>
-          {t('已禁用')}
+          {"已禁用"}
         </Tag>
       );
     case 3:
       return (
         <Tag color='yellow' shape='circle'>
-          {t('自动禁用')}
+          {"自动禁用"}
         </Tag>
       );
     default:
       return (
         <Tag color='grey' shape='circle'>
-          {t('未知状态')}
+          {"未知状态"}
         </Tag>
       );
   }
@@ -174,25 +174,25 @@ const renderMultiKeyStatus = (status, keySize, enabledKeySize, t) => {
     case 1:
       return (
         <Tag color='green' shape='circle'>
-          {t('已启用')} {enabledKeySize}/{keySize}
+          {"已启用"} {enabledKeySize}/{keySize}
         </Tag>
       );
     case 2:
       return (
         <Tag color='red' shape='circle'>
-          {t('已禁用')} {enabledKeySize}/{keySize}
+          {"已禁用"} {enabledKeySize}/{keySize}
         </Tag>
       );
     case 3:
       return (
         <Tag color='yellow' shape='circle'>
-          {t('自动禁用')} {enabledKeySize}/{keySize}
+          {"自动禁用"} {enabledKeySize}/{keySize}
         </Tag>
       );
     default:
       return (
         <Tag color='grey' shape='circle'>
-          {t('未知状态')} {enabledKeySize}/{keySize}
+          {"未知状态"} {enabledKeySize}/{keySize}
         </Tag>
       );
   }
@@ -200,11 +200,11 @@ const renderMultiKeyStatus = (status, keySize, enabledKeySize, t) => {
 
 const renderResponseTime = (responseTime, t) => {
   let time = responseTime / 1000;
-  time = time.toFixed(2) + t(' 秒');
+  time = time.toFixed(2) + " 秒";
   if (responseTime === 0) {
     return (
       <Tag color='grey' shape='circle'>
-        {t('未测试')}
+        {"未测试"}
       </Tag>
     );
   } else if (responseTime <= 1000) {
@@ -312,12 +312,12 @@ export const getChannelsColumns = ({
   return [
     {
       key: COLUMN_KEYS.ID,
-      title: t('ID'),
+      title: "ID",
       dataIndex: 'id',
     },
     {
       key: COLUMN_KEYS.NAME,
-      title: t('名称'),
+      title: "名称",
       dataIndex: 'name',
       render: (text, record, index) => {
         const passThroughEnabled = isRequestPassThroughEnabled(record);
@@ -344,14 +344,14 @@ export const getChannelsColumns = ({
                       navigator.clipboard
                         .writeText(record.remark)
                         .then(() => {
-                          showSuccess(t('复制成功'));
+                          showSuccess("复制成功");
                         })
                         .catch(() => {
-                          showError(t('复制失败'));
+                          showError("复制失败");
                         });
                     }}
                   >
-                    {t('复制')}
+                    {"复制"}
                   </Button>
                 </div>
               }
@@ -373,9 +373,7 @@ export const getChannelsColumns = ({
             {nameNode}
             {passThroughEnabled && (
               <Tooltip
-                content={t(
-                  '该渠道已开启请求透传：参数覆写、模型重定向、渠道适配等 NewAPI 内置功能将失效，非最佳实践；如因此产生问题，请勿提交 issue 反馈。',
-                )}
+                content={"该渠道已开启请求透传：参数覆写、模型重定向、渠道适配等 NewAPI 内置功能将失效，非最佳实践；如因此产生问题，请勿提交 issue 反馈。"}
                 trigger='hover'
                 position='topLeft'
               >
@@ -389,7 +387,7 @@ export const getChannelsColumns = ({
             {showUpstreamUpdateTag && (
               <Space spacing={4} align='center'>
                 {pendingAddCount > 0 ? (
-                  <Tooltip content={t('点击处理新增模型')} position='top'>
+                  <Tooltip content={"点击处理新增模型"} position='top'>
                     <Tag
                       color='green'
                       type='light'
@@ -411,7 +409,7 @@ export const getChannelsColumns = ({
                   </Tooltip>
                 ) : null}
                 {pendingRemoveCount > 0 ? (
-                  <Tooltip content={t('点击处理删除模型')} position='top'>
+                  <Tooltip content={"点击处理删除模型"} position='top'>
                     <Tag
                       color='red'
                       type='light'
@@ -440,7 +438,7 @@ export const getChannelsColumns = ({
     },
     {
       key: COLUMN_KEYS.GROUP,
-      title: t('分组'),
+      title: "分组",
       dataIndex: 'group',
       render: (text, record, index) => (
         <div>
@@ -459,7 +457,7 @@ export const getChannelsColumns = ({
     },
     {
       key: COLUMN_KEYS.TYPE,
-      title: t('类型'),
+      title: "类型",
       dataIndex: 'type',
       render: (text, record, index) => {
         if (record.children === undefined) {
@@ -471,7 +469,7 @@ export const getChannelsColumns = ({
     },
     {
       key: COLUMN_KEYS.STATUS,
-      title: t('状态'),
+      title: "状态",
       dataIndex: 'status',
       render: (text, record, index) => {
         if (text === 3) {
@@ -485,7 +483,7 @@ export const getChannelsColumns = ({
             <div>
               <Tooltip
                 content={
-                  t('原因：') + reason + t('，时间：') + timestamp2string(time)
+                  "原因：" + reason + "，时间：" + timestamp2string(time)
                 }
               >
                 {renderStatus(text, record.channel_info, t)}
@@ -499,20 +497,20 @@ export const getChannelsColumns = ({
     },
     {
       key: COLUMN_KEYS.RESPONSE_TIME,
-      title: t('响应时间'),
+      title: "响应时间",
       dataIndex: 'response_time',
       render: (text, record, index) => <div>{renderResponseTime(text, t)}</div>,
     },
     {
       key: COLUMN_KEYS.BALANCE,
-      title: t('已用/剩余'),
+      title: "已用/剩余",
       dataIndex: 'expired_time',
       render: (text, record, index) => {
         if (record.children === undefined) {
           return (
             <div>
               <Space spacing={1}>
-                <Tooltip content={t('已用额度')}>
+                <Tooltip content={"已用额度"}>
                   <Tag color='white' type='ghost' shape='circle'>
                     {renderQuota(record.used_quota)}
                   </Tag>
@@ -520,11 +518,11 @@ export const getChannelsColumns = ({
                 <Tooltip
                   content={
                     record.type === 57
-                      ? t('查看 Codex 帐号信息与用量')
-                      : t('剩余额度') +
+                      ? "查看 Codex 帐号信息与用量"
+                      : "剩余额度" +
                         ': ' +
                         renderQuotaWithAmount(record.balance) +
-                        t('，点击更新')
+                        "，点击更新"
                   }
                 >
                   <Tag
@@ -535,7 +533,7 @@ export const getChannelsColumns = ({
                     onClick={() => updateChannelBalance(record)}
                   >
                     {record.type === 57
-                      ? t('帐号信息')
+                      ? "帐号信息"
                       : renderQuotaWithAmount(record.balance)}
                   </Tag>
                 </Tooltip>
@@ -544,7 +542,7 @@ export const getChannelsColumns = ({
           );
         } else {
           return (
-            <Tooltip content={t('已用额度')}>
+            <Tooltip content={"已用额度"}>
               <Tag color='white' type='ghost' shape='circle'>
                 {renderQuota(record.used_quota)}
               </Tag>
@@ -555,7 +553,7 @@ export const getChannelsColumns = ({
     },
     {
       key: COLUMN_KEYS.PRIORITY,
-      title: t('优先级'),
+      title: "优先级",
       dataIndex: 'priority',
       render: (text, record, index) => {
         if (record.children === undefined) {
@@ -583,11 +581,11 @@ export const getChannelsColumns = ({
               keepFocus={true}
               onBlur={(e) => {
                 Modal.warning({
-                  title: t('修改子渠道优先级'),
+                  title: "修改子渠道优先级",
                   content:
-                    t('确定要修改所有子渠道优先级为 ') +
+                    "确定要修改所有子渠道优先级为 " +
                     e.target.value +
-                    t(' 吗？'),
+                    " 吗？",
                   onOk: () => {
                     if (e.target.value === '') {
                       return;
@@ -610,7 +608,7 @@ export const getChannelsColumns = ({
     },
     {
       key: COLUMN_KEYS.WEIGHT,
-      title: t('权重'),
+      title: "权重",
       dataIndex: 'weight',
       render: (text, record, index) => {
         if (record.children === undefined) {
@@ -638,11 +636,11 @@ export const getChannelsColumns = ({
               keepFocus={true}
               onBlur={(e) => {
                 Modal.warning({
-                  title: t('修改子渠道权重'),
+                  title: "修改子渠道权重",
                   content:
-                    t('确定要修改所有子渠道权重为 ') +
+                    "确定要修改所有子渠道权重为 " +
                     e.target.value +
-                    t(' 吗？'),
+                    " 吗？",
                   onOk: () => {
                     if (e.target.value === '') {
                       return;
@@ -674,12 +672,12 @@ export const getChannelsColumns = ({
           const moreMenuItems = [
             {
               node: 'item',
-              name: t('删除'),
+              name: "删除",
               type: 'danger',
               onClick: () => {
                 Modal.confirm({
-                  title: t('确定是否要删除此渠道？'),
-                  content: t('此修改将不可逆'),
+                  title: "确定是否要删除此渠道？",
+                  content: "此修改将不可逆",
                   onOk: () => {
                     (async () => {
                       await manageChannel(record.id, 'delete', record);
@@ -696,12 +694,12 @@ export const getChannelsColumns = ({
             },
             {
               node: 'item',
-              name: t('复制'),
+              name: "复制",
               type: 'tertiary',
               onClick: () => {
                 Modal.confirm({
-                  title: t('确定是否要复制此渠道？'),
-                  content: t('复制渠道的所有信息'),
+                  title: "确定是否要复制此渠道？",
+                  content: "复制渠道的所有信息",
                   onOk: () => copySelectedChannel(record),
                 });
               },
@@ -711,7 +709,7 @@ export const getChannelsColumns = ({
           if (upstreamUpdateMeta.supported) {
             moreMenuItems.push({
               node: 'item',
-              name: t('仅检测上游模型更新'),
+              name: "仅检测上游模型更新",
               type: 'tertiary',
               onClick: () => {
                 detectChannelUpstreamUpdates(record);
@@ -719,18 +717,18 @@ export const getChannelsColumns = ({
             });
             moreMenuItems.push({
               node: 'item',
-              name: t('处理上游模型更新'),
+              name: "处理上游模型更新",
               type: 'tertiary',
               onClick: () => {
                 if (!upstreamUpdateMeta.enabled) {
-                  showInfo(t('该渠道未开启上游模型更新检测'));
+                  showInfo("该渠道未开启上游模型更新检测");
                   return;
                 }
                 if (
                   upstreamUpdateMeta.pendingAddModels.length === 0 &&
                   upstreamUpdateMeta.pendingRemoveModels.length === 0
                 ) {
-                  showInfo(t('该渠道暂无可处理的上游模型更新'));
+                  showInfo("该渠道暂无可处理的上游模型更新");
                   return;
                 }
                 openUpstreamUpdateModal(
@@ -748,7 +746,7 @@ export const getChannelsColumns = ({
           if (record.type === 4) {
             moreMenuItems.unshift({
               node: 'item',
-              name: t('测活'),
+              name: "测活",
               type: 'tertiary',
               onClick: () => checkOllamaVersion(record),
             });
@@ -758,14 +756,14 @@ export const getChannelsColumns = ({
             <Space wrap>
               <SplitButtonGroup
                 className='overflow-hidden'
-                aria-label={t('测试单个渠道操作项目组')}
+                aria-label={"测试单个渠道操作项目组"}
               >
                 <Button
                   size='small'
                   type='tertiary'
                   onClick={() => testChannel(record, '')}
                 >
-                  {t('测试')}
+                  {"测试"}
                 </Button>
                 <Button
                   size='small'
@@ -784,19 +782,19 @@ export const getChannelsColumns = ({
                   size='small'
                   onClick={() => manageChannel(record.id, 'disable', record)}
                 >
-                  {t('禁用')}
+                  {"禁用"}
                 </Button>
               ) : (
                 <Button
                   size='small'
                   onClick={() => manageChannel(record.id, 'enable', record)}
                 >
-                  {t('启用')}
+                  {"启用"}
                 </Button>
               )}
 
               {record.channel_info?.is_multi_key ? (
-                <SplitButtonGroup aria-label={t('多密钥渠道操作项目组')}>
+                <SplitButtonGroup aria-label={"多密钥渠道操作项目组"}>
                   <Button
                     type='tertiary'
                     size='small'
@@ -805,7 +803,7 @@ export const getChannelsColumns = ({
                       setShowEdit(true);
                     }}
                   >
-                    {t('编辑')}
+                    {"编辑"}
                   </Button>
                   <Dropdown
                     trigger='click'
@@ -813,7 +811,7 @@ export const getChannelsColumns = ({
                     menu={[
                       {
                         node: 'item',
-                        name: t('多密钥管理'),
+                        name: "多密钥管理",
                         onClick: () => {
                           setCurrentMultiKeyChannel(record);
                           setShowMultiKeyManageModal(true);
@@ -837,7 +835,7 @@ export const getChannelsColumns = ({
                     setShowEdit(true);
                   }}
                 >
-                  {t('编辑')}
+                  {"编辑"}
                 </Button>
               )}
 
@@ -859,14 +857,14 @@ export const getChannelsColumns = ({
                 size='small'
                 onClick={() => manageTag(record.key, 'enable')}
               >
-                {t('启用全部')}
+                {"启用全部"}
               </Button>
               <Button
                 type='tertiary'
                 size='small'
                 onClick={() => manageTag(record.key, 'disable')}
               >
-                {t('禁用全部')}
+                {"禁用全部"}
               </Button>
               <Button
                 type='tertiary'
@@ -876,7 +874,7 @@ export const getChannelsColumns = ({
                   setEditingTag(record.key);
                 }}
               >
-                {t('编辑')}
+                {"编辑"}
               </Button>
             </Space>
           );

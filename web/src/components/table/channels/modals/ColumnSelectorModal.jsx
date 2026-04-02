@@ -51,17 +51,17 @@ const ColumnSelectorModal = ({
 
   return (
     <Modal
-      title={t('列设置')}
+      title={"列设置"}
       visible={showColumnSelector}
       onCancel={() => setShowColumnSelector(false)}
       footer={
         <div className='flex justify-end'>
-          <Button onClick={() => initDefaultColumns()}>{t('重置')}</Button>
+          <Button onClick={() => initDefaultColumns()}>{"重置"}</Button>
           <Button onClick={() => setShowColumnSelector(false)}>
-            {t('取消')}
+            {"取消"}
           </Button>
           <Button onClick={() => setShowColumnSelector(false)}>
-            {t('确定')}
+            {"确定"}
           </Button>
         </div>
       }
@@ -75,7 +75,7 @@ const ColumnSelectorModal = ({
           }
           onChange={(e) => handleSelectAll(e.target.checked)}
         >
-          {t('全选')}
+          {"全选"}
         </Checkbox>
       </div>
       <div

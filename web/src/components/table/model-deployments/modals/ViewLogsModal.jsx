@@ -123,7 +123,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
       }
     } catch (error) {
       showError(
-        t('获取日志失败') +
+        "获取日志失败" +
           ': ' +
           (error.response?.data?.message || error.message),
       );
@@ -162,7 +162,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
       }
     } catch (error) {
       showError(
-        t('获取容器列表失败') +
+        "获取容器列表失败" +
           ': ' +
           (error.response?.data?.message || error.message),
       );
@@ -188,7 +188,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
       }
     } catch (error) {
       showError(
-        t('获取容器详情失败') +
+        "获取容器详情失败" +
           ': ' +
           (error.response?.data?.message || error.message),
       );
@@ -214,7 +214,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
     if (!status) {
       return (
         <Tag color='grey' size='small'>
-          {t('未知状态')}
+          {"未知状态"}
         </Tag>
       );
     }
@@ -235,7 +235,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
 
     return (
       <Tag color={config.color} size='small'>
-        {t(config.label)}
+        {config.label}
       </Tag>
     );
   };
@@ -255,7 +255,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
   const downloadLogs = () => {
     const sourceLogs = filteredLogs.length > 0 ? filteredLogs : logLines;
     if (sourceLogs.length === 0) {
-      showError(t('暂无日志可下载'));
+      showError("暂无日志可下载");
       return;
     }
     const logText = sourceLogs.join('\n');
@@ -277,22 +277,22 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    showSuccess(t('日志已下载'));
+    showSuccess("日志已下载");
   };
 
   const copyAllLogs = async () => {
     const sourceLogs = filteredLogs.length > 0 ? filteredLogs : logLines;
     if (sourceLogs.length === 0) {
-      showError(t('暂无日志可复制'));
+      showError("暂无日志可复制");
       return;
     }
     const logText = sourceLogs.join('\n');
 
     const copied = await copy(logText);
     if (copied) {
-      showSuccess(t('日志已复制到剪贴板'));
+      showSuccess("日志已复制到剪贴板");
     } else {
-      showError(t('复制失败，请手动选择文本复制'));
+      showError("复制失败，请手动选择文本复制");
     }
   };
 
@@ -376,7 +376,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
       title={
         <div className='flex items-center gap-2'>
           <FaTerminal className='text-blue-500' />
-          <span>{t('容器日志')}</span>
+          <span>{"容器日志"}</span>
           <Text type='secondary' size='small'>
             - {deployment?.container_name || deployment?.id}
           </Text>
@@ -397,7 +397,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
             <Space wrap>
               <Select
                 prefix={<FaServer />}
-                placeholder={t('选择容器')}
+                placeholder={"选择容器"}
                 value={selectedContainerId}
                 onChange={handleContainerChange}
                 style={{ width: 240 }}
@@ -406,7 +406,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
                 dropdownStyle={{ maxHeight: 320, overflowY: 'auto' }}
               >
                 <Select.Option value={ALL_CONTAINERS}>
-                  {t('全部容器')}
+                  {"全部容器"}
                 </Select.Option>
                 {containers.map((ctr) => (
                   <Select.Option
@@ -428,7 +428,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
 
               <Input
                 prefix={<FaSearch />}
-                placeholder={t('搜索日志内容')}
+                placeholder={"搜索日志内容"}
                 value={searchTerm}
                 onChange={setSearchTerm}
                 style={{ width: 200 }}
@@ -437,7 +437,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
 
               <Space align='center' className='ml-2'>
                 <Text size='small' type='secondary'>
-                  {t('日志流')}
+                  {"日志流"}
                 </Text>
                 <Radio.Group
                   type='button'
@@ -456,7 +456,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
                   onChange={setAutoRefresh}
                   size='small'
                 />
-                <Text size='small'>{t('自动刷新')}</Text>
+                <Text size='small'>{"自动刷新"}</Text>
               </div>
 
               <div className='flex items-center gap-2'>
@@ -465,12 +465,12 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
                   onChange={setFollowing}
                   size='small'
                 />
-                <Text size='small'>{t('跟随日志')}</Text>
+                <Text size='small'>{"跟随日志"}</Text>
               </div>
             </Space>
 
             <Space>
-              <Tooltip content={t('刷新日志')}>
+              <Tooltip content={"刷新日志"}>
                 <Button
                   icon={<IconRefresh />}
                   onClick={refreshLogs}
@@ -480,7 +480,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
                 />
               </Tooltip>
 
-              <Tooltip content={t('复制日志')}>
+              <Tooltip content={"复制日志"}>
                 <Button
                   icon={<FaCopy />}
                   onClick={copyAllLogs}
@@ -490,7 +490,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
                 />
               </Tooltip>
 
-              <Tooltip content={t('下载日志')}>
+              <Tooltip content={"下载日志"}>
                 <Button
                   icon={<IconDownload />}
                   onClick={downloadLogs}
@@ -507,25 +507,23 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
           <div className='flex items-center justify-between'>
             <Space size='large'>
               <Text size='small' type='secondary'>
-                {t('共 {{count}} 条日志', { count: logLines.length })}
+                {`共 ${logLines.length} 条日志`}
               </Text>
               {searchTerm && (
                 <Text size='small' type='secondary'>
-                  {t('(筛选后显示 {{count}} 条)', {
-                    count: filteredLogs.length,
-                  })}
+                  {`(筛选后显示 ${filteredLogs.length} 条)`}
                 </Text>
               )}
               {autoRefresh && (
                 <Tag color='green' size='small'>
                   <FaClock className='mr-1' />
-                  {t('自动刷新中')}
+                  {"自动刷新中"}
                 </Tag>
               )}
             </Space>
 
             <Text size='small' type='secondary'>
-              {t('状态')}: {deployment?.status || 'unknown'}
+              {"状态"}: {deployment?.status || 'unknown'}
             </Text>
           </div>
 
@@ -536,7 +534,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
                 <div className='flex items-center justify-between flex-wrap gap-2'>
                   <Space>
                     <Tag color='blue' size='small'>
-                      {t('容器')}
+                      {"容器"}
                     </Tag>
                     <Text className='font-mono text-xs'>
                       {selectedContainerId}
@@ -559,7 +557,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
                         />
                       </Tooltip>
                     )}
-                    <Tooltip content={t('刷新容器信息')}>
+                    <Tooltip content={"刷新容器信息"}>
                       <Button
                         icon={<IconRefresh />}
                         onClick={refreshContainerDetails}
@@ -573,17 +571,17 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
 
                 {containerDetailsLoading ? (
                   <div className='flex items-center justify-center py-6'>
-                    <Spin tip={t('加载容器详情中...')} />
+                    <Spin tip={"加载容器详情中..."} />
                   </div>
                 ) : containerDetails ? (
                   <div className='grid gap-4 md:grid-cols-2 text-sm'>
                     <div className='flex items-center gap-2'>
                       <FaInfoCircle className='text-blue-500' />
-                      <Text type='secondary'>{t('硬件')}</Text>
+                      <Text type='secondary'>{"硬件"}</Text>
                       <Text>
                         {containerDetails?.brand_name ||
                           currentContainer?.brand_name ||
-                          t('未知品牌')}
+                          "未知品牌"}
                         {containerDetails?.hardware ||
                         currentContainer?.hardware
                           ? ` · ${containerDetails?.hardware || currentContainer?.hardware}`
@@ -592,7 +590,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
                     </div>
                     <div className='flex items-center gap-2'>
                       <FaServer className='text-purple-500' />
-                      <Text type='secondary'>{t('GPU/容器')}</Text>
+                      <Text type='secondary'>{"GPU/容器"}</Text>
                       <Text>
                         {containerDetails?.gpus_per_container ??
                           currentContainer?.gpus_per_container ??
@@ -601,18 +599,18 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
                     </div>
                     <div className='flex items-center gap-2'>
                       <FaClock className='text-orange-500' />
-                      <Text type='secondary'>{t('创建时间')}</Text>
+                      <Text type='secondary'>{"创建时间"}</Text>
                       <Text>
                         {containerDetails?.created_at
                           ? timestamp2string(containerDetails.created_at)
                           : currentContainer?.created_at
                             ? timestamp2string(currentContainer.created_at)
-                            : t('未知')}
+                            : "未知"}
                       </Text>
                     </div>
                     <div className='flex items-center gap-2'>
                       <FaInfoCircle className='text-green-500' />
-                      <Text type='secondary'>{t('运行时长')}</Text>
+                      <Text type='secondary'>{"运行时长"}</Text>
                       <Text>
                         {containerDetails?.uptime_percent ??
                           currentContainer?.uptime_percent ??
@@ -623,7 +621,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
                   </div>
                 ) : (
                   <Text size='small' type='secondary'>
-                    {t('暂无容器详情')}
+                    {"暂无容器详情"}
                   </Text>
                 )}
 
@@ -631,7 +629,7 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
                   containerDetails.events.length > 0 && (
                     <div className='bg-gray-50 rounded-lg p-3'>
                       <Text size='small' type='secondary'>
-                        {t('最近事件')}
+                        {"最近事件"}
                       </Text>
                       <div className='mt-2 space-y-2 max-h-32 overflow-y-auto'>
                         {containerDetails.events
@@ -668,13 +666,13 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
           >
             {loading && logLines.length === 0 ? (
               <div className='flex items-center justify-center p-8'>
-                <Spin tip={t('加载日志中...')} />
+                <Spin tip={"加载日志中..."} />
               </div>
             ) : filteredLogs.length === 0 ? (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
-                  searchTerm ? t('没有匹配的日志条目') : t('暂无日志')
+                  searchTerm ? "没有匹配的日志条目" : "暂无日志"
                 }
                 style={{ padding: '60px 20px' }}
               />
@@ -688,9 +686,9 @@ const ViewLogsModal = ({ visible, onCancel, deployment, t }) => {
           {/* Footer status */}
           {logLines.length > 0 && (
             <div className='flex items-center justify-between px-3 py-2 bg-gray-50 border-t text-xs text-gray-500'>
-              <span>{following ? t('正在跟随最新日志') : t('日志已加载')}</span>
+              <span>{following ? "正在跟随最新日志" : "日志已加载"}</span>
               <span>
-                {t('最后更新')}:{' '}
+                {"最后更新"}:{' '}
                 {lastUpdatedAt ? lastUpdatedAt.toLocaleTimeString() : '--'}
               </span>
             </div>

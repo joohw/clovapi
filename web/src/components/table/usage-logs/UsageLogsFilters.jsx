@@ -34,12 +34,12 @@ const LogsFilters = ({
               field='dateRange'
               className='w-full'
               type='dateTimeRange'
-              placeholder={[t('开始时间'), t('结束时间')]}
+              placeholder={["开始时间", "结束时间"]}
               showClear
               pure
               size='small'
               presets={DATE_RANGE_PRESETS.map((preset) => ({
-                text: t(preset.text),
+                text: preset.text,
                 start: preset.start(),
                 end: preset.end(),
               }))}
@@ -50,7 +50,7 @@ const LogsFilters = ({
           <Form.Input
             field='token_name'
             prefix={<IconSearch />}
-            placeholder={t('令牌名称')}
+            placeholder={"令牌名称"}
             showClear
             pure
             size='small'
@@ -59,7 +59,7 @@ const LogsFilters = ({
           <Form.Input
             field='model_name'
             prefix={<IconSearch />}
-            placeholder={t('模型名称')}
+            placeholder={"模型名称"}
             showClear
             pure
             size='small'
@@ -68,7 +68,7 @@ const LogsFilters = ({
           <Form.Input
             field='group'
             prefix={<IconSearch />}
-            placeholder={t('分组')}
+            placeholder={"分组"}
             showClear
             pure
             size='small'
@@ -77,7 +77,7 @@ const LogsFilters = ({
           <Form.Input
             field='request_id'
             prefix={<IconSearch />}
-            placeholder={t('Request ID')}
+            placeholder={"Request ID"}
             showClear
             pure
             size='small'
@@ -88,7 +88,7 @@ const LogsFilters = ({
               <Form.Input
                 field='channel'
                 prefix={<IconSearch />}
-                placeholder={t('渠道 ID')}
+                placeholder={"渠道 ID"}
                 showClear
                 pure
                 size='small'
@@ -96,7 +96,7 @@ const LogsFilters = ({
               <Form.Input
                 field='username'
                 prefix={<IconSearch />}
-                placeholder={t('用户名称')}
+                placeholder={"用户名称"}
                 showClear
                 pure
                 size='small'
@@ -111,7 +111,7 @@ const LogsFilters = ({
           <div className='w-full sm:w-auto'>
             <Form.Select
               field='logType'
-              placeholder={t('日志类型')}
+              placeholder={"日志类型"}
               className='w-full sm:w-auto min-w-[120px]'
               showClear
               pure
@@ -123,13 +123,13 @@ const LogsFilters = ({
               }}
               size='small'
             >
-              <Form.Select.Option value='0'>{t('全部')}</Form.Select.Option>
-              <Form.Select.Option value='1'>{t('充值')}</Form.Select.Option>
-              <Form.Select.Option value='2'>{t('消费')}</Form.Select.Option>
-              <Form.Select.Option value='3'>{t('管理')}</Form.Select.Option>
-              <Form.Select.Option value='4'>{t('系统')}</Form.Select.Option>
-              <Form.Select.Option value='5'>{t('错误')}</Form.Select.Option>
-              <Form.Select.Option value='6'>{t('退款')}</Form.Select.Option>
+              <Form.Select.Option value='0'>{"全部"}</Form.Select.Option>
+              <Form.Select.Option value='1'>{"充值"}</Form.Select.Option>
+              <Form.Select.Option value='2'>{"消费"}</Form.Select.Option>
+              <Form.Select.Option value='3'>{"管理"}</Form.Select.Option>
+              <Form.Select.Option value='4'>{"系统"}</Form.Select.Option>
+              <Form.Select.Option value='5'>{"错误"}</Form.Select.Option>
+              <Form.Select.Option value='6'>{"退款"}</Form.Select.Option>
             </Form.Select>
           </div>
 
@@ -140,7 +140,7 @@ const LogsFilters = ({
               loading={loading}
               size='small'
             >
-              {t('查询')}
+              {"查询"}
             </Button>
             <Button
               type='tertiary'
@@ -155,14 +155,14 @@ const LogsFilters = ({
               }}
               size='small'
             >
-              {t('重置')}
+              {"重置"}
             </Button>
             <Button
               type='tertiary'
               onClick={() => setShowColumnSelector(true)}
               size='small'
             >
-              {t('列设置')}
+              {"列设置"}
             </Button>
           </div>
         </div>

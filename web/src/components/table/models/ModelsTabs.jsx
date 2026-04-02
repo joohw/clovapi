@@ -36,7 +36,7 @@ const ModelsTabs = ({
     try {
       const res = await API.delete(`/api/vendors/${vendor.id}`);
       if (res.data.success) {
-        showSuccess(t('供应商删除成功'));
+        showSuccess("供应商删除成功");
         // 如果删除的是当前选中的供应商，切换到"全部"
         if (activeVendorKey === String(vendor.id)) {
           setActiveVendorKey('all');
@@ -46,10 +46,10 @@ const ModelsTabs = ({
         }
         loadVendors(); // 重新加载供应商列表
       } else {
-        showError(res.data.message || t('删除失败'));
+        showError(res.data.message || "删除失败");
       }
     } catch (error) {
-      showError(error.response?.data?.message || t('删除失败'));
+      showError(error.response?.data?.message || "删除失败");
     }
   };
 
@@ -66,7 +66,7 @@ const ModelsTabs = ({
           size='small'
           onClick={() => setShowAddVendor(true)}
         >
-          {t('新增供应商')}
+          {"新增供应商"}
         </Button>
       }
     >
@@ -74,7 +74,7 @@ const ModelsTabs = ({
         itemKey='all'
         tab={
           <span className='flex items-center gap-2'>
-            {t('全部')}
+            {"全部"}
             <Tag
               color={activeVendorKey === 'all' ? 'red' : 'grey'}
               shape='circle'
@@ -111,7 +111,7 @@ const ModelsTabs = ({
                         icon={<IconEdit />}
                         onClick={(e) => handleEditVendor(vendor, e)}
                       >
-                        {t('编辑')}
+                        {"编辑"}
                       </Dropdown.Item>
                       <Dropdown.Item
                         type='danger'
@@ -119,20 +119,17 @@ const ModelsTabs = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           Modal.confirm({
-                            title: t('确认删除'),
-                            content: t(
-                              '确定要删除供应商 "{{name}}" 吗？此操作不可撤销。',
-                              { name: vendor.name },
-                            ),
+                            title: "确认删除",
+                            content: `确定要删除供应商 "${vendor.name}" 吗？此操作不可撤销。`,
                             onOk: () => handleDeleteVendor(vendor, e),
-                            okText: t('删除'),
-                            cancelText: t('取消'),
+                            okText: "删除",
+                            cancelText: "取消",
                             type: 'warning',
                             okType: 'danger',
                           });
                         }}
                       >
-                        {t('删除')}
+                        {"删除"}
                       </Dropdown.Item>
                     </Dropdown.Menu>
                   }
@@ -144,7 +141,7 @@ const ModelsTabs = ({
                     theme='outline'
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {t('操作')}
+                    {"操作"}
                   </Button>
                 </Dropdown>
               </span>

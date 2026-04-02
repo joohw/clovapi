@@ -7,34 +7,31 @@ import SelectableButtonGroup from '../../../common/ui/SelectableButtonGroup';
  * @param {Function} setFilterQuotaType setter
  * @param {Array} models 模型列表
  * @param {boolean} loading 是否加载中
- * @param {Function} t i18n
  */
 const PricingQuotaTypes = ({
   filterQuotaType,
   setFilterQuotaType,
   models = [],
   loading = false,
-  t,
 }) => {
   const qtyCount = (type) =>
     models.filter((m) => (type === 'all' ? true : m.quota_type === type))
       .length;
 
   const items = [
-    { value: 'all', label: t('全部类型'), tagCount: qtyCount('all') },
-    { value: 0, label: t('按量计费'), tagCount: qtyCount(0) },
-    { value: 1, label: t('按次计费'), tagCount: qtyCount(1) },
+    { value: 'all', label: "全部类型", tagCount: qtyCount('all') },
+    { value: 0, label: "按量计费", tagCount: qtyCount(0) },
+    { value: 1, label: "按次计费", tagCount: qtyCount(1) },
   ];
 
   return (
     <SelectableButtonGroup
-      title={t('计费类型')}
+      title={"计费类型"}
       items={items}
       activeValue={filterQuotaType}
       onChange={setFilterQuotaType}
       loading={loading}
       variant='amber'
-      t={t}
     />
   );
 };

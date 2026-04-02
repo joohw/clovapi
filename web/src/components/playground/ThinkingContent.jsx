@@ -2,8 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { Typography } from '@douyinfe/semi-ui';
 import MarkdownRenderer from '../common/markdown/MarkdownRenderer';
 import { ChevronRight, ChevronUp, Brain, Loader2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-
 const ThinkingContent = ({
   message,
   finalExtractedThinkingContent,
@@ -11,7 +9,6 @@ const ThinkingContent = ({
   styleState,
   onToggleReasoningExpansion,
 }) => {
-  const { t } = useTranslation();
   const scrollRef = useRef(null);
   const lastContentRef = useRef('');
 
@@ -19,8 +16,8 @@ const ThinkingContent = ({
     message.status === 'loading' || message.status === 'incomplete';
   const headerText =
     isThinkingStatus && !message.isThinkingComplete
-      ? t('思考中...')
-      : t('思考过程');
+      ? "思考中..."
+      : "思考过程";
 
   useEffect(() => {
     if (

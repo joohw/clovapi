@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Modal, Empty } from '@douyinfe/semi-ui';
-import { useTranslation } from 'react-i18next';
 import { API, showError } from '../../helpers';
 import { marked } from 'marked';
 import {
@@ -13,7 +12,6 @@ const NoticeModal = ({
   onClose,
   isMobile,
 }) => {
-  const { t } = useTranslation();
   const [noticeContent, setNoticeContent] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -55,7 +53,7 @@ const NoticeModal = ({
     if (loading) {
       return (
         <div className='py-12'>
-          <Empty description={t('加载中...')} />
+          <Empty description={"加载中..."} />
         </div>
       );
     }
@@ -70,7 +68,7 @@ const NoticeModal = ({
             darkModeImage={
               <IllustrationNoContentDark style={{ width: 150, height: 150 }} />
             }
-            description={t('暂无通知')}
+            description={"暂无通知"}
           />
         </div>
       );
@@ -86,16 +84,16 @@ const NoticeModal = ({
 
   return (
     <Modal
-      title={t('通知')}
+      title={"通知"}
       visible={visible}
       onCancel={onClose}
       footer={
         <div className='flex justify-end'>
           <Button type='secondary' onClick={handleCloseTodayNotice}>
-            {t('今日关闭')}
+            {"今日关闭"}
           </Button>
           <Button type='primary' onClick={onClose}>
-            {t('关闭公告')}
+            {"关闭公告"}
           </Button>
         </div>
       }

@@ -8,10 +8,7 @@ import {
   showSuccess,
   verifyJSON,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 export default function SettingsPaymentGateway(props) {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState({
     PayAddress: '',
@@ -81,20 +78,20 @@ export default function SettingsPaymentGateway(props) {
 
   const submitPayAddress = async () => {
     if (props.options.ServerAddress === '') {
-      showError(t('请先填写服务器地址'));
+      showError("请先填写服务器地址");
       return;
     }
 
     if (originInputs['TopupGroupRatio'] !== inputs.TopupGroupRatio) {
       if (!verifyJSON(inputs.TopupGroupRatio)) {
-        showError(t('充值分组倍率不是合法的 JSON 字符串'));
+        showError("充值分组倍率不是合法的 JSON 字符串");
         return;
       }
     }
 
     if (originInputs['PayMethods'] !== inputs.PayMethods) {
       if (!verifyJSON(inputs.PayMethods)) {
-        showError(t('充值方式设置不是合法的 JSON 字符串'));
+        showError("充值方式设置不是合法的 JSON 字符串");
         return;
       }
     }
@@ -104,7 +101,7 @@ export default function SettingsPaymentGateway(props) {
       inputs.AmountOptions.trim() !== ''
     ) {
       if (!verifyJSON(inputs.AmountOptions)) {
-        showError(t('自定义充值数量选项不是合法的 JSON 数组'));
+        showError("自定义充值数量选项不是合法的 JSON 数组");
         return;
       }
     }
@@ -114,7 +111,7 @@ export default function SettingsPaymentGateway(props) {
       inputs.AmountDiscount.trim() !== ''
     ) {
       if (!verifyJSON(inputs.AmountDiscount)) {
-        showError(t('充值金额折扣配置不是合法的 JSON 对象'));
+        showError("充值金额折扣配置不是合法的 JSON 对象");
         return;
       }
     }
@@ -179,13 +176,13 @@ export default function SettingsPaymentGateway(props) {
           showError(res.data.message);
         });
       } else {
-        showSuccess(t('更新成功'));
+        showSuccess("更新成功");
         // 更新本地存储的原始值
         setOriginInputs({ ...inputs });
         props.refresh && props.refresh();
       }
     } catch (error) {
-      showError(t('更新失败'));
+      showError("更新失败");
     }
     setLoading(false);
   };
@@ -197,32 +194,30 @@ export default function SettingsPaymentGateway(props) {
         onValueChange={handleFormChange}
         getFormApi={(api) => (formApiRef.current = api)}
       >
-        <Form.Section text={t('支付设置')}>
+        <Form.Section text={"支付设置"}>
           <Text>
-            {t(
-              '（当前仅支持易支付接口，默认使用上方服务器地址作为回调地址！）',
-            )}
+            {"（当前仅支持易支付接口，默认使用上方服务器地址作为回调地址！）"}
           </Text>
           <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.Input
                 field='PayAddress'
-                label={t('支付地址')}
-                placeholder={t('例如：https://yourdomain.com')}
+                label={"支付地址"}
+                placeholder={"例如：https://yourdomain.com"}
               />
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.Input
                 field='EpayId'
-                label={t('易支付商户ID')}
-                placeholder={t('例如：0001')}
+                label={"易支付商户ID"}
+                placeholder={"例如：0001"}
               />
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.Input
                 field='EpayKey'
-                label={t('易支付商户密钥')}
-                placeholder={t('敏感信息不会发送到前端显示')}
+                label={"易支付商户密钥"}
+                placeholder={"敏感信息不会发送到前端显示"}
                 type='password'
               />
             </Col>
@@ -234,36 +229,36 @@ export default function SettingsPaymentGateway(props) {
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.Input
                 field='CustomCallbackAddress'
-                label={t('回调地址')}
-                placeholder={t('例如：https://yourdomain.com')}
+                label={"回调地址"}
+                placeholder={"例如：https://yourdomain.com"}
               />
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.InputNumber
                 field='Price'
                 precision={2}
-                label={t('充值价格（x元/美金）')}
-                placeholder={t('例如：7，就是7元/美金')}
+                label={"充值价格（x元/美金）"}
+                placeholder={"例如：7，就是7元/美金"}
               />
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.InputNumber
                 field='MinTopUp'
-                label={t('最低充值美元数量')}
-                placeholder={t('例如：2，就是最低充值2$')}
+                label={"最低充值美元数量"}
+                placeholder={"例如：2，就是最低充值2$"}
               />
             </Col>
           </Row>
           <Form.TextArea
             field='TopupGroupRatio'
-            label={t('充值分组倍率')}
-            placeholder={t('为一个 JSON 文本，键为组名称，值为倍率')}
+            label={"充值分组倍率"}
+            placeholder={"为一个 JSON 文本，键为组名称，值为倍率"}
             autosize
           />
           <Form.TextArea
             field='PayMethods'
-            label={t('充值方式设置')}
-            placeholder={t('为一个 JSON 文本')}
+            label={"充值方式设置"}
+            placeholder={"为一个 JSON 文本"}
             autosize
           />
 
@@ -274,14 +269,10 @@ export default function SettingsPaymentGateway(props) {
             <Col span={24}>
               <Form.TextArea
                 field='AmountOptions'
-                label={t('自定义充值数量选项')}
-                placeholder={t(
-                  '为一个 JSON 数组，例如：[10, 20, 50, 100, 200, 500]',
-                )}
+                label={"自定义充值数量选项"}
+                placeholder={"为一个 JSON 数组，例如：[10, 20, 50, 100, 200, 500]"}
                 autosize
-                extraText={t(
-                  '设置用户可选择的充值数量选项，例如：[10, 20, 50, 100, 200, 500]',
-                )}
+                extraText={"设置用户可选择的充值数量选项，例如：[10, 20, 50, 100, 200, 500]"}
               />
             </Col>
           </Row>
@@ -293,19 +284,15 @@ export default function SettingsPaymentGateway(props) {
             <Col span={24}>
               <Form.TextArea
                 field='AmountDiscount'
-                label={t('充值金额折扣配置')}
-                placeholder={t(
-                  '为一个 JSON 对象，例如：{"100": 0.95, "200": 0.9, "500": 0.85}',
-                )}
+                label={"充值金额折扣配置"}
+                placeholder={"为一个 JSON 对象，例如：{\"100\": 0.95, \"200\": 0.9, \"500\": 0.85}"}
                 autosize
-                extraText={t(
-                  '设置不同充值金额对应的折扣，键为充值金额，值为折扣率，例如：{"100": 0.95, "200": 0.9, "500": 0.85}',
-                )}
+                extraText={"设置不同充值金额对应的折扣，键为充值金额，值为折扣率，例如：{\"100\": 0.95, \"200\": 0.9, \"500\": 0.85}"}
               />
             </Col>
           </Row>
 
-          <Button onClick={submitPayAddress}>{t('更新支付设置')}</Button>
+          <Button onClick={submitPayAddress}>{"更新支付设置"}</Button>
         </Form.Section>
       </Form>
     </Spin>

@@ -9,7 +9,6 @@ import { getLobeHubIcon } from '../../../../helpers';
  * @param {Array} models 模型列表
  * @param {Array} allModels 所有模型列表（用于获取全部供应商）
  * @param {boolean} loading 是否加载中
- * @param {Function} t i18n
  */
 const PricingVendors = ({
   filterVendor,
@@ -17,7 +16,6 @@ const PricingVendors = ({
   models = [],
   allModels = [],
   loading = false,
-  t,
 }) => {
   // 获取系统中所有供应商（基于 allModels，如果未提供则退化为 models）
   const getAllVendors = React.useMemo(() => {
@@ -62,7 +60,7 @@ const PricingVendors = ({
     const result = [
       {
         value: 'all',
-        label: t('全部供应商'),
+        label: "全部供应商",
         tagCount: getVendorCount('all'),
       },
     ];
@@ -84,23 +82,22 @@ const PricingVendors = ({
       const count = getVendorCount('unknown');
       result.push({
         value: 'unknown',
-        label: t('未知供应商'),
+        label: "未知供应商",
         tagCount: count,
       });
     }
 
     return result;
-  }, [getAllVendors, getVendorCount, t]);
+  }, [getAllVendors, getVendorCount]);
 
   return (
     <SelectableButtonGroup
-      title={t('供应商')}
+      title={"供应商"}
       items={items}
       activeValue={filterVendor}
       onChange={setFilterVendor}
       loading={loading}
       variant='violet'
-      t={t}
     />
   );
 };

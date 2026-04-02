@@ -25,7 +25,6 @@ const UptimePanel = ({
   renderMonitorList,
   CARD_PROPS,
   ILLUSTRATION_SIZE,
-  t,
 }) => {
   return (
     <Card
@@ -35,7 +34,7 @@ const UptimePanel = ({
         <div className='flex items-center justify-between w-full gap-2'>
           <div className='flex items-center gap-2'>
             <Gauge size={16} />
-            {t('服务可用性')}
+            {"服务可用性"}
           </div>
           <Button
             icon={<RefreshCw size={14} />}
@@ -102,8 +101,8 @@ const UptimePanel = ({
                 darkModeImage={
                   <IllustrationConstructionDark style={ILLUSTRATION_SIZE} />
                 }
-                title={t('暂无监控数据')}
-                description={t('请联系管理员在系统设置中配置Uptime')}
+                title={"暂无监控数据"}
+                description={"请联系管理员在系统设置中配置Uptime"}
               />
             </div>
           )}

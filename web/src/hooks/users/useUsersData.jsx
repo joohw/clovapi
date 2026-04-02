@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { API, showError, showSuccess } from '../../helpers';
 import { ITEMS_PER_PAGE } from '../../constants';
 import { useTableCompactMode } from '../common/useTableCompactMode';
 
 export const useUsersData = () => {
-  const { t } = useTranslation();
   const [compactMode, setCompactMode] = useTableCompactMode('users');
 
   // State management
@@ -113,7 +111,7 @@ export const useUsersData = () => {
 
     const { success, message } = res.data;
     if (success) {
-      showSuccess(t('操作成功完成！'));
+      showSuccess("操作成功完成！");
       const user = res.data.data;
 
       // Create a new array and new object to ensure React detects changes
@@ -143,12 +141,12 @@ export const useUsersData = () => {
       const res = await API.delete(`/api/user/${user.id}/reset_passkey`);
       const { success, message } = res.data;
       if (success) {
-        showSuccess(t('Passkey 已重置'));
+        showSuccess("Passkey 已重置");
       } else {
-        showError(message || t('操作失败，请重试'));
+        showError(message || "操作失败，请重试");
       }
     } catch (error) {
-      showError(t('操作失败，请重试'));
+      showError("操作失败，请重试");
     }
   };
 
@@ -160,12 +158,12 @@ export const useUsersData = () => {
       const res = await API.delete(`/api/user/${user.id}/2fa`);
       const { success, message } = res.data;
       if (success) {
-        showSuccess(t('二步验证已重置'));
+        showSuccess("二步验证已重置");
       } else {
-        showError(message || t('操作失败，请重试'));
+        showError(message || "操作失败，请重试");
       }
     } catch (error) {
-      showError(t('操作失败，请重试'));
+      showError("操作失败，请重试");
     }
   };
 
@@ -295,8 +293,5 @@ export const useUsersData = () => {
     closeAddUser,
     closeEditUser,
     getFormValues,
-
-    // Translation
-    t,
   };
 };

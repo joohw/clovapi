@@ -100,7 +100,7 @@ const RedemptionsTable = (redemptionsData) => {
             darkModeImage={
               <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
             }
-            description={t('搜索无结果')}
+            description={"搜索无结果"}
             style={{ padding: 30 }}
           />
         }
@@ -116,7 +116,6 @@ const RedemptionsTable = (redemptionsData) => {
         refresh={refresh}
         redemptions={redemptions}
         activePage={activePage}
-        t={t}
       />
     </>
   );

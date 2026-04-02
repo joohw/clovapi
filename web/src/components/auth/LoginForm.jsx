@@ -36,19 +36,16 @@ import TelegramLoginButton from 'react-telegram-login';
 import {
   IconGithubLogo,
   IconMail,
-  IconLock,
   IconKey,
 } from '@douyinfe/semi-icons';
 import OIDCIcon from '../common/logo/OIDCIcon';
 import WeChatIcon from '../common/logo/WeChatIcon';
 import LinuxDoIcon from '../common/logo/LinuxDoIcon';
 import TwoFAVerification from './TwoFAVerification';
-import { useTranslation } from 'react-i18next';
 import { SiDiscord } from 'react-icons/si';
 
 const LoginForm = () => {
   let navigate = useNavigate();
-  const { t } = useTranslation();
   const githubButtonTextKeyByState = {
     idle: '使用 GitHub 继续',
     redirecting: '正在跳转 GitHub...',
@@ -89,7 +86,7 @@ const LoginForm = () => {
   const [githubButtonState, setGithubButtonState] = useState('idle');
   const [githubButtonDisabled, setGithubButtonDisabled] = useState(false);
   const githubTimeoutRef = useRef(null);
-  const githubButtonText = t(githubButtonTextKeyByState[githubButtonState]);
+  const githubButtonText = githubButtonTextKeyByState[githubButtonState];
   const [customOAuthLoading, setCustomOAuthLoading] = useState({});
 
   let affCode = new URLSearchParams(window.location.search).get('aff');
@@ -144,13 +141,13 @@ const LoginForm = () => {
 
   useEffect(() => {
     if (searchParams.get('expired')) {
-      showError(t('未登录或登录已过期，请重新登录'));
+      showError("未登录或登录已过期，请重新登录");
     }
   }, []);
 
   const onWeChatLoginClicked = () => {
     if ((hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms) {
-      showInfo(t('请先阅读并同意用户协议和隐私政策'));
+      showInfo("请先阅读并同意用户协议和隐私政策");
       return;
     }
     setWechatLoading(true);
@@ -192,8 +189,9 @@ const LoginForm = () => {
   }
 
   async function handleSubmit(e) {
+    e?.preventDefault?.();
     if ((hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms) {
-      showInfo(t('请先阅读并同意用户协议和隐私政策'));
+      showInfo("请先阅读并同意用户协议和隐私政策");
       return;
     }
     if (turnstileEnabled && turnstileToken === '') {
@@ -248,7 +246,7 @@ const LoginForm = () => {
   // 添加Telegram登录处理函数
   const onTelegramLoginClicked = async (response) => {
     if ((hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms) {
-      showInfo(t('请先阅读并同意用户协议和隐私政策'));
+      showInfo("请先阅读并同意用户协议和隐私政策");
       return;
     }
     const fields = [
@@ -288,7 +286,7 @@ const LoginForm = () => {
   // 包装的GitHub登录点击处理
   const handleGitHubClick = () => {
     if ((hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms) {
-      showInfo(t('请先阅读并同意用户协议和隐私政策'));
+      showInfo("请先阅读并同意用户协议和隐私政策");
       return;
     }
     if (githubButtonDisabled) {
@@ -316,7 +314,7 @@ const LoginForm = () => {
   // 包装的Discord登录点击处理
   const handleDiscordClick = () => {
     if ((hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms) {
-      showInfo(t('请先阅读并同意用户协议和隐私政策'));
+      showInfo("请先阅读并同意用户协议和隐私政策");
       return;
     }
     setDiscordLoading(true);
@@ -331,7 +329,7 @@ const LoginForm = () => {
   // 包装的OIDC登录点击处理
   const handleOIDCClick = () => {
     if ((hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms) {
-      showInfo(t('请先阅读并同意用户协议和隐私政策'));
+      showInfo("请先阅读并同意用户协议和隐私政策");
       return;
     }
     setOidcLoading(true);
@@ -351,7 +349,7 @@ const LoginForm = () => {
   // 包装的LinuxDO登录点击处理
   const handleLinuxDOClick = () => {
     if ((hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms) {
-      showInfo(t('请先阅读并同意用户协议和隐私政策'));
+      showInfo("请先阅读并同意用户协议和隐私政策");
       return;
     }
     setLinuxdoLoading(true);
@@ -366,7 +364,7 @@ const LoginForm = () => {
   // 包装的自定义OAuth登录点击处理
   const handleCustomOAuthClick = (provider) => {
     if ((hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms) {
-      showInfo(t('请先阅读并同意用户协议和隐私政策'));
+      showInfo("请先阅读并同意用户协议和隐私政策");
       return;
     }
     setCustomOAuthLoading((prev) => ({ ...prev, [provider.slug]: true }));
@@ -389,7 +387,7 @@ const LoginForm = () => {
 
   const handlePasskeyLogin = async () => {
     if ((hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms) {
-      showInfo(t('请先阅读并同意用户协议和隐私政策'));
+      showInfo("请先阅读并同意用户协议和隐私政策");
       return;
     }
     if (!passkeySupported) {
@@ -483,7 +481,7 @@ const LoginForm = () => {
           <Card className='border-0 !rounded-2xl overflow-hidden'>
             <div className='flex justify-center pt-6 pb-2'>
               <Title heading={3} className='text-gray-800 dark:text-gray-200'>
-                {t('登 录')}
+                {"登 录"}
               </Title>
             </div>
             <div className='px-2 py-8'>
@@ -499,7 +497,7 @@ const LoginForm = () => {
                     onClick={onWeChatLoginClicked}
                     loading={wechatLoading}
                   >
-                    <span className='ml-3'>{t('使用 微信 继续')}</span>
+                    <span className='ml-3'>{"使用 微信 继续"}</span>
                   </Button>
                 )}
 
@@ -534,7 +532,7 @@ const LoginForm = () => {
                     onClick={handleDiscordClick}
                     loading={discordLoading}
                   >
-                    <span className='ml-3'>{t('使用 Discord 继续')}</span>
+                    <span className='ml-3'>{"使用 Discord 继续"}</span>
                   </Button>
                 )}
 
@@ -547,7 +545,7 @@ const LoginForm = () => {
                     onClick={handleOIDCClick}
                     loading={oidcLoading}
                   >
-                    <span className='ml-3'>{t('使用 OIDC 继续')}</span>
+                    <span className='ml-3'>{"使用 OIDC 继续"}</span>
                   </Button>
                 )}
 
@@ -568,7 +566,7 @@ const LoginForm = () => {
                     onClick={handleLinuxDOClick}
                     loading={linuxdoLoading}
                   >
-                    <span className='ml-3'>{t('使用 LinuxDO 继续')}</span>
+                    <span className='ml-3'>{"使用 LinuxDO 继续"}</span>
                   </Button>
                 )}
 
@@ -584,7 +582,7 @@ const LoginForm = () => {
                       loading={customOAuthLoading[provider.slug]}
                     >
                       <span className='ml-3'>
-                        {t('使用 {{name}} 继续', { name: provider.name })}
+                        {`使用 ${provider.name} 继续`}
                       </span>
                     </Button>
                   ))}
@@ -607,12 +605,12 @@ const LoginForm = () => {
                     onClick={handlePasskeyLogin}
                     loading={passkeyLoading}
                   >
-                    <span className='ml-3'>{t('使用 Passkey 登录')}</span>
+                    <span className='ml-3'>{"使用 Passkey 登录"}</span>
                   </Button>
                 )}
 
                 <Divider margin='12px' align='center'>
-                  {t('或')}
+                  {"或"}
                 </Divider>
 
                 <Button
@@ -623,7 +621,7 @@ const LoginForm = () => {
                   onClick={handleEmailLoginClick}
                   loading={emailLoginLoading}
                 >
-                  <span className='ml-3'>{t('使用 邮箱或用户名 登录')}</span>
+                  <span className='ml-3'>{"使用 邮箱或用户名 登录"}</span>
                 </Button>
               </div>
 
@@ -634,7 +632,7 @@ const LoginForm = () => {
                     onChange={(e) => setAgreedToTerms(e.target.checked)}
                   >
                     <Text size='small' className='text-gray-600'>
-                      {t('我已阅读并同意')}
+                      {"我已阅读并同意"}
                       {hasUserAgreement && (
                         <>
                           <a
@@ -643,11 +641,11 @@ const LoginForm = () => {
                             rel='noopener noreferrer'
                             className='text-blue-600 hover:text-blue-800 mx-1'
                           >
-                            {t('用户协议')}
+                            {"用户协议"}
                           </a>
                         </>
                       )}
-                      {hasUserAgreement && hasPrivacyPolicy && t('和')}
+                      {hasUserAgreement && hasPrivacyPolicy && "和"}
                       {hasPrivacyPolicy && (
                         <>
                           <a
@@ -656,7 +654,7 @@ const LoginForm = () => {
                             rel='noopener noreferrer'
                             className='text-blue-600 hover:text-blue-800 mx-1'
                           >
-                            {t('隐私政策')}
+                            {"隐私政策"}
                           </a>
                         </>
                       )}
@@ -668,12 +666,12 @@ const LoginForm = () => {
               {!status.self_use_mode_enabled && (
                 <div className='mt-6 text-center text-sm'>
                   <Text>
-                    {t('没有账户？')}{' '}
+                    {"没有账户？"}{' '}
                     <Link
                       to='/register'
                       className='text-blue-600 hover:text-blue-800 font-medium'
                     >
-                      {t('注册')}
+                      {"注册"}
                     </Link>
                   </Text>
                 </div>
@@ -692,7 +690,7 @@ const LoginForm = () => {
           <Card className='border-0 !rounded-2xl overflow-hidden'>
             <div className='flex justify-center pt-6 pb-2'>
               <Title heading={3} className='text-gray-800 dark:text-gray-200'>
-                {t('登 录')}
+                {"登 录"}
               </Title>
             </div>
             <div className='px-2 py-8'>
@@ -705,28 +703,47 @@ const LoginForm = () => {
                   onClick={handlePasskeyLogin}
                   loading={passkeyLoading}
                 >
-                  <span className='ml-3'>{t('使用 Passkey 登录')}</span>
+                  <span className='ml-3'>{"使用 Passkey 登录"}</span>
                 </Button>
               )}
-              <Form className='space-y-3'>
-                <Form.Input
-                  field='username'
-                  label={t('用户名或邮箱')}
-                  placeholder={t('请输入您的用户名或邮箱地址')}
-                  name='username'
-                  onChange={(value) => handleChange('username', value)}
-                  prefix={<IconMail />}
-                />
+              <form className='space-y-3 login-clean-form' onSubmit={handleSubmit}>
+                <div>
+                  <label
+                    htmlFor='login-username'
+                    className='block text-sm mb-1 text-semi-color-text-1'
+                  >
+                    {"用户名或邮箱"}
+                  </label>
+                  <input
+                    id='login-username'
+                    name='username'
+                    type='text'
+                    value={username}
+                    placeholder='请输入您的用户名或邮箱地址'
+                    autoComplete='username'
+                    onChange={(e) => handleChange('username', e.target.value)}
+                    className='login-clean-native-input'
+                  />
+                </div>
 
-                <Form.Input
-                  field='password'
-                  label={t('密码')}
-                  placeholder={t('请输入您的密码')}
-                  name='password'
-                  mode='password'
-                  onChange={(value) => handleChange('password', value)}
-                  prefix={<IconLock />}
-                />
+                <div>
+                  <label
+                    htmlFor='login-password'
+                    className='block text-sm mb-1 text-semi-color-text-1'
+                  >
+                    {"密码"}
+                  </label>
+                  <input
+                    id='login-password'
+                    name='password'
+                    type='password'
+                    value={password}
+                    placeholder='请输入您的密码'
+                    autoComplete='current-password'
+                    onChange={(e) => handleChange('password', e.target.value)}
+                    className='login-clean-native-input'
+                  />
+                </div>
 
                 {(hasUserAgreement || hasPrivacyPolicy) && (
                   <div className='pt-4'>
@@ -735,7 +752,7 @@ const LoginForm = () => {
                       onChange={(e) => setAgreedToTerms(e.target.checked)}
                     >
                       <Text size='small' className='text-gray-600'>
-                        {t('我已阅读并同意')}
+                        {"我已阅读并同意"}
                         {hasUserAgreement && (
                           <>
                             <a
@@ -744,11 +761,11 @@ const LoginForm = () => {
                               rel='noopener noreferrer'
                               className='text-blue-600 hover:text-blue-800 mx-1'
                             >
-                              {t('用户协议')}
+                              {"用户协议"}
                             </a>
                           </>
                         )}
-                        {hasUserAgreement && hasPrivacyPolicy && t('和')}
+                        {hasUserAgreement && hasPrivacyPolicy && "和"}
                         {hasPrivacyPolicy && (
                           <>
                             <a
@@ -757,7 +774,7 @@ const LoginForm = () => {
                               rel='noopener noreferrer'
                               className='text-blue-600 hover:text-blue-800 mx-1'
                             >
-                              {t('隐私政策')}
+                              {"隐私政策"}
                             </a>
                           </>
                         )}
@@ -778,7 +795,7 @@ const LoginForm = () => {
                       (hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms
                     }
                   >
-                    {t('继续')}
+                    {"继续"}
                   </Button>
 
                   <Button
@@ -788,15 +805,15 @@ const LoginForm = () => {
                     onClick={handleResetPasswordClick}
                     loading={resetPasswordLoading}
                   >
-                    {t('忘记密码？')}
+                    {"忘记密码？"}
                   </Button>
                 </div>
-              </Form>
+              </form>
 
               {hasOAuthLoginOptions && (
                 <>
                   <Divider margin='12px' align='center'>
-                    {t('或')}
+                    {"或"}
                   </Divider>
 
                   <div className='mt-4 text-center'>
@@ -807,7 +824,7 @@ const LoginForm = () => {
                       onClick={handleOtherLoginOptionsClick}
                       loading={otherLoginOptionsLoading}
                     >
-                      {t('其他登录选项')}
+                      {"其他登录选项"}
                     </Button>
                   </div>
                 </>
@@ -816,12 +833,12 @@ const LoginForm = () => {
               {!status.self_use_mode_enabled && (
                 <div className='mt-6 text-center text-sm'>
                   <Text>
-                    {t('没有账户？')}{' '}
+                    {"没有账户？"}{' '}
                     <Link
                       to='/register'
                       className='text-blue-600 hover:text-blue-800 font-medium'
                     >
-                      {t('注册')}
+                      {"注册"}
                     </Link>
                   </Text>
                 </div>
@@ -837,12 +854,12 @@ const LoginForm = () => {
   const renderWeChatLoginModal = () => {
     return (
       <Modal
-        title={t('微信扫码登录')}
+        title={"微信扫码登录"}
         visible={showWeChatLoginModal}
         maskClosable={true}
         onOk={onSubmitWeChatVerificationCode}
         onCancel={() => setShowWeChatLoginModal(false)}
-        okText={t('登录')}
+        okText={"登录"}
         centered={true}
         okButtonProps={{
           loading: wechatCodeSubmitLoading,
@@ -854,15 +871,15 @@ const LoginForm = () => {
 
         <div className='text-center mb-4'>
           <p>
-            {t('微信扫码关注公众号，输入「验证码」获取验证码（三分钟内有效）')}
+            {"微信扫码关注公众号，输入「验证码」获取验证码（三分钟内有效）"}
           </p>
         </div>
 
         <Form>
           <Form.Input
             field='wechat_verification_code'
-            placeholder={t('验证码')}
-            label={t('验证码')}
+            placeholder={"验证码"}
+            label={"验证码"}
             value={inputs.wechat_verification_code}
             onChange={(value) =>
               handleChange('wechat_verification_code', value)

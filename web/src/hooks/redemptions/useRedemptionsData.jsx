@@ -6,12 +6,9 @@ import {
   REDEMPTION_STATUS,
 } from '../../constants/redemption.constants';
 import { Modal } from '@douyinfe/semi-ui';
-import { useTranslation } from 'react-i18next';
 import { useTableCompactMode } from '../common/useTableCompactMode';
 
 export const useRedemptionsData = () => {
-  const { t } = useTranslation();
-
   // Basic state
   const [redemptions, setRedemptions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -126,7 +123,7 @@ export const useRedemptionsData = () => {
 
       const { success, message } = res.data;
       if (success) {
-        showSuccess(t('操作成功完成！'));
+        showSuccess("操作成功完成！");
         let redemption = res.data.data;
         let newRedemptions = [...redemptions];
         if (action !== REDEMPTION_ACTIONS.DELETE) {
@@ -222,7 +219,7 @@ export const useRedemptionsData = () => {
   // Batch copy redemption codes
   const batchCopyRedemptions = async () => {
     if (selectedKeys.length === 0) {
-      showError(t('请至少选择一个兑换码！'));
+      showError("请至少选择一个兑换码！");
       return;
     }
 
@@ -236,14 +233,14 @@ export const useRedemptionsData = () => {
   // Batch delete redemption codes (clear invalid)
   const batchDeleteRedemptions = async () => {
     Modal.confirm({
-      title: t('确定清除所有失效兑换码？'),
-      content: t('将删除已使用、已禁用及过期的兑换码，此操作不可撤销。'),
+      title: "确定清除所有失效兑换码？",
+      content: "将删除已使用、已禁用及过期的兑换码，此操作不可撤销。",
       onOk: async () => {
         setLoading(true);
         const res = await API.delete('/api/redemption/invalid');
         const { success, message, data } = res.data;
         if (success) {
-          showSuccess(t('已删除 {{count}} 条失效兑换码', { count: data }));
+          showSuccess(`已删除 ${data} 条失效兑换码`);
           await refresh();
         } else {
           showError(message);
@@ -334,8 +331,5 @@ export const useRedemptionsData = () => {
     // Batch operations
     batchCopyRedemptions,
     batchDeleteRedemptions,
-
-    // Translation function
-    t,
   };
 };

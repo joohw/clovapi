@@ -21,16 +21,15 @@ export const useDashboardStats = (
   trendData,
   performanceMetrics,
   navigate,
-  t,
 ) => {
   const groupedStatsData = useMemo(
     () => [
       {
-        title: createSectionTitle(Wallet, t('账户数据')),
+        title: createSectionTitle(Wallet, "账户数据"),
         color: 'bg-blue-50',
         items: [
           {
-            title: t('当前余额'),
+            title: "当前余额",
             value: renderQuota(userState?.user?.quota),
             icon: <IconMoneyExchangeStroked />,
             avatarColor: 'blue',
@@ -38,7 +37,7 @@ export const useDashboardStats = (
             trendColor: '#3b82f6',
           },
           {
-            title: t('历史消耗'),
+            title: "历史消耗",
             value: renderQuota(userState?.user?.used_quota),
             icon: <IconHistogram />,
             avatarColor: 'purple',
@@ -48,11 +47,11 @@ export const useDashboardStats = (
         ],
       },
       {
-        title: createSectionTitle(Activity, t('使用统计')),
+        title: createSectionTitle(Activity, "使用统计"),
         color: 'bg-green-50',
         items: [
           {
-            title: t('请求次数'),
+            title: "请求次数",
             value: userState.user?.request_count,
             icon: <IconSend />,
             avatarColor: 'green',
@@ -60,7 +59,7 @@ export const useDashboardStats = (
             trendColor: '#10b981',
           },
           {
-            title: t('统计次数'),
+            title: "统计次数",
             value: times,
             icon: <IconPulse />,
             avatarColor: 'cyan',
@@ -70,11 +69,11 @@ export const useDashboardStats = (
         ],
       },
       {
-        title: createSectionTitle(Zap, t('资源消耗')),
+        title: createSectionTitle(Zap, "资源消耗"),
         color: 'bg-yellow-50',
         items: [
           {
-            title: t('统计额度'),
+            title: "统计额度",
             value: renderQuota(consumeQuota),
             icon: <IconCoinMoneyStroked />,
             avatarColor: 'yellow',
@@ -82,7 +81,7 @@ export const useDashboardStats = (
             trendColor: '#f59e0b',
           },
           {
-            title: t('统计Tokens'),
+            title: "统计Tokens",
             value: isNaN(consumeTokens) ? 0 : consumeTokens.toLocaleString(),
             icon: <IconTextStroked />,
             avatarColor: 'pink',
@@ -92,11 +91,11 @@ export const useDashboardStats = (
         ],
       },
       {
-        title: createSectionTitle(Gauge, t('性能指标')),
+        title: createSectionTitle(Gauge, "性能指标"),
         color: 'bg-indigo-50',
         items: [
           {
-            title: t('平均RPM'),
+            title: "平均RPM",
             value: performanceMetrics.avgRPM,
             icon: <IconStopwatchStroked />,
             avatarColor: 'indigo',
@@ -104,7 +103,7 @@ export const useDashboardStats = (
             trendColor: '#6366f1',
           },
           {
-            title: t('平均TPM'),
+            title: "平均TPM",
             value: performanceMetrics.avgTPM,
             icon: <IconTypograph />,
             avatarColor: 'orange',
@@ -124,7 +123,6 @@ export const useDashboardStats = (
       trendData,
       performanceMetrics,
       navigate,
-      t,
     ],
   );
 

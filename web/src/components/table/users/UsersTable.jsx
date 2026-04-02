@@ -31,7 +31,6 @@ const UsersTable = (usersData) => {
     refresh,
     resetUserPasskey,
     resetUserTwoFA,
-    t,
   } = usersData;
 
   // Modal states
@@ -112,7 +111,6 @@ const UsersTable = (usersData) => {
   // Get all columns
   const columns = useMemo(() => {
     return getUsersColumns({
-      t,
       setEditingUser,
       setShowEditUser,
       showPromoteModal: showPromoteUserModal,
@@ -124,7 +122,6 @@ const UsersTable = (usersData) => {
       showUserSubscriptionsModal: showUserSubscriptionsUserModal,
     });
   }, [
-    t,
     setEditingUser,
     setShowEditUser,
     showPromoteUserModal,
@@ -173,7 +170,7 @@ const UsersTable = (usersData) => {
             darkModeImage={
               <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
             }
-            description={t('搜索无结果')}
+            description={"搜索无结果"}
             style={{ padding: 30 }}
           />
         }
@@ -187,7 +184,6 @@ const UsersTable = (usersData) => {
         onCancel={() => setShowPromoteModal(false)}
         onConfirm={handlePromoteConfirm}
         user={modalUser}
-        t={t}
       />
 
       <DemoteUserModal
@@ -195,7 +191,6 @@ const UsersTable = (usersData) => {
         onCancel={() => setShowDemoteModal(false)}
         onConfirm={handleDemoteConfirm}
         user={modalUser}
-        t={t}
       />
 
       <EnableDisableUserModal
@@ -204,7 +199,6 @@ const UsersTable = (usersData) => {
         onConfirm={handleEnableDisableConfirm}
         user={modalUser}
         action={enableDisableAction}
-        t={t}
       />
 
       <DeleteUserModal
@@ -215,7 +209,6 @@ const UsersTable = (usersData) => {
         activePage={activePage}
         refresh={refresh}
         manageUser={manageUser}
-        t={t}
       />
 
       <ResetPasskeyModal
@@ -223,7 +216,6 @@ const UsersTable = (usersData) => {
         onCancel={() => setShowResetPasskeyModal(false)}
         onConfirm={handleResetPasskeyConfirm}
         user={modalUser}
-        t={t}
       />
 
       <ResetTwoFAModal
@@ -231,14 +223,12 @@ const UsersTable = (usersData) => {
         onCancel={() => setShowResetTwoFAModal(false)}
         onConfirm={handleResetTwoFAConfirm}
         user={modalUser}
-        t={t}
       />
 
       <UserSubscriptionsModal
         visible={showUserSubscriptionsModal}
         onCancel={() => setShowUserSubscriptionsModal(false)}
         user={modalUser}
-        t={t}
         onSuccess={() => refresh?.()}
       />
     </>

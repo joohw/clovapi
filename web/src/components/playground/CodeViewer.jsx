@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Button, Tooltip, Toast } from '@douyinfe/semi-ui';
 import { Copy, ChevronDown, ChevronUp } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { copy } from '../../helpers';
 
 const PERFORMANCE_CONFIG = {
@@ -158,7 +157,6 @@ const formatContent = (content) => {
 };
 
 const CodeViewer = ({ content, title, language = 'json' }) => {
-  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [isHoveringCopy, setIsHoveringCopy] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -211,17 +209,17 @@ const CodeViewer = ({ content, title, language = 'json' }) => {
 
       const success = await copy(textToCopy);
       setCopied(true);
-      Toast.success(t('已复制到剪贴板'));
+      Toast.success("已复制到剪贴板");
       setTimeout(() => setCopied(false), 2000);
 
       if (!success) {
         throw new Error('Copy operation failed');
       }
     } catch (err) {
-      Toast.error(t('复制失败'));
+      Toast.error("复制失败");
       console.error('Copy failed:', err);
     }
-  }, [content, t]);
+  }, [content]);
 
   const handleToggleExpand = useCallback(() => {
     if (contentMetrics.isVeryLarge && !isExpanded) {
@@ -238,10 +236,10 @@ const CodeViewer = ({ content, title, language = 'json' }) => {
   if (!content) {
     const placeholderText =
       {
-        preview: t('正在构造请求体预览...'),
-        request: t('暂无请求数据'),
-        response: t('暂无响应数据'),
-      }[title] || t('暂无数据');
+        preview: "正在构造请求体预览...",
+        request: "暂无请求数据",
+        response: "暂无响应数据",
+      }[title] || "暂无数据";
 
     return (
       <div style={codeThemeStyles.noContent}>
@@ -261,8 +259,8 @@ const CodeViewer = ({ content, title, language = 'json' }) => {
           <span>⚡</span>
           <span>
             {contentMetrics.isVeryLarge
-              ? t('内容较大，已启用性能优化模式')
-              : t('内容较大，部分功能可能受限')}
+              ? "内容较大，已启用性能优化模式"
+              : "内容较大，部分功能可能受限"}
           </span>
         </div>
       )}
@@ -278,7 +276,7 @@ const CodeViewer = ({ content, title, language = 'json' }) => {
         onMouseEnter={() => setIsHoveringCopy(true)}
         onMouseLeave={() => setIsHoveringCopy(false)}
       >
-        <Tooltip content={copied ? t('已复制') : t('复制代码')}>
+        <Tooltip content={copied ? "已复制" : "复制代码"}>
           <Button
             icon={<Copy size={14} />}
             onClick={handleCopy}
@@ -325,7 +323,7 @@ const CodeViewer = ({ content, title, language = 'json' }) => {
                 marginRight: '8px',
               }}
             />
-            {t('正在处理大内容...')}
+            {"正在处理大内容..."}
           </div>
         ) : (
           <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
@@ -342,7 +340,7 @@ const CodeViewer = ({ content, title, language = 'json' }) => {
             transform: 'translateX(-50%)',
           }}
         >
-          <Tooltip content={isExpanded ? t('收起内容') : t('显示完整内容')}>
+          <Tooltip content={isExpanded ? "收起内容" : "显示完整内容"}>
             <Button
               icon={
                 isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />
@@ -357,7 +355,7 @@ const CodeViewer = ({ content, title, language = 'json' }) => {
                 padding: '6px 12px',
               }}
             >
-              {isExpanded ? t('收起') : t('展开')}
+              {isExpanded ? "收起" : "展开"}
               {!isExpanded && (
                 <span
                   style={{ fontSize: '11px', opacity: 0.7, marginLeft: '4px' }}

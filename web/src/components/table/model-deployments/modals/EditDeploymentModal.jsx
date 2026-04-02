@@ -17,7 +17,6 @@ import {
 } from '@douyinfe/semi-ui';
 import { Save, X, Server } from 'lucide-react';
 import { API, showError, showSuccess } from '../../../../helpers';
-import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 
 const { Text, Title } = Typography;
@@ -28,7 +27,6 @@ const EditDeploymentModal = ({
   visible,
   handleClose,
 }) => {
-  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [models, setModels] = useState([]);
@@ -36,7 +34,7 @@ const EditDeploymentModal = ({
   const formRef = useRef();
 
   const isEdit = Boolean(editingDeployment?.id);
-  const title = t('重命名部署');
+  const title = "重命名部署";
 
   // Resource configuration options
   const cpuOptions = [
@@ -57,7 +55,7 @@ const EditDeploymentModal = ({
   ];
 
   const gpuOptions = [
-    { label: t('无GPU'), value: '' },
+    { label: "无GPU", value: '' },
     { label: '1 GPU', value: '1' },
     { label: '2 GPUs', value: '2' },
     { label: '4 GPUs', value: '4' },
@@ -79,7 +77,7 @@ const EditDeploymentModal = ({
       }
     } catch (error) {
       console.error('Failed to load models:', error);
-      showError(t('加载模型列表失败'));
+      showError("加载模型列表失败");
     }
     setLoadingModels(false);
   };
@@ -87,7 +85,7 @@ const EditDeploymentModal = ({
   // Form submission
   const handleSubmit = async (values) => {
     if (!isEdit || !editingDeployment?.id) {
-      showError(t('无效的部署信息'));
+      showError("无效的部署信息");
       return;
     }
 
@@ -102,15 +100,15 @@ const EditDeploymentModal = ({
       );
 
       if (res.data.success) {
-        showSuccess(t('部署名称更新成功'));
+        showSuccess("部署名称更新成功");
         handleClose();
         refresh();
       } else {
-        showError(res.data.message || t('更新失败'));
+        showError(res.data.message || "更新失败");
       }
     } catch (error) {
       console.error('Submit error:', error);
-      showError(t('更新失败，请检查输入信息'));
+      showError("更新失败，请检查输入信息");
     }
     setLoading(false);
   };
@@ -156,22 +154,20 @@ const EditDeploymentModal = ({
           >
             <Card>
               <Title heading={5} style={{ marginBottom: 16 }}>
-                {t('修改部署名称')}
+                {"修改部署名称"}
               </Title>
 
               <Row gutter={16}>
                 <Col span={24}>
                   <Form.Input
                     field='deployment_name'
-                    label={t('部署名称')}
-                    placeholder={t('请输入新的部署名称')}
+                    label={"部署名称"}
+                    placeholder={"请输入新的部署名称"}
                     rules={[
-                      { required: true, message: t('请输入部署名称') },
+                      { required: true, message: "请输入部署名称" },
                       {
                         pattern: /^[a-zA-Z0-9-_\u4e00-\u9fa5]+$/,
-                        message: t(
-                          '部署名称只能包含字母、数字、横线、下划线和中文',
-                        ),
+                        message: "部署名称只能包含字母、数字、横线、下划线和中文",
                       },
                     ]}
                   />
@@ -180,10 +176,10 @@ const EditDeploymentModal = ({
 
               {isEdit && (
                 <div className='mt-4 p-3 bg-gray-50 rounded'>
-                  <Text type='secondary'>{t('部署ID')}: </Text>
+                  <Text type='secondary'>{"部署ID"}: </Text>
                   <Text code>{editingDeployment.id}</Text>
                   <br />
-                  <Text type='secondary'>{t('当前状态')}: </Text>
+                  <Text type='secondary'>{"当前状态"}: </Text>
                   <Tag
                     color={
                       editingDeployment.status === 'running' ? 'green' : 'grey'
@@ -202,7 +198,7 @@ const EditDeploymentModal = ({
         <Space>
           <Button theme='outline' onClick={handleClose} disabled={loading}>
             <X size={16} className='mr-1' />
-            {t('取消')}
+            {"取消"}
           </Button>
           <Button
             theme='solid'
@@ -211,7 +207,7 @@ const EditDeploymentModal = ({
             onClick={() => formRef.current?.submitForm()}
           >
             <Save size={16} className='mr-1' />
-            {isEdit ? t('更新') : t('创建')}
+            {isEdit ? "更新" : "创建"}
           </Button>
         </Space>
       </div>

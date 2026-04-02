@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useContext, useMemo } from 'react';
-import { Route, Routes, useLocation, useParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import Loading from './components/common/ui/Loading';
 import User from './pages/User';
 import { AuthRedirect, PrivateRoute, AdminRoute } from './helpers';
@@ -21,7 +21,6 @@ import Chat from './pages/Chat';
 import Chat2Link from './pages/Chat2Link';
 import Midjourney from './pages/Midjourney';
 import Pricing from './pages/Pricing';
-import Task from './pages/Task';
 import ModelPage from './pages/Model';
 import ModelDeploymentPage from './pages/ModelDeployment';
 import Playground from './pages/Playground';
@@ -121,7 +120,7 @@ function App() {
           }
         />
         <Route
-          path='/console/token'
+          path='/apikeys'
           element={
             <PrivateRoute>
               <Token />
@@ -129,12 +128,24 @@ function App() {
           }
         />
         <Route
-          path='/console/playground'
+          path='/console/apikeys'
+          element={<Navigate to='/apikeys' replace />}
+        />
+        <Route
+          path='/console/token'
+          element={<Navigate to='/apikeys' replace />}
+        />
+        <Route
+          path='/playground'
           element={
             <PrivateRoute>
               <Playground />
             </PrivateRoute>
           }
+        />
+        <Route
+          path='/console/playground'
+          element={<Navigate to='/playground' replace />}
         />
         <Route
           path='/console/redemption'
@@ -282,16 +293,6 @@ function App() {
             <PrivateRoute>
               <Suspense fallback={<Loading></Loading>} key={location.pathname}>
                 <Midjourney />
-              </Suspense>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path='/console/task'
-          element={
-            <PrivateRoute>
-              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
-                <Task />
               </Suspense>
             </PrivateRoute>
           }

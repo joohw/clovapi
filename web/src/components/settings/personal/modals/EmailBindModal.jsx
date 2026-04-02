@@ -23,7 +23,7 @@ const EmailBindModal = ({
       title={
         <div className='flex items-center'>
           <IconMail className='mr-2 text-blue-500' />
-          {t('绑定邮箱地址')}
+          {"绑定邮箱地址"}
         </div>
       }
       visible={showEmailBindModal}
@@ -37,7 +37,7 @@ const EmailBindModal = ({
       <div className='space-y-4 py-4'>
         <div className='flex gap-3'>
           <Input
-            placeholder={t('输入邮箱地址')}
+            placeholder={"输入邮箱地址"}
             onChange={(value) => handleInputChange('email', value)}
             name='email'
             type='email'
@@ -54,13 +54,13 @@ const EmailBindModal = ({
             size='large'
           >
             {disableButton
-              ? `${t('重新发送')} (${countdown})`
-              : t('获取验证码')}
+              ? `${"重新发送"} (${countdown})`
+              : "获取验证码"}
           </Button>
         </div>
 
         <Input
-          placeholder={t('验证码')}
+          placeholder={"验证码"}
           name='email_verification_code'
           value={inputs.email_verification_code}
           onChange={(value) =>

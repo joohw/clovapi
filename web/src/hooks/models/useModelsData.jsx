@@ -1,11 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { API, showError, showSuccess } from '../../helpers';
 import { ITEMS_PER_PAGE } from '../../constants';
 import { useTableCompactMode } from '../common/useTableCompactMode';
 
 export const useModelsData = () => {
-  const { t } = useTranslation();
   const [compactMode, setCompactMode] = useTableCompactMode('models');
 
   // State management
@@ -135,7 +133,7 @@ export const useModelsData = () => {
       }
     } catch (error) {
       console.error(error);
-      showError(t('获取模型列表失败'));
+      showError("获取模型列表失败");
       setModels([]);
     }
     setLoading(false);
@@ -160,17 +158,15 @@ export const useModelsData = () => {
         const createdVendors = data?.created_vendors || 0;
         const skipped = (data?.skipped_models || []).length || 0;
         showSuccess(
-          t(
-            `已同步：新增 ${createdModels} 模型，新增 ${createdVendors} 供应商，跳过 ${skipped} 项`,
-          ),
+          `已同步：新增 ${createdModels} 模型，新增 ${createdVendors} 供应商，跳过 ${skipped} 项`,
         );
         await loadVendors();
         await refresh();
       } else {
-        showError(message || t('同步失败'));
+        showError(message || "同步失败");
       }
     } catch (e) {
-      showError(t('同步失败'));
+      showError("同步失败");
     }
     setSyncing(false);
   };
@@ -186,10 +182,10 @@ export const useModelsData = () => {
       if (success) {
         return data || { missing: [], conflicts: [] };
       }
-      showError(message || t('预览失败'));
+      showError(message || "预览失败");
       return { missing: [], conflicts: [] };
     } catch (e) {
-      showError(t('预览失败'));
+      showError("预览失败");
       return { missing: [], conflicts: [] };
     } finally {
       setPreviewing(false);
@@ -213,18 +209,16 @@ export const useModelsData = () => {
         const createdVendors = data?.created_vendors || 0;
         const skipped = (data?.skipped_models || []).length || 0;
         showSuccess(
-          t(
-            `完成：新增 ${createdModels} 模型，更新 ${updatedModels} 模型，新增 ${createdVendors} 供应商，跳过 ${skipped} 项`,
-          ),
+          `完成：新增 ${createdModels} 模型，更新 ${updatedModels} 模型，新增 ${createdVendors} 供应商，跳过 ${skipped} 项`,
         );
         await loadVendors();
         await refresh();
         return true;
       }
-      showError(message || t('同步失败'));
+      showError(message || "同步失败");
       return false;
     } catch (e) {
-      showError(t('同步失败'));
+      showError("同步失败");
       return false;
     } finally {
       setSyncing(false);
@@ -265,7 +259,7 @@ export const useModelsData = () => {
       }
     } catch (error) {
       console.error(error);
-      showError(t('搜索模型失败'));
+      showError("搜索模型失败");
       setModels([]);
     }
     setSearching(false);
@@ -290,7 +284,7 @@ export const useModelsData = () => {
 
     const { success, message } = res.data;
     if (success) {
-      showSuccess(t('操作成功完成！'));
+      showSuccess("操作成功完成！");
       if (action === 'delete') {
         await refresh();
       } else {
@@ -357,7 +351,7 @@ export const useModelsData = () => {
   // Batch delete models
   const batchDeleteModels = async () => {
     if (selectedKeys.length === 0) {
-      showError(t('请至少选择一个模型'));
+      showError("请至少选择一个模型");
       return;
     }
 
@@ -380,12 +374,12 @@ export const useModelsData = () => {
       });
 
       if (successCount > 0) {
-        showSuccess(t(`成功删除 ${successCount} 个模型`));
+        showSuccess(`成功删除 ${successCount} 个模型`);
         setSelectedKeys([]);
         await refresh();
       }
     } catch (error) {
-      showError(t('批量删除失败'));
+      showError("批量删除失败");
     }
   };
 
@@ -393,10 +387,10 @@ export const useModelsData = () => {
   const copyText = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
-      showSuccess(t('复制成功'));
+      showSuccess("复制成功");
     } catch (error) {
       console.error('Copy failed:', error);
-      showError(t('复制失败'));
+      showError("复制失败");
     }
   };
 
@@ -464,9 +458,6 @@ export const useModelsData = () => {
     editingVendor,
     setEditingVendor,
     loadVendors,
-
-    // Translation
-    t,
 
     // Upstream sync
     syncing,

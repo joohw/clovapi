@@ -48,7 +48,7 @@ const UserInfoModal = ({
 
   return (
     <Modal
-      title={t('用户信息')}
+      title={"用户信息"}
       visible={showUserInfo}
       onCancel={() => setShowUserInfoModal(false)}
       footer={null}
@@ -62,12 +62,12 @@ const UserInfoModal = ({
           {/* 基本信息 */}
           <div style={rowStyle}>
             <div style={colStyle}>
-              {renderLabel(t('用户名'), 'primary')}
+              {renderLabel("用户名", 'primary')}
               <div style={valueStyle}>{userInfoData.username}</div>
             </div>
             {userInfoData.display_name && (
               <div style={colStyle}>
-                {renderLabel(t('显示名称'), 'primary')}
+                {renderLabel("显示名称", 'primary')}
                 <div style={valueStyle}>{userInfoData.display_name}</div>
               </div>
             )}
@@ -76,11 +76,11 @@ const UserInfoModal = ({
           {/* 余额信息 */}
           <div style={rowStyle}>
             <div style={colStyle}>
-              {renderLabel(t('余额'), 'success')}
+              {renderLabel("余额", 'success')}
               <div style={valueStyle}>{renderQuota(userInfoData.quota)}</div>
             </div>
             <div style={colStyle}>
-              {renderLabel(t('已用额度'), 'warning')}
+              {renderLabel("已用额度", 'warning')}
               <div style={valueStyle}>
                 {renderQuota(userInfoData.used_quota)}
               </div>
@@ -90,14 +90,14 @@ const UserInfoModal = ({
           {/* 统计信息 */}
           <div style={rowStyle}>
             <div style={colStyle}>
-              {renderLabel(t('请求次数'), 'warning')}
+              {renderLabel("请求次数", 'warning')}
               <div style={valueStyle}>
                 {renderNumber(userInfoData.request_count)}
               </div>
             </div>
             {userInfoData.group && (
               <div style={colStyle}>
-                {renderLabel(t('用户组'), 'tertiary')}
+                {renderLabel("用户组", 'tertiary')}
                 <div style={valueStyle}>{userInfoData.group}</div>
               </div>
             )}
@@ -108,13 +108,13 @@ const UserInfoModal = ({
             <div style={rowStyle}>
               {userInfoData.aff_code && (
                 <div style={colStyle}>
-                  {renderLabel(t('邀请码'), 'tertiary')}
+                  {renderLabel("邀请码", 'tertiary')}
                   <div style={valueStyle}>{userInfoData.aff_code}</div>
                 </div>
               )}
               {userInfoData.aff_count !== undefined && (
                 <div style={colStyle}>
-                  {renderLabel(t('邀请人数'), 'tertiary')}
+                  {renderLabel("邀请人数", 'tertiary')}
                   <div style={valueStyle}>
                     {renderNumber(userInfoData.aff_count)}
                   </div>
@@ -127,7 +127,7 @@ const UserInfoModal = ({
           {userInfoData.aff_quota !== undefined &&
             userInfoData.aff_quota > 0 && (
               <div style={infoItemStyle}>
-                {renderLabel(t('邀请获得额度'), 'success')}
+                {renderLabel("邀请获得额度", 'success')}
                 <div style={valueStyle}>
                   {renderQuota(userInfoData.aff_quota)}
                 </div>
@@ -137,7 +137,7 @@ const UserInfoModal = ({
           {/* 备注 */}
           {userInfoData.remark && (
             <div style={{ marginBottom: 0 }}>
-              {renderLabel(t('备注'), 'tertiary')}
+              {renderLabel("备注", 'tertiary')}
               <div
                 style={{
                   ...valueStyle,

@@ -8,7 +8,6 @@ import {
   Toast,
   Typography,
 } from '@douyinfe/semi-ui';
-import { useTranslation } from 'react-i18next';
 import { selectFilter } from '../../../../helpers';
 
 const APP_CONFIGS = {
@@ -68,7 +67,6 @@ export default function CCSwitchModal({
   tokenKey,
   modelOptions,
 }) {
-  const { t } = useTranslation();
   const [app, setApp] = useState('claude');
   const [name, setName] = useState(APP_CONFIGS.claude.defaultName);
   const [models, setModels] = useState({});
@@ -95,7 +93,7 @@ export default function CCSwitchModal({
 
   const handleSubmit = () => {
     if (!models.model) {
-      Toast.warning(t('请选择主模型'));
+      Toast.warning("请选择主模型");
       return;
     }
     const url = buildCCSwitchURL(app, name, models, 'sk-' + tokenKey);
@@ -114,18 +112,18 @@ export default function CCSwitchModal({
 
   return (
     <Modal
-      title={t('填入 CC Switch')}
+      title={"填入 CC Switch"}
       visible={visible}
       onCancel={onClose}
       onOk={handleSubmit}
-      okText={t('打开 CC Switch')}
-      cancelText={t('取消')}
+      okText={"打开 CC Switch"}
+      cancelText={"取消"}
       maskClosable={false}
       width={480}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
-          <div style={fieldLabelStyle}>{t('应用')}</div>
+          <div style={fieldLabelStyle}>{"应用"}</div>
           <RadioGroup
             type='button'
             value={app}
@@ -141,7 +139,7 @@ export default function CCSwitchModal({
         </div>
 
         <div>
-          <div style={fieldLabelStyle}>{t('名称')}</div>
+          <div style={fieldLabelStyle}>{"名称"}</div>
           <Input
             value={name}
             onChange={setName}
@@ -152,13 +150,13 @@ export default function CCSwitchModal({
         {currentConfig.modelFields.map((field) => (
           <div key={field.key}>
             <div style={fieldLabelStyle}>
-              {t(field.label)}
+              {field.label}
               {field.key === 'model' && (
                 <Typography.Text type='danger'> *</Typography.Text>
               )}
             </div>
             <Select
-              placeholder={t('请选择模型')}
+              placeholder={"请选择模型"}
               optionList={modelOptions}
               value={models[field.key] || undefined}
               onChange={(val) => handleModelChange(field.key, val)}
@@ -166,7 +164,7 @@ export default function CCSwitchModal({
               style={{ width: '100%' }}
               showClear
               searchable
-              emptyContent={t('暂无数据')}
+              emptyContent={"暂无数据"}
             />
           </div>
         ))}

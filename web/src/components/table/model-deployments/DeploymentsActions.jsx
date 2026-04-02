@@ -43,16 +43,16 @@ const DeploymentsActions = ({
         onClick={handleAddDeployment}
         size='small'
       >
-        {t('新建容器')}
+        {"新建容器"}
       </Button>
 
       {hasSelected && (
         <>
           <Popconfirm
-            title={t('确认删除')}
-            content={`${t('确定要删除选中的')} ${selectedKeys.length} ${t('个部署吗？此操作不可逆。')}`}
-            okText={t('删除')}
-            cancelText={t('取消')}
+            title={"确认删除"}
+            content={`${"确定要删除选中的"} ${selectedKeys.length} ${"个部署吗？此操作不可逆。"}`}
+            okText={"删除"}
+            cancelText={"取消"}
             okType='danger'
             onConfirm={handleBatchDelete}
           >
@@ -62,7 +62,7 @@ const DeploymentsActions = ({
               disabled={selectedKeys.length === 0}
               size='small'
             >
-              {t('批量删除')} ({selectedKeys.length})
+              {"批量删除"} ({selectedKeys.length})
             </Button>
           </Popconfirm>
 
@@ -72,7 +72,7 @@ const DeploymentsActions = ({
             onClick={handleDeselectAll}
             size='small'
           >
-            {t('取消选择')}
+            {"取消选择"}
           </Button>
         </>
       )}
@@ -81,7 +81,6 @@ const DeploymentsActions = ({
       <CompactModeToggle
         compactMode={compactMode}
         setCompactMode={setCompactMode}
-        t={t}
       />
     </div>
   );

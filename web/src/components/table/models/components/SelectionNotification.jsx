@@ -24,9 +24,9 @@ const SelectionNotification = ({
     if (selectedCount > 0) {
       const titleNode = (
         <Space wrap>
-          <span>{t('批量操作')}</span>
+          <span>{"批量操作"}</span>
           <Typography.Text type='tertiary' size='small'>
-            {t('已选择 {{count}} 个模型', { count: selectedCount })}
+            {`已选择 ${selectedCount} 个模型`}
           </Typography.Text>
         </Space>
       );
@@ -34,7 +34,7 @@ const SelectionNotification = ({
       const content = (
         <Space wrap>
           <Button size='small' type='tertiary' theme='solid' onClick={onClear}>
-            {t('取消全选')}
+            {"取消全选"}
           </Button>
           <Button
             size='small'
@@ -42,13 +42,13 @@ const SelectionNotification = ({
             theme='solid'
             onClick={onAddPrefill}
           >
-            {t('加入预填组')}
+            {"加入预填组"}
           </Button>
           <Button size='small' type='secondary' theme='solid' onClick={onCopy}>
-            {t('复制名称')}
+            {"复制名称"}
           </Button>
           <Button size='small' type='danger' theme='solid' onClick={onDelete}>
-            {t('删除所选')}
+            {"删除所选"}
           </Button>
         </Space>
       );

@@ -61,7 +61,7 @@ const SubscriptionPurchaseModal = ({
       title={
         <div className='flex items-center'>
           <Crown className='mr-2' size={18} />
-          {t('购买订阅套餐')}
+          {"购买订阅套餐"}
         </div>
       }
       visible={visible}
@@ -77,7 +77,7 @@ const SubscriptionPurchaseModal = ({
             <div className='space-y-3'>
               <div className='flex justify-between items-center'>
                 <Text strong className='text-slate-700 dark:text-slate-200'>
-                  {t('套餐名称')}：
+                  {"套餐名称"}：
                 </Text>
                 <Typography.Text
                   ellipsis={{ rows: 1, showTooltip: true }}
@@ -89,7 +89,7 @@ const SubscriptionPurchaseModal = ({
               </div>
               <div className='flex justify-between items-center'>
                 <Text strong className='text-slate-700 dark:text-slate-200'>
-                  {t('有效期')}：
+                  {"有效期"}：
                 </Text>
                 <div className='flex items-center'>
                   <CalendarClock size={14} className='mr-1 text-slate-500' />
@@ -98,10 +98,10 @@ const SubscriptionPurchaseModal = ({
                   </Text>
                 </div>
               </div>
-              {formatSubscriptionResetPeriod(plan, t) !== t('不重置') && (
+              {formatSubscriptionResetPeriod(plan, t) !== "不重置" && (
                 <div className='flex justify-between items-center'>
                   <Text strong className='text-slate-700 dark:text-slate-200'>
-                    {t('重置周期')}：
+                    {"重置周期"}：
                   </Text>
                   <Text className='text-slate-900 dark:text-slate-100'>
                     {formatSubscriptionResetPeriod(plan, t)}
@@ -110,19 +110,19 @@ const SubscriptionPurchaseModal = ({
               )}
               <div className='flex justify-between items-center'>
                 <Text strong className='text-slate-700 dark:text-slate-200'>
-                  {t('总额度')}：
+                  {"总额度"}：
                 </Text>
                 <div className='flex items-center'>
                   <Package size={14} className='mr-1 text-slate-500' />
                   {totalAmount > 0 ? (
-                    <Tooltip content={`${t('原生额度')}：${totalAmount}`}>
+                    <Tooltip content={`${"原生额度"}：${totalAmount}`}>
                       <Text className='text-slate-900 dark:text-slate-100'>
                         {renderQuota(totalAmount)}
                       </Text>
                     </Tooltip>
                   ) : (
                     <Text className='text-slate-900 dark:text-slate-100'>
-                      {t('不限')}
+                      {"不限"}
                     </Text>
                   )}
                 </div>
@@ -130,7 +130,7 @@ const SubscriptionPurchaseModal = ({
               {plan?.upgrade_group ? (
                 <div className='flex justify-between items-center'>
                   <Text strong className='text-slate-700 dark:text-slate-200'>
-                    {t('升级分组')}：
+                    {"升级分组"}：
                   </Text>
                   <Text className='text-slate-900 dark:text-slate-100'>
                     {plan.upgrade_group}
@@ -140,7 +140,7 @@ const SubscriptionPurchaseModal = ({
               <Divider margin={8} />
               <div className='flex justify-between items-center'>
                 <Text strong className='text-slate-700 dark:text-slate-200'>
-                  {t('应付金额')}：
+                  {"应付金额"}：
                 </Text>
                 <Text strong className='text-xl text-purple-600'>
                   {symbol}
@@ -154,7 +154,7 @@ const SubscriptionPurchaseModal = ({
           {purchaseLimitReached && (
             <Banner
               type='warning'
-              description={`${t('已达到购买上限')} (${purchaseCount}/${purchaseLimit})`}
+              description={`${"已达到购买上限"} (${purchaseCount}/${purchaseLimit})`}
               className='!rounded-xl'
               closeIcon={null}
             />
@@ -163,7 +163,7 @@ const SubscriptionPurchaseModal = ({
           {hasAnyPayment ? (
             <div className='space-y-3'>
               <Text size='small' type='tertiary'>
-                {t('选择支付方式')}：
+                {"选择支付方式"}：
               </Text>
 
               {/* Stripe / Creem */}
@@ -204,7 +204,7 @@ const SubscriptionPurchaseModal = ({
                     onChange={setSelectedEpayMethod}
                     style={{ flex: 1 }}
                     size='default'
-                    placeholder={t('选择支付方式')}
+                    placeholder={"选择支付方式"}
                     optionList={epayMethods.map((m) => ({
                       value: m.type,
                       label: m.name || m.type,
@@ -218,7 +218,7 @@ const SubscriptionPurchaseModal = ({
                     loading={paying}
                     disabled={!selectedEpayMethod || purchaseLimitReached}
                   >
-                    {t('支付')}
+                    {"支付"}
                   </Button>
                 </div>
               )}
@@ -226,7 +226,7 @@ const SubscriptionPurchaseModal = ({
           ) : (
             <Banner
               type='info'
-              description={t('管理员未开启在线支付功能，请联系管理员配置。')}
+              description={"管理员未开启在线支付功能，请联系管理员配置。"}
               className='!rounded-xl'
               closeIcon={null}
             />

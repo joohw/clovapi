@@ -10,13 +10,10 @@ const PricingPage = () => {
   const { Content } = Layout;
   const isMobile = useIsMobile();
   const [showRatio, setShowRatio] = React.useState(true);
-  const [viewMode, setViewMode] = React.useState('table');
   const allProps = {
     ...pricingData,
     showRatio,
     setShowRatio,
-    viewMode,
-    setViewMode,
   };
 
   return (
@@ -51,7 +48,6 @@ const PricingPage = () => {
         vendorsMap={pricingData.vendorsMap}
         endpointMap={pricingData.endpointMap}
         autoGroups={pricingData.autoGroups}
-        t={pricingData.t}
       />
     </div>
   );

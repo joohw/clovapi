@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Modal, Button, Space } from '@douyinfe/semi-ui';
 import {
   API,
@@ -23,8 +22,6 @@ import { useTableCompactMode } from '../common/useTableCompactMode';
 import ParamOverrideEntry from '../../components/table/usage-logs/components/ParamOverrideEntry';
 
 export const useLogsData = () => {
-  const { t } = useTranslation();
-
   // Define column keys for selection
   const COLUMN_KEYS = {
     TIME: 'time',
@@ -364,7 +361,7 @@ export const useLogsData = () => {
         ? conversionChain.filter(Boolean)
         : [];
       if (chain.length <= 1) {
-        return t('原生格式');
+        return "原生格式";
       }
       return `${chain.join(' -> ')}`;
     };
@@ -378,13 +375,13 @@ export const useLogsData = () => {
 
       if (isAdminUser && (logs[i].type === 0 || logs[i].type === 2 || logs[i].type === 6)) {
         expandDataLocal.push({
-          key: t('渠道信息'),
+          key: "渠道信息",
           value: `${logs[i].channel} - ${logs[i].channel_name || '[未知]'}`,
         });
       }
       if (logs[i].request_id) {
         expandDataLocal.push({
-          key: t('Request ID'),
+          key: "Request ID",
           value: (
             <Space wrap>
               <span>{logs[i].request_id}</span>
@@ -396,7 +393,7 @@ export const useLogsData = () => {
                   openConversationDetailModal(logs[i]);
                 }}
               >
-                {t('详细日志')}
+                {"详细日志"}
               </Button>
             </Space>
           ),
@@ -404,37 +401,37 @@ export const useLogsData = () => {
       }
       if (other?.ws || other?.audio) {
         expandDataLocal.push({
-          key: t('语音输入'),
+          key: "语音输入",
           value: other.audio_input,
         });
         expandDataLocal.push({
-          key: t('语音输出'),
+          key: "语音输出",
           value: other.audio_output,
         });
         expandDataLocal.push({
-          key: t('文字输入'),
+          key: "文字输入",
           value: other.text_input,
         });
         expandDataLocal.push({
-          key: t('文字输出'),
+          key: "文字输出",
           value: other.text_output,
         });
       }
       if (other?.cache_tokens > 0) {
         expandDataLocal.push({
-          key: t('缓存 Tokens'),
+          key: "缓存 Tokens",
           value: other.cache_tokens,
         });
       }
       if (other?.cache_creation_tokens > 0) {
         expandDataLocal.push({
-          key: t('缓存创建 Tokens'),
+          key: "缓存创建 Tokens",
           value: other.cache_creation_tokens,
         });
       }
       if (logs[i].type === 2) {
         expandDataLocal.push({
-          key: t('日志详情'),
+          key: "日志详情",
           value: other?.claude
             ? renderClaudeLogContent(
                 other?.model_ratio,
@@ -472,13 +469,13 @@ export const useLogsData = () => {
         });
         if (logs[i]?.content) {
           expandDataLocal.push({
-            key: t('其他详情'),
+            key: "其他详情",
             value: logs[i].content,
           });
         }
         if (isAdminUser && other?.reject_reason) {
           expandDataLocal.push({
-            key: t('拦截原因'),
+            key: "拦截原因",
             value: other.reject_reason,
           });
         }
@@ -490,11 +487,11 @@ export const useLogsData = () => {
           other?.upstream_model_name !== '';
         if (modelMapped) {
           expandDataLocal.push({
-            key: t('请求并计费模型'),
+            key: "请求并计费模型",
             value: logs[i].model_name,
           });
           expandDataLocal.push({
-            key: t('实际模型'),
+            key: "实际模型",
             value: other.upstream_model_name,
           });
         }
@@ -575,13 +572,13 @@ export const useLogsData = () => {
             );
           }
           expandDataLocal.push({
-            key: t('计费过程'),
+            key: "计费过程",
             value: content,
           });
         }
         if (other?.reasoning_effort) {
           expandDataLocal.push({
-            key: t('Reasoning Effort'),
+            key: "Reasoning Effort",
             value: other.reasoning_effort,
           });
         }
@@ -589,13 +586,13 @@ export const useLogsData = () => {
       if (logs[i].type === 6) {
         if (other?.task_id) {
           expandDataLocal.push({
-            key: t('任务ID'),
+            key: "任务ID",
             value: other.task_id,
           });
         }
         if (other?.reason) {
           expandDataLocal.push({
-            key: t('失败原因'),
+            key: "失败原因",
             value: (
               <div style={{ maxWidth: 600, whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.6 }}>
                 {other.reason}
@@ -606,28 +603,28 @@ export const useLogsData = () => {
       }
       if (other?.request_path) {
         expandDataLocal.push({
-          key: t('请求路径'),
+          key: "请求路径",
           value: other.request_path,
         });
       }
       if (isAdminUser && other?.stream_status) {
         const ss = other.stream_status;
         const isOk = ss.status === 'ok';
-        const statusLabel = isOk ? '✓ ' + t('正常') : '✗ ' + t('异常');
+        const statusLabel = isOk ? '✓ ' + "正常" : '✗ ' + "异常";
         let streamValue = statusLabel + ' (' + (ss.end_reason || 'unknown') + ')';
         if (ss.error_count > 0) {
-          streamValue += ` [${t('软错误')}: ${ss.error_count}]`;
+          streamValue += ` [${"软错误"}: ${ss.error_count}]`;
         }
         if (ss.end_error) {
           streamValue += ` - ${ss.end_error}`;
         }
         expandDataLocal.push({
-          key: t('流状态'),
+          key: "流状态",
           value: streamValue,
         });
         if (Array.isArray(ss.errors) && ss.errors.length > 0) {
           expandDataLocal.push({
-            key: t('流错误详情'),
+            key: "流错误详情",
             value: (
               <div style={{ maxWidth: 600, whiteSpace: 'pre-line', wordBreak: 'break-word', lineHeight: 1.6 }}>
                 {ss.errors.join('\n')}
@@ -638,11 +635,10 @@ export const useLogsData = () => {
       }
       if (Array.isArray(other?.po) && other.po.length > 0) {
         expandDataLocal.push({
-          key: t('参数覆盖'),
+          key: "参数覆盖",
           value: (
             <ParamOverrideEntry
               count={other.po.length}
-              t={t}
               onOpen={(event) => {
                 event.stopPropagation();
                 openParamOverrideModal(logs[i], other);
@@ -655,7 +651,7 @@ export const useLogsData = () => {
         const planId = other?.subscription_plan_id;
         const planTitle = other?.subscription_plan_title || '';
         const subscriptionId = other?.subscription_id;
-        const unit = t('额度');
+        const unit = "额度";
         const pre = other?.subscription_pre_consumed ?? 0;
         const postDelta = other?.subscription_post_delta ?? 0;
         const finalConsumed = other?.subscription_consumed ?? pre + postDelta;
@@ -664,57 +660,55 @@ export const useLogsData = () => {
         // Use multiple Description items to avoid an overlong single line.
         if (planId) {
           expandDataLocal.push({
-            key: t('订阅套餐'),
+            key: "订阅套餐",
             value: `#${planId} ${planTitle}`.trim(),
           });
         }
         if (subscriptionId) {
           expandDataLocal.push({
-            key: t('订阅实例'),
+            key: "订阅实例",
             value: `#${subscriptionId}`,
           });
         }
         const settlementLines = [
-          `${t('预扣')}：${pre} ${unit}`,
-          `${t('结算差额')}：${postDelta > 0 ? '+' : ''}${postDelta} ${unit}`,
-          `${t('最终抵扣')}：${finalConsumed} ${unit}`,
+          `${"预扣"}：${pre} ${unit}`,
+          `${"结算差额"}：${postDelta > 0 ? '+' : ''}${postDelta} ${unit}`,
+          `${"最终抵扣"}：${finalConsumed} ${unit}`,
         ]
           .filter(Boolean)
           .join('\n');
         expandDataLocal.push({
-          key: t('订阅结算'),
+          key: "订阅结算",
           value: (
             <div style={{ whiteSpace: 'pre-line' }}>{settlementLines}</div>
           ),
         });
         if (remain !== undefined && total !== undefined) {
           expandDataLocal.push({
-            key: t('订阅剩余'),
+            key: "订阅剩余",
             value: `${remain}/${total} ${unit}`,
           });
         }
         expandDataLocal.push({
-          key: t('订阅说明'),
-          value: t(
-            'token 会按倍率换算成“额度/次数”，请求结束后再做差额结算（补扣/返还）。',
-          ),
+          key: "订阅说明",
+          value: "token 会按倍率换算成“额度/次数”，请求结束后再做差额结算（补扣/返还）。",
         });
       }
       if (isAdminUser && logs[i].type !== 6) {
         expandDataLocal.push({
-          key: t('请求转换'),
+          key: "请求转换",
           value: requestConversionDisplayValue(other?.request_conversion),
         });
       }
       if (isAdminUser && logs[i].type !== 6) {
         let localCountMode = '';
         if (other?.admin_info?.local_count_tokens) {
-          localCountMode = t('本地计费');
+          localCountMode = "本地计费";
         } else {
-          localCountMode = t('上游返回');
+          localCountMode = "上游返回";
         }
         expandDataLocal.push({
-          key: t('计费模式'),
+          key: "计费模式",
           value: localCountMode,
         });
       }
@@ -802,7 +796,7 @@ export const useLogsData = () => {
     if (await copy(text)) {
       showSuccess('已复制：' + text);
     } else {
-      Modal.error({ title: t('无法复制到剪贴板，请手动复制'), content: text });
+      Modal.error({ title: "无法复制到剪贴板，请手动复制", content: text });
     }
   };
 
@@ -897,8 +891,5 @@ export const useLogsData = () => {
     setLogType,
     openParamOverrideModal,
     openConversationDetailModal,
-
-    // Translation
-    t,
   };
 };

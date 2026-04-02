@@ -9,13 +9,11 @@ import {
   Typography,
 } from '@douyinfe/semi-ui';
 import { API, showError, showSuccess } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
 import { StatusContext } from '../../../context/Status';
 
 const { Text } = Typography;
 
 export default function SettingsHeaderNavModules(props) {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [statusState, statusDispatch] = useContext(StatusContext);
 
@@ -71,7 +69,7 @@ export default function SettingsHeaderNavModules(props) {
       about: true,
     };
     setHeaderNavModules(defaultModules);
-    showSuccess(t('已重置为默认配置'));
+    showSuccess("已重置为默认配置");
   }
 
   // 保存配置
@@ -84,7 +82,7 @@ export default function SettingsHeaderNavModules(props) {
       });
       const { success, message } = res.data;
       if (success) {
-        showSuccess(t('保存成功'));
+        showSuccess("保存成功");
 
         // 立即更新StatusContext中的状态
         statusDispatch({
@@ -103,7 +101,7 @@ export default function SettingsHeaderNavModules(props) {
         showError(message);
       }
     } catch (error) {
-      showError(t('保存失败，请重试'));
+      showError("保存失败，请重试");
     } finally {
       setLoading(false);
     }
@@ -145,37 +143,37 @@ export default function SettingsHeaderNavModules(props) {
   const moduleConfigs = [
     {
       key: 'home',
-      title: t('首页'),
-      description: t('用户主页，展示系统信息'),
+      title: "首页",
+      description: "用户主页，展示系统信息",
     },
     {
       key: 'console',
-      title: t('控制台'),
-      description: t('用户控制面板，管理账户'),
+      title: "控制台",
+      description: "用户控制面板，管理账户",
     },
     {
       key: 'pricing',
-      title: t('模型广场'),
-      description: t('模型定价，需要登录访问'),
+      title: "模型广场",
+      description: "模型定价，需要登录访问",
       hasSubConfig: true, // 标识该模块有子配置
     },
     {
       key: 'docs',
-      title: t('文档'),
-      description: t('系统文档和帮助信息'),
+      title: "文档",
+      description: "系统文档和帮助信息",
     },
     {
       key: 'about',
-      title: t('关于'),
-      description: t('关于系统的详细信息'),
+      title: "关于",
+      description: "关于系统的详细信息",
     },
   ];
 
   return (
     <Card>
       <Form.Section
-        text={t('顶栏管理')}
-        extraText={t('控制顶栏模块显示状态，全局生效')}
+        text={"顶栏管理"}
+        extraText={"控制顶栏模块显示状态，全局生效"}
       >
         <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
           {moduleConfigs.map((module) => (
@@ -264,7 +262,7 @@ export default function SettingsHeaderNavModules(props) {
                               marginBottom: '2px',
                             }}
                           >
-                            {t('需要登录访问')}
+                            {"需要登录访问"}
                           </div>
                           <Text
                             type='secondary'
@@ -276,7 +274,7 @@ export default function SettingsHeaderNavModules(props) {
                               display: 'block',
                             }}
                           >
-                            {t('开启后未登录用户无法访问模型广场')}
+                            {"开启后未登录用户无法访问模型广场"}
                           </Text>
                         </div>
                         <div style={{ marginLeft: '16px' }}>
@@ -315,7 +313,7 @@ export default function SettingsHeaderNavModules(props) {
               fontWeight: '500',
             }}
           >
-            {t('重置为默认')}
+            {"重置为默认"}
           </Button>
           <Button
             size='default'
@@ -328,7 +326,7 @@ export default function SettingsHeaderNavModules(props) {
               minWidth: '100px',
             }}
           >
-            {t('保存设置')}
+            {"保存设置"}
           </Button>
         </div>
       </Form.Section>

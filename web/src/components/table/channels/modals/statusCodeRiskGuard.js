@@ -1,21 +1,28 @@
 const NON_REDIRECTABLE_STATUS_CODES = new Set([504, 524]);
 
-export const STATUS_CODE_RISK_I18N_KEYS = {
+export const STATUS_CODE_RISK_TEXTS = {
   title: '高危操作确认',
   detailTitle: '检测到以下高危状态码重定向规则',
   inputPrompt: '操作确认',
   confirmButton: '我确认开启高危重试',
-  markdown: '高危状态码重试风险告知与免责声明Markdown',
-  confirmText: '高危状态码重试风险确认输入文本',
-  inputPlaceholder: '高危状态码重试风险输入框占位文案',
-  mismatchText: '高危状态码重试风险输入不匹配提示',
+  markdown: `### ⚠️ 高危操作：504/524 状态码重试风险提示
+504 和 524 通常代表请求已送达上游，但因处理超时导致连接中断。此时重试可能产生重复请求和重复计费。
+
+开启状态码重定向/重试前，请确认你已理解并接受以下风险：
+
+1. 可能出现双重或多重计费；
+2. 请求总耗时可能显著增加，造成客户端超时；
+3. 并发场景下可能导致请求积压，放大系统风险。`,
+  confirmText: '我确认开启高危重试',
+  inputPlaceholder: '请输入：我确认开启高危重试',
+  mismatchText: '输入内容与确认文本不一致，请重新输入',
 };
 
-export const STATUS_CODE_RISK_CHECKLIST_KEYS = [
-  '高危状态码重试风险确认项1',
-  '高危状态码重试风险确认项2',
-  '高危状态码重试风险确认项3',
-  '高危状态码重试风险确认项4',
+export const STATUS_CODE_RISK_CHECKLIST = [
+  '我已知晓 504/524 重试可能导致重复扣费。',
+  '我已知晓重试会显著增加请求耗时，可能引发客户端超时。',
+  '我已知晓高并发下重试可能引发请求积压并影响系统稳定性。',
+  '我确认将在可控环境下谨慎开启该配置，并自行承担相关风险。',
 ];
 
 function parseStatusCodeKey(rawKey) {

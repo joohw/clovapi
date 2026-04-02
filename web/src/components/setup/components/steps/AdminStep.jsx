@@ -22,7 +22,7 @@ const AdminStep = ({
           closeIcon={null}
           description={
             <div className='flex items-center'>
-              <span>{t('管理员账号已经初始化过，请继续设置其他参数')}</span>
+              <span>{"管理员账号已经初始化过，请继续设置其他参数"}</span>
             </div>
           }
           className='!rounded-lg'
@@ -31,13 +31,13 @@ const AdminStep = ({
         <>
           <Form.Input
             field='username'
-            label={t('用户名')}
-            placeholder={t('请输入管理员用户名')}
+            label={"用户名"}
+            placeholder={"请输入管理员用户名"}
             prefix={<IconUser />}
             showClear
             noLabel={false}
             validateStatus='default'
-            rules={[{ required: true, message: t('请输入管理员用户名') }]}
+            rules={[{ required: true, message: "请输入管理员用户名" }]}
             initValue={formData.username || ''}
             onChange={(value) => {
               setFormData({ ...formData, username: value });
@@ -45,8 +45,8 @@ const AdminStep = ({
           />
           <Form.Input
             field='password'
-            label={t('密码')}
-            placeholder={t('请输入管理员密码')}
+            label={"密码"}
+            placeholder={"请输入管理员密码"}
             type='password'
             prefix={<IconLock />}
             showClear
@@ -54,8 +54,8 @@ const AdminStep = ({
             mode='password'
             validateStatus='default'
             rules={[
-              { required: true, message: t('请输入管理员密码') },
-              { min: 8, message: t('密码长度至少为8个字符') },
+              { required: true, message: "请输入管理员密码" },
+              { min: 8, message: "密码长度至少为8个字符" },
             ]}
             initValue={formData.password || ''}
             onChange={(value) => {
@@ -64,8 +64,8 @@ const AdminStep = ({
           />
           <Form.Input
             field='confirmPassword'
-            label={t('确认密码')}
-            placeholder={t('请确认管理员密码')}
+            label={"确认密码"}
+            placeholder={"请确认管理员密码"}
             type='password'
             prefix={<IconLock />}
             showClear
@@ -73,13 +73,13 @@ const AdminStep = ({
             mode='password'
             validateStatus='default'
             rules={[
-              { required: true, message: t('请确认管理员密码') },
+              { required: true, message: "请确认管理员密码" },
               {
                 validator: (rule, value) => {
                   if (value && formRef.current) {
                     const password = formRef.current.getValue('password');
                     if (value !== password) {
-                      return Promise.reject(t('两次输入的密码不一致'));
+                      return Promise.reject("两次输入的密码不一致");
                     }
                   }
                   return Promise.resolve();

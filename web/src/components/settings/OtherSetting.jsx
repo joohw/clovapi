@@ -11,7 +11,6 @@ import {
 } from '@douyinfe/semi-ui';
 import { API, showError, showSuccess, timestamp2string } from '../../helpers';
 import { marked } from 'marked';
-import { useTranslation } from 'react-i18next';
 import { StatusContext } from '../../context/Status';
 import Text from '@douyinfe/semi-ui/lib/es/typography/text';
 
@@ -19,7 +18,6 @@ const LEGAL_USER_AGREEMENT_KEY = 'legal.user_agreement';
 const LEGAL_PRIVACY_POLICY_KEY = 'legal.privacy_policy';
 
 const OtherSetting = () => {
-  const { t } = useTranslation();
   let [inputs, setInputs] = useState({
     Notice: '',
     [LEGAL_USER_AGREEMENT_KEY]: '',
@@ -76,10 +74,10 @@ const OtherSetting = () => {
     try {
       setLoadingInput((loadingInput) => ({ ...loadingInput, Notice: true }));
       await updateOption('Notice', inputs.Notice);
-      showSuccess(t('公告已更新'));
+      showSuccess("公告已更新");
     } catch (error) {
-      console.error(t('公告更新失败'), error);
-      showError(t('公告更新失败'));
+      console.error("公告更新失败", error);
+      showError("公告更新失败");
     } finally {
       setLoadingInput((loadingInput) => ({ ...loadingInput, Notice: false }));
     }
@@ -95,10 +93,10 @@ const OtherSetting = () => {
         LEGAL_USER_AGREEMENT_KEY,
         inputs[LEGAL_USER_AGREEMENT_KEY],
       );
-      showSuccess(t('用户协议已更新'));
+      showSuccess("用户协议已更新");
     } catch (error) {
-      console.error(t('用户协议更新失败'), error);
-      showError(t('用户协议更新失败'));
+      console.error("用户协议更新失败", error);
+      showError("用户协议更新失败");
     } finally {
       setLoadingInput((loadingInput) => ({
         ...loadingInput,
@@ -117,10 +115,10 @@ const OtherSetting = () => {
         LEGAL_PRIVACY_POLICY_KEY,
         inputs[LEGAL_PRIVACY_POLICY_KEY],
       );
-      showSuccess(t('隐私政策已更新'));
+      showSuccess("隐私政策已更新");
     } catch (error) {
-      console.error(t('隐私政策更新失败'), error);
-      showError(t('隐私政策更新失败'));
+      console.error("隐私政策更新失败", error);
+      showError("隐私政策更新失败");
     } finally {
       setLoadingInput((loadingInput) => ({
         ...loadingInput,
@@ -138,10 +136,10 @@ const OtherSetting = () => {
         SystemName: true,
       }));
       await updateOption('SystemName', inputs.SystemName);
-      showSuccess(t('系统名称已更新'));
+      showSuccess("系统名称已更新");
     } catch (error) {
-      console.error(t('系统名称更新失败'), error);
-      showError(t('系统名称更新失败'));
+      console.error("系统名称更新失败", error);
+      showError("系统名称更新失败");
     } finally {
       setLoadingInput((loadingInput) => ({
         ...loadingInput,
@@ -308,20 +306,20 @@ const OtherSetting = () => {
         {/* 版本信息 */}
         <Form>
           <Card>
-            <Form.Section text={t('系统信息')}>
+            <Form.Section text={"系统信息"}>
               <Row>
                 <Col span={16}>
                   <Space>
                     <Text>
-                      {t('当前版本')}：
-                      {statusState?.status?.version || t('未知')}
+                      {"当前版本"}：
+                      {statusState?.status?.version || "未知"}
                     </Text>
                     <Button
                       type='primary'
                       onClick={checkUpdate}
                       loading={loadingInput['CheckUpdate']}
                     >
-                      {t('检查更新')}
+                      {"检查更新"}
                     </Button>
                   </Space>
                 </Col>
@@ -329,7 +327,7 @@ const OtherSetting = () => {
               <Row>
                 <Col span={16}>
                   <Text>
-                    {t('启动时间')}：{getStartTimeString()}
+                    {"启动时间"}：{getStartTimeString()}
                   </Text>
                 </Col>
               </Row>
@@ -342,57 +340,47 @@ const OtherSetting = () => {
           getFormApi={(formAPI) => (formAPISettingGeneral.current = formAPI)}
         >
           <Card>
-            <Form.Section text={t('通用设置')}>
+            <Form.Section text={"通用设置"}>
               <Form.TextArea
-                label={t('公告')}
-                placeholder={t(
-                  '在此输入新的公告内容，支持 Markdown & HTML 代码',
-                )}
+                label={"公告"}
+                placeholder={"在此输入新的公告内容，支持 Markdown & HTML 代码"}
                 field={'Notice'}
                 onChange={handleInputChange}
                 style={{ fontFamily: 'JetBrains Mono, Consolas' }}
                 autosize={{ minRows: 6, maxRows: 12 }}
               />
               <Button onClick={submitNotice} loading={loadingInput['Notice']}>
-                {t('设置公告')}
+                {"设置公告"}
               </Button>
               <Form.TextArea
-                label={t('用户协议')}
-                placeholder={t(
-                  '在此输入用户协议内容，支持 Markdown & HTML 代码',
-                )}
+                label={"用户协议"}
+                placeholder={"在此输入用户协议内容，支持 Markdown & HTML 代码"}
                 field={LEGAL_USER_AGREEMENT_KEY}
                 onChange={handleInputChange}
                 style={{ fontFamily: 'JetBrains Mono, Consolas' }}
                 autosize={{ minRows: 6, maxRows: 12 }}
-                helpText={t(
-                  '填写用户协议内容后，用户注册时将被要求勾选已阅读用户协议',
-                )}
+                helpText={"填写用户协议内容后，用户注册时将被要求勾选已阅读用户协议"}
               />
               <Button
                 onClick={submitUserAgreement}
                 loading={loadingInput[LEGAL_USER_AGREEMENT_KEY]}
               >
-                {t('设置用户协议')}
+                {"设置用户协议"}
               </Button>
               <Form.TextArea
-                label={t('隐私政策')}
-                placeholder={t(
-                  '在此输入隐私政策内容，支持 Markdown & HTML 代码',
-                )}
+                label={"隐私政策"}
+                placeholder={"在此输入隐私政策内容，支持 Markdown & HTML 代码"}
                 field={LEGAL_PRIVACY_POLICY_KEY}
                 onChange={handleInputChange}
                 style={{ fontFamily: 'JetBrains Mono, Consolas' }}
                 autosize={{ minRows: 6, maxRows: 12 }}
-                helpText={t(
-                  '填写隐私政策内容后，用户注册时将被要求勾选已阅读隐私政策',
-                )}
+                helpText={"填写隐私政策内容后，用户注册时将被要求勾选已阅读隐私政策"}
               />
               <Button
                 onClick={submitPrivacyPolicy}
                 loading={loadingInput[LEGAL_PRIVACY_POLICY_KEY]}
               >
-                {t('设置隐私政策')}
+                {"设置隐私政策"}
               </Button>
             </Form.Section>
           </Card>
@@ -403,10 +391,10 @@ const OtherSetting = () => {
           getFormApi={(formAPI) => (formAPIPersonalization.current = formAPI)}
         >
           <Card>
-            <Form.Section text={t('个性化设置')}>
+            <Form.Section text={"个性化设置"}>
               <Form.Input
-                label={t('系统名称')}
-                placeholder={t('在此输入系统名称')}
+                label={"系统名称"}
+                placeholder={"在此输入系统名称"}
                 field={'SystemName'}
                 onChange={handleInputChange}
               />
@@ -414,22 +402,20 @@ const OtherSetting = () => {
                 onClick={submitSystemName}
                 loading={loadingInput['SystemName']}
               >
-                {t('设置系统名称')}
+                {"设置系统名称"}
               </Button>
               <Form.Input
-                label={t('Logo 图片地址')}
-                placeholder={t('在此输入 Logo 图片地址')}
+                label={"Logo 图片地址"}
+                placeholder={"在此输入 Logo 图片地址"}
                 field={'Logo'}
                 onChange={handleInputChange}
               />
               <Button onClick={submitLogo} loading={loadingInput['Logo']}>
-                {t('设置 Logo')}
+                {"设置 Logo"}
               </Button>
               <Form.TextArea
-                label={t('首页内容')}
-                placeholder={t(
-                  '在此输入首页内容，支持 Markdown & HTML 代码，设置后首页的状态信息将不再显示。如果输入的是一个链接，则会使用该链接作为 iframe 的 src 属性，这允许你设置任意网页作为首页',
-                )}
+                label={"首页内容"}
+                placeholder={"在此输入首页内容，支持 Markdown & HTML 代码，设置后首页的状态信息将不再显示。如果输入的是一个链接，则会使用该链接作为 iframe 的 src 属性，这允许你设置任意网页作为首页"}
                 field={'HomePageContent'}
                 onChange={handleInputChange}
                 style={{ fontFamily: 'JetBrains Mono, Consolas' }}
@@ -439,48 +425,42 @@ const OtherSetting = () => {
                 onClick={() => submitOption('HomePageContent')}
                 loading={loadingInput['HomePageContent']}
               >
-                {t('设置首页内容')}
+                {"设置首页内容"}
               </Button>
               <Form.TextArea
-                label={t('关于')}
-                placeholder={t(
-                  '在此输入新的关于内容，支持 Markdown & HTML 代码。如果输入的是一个链接，则会使用该链接作为 iframe 的 src 属性，这允许你设置任意网页作为关于页面',
-                )}
+                label={"关于"}
+                placeholder={"在此输入新的关于内容，支持 Markdown & HTML 代码。如果输入的是一个链接，则会使用该链接作为 iframe 的 src 属性，这允许你设置任意网页作为关于页面"}
                 field={'About'}
                 onChange={handleInputChange}
                 style={{ fontFamily: 'JetBrains Mono, Consolas' }}
                 autosize={{ minRows: 6, maxRows: 12 }}
               />
               <Button onClick={submitAbout} loading={loadingInput['About']}>
-                {t('设置关于')}
+                {"设置关于"}
               </Button>
               {/*  */}
               <Banner
                 fullMode={false}
                 type='info'
-                description={t(
-                  '移除 One API 的版权标识必须首先获得授权，项目维护需要花费大量精力，如果本项目对你有意义，请主动支持本项目',
-                )}
+                description={"移除 One API 的版权标识必须首先获得授权，项目维护需要花费大量精力，如果本项目对你有意义，请主动支持本项目"}
                 closeIcon={null}
                 style={{ marginTop: 15 }}
               />
               <Form.Input
-                label={t('页脚')}
-                placeholder={t(
-                  '在此输入新的页脚，留空则使用默认页脚，支持 HTML 代码',
-                )}
+                label={"页脚"}
+                placeholder={"在此输入新的页脚，留空则使用默认页脚，支持 HTML 代码"}
                 field={'Footer'}
                 onChange={handleInputChange}
               />
               <Button onClick={submitFooter} loading={loadingInput['Footer']}>
-                {t('设置页脚')}
+                {"设置页脚"}
               </Button>
             </Form.Section>
           </Card>
         </Form>
       </Col>
       <Modal
-        title={t('新版本') + '：' + updateData.tag_name}
+        title={"新版本" + '：' + updateData.tag_name}
         visible={showUpdateModal}
         onCancel={() => setShowUpdateModal(false)}
         footer={[
@@ -492,7 +472,7 @@ const OtherSetting = () => {
               openGitHubRelease();
             }}
           >
-            {t('详情')}
+            {"详情"}
           </Button>,
         ]}
       >

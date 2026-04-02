@@ -26,7 +26,6 @@ export const useDashboardCharts = (
   setPieData,
   setLineData,
   setModelColors,
-  t,
 ) => {
   // ========== 图表规格状态 ==========
   const [spec_pie, setSpecPie] = useState({
@@ -61,8 +60,8 @@ export const useDashboardCharts = (
     },
     title: {
       visible: true,
-      text: t('模型调用次数占比'),
-      subtext: `${t('总计')}：${renderNumber(0)}`,
+      text: "模型调用次数占比",
+      subtext: `${"总计"}：${renderNumber(0)}`,
     },
     legends: {
       visible: true,
@@ -104,8 +103,8 @@ export const useDashboardCharts = (
     },
     title: {
       visible: true,
-      text: t('模型消耗分布'),
-      subtext: `${t('总计')}：${renderQuota(0, 2)}`,
+      text: "模型消耗分布",
+      subtext: `${"总计"}：${renderQuota(0, 2)}`,
     },
     bar: {
       state: {
@@ -148,7 +147,7 @@ export const useDashboardCharts = (
             array[i].value = renderQuota(value, 4);
           }
           array.unshift({
-            key: t('总计'),
+            key: "总计",
             value: renderQuota(sum, 4),
           });
           return array;
@@ -178,7 +177,7 @@ export const useDashboardCharts = (
     },
     title: {
       visible: true,
-      text: t('模型消耗趋势'),
+      text: "模型消耗趋势",
       subtext: '',
     },
     tooltip: {
@@ -214,7 +213,7 @@ export const useDashboardCharts = (
     },
     title: {
       visible: true,
-      text: t('模型调用次数排行'),
+      text: "模型调用次数排行",
       subtext: '',
     },
     bar: {
@@ -334,7 +333,7 @@ export const useDashboardCharts = (
       updateChartSpec(
         setSpecPie,
         newPieData,
-        `${t('总计')}：${renderNumber(totalTimes)}`,
+        `${"总计"}：${renderNumber(totalTimes)}`,
         newModelColors,
         'id0',
       );
@@ -342,7 +341,7 @@ export const useDashboardCharts = (
       updateChartSpec(
         setSpecLine,
         newLineData,
-        `${t('总计')}：${renderQuota(totalQuota, 2)}`,
+        `${"总计"}：${renderQuota(totalQuota, 2)}`,
         newModelColors,
         'barData',
       );
@@ -374,7 +373,7 @@ export const useDashboardCharts = (
       updateChartSpec(
         setSpecModelLine,
         modelLineData,
-        `${t('总计')}：${renderNumber(totalTimes)}`,
+        `${"总计"}：${renderNumber(totalTimes)}`,
         newModelColors,
         'lineData',
       );
@@ -382,7 +381,7 @@ export const useDashboardCharts = (
       updateChartSpec(
         setSpecRankBar,
         rankData,
-        `${t('总计')}：${renderNumber(totalTimes)}`,
+        `${"总计"}：${renderNumber(totalTimes)}`,
         newModelColors,
         'rankData',
       );
@@ -403,7 +402,6 @@ export const useDashboardCharts = (
       setConsumeQuota,
       setTimes,
       setConsumeTokens,
-      t,
     ],
   );
 

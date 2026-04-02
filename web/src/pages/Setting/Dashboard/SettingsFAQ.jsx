@@ -17,13 +17,9 @@ import {
 } from '@douyinfe/semi-illustrations';
 import { Plus, Edit, Trash2, Save, HelpCircle } from 'lucide-react';
 import { API, showError, showSuccess } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 const { Text } = Typography;
 
 const SettingsFAQ = ({ options, refresh }) => {
-  const { t } = useTranslation();
-
   const [faqList, setFaqList] = useState([]);
   const [showFaqModal, setShowFaqModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -45,7 +41,7 @@ const SettingsFAQ = ({ options, refresh }) => {
 
   const columns = [
     {
-      title: t('问题标题'),
+      title: "问题标题",
       dataIndex: 'question',
       key: 'question',
       render: (text) => (
@@ -65,7 +61,7 @@ const SettingsFAQ = ({ options, refresh }) => {
       ),
     },
     {
-      title: t('回答内容'),
+      title: "回答内容",
       dataIndex: 'answer',
       key: 'answer',
       render: (text) => (
@@ -85,7 +81,7 @@ const SettingsFAQ = ({ options, refresh }) => {
       ),
     },
     {
-      title: t('操作'),
+      title: "操作",
       key: 'action',
       fixed: 'right',
       width: 150,
@@ -98,7 +94,7 @@ const SettingsFAQ = ({ options, refresh }) => {
             size='small'
             onClick={() => handleEditFaq(record)}
           >
-            {t('编辑')}
+            {"编辑"}
           </Button>
           <Button
             icon={<Trash2 size={14} />}
@@ -107,7 +103,7 @@ const SettingsFAQ = ({ options, refresh }) => {
             size='small'
             onClick={() => handleDeleteFaq(record)}
           >
-            {t('删除')}
+            {"删除"}
           </Button>
         </Space>
       ),
@@ -259,7 +255,7 @@ const SettingsFAQ = ({ options, refresh }) => {
       });
       if (res.data.success) {
         setPanelEnabled(checked);
-        showSuccess(t('设置已保存'));
+        showSuccess("设置已保存");
         refresh?.();
       } else {
         showError(res.data.message);
@@ -292,9 +288,7 @@ const SettingsFAQ = ({ options, refresh }) => {
         <div className='flex items-center text-blue-500'>
           <HelpCircle size={16} className='mr-2' />
           <Text>
-            {t(
-              '常见问答管理，为用户提供常见问题的答案（最多50个，前端显示最新20条）',
-            )}
+            {"常见问答管理，为用户提供常见问题的答案（最多50个，前端显示最新20条）"}
           </Text>
         </div>
       </div>
@@ -310,7 +304,7 @@ const SettingsFAQ = ({ options, refresh }) => {
             className='w-full md:w-auto'
             onClick={handleAddFaq}
           >
-            {t('添加问答')}
+            {"添加问答"}
           </Button>
           <Button
             icon={<Trash2 size={14} />}
@@ -320,7 +314,7 @@ const SettingsFAQ = ({ options, refresh }) => {
             disabled={selectedRowKeys.length === 0}
             className='w-full md:w-auto'
           >
-            {t('批量删除')}{' '}
+            {"批量删除"}{' '}
             {selectedRowKeys.length > 0 && `(${selectedRowKeys.length})`}
           </Button>
           <Button
@@ -331,14 +325,14 @@ const SettingsFAQ = ({ options, refresh }) => {
             type='secondary'
             className='w-full md:w-auto'
           >
-            {t('保存设置')}
+            {"保存设置"}
           </Button>
         </div>
 
         {/* 启用开关 */}
         <div className='order-1 md:order-2 flex items-center gap-2'>
           <Switch checked={panelEnabled} onChange={handleToggleEnabled} />
-          <Text>{panelEnabled ? t('已启用') : t('已禁用')}</Text>
+          <Text>{panelEnabled ? "已启用" : "已禁用"}</Text>
         </div>
       </div>
     </div>
@@ -403,7 +397,7 @@ const SettingsFAQ = ({ options, refresh }) => {
               darkModeImage={
                 <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
               }
-              description={t('暂无常见问答')}
+              description={"暂无常见问答"}
               style={{ padding: 30 }}
             />
           }
@@ -412,12 +406,12 @@ const SettingsFAQ = ({ options, refresh }) => {
       </Form.Section>
 
       <Modal
-        title={editingFaq ? t('编辑问答') : t('添加问答')}
+        title={editingFaq ? "编辑问答" : "添加问答"}
         visible={showFaqModal}
         onOk={handleSaveFaq}
         onCancel={() => setShowFaqModal(false)}
-        okText={t('保存')}
-        cancelText={t('取消')}
+        okText={"保存"}
+        cancelText={"取消"}
         confirmLoading={modalLoading}
         width={800}
       >
@@ -428,41 +422,41 @@ const SettingsFAQ = ({ options, refresh }) => {
         >
           <Form.Input
             field='question'
-            label={t('问题标题')}
-            placeholder={t('请输入问题标题')}
+            label={"问题标题"}
+            placeholder={"请输入问题标题"}
             maxLength={200}
-            rules={[{ required: true, message: t('请输入问题标题') }]}
+            rules={[{ required: true, message: "请输入问题标题" }]}
             onChange={(value) => setFaqForm({ ...faqForm, question: value })}
           />
           <Form.TextArea
             field='answer'
-            label={t('回答内容')}
-            placeholder={t('请输入回答内容（支持 Markdown/HTML）')}
+            label={"回答内容"}
+            placeholder={"请输入回答内容（支持 Markdown/HTML）"}
             maxCount={1000}
             rows={6}
-            rules={[{ required: true, message: t('请输入回答内容') }]}
+            rules={[{ required: true, message: "请输入回答内容" }]}
             onChange={(value) => setFaqForm({ ...faqForm, answer: value })}
           />
         </Form>
       </Modal>
 
       <Modal
-        title={t('确认删除')}
+        title={"确认删除"}
         visible={showDeleteModal}
         onOk={confirmDeleteFaq}
         onCancel={() => {
           setShowDeleteModal(false);
           setDeletingFaq(null);
         }}
-        okText={t('确认删除')}
-        cancelText={t('取消')}
+        okText={"确认删除"}
+        cancelText={"取消"}
         type='warning'
         okButtonProps={{
           type: 'danger',
           theme: 'solid',
         }}
       >
-        <Text>{t('确定要删除此问答吗？')}</Text>
+        <Text>{"确定要删除此问答吗？"}</Text>
       </Modal>
     </>
   );

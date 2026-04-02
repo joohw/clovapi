@@ -9,7 +9,6 @@ import SelectableButtonGroup from '../../../common/ui/SelectableButtonGroup';
  * @param {Record<string, number>} groupRatio 分组倍率对象
  * @param {Array} models 模型列表
  * @param {boolean} loading 是否加载中
- * @param {Function} t i18n
  */
 const PricingGroups = ({
   filterGroup,
@@ -18,7 +17,6 @@ const PricingGroups = ({
   groupRatio = {},
   models = [],
   loading = false,
-  t,
 }) => {
   const groups = [
     'all',
@@ -33,7 +31,7 @@ const PricingGroups = ({
             .length;
     let ratioDisplay = '';
     if (g === 'all') {
-      // ratioDisplay = t('全部');
+      // ratioDisplay = "全部";
     } else {
       const ratio = groupRatio[g];
       if (ratio !== undefined && ratio !== null) {
@@ -44,20 +42,19 @@ const PricingGroups = ({
     }
     return {
       value: g,
-      label: g === 'all' ? t('全部分组') : g,
+      label: g === 'all' ? "全部分组" : g,
       tagCount: ratioDisplay,
     };
   });
 
   return (
     <SelectableButtonGroup
-      title={t('可用令牌分组')}
+      title={"可用令牌分组"}
       items={items}
       activeValue={filterGroup}
       onChange={setFilterGroup}
       loading={loading}
       variant='teal'
-      t={t}
     />
   );
 };

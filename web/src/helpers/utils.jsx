@@ -744,7 +744,6 @@ export const calculateModelPrice = ({
 
 export const getModelPriceItems = (
   priceData,
-  t,
   quotaDisplayType = 'USD',
 ) => {
   if (priceData.isPerToken) {
@@ -752,43 +751,43 @@ export const getModelPriceItems = (
       return [
         {
           key: 'input-ratio',
-          label: t('输入倍率'),
+          label: "输入倍率",
           value: priceData.inputRatio,
           suffix: 'x',
         },
         {
           key: 'completion-ratio',
-          label: t('补全倍率'),
+          label: "补全倍率",
           value: priceData.completionRatio,
           suffix: 'x',
         },
         {
           key: 'cache-ratio',
-          label: t('缓存读取倍率'),
+          label: "缓存读取倍率",
           value: priceData.cacheRatio,
           suffix: 'x',
         },
         {
           key: 'create-cache-ratio',
-          label: t('缓存创建倍率'),
+          label: "缓存创建倍率",
           value: priceData.createCacheRatio,
           suffix: 'x',
         },
         {
           key: 'image-ratio',
-          label: t('图片输入倍率'),
+          label: "图片输入倍率",
           value: priceData.imageRatio,
           suffix: 'x',
         },
         {
           key: 'audio-input-ratio',
-          label: t('音频输入倍率'),
+          label: "音频输入倍率",
           value: priceData.audioInputRatio,
           suffix: 'x',
         },
         {
           key: 'audio-output-ratio',
-          label: t('音频补全倍率'),
+          label: "音频补全倍率",
           value: priceData.audioOutputRatio,
           suffix: 'x',
         },
@@ -802,43 +801,43 @@ export const getModelPriceItems = (
     return [
       {
         key: 'input',
-        label: t('输入价格'),
+        label: "输入价格",
         value: priceData.inputPrice,
         suffix: unitSuffix,
       },
       {
         key: 'completion',
-        label: t('补全价格'),
+        label: "补全价格",
         value: priceData.completionPrice,
         suffix: unitSuffix,
       },
       {
         key: 'cache',
-        label: t('缓存读取价格'),
+        label: "缓存读取价格",
         value: priceData.cachePrice,
         suffix: unitSuffix,
       },
       {
         key: 'create-cache',
-        label: t('缓存创建价格'),
+        label: "缓存创建价格",
         value: priceData.createCachePrice,
         suffix: unitSuffix,
       },
       {
         key: 'image',
-        label: t('图片输入价格'),
+        label: "图片输入价格",
         value: priceData.imagePrice,
         suffix: unitSuffix,
       },
       {
         key: 'audio-input',
-        label: t('音频输入价格'),
+        label: "音频输入价格",
         value: priceData.audioInputPrice,
         suffix: unitSuffix,
       },
       {
         key: 'audio-output',
-        label: t('音频补全价格'),
+        label: "音频补全价格",
         value: priceData.audioOutputPrice,
         suffix: unitSuffix,
       },
@@ -848,16 +847,16 @@ export const getModelPriceItems = (
   return [
     {
       key: 'fixed',
-      label: t('模型价格'),
+      label: "模型价格",
       value: priceData.price,
-      suffix: ` / ${t('次')}`,
+      suffix: ` / ${"次"}`,
     },
   ].filter((item) => item.value !== null && item.value !== undefined && item.value !== '');
 };
 
 // 格式化价格信息（用于卡片视图）
-export const formatPriceInfo = (priceData, t, quotaDisplayType = 'USD') => {
-  const items = getModelPriceItems(priceData, t, quotaDisplayType);
+export const formatPriceInfo = (priceData, quotaDisplayType = 'USD') => {
+  const items = getModelPriceItems(priceData, quotaDisplayType);
   return (
     <>
       {items.map((item) => (
@@ -882,13 +881,12 @@ export const createCardProPagination = ({
   isMobile = false,
   pageSizeOpts = [10, 20, 50, 100],
   showSizeChanger = true,
-  t = (key) => key,
 }) => {
   if (!total || total <= 0) return null;
 
   const start = (currentPage - 1) * pageSize + 1;
   const end = Math.min(currentPage * pageSize, total);
-  const totalText = `${t('显示第')} ${start} ${t('条 - 第')} ${end} ${t('条，共')} ${total} ${t('条')}`;
+  const totalText = `${"显示第"} ${start} ${"条 - 第"} ${end} ${"条，共"} ${total} ${"条"}`;
 
   return (
     <>

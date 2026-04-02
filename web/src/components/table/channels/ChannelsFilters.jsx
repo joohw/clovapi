@@ -32,7 +32,7 @@ const ChannelsFilters = ({
             setShowEdit(true);
           }}
         >
-          {t('添加渠道')}
+          {"添加渠道"}
         </Button>
 
         <Button
@@ -41,7 +41,7 @@ const ChannelsFilters = ({
           className='w-full md:w-auto'
           onClick={refresh}
         >
-          {t('刷新')}
+          {"刷新"}
         </Button>
 
         <Button
@@ -50,7 +50,7 @@ const ChannelsFilters = ({
           onClick={() => setShowColumnSelector(true)}
           className='w-full md:w-auto'
         >
-          {t('列设置')}
+          {"列设置"}
         </Button>
       </div>
 
@@ -71,7 +71,7 @@ const ChannelsFilters = ({
               size='small'
               field='searchKeyword'
               prefix={<IconSearch />}
-              placeholder={t('渠道ID，名称，密钥，API地址')}
+              placeholder={"渠道ID，名称，密钥，API地址"}
               showClear
               pure
             />
@@ -81,7 +81,7 @@ const ChannelsFilters = ({
               size='small'
               field='searchModel'
               prefix={<IconSearch />}
-              placeholder={t('模型关键字')}
+              placeholder={"模型关键字"}
               showClear
               pure
             />
@@ -90,9 +90,9 @@ const ChannelsFilters = ({
             <Form.Select
               size='small'
               field='searchGroup'
-              placeholder={t('选择分组')}
+              placeholder={"选择分组"}
               optionList={[
-                { label: t('选择分组'), value: null },
+                { label: "选择分组", value: null },
                 ...groupOptions,
               ]}
               className='w-full'
@@ -113,7 +113,7 @@ const ChannelsFilters = ({
             loading={loading || searching}
             className='w-full md:w-auto'
           >
-            {t('查询')}
+            {"查询"}
           </Button>
           <Button
             size='small'
@@ -129,7 +129,7 @@ const ChannelsFilters = ({
             }}
             className='w-full md:w-auto'
           >
-            {t('重置')}
+            {"重置"}
           </Button>
         </Form>
       </div>

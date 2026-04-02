@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { API, showError, showSuccess } from '../../helpers';
 import { useTableCompactMode } from '../common/useTableCompactMode';
 
 export const useSubscriptionsData = () => {
-  const { t } = useTranslation();
   const [compactMode, setCompactMode] = useTableCompactMode('subscriptions');
 
   // State management
@@ -33,10 +31,10 @@ export const useSubscriptionsData = () => {
         const totalPages = Math.max(1, Math.ceil(next.length / pageSize));
         setActivePage((p) => Math.min(p || 1, totalPages));
       } else {
-        showError(res.data?.message || t('加载失败'));
+        showError(res.data?.message || "加载失败");
       }
     } catch (e) {
-      showError(t('请求失败'));
+      showError("请求失败");
     } finally {
       setLoading(false);
     }
@@ -69,13 +67,13 @@ export const useSubscriptionsData = () => {
         enabled: !!enabled,
       });
       if (res.data?.success) {
-        showSuccess(enabled ? t('已启用') : t('已禁用'));
+        showSuccess(enabled ? "已启用" : "已禁用");
         await loadPlans();
       } else {
-        showError(res.data?.message || t('操作失败'));
+        showError(res.data?.message || "操作失败");
       }
     } catch (e) {
-      showError(t('请求失败'));
+      showError("请求失败");
     } finally {
       setLoading(false);
     }
@@ -140,8 +138,5 @@ export const useSubscriptionsData = () => {
     closeEdit,
     openCreate,
     openEdit,
-
-    // Translation
-    t,
   };
 };

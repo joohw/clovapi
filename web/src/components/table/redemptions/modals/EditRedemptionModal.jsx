@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   API,
   downloadTextAsFile,
@@ -33,7 +32,6 @@ import {
 const { Text, Title } = Typography;
 
 const EditRedemptionModal = (props) => {
-  const { t } = useTranslation();
   const isEdit = props.editingRedemption.id !== undefined;
   const [loading, setLoading] = useState(isEdit);
   const isMobile = useIsMobile();
@@ -108,11 +106,11 @@ const EditRedemptionModal = (props) => {
     const { success, message, data } = res.data;
     if (success) {
       if (isEdit) {
-        showSuccess(t('兑换码更新成功！'));
+        showSuccess("兑换码更新成功！");
         props.refresh();
         props.handleClose();
       } else {
-        showSuccess(t('兑换码创建成功！'));
+        showSuccess("兑换码创建成功！");
         props.refresh();
         formApiRef.current?.setValues(getInitValues());
         props.handleClose();
@@ -126,11 +124,11 @@ const EditRedemptionModal = (props) => {
         text += data[i] + '\n';
       }
       Modal.confirm({
-        title: t('兑换码创建成功'),
+        title: "兑换码创建成功",
         content: (
           <div>
-            <p>{t('兑换码创建成功，是否下载兑换码？')}</p>
-            <p>{t('兑换码将以文本文件的形式下载，文件名为兑换码的名称。')}</p>
+            <p>{"兑换码创建成功，是否下载兑换码？"}</p>
+            <p>{"兑换码将以文本文件的形式下载，文件名为兑换码的名称。"}</p>
           </div>
         ),
         onOk: () => {
@@ -149,15 +147,15 @@ const EditRedemptionModal = (props) => {
           <Space>
             {isEdit ? (
               <Tag color='blue' shape='circle'>
-                {t('更新')}
+                {"更新"}
               </Tag>
             ) : (
               <Tag color='green' shape='circle'>
-                {t('新建')}
+                {"新建"}
               </Tag>
             )}
             <Title heading={4} className='m-0'>
-              {isEdit ? t('更新兑换码信息') : t('创建新的兑换码')}
+              {isEdit ? "更新兑换码信息" : "创建新的兑换码"}
             </Title>
           </Space>
         }
@@ -173,7 +171,7 @@ const EditRedemptionModal = (props) => {
                 icon={<IconSave />}
                 loading={loading}
               >
-                {t('提交')}
+                {"提交"}
               </Button>
               <Button
                 theme='light'
@@ -181,7 +179,7 @@ const EditRedemptionModal = (props) => {
                 onClick={handleCancel}
                 icon={<IconClose />}
               >
-                {t('取消')}
+                {"取消"}
               </Button>
             </Space>
           </div>
@@ -209,10 +207,10 @@ const EditRedemptionModal = (props) => {
                     </Avatar>
                     <div>
                       <Text className='text-lg font-medium'>
-                        {t('基本信息')}
+                        {"基本信息"}
                       </Text>
                       <div className='text-xs text-gray-600'>
-                        {t('设置兑换码的基本信息')}
+                        {"设置兑换码的基本信息"}
                       </div>
                     </div>
                   </div>
@@ -221,13 +219,13 @@ const EditRedemptionModal = (props) => {
                     <Col span={24}>
                       <Form.Input
                         field='name'
-                        label={t('名称')}
-                        placeholder={t('请输入名称')}
+                        label={"名称"}
+                        placeholder={"请输入名称"}
                         style={{ width: '100%' }}
                         rules={
                           !isEdit
                             ? []
-                            : [{ required: true, message: t('请输入名称') }]
+                            : [{ required: true, message: "请输入名称" }]
                         }
                         showClear
                       />
@@ -235,9 +233,9 @@ const EditRedemptionModal = (props) => {
                     <Col span={24}>
                       <Form.DatePicker
                         field='expired_time'
-                        label={t('过期时间')}
+                        label={"过期时间"}
                         type='dateTime'
-                        placeholder={t('选择过期时间（可选，留空为永久）')}
+                        placeholder={"选择过期时间（可选，留空为永久）"}
                         style={{ width: '100%' }}
                         showClear
                       />
@@ -257,10 +255,10 @@ const EditRedemptionModal = (props) => {
                     </Avatar>
                     <div>
                       <Text className='text-lg font-medium'>
-                        {t('额度设置')}
+                        {"额度设置"}
                       </Text>
                       <div className='text-xs text-gray-600'>
-                        {t('设置兑换码的额度和数量')}
+                        {"设置兑换码的额度和数量"}
                       </div>
                     </div>
                   </div>
@@ -269,18 +267,18 @@ const EditRedemptionModal = (props) => {
                     <Col span={12}>
                       <Form.AutoComplete
                         field='quota'
-                        label={t('额度')}
-                        placeholder={t('请输入额度')}
+                        label={"额度"}
+                        placeholder={"请输入额度"}
                         style={{ width: '100%' }}
                         type='number'
                         rules={[
-                          { required: true, message: t('请输入额度') },
+                          { required: true, message: "请输入额度" },
                           {
                             validator: (rule, v) => {
                               const num = parseInt(v, 10);
                               return num > 0
                                 ? Promise.resolve()
-                                : Promise.reject(t('额度必须大于0'));
+                                : Promise.reject("额度必须大于0");
                             },
                           },
                         ]}
@@ -302,16 +300,16 @@ const EditRedemptionModal = (props) => {
                       <Col span={12}>
                         <Form.InputNumber
                           field='count'
-                          label={t('生成数量')}
+                          label={"生成数量"}
                           min={1}
                           rules={[
-                            { required: true, message: t('请输入生成数量') },
+                            { required: true, message: "请输入生成数量" },
                             {
                               validator: (rule, v) => {
                                 const num = parseInt(v, 10);
                                 return num > 0
                                   ? Promise.resolve()
-                                  : Promise.reject(t('生成数量必须大于0'));
+                                  : Promise.reject("生成数量必须大于0");
                               },
                             },
                           ]}

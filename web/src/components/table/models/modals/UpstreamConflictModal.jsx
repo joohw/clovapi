@@ -137,7 +137,7 @@ const UpstreamConflictModal = ({
   const columns = useMemo(() => {
     const base = [
       {
-        title: t('模型'),
+        title: "模型",
         dataIndex: 'model_name',
         fixed: 'left',
         render: (text) => <Text strong>{text}</Text>,
@@ -146,7 +146,7 @@ const UpstreamConflictModal = ({
 
     const cols = FIELD_KEYS.map((fieldKey) => {
       const rawLabel = FIELD_LABELS[fieldKey] || fieldKey;
-      const label = t(rawLabel);
+      const label = rawLabel;
 
       const { headerChecked, headerIndeterminate, hasAny } =
         getHeaderState(fieldKey);
@@ -184,7 +184,7 @@ const UpstreamConflictModal = ({
                   <div className='p-2 max-w-[520px]'>
                     <div className='mb-2'>
                       <Text type='tertiary' size='small'>
-                        {t('本地')}
+                        {"本地"}
                       </Text>
                       <pre className='whitespace-pre-wrap m-0'>
                         {formatValue(f.local)}
@@ -192,7 +192,7 @@ const UpstreamConflictModal = ({
                     </div>
                     <div>
                       <Text type='tertiary' size='small'>
-                        {t('官方')}
+                        {"官方"}
                       </Text>
                       <pre className='whitespace-pre-wrap m-0'>
                         {formatValue(f.upstream)}
@@ -206,7 +206,7 @@ const UpstreamConflictModal = ({
                   size='small'
                   prefixIcon={<MousePointerClick size={14} />}
                 >
-                  {t('点击查看差异')}
+                  {"点击查看差异"}
                 </Tag>
               </Popover>
             </Checkbox>
@@ -245,26 +245,26 @@ const UpstreamConflictModal = ({
 
   return (
     <Modal
-      title={t('选择要覆盖的冲突项')}
+      title={"选择要覆盖的冲突项"}
       visible={visible}
       onCancel={onClose}
       onOk={handleOk}
       confirmLoading={loading}
-      okText={t('应用覆盖')}
-      cancelText={t('取消')}
+      okText={"应用覆盖"}
+      cancelText={"取消"}
       width={isMobile ? '100%' : 1000}
     >
       {dataSource.length === 0 ? (
-        <Empty description={t('无冲突项')} className='p-6' />
+        <Empty description={"无冲突项"} className='p-6' />
       ) : (
         <>
           <div className='mb-3 text-[var(--semi-color-text-2)]'>
-            {t('仅会覆盖你勾选的字段，未勾选的字段保持本地不变。')}
+            {"仅会覆盖你勾选的字段，未勾选的字段保持本地不变。"}
           </div>
           {/* 搜索框 */}
           <div className='flex items-center justify-end gap-2 w-full mb-4'>
             <Input
-              placeholder={t('搜索模型...')}
+              placeholder={"搜索模型..."}
               value={searchKeyword}
               onChange={(v) => {
                 setSearchKeyword(v);
@@ -291,7 +291,7 @@ const UpstreamConflictModal = ({
           ) : (
             <Empty
               description={
-                searchKeyword ? t('未找到匹配的模型') : t('无冲突项')
+                searchKeyword ? "未找到匹配的模型" : "无冲突项"
               }
               className='p-6'
             />

@@ -2,7 +2,6 @@ import React from 'react';
 import { useHeaderBar } from '../../../hooks/common/useHeaderBar';
 import { useNavigation } from '../../../hooks/common/useNavigation';
 import MobileMenuButton from './MobileMenuButton';
-import HeaderLogo from './HeaderLogo';
 import Navigation from './Navigation';
 import ActionButtons from './ActionButtons';
 
@@ -11,24 +10,15 @@ const HeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
     userState,
     isMobile,
     collapsed,
-    logoLoaded,
     isLoading,
-    systemName,
-    logo,
     isNewYear,
-    isSelfUseMode,
-    isDemoSiteMode,
     isConsoleRoute,
-    isHomeRoute,
     headerNavModules,
     pricingRequireAuth,
-    logout,
     handleMobileMenuToggle,
-    navigate,
-    t,
   } = useHeaderBar({ onMobileMenuToggle, drawerOpen });
 
-  const { mainNavLinks } = useNavigation(t, headerNavModules);
+  const { mainNavLinks } = useNavigation(headerNavModules);
 
   return (
     <header className='text-semi-color-text-0 sticky top-0 z-50 transition-colors duration-300 bg-white/75 dark:bg-zinc-900/75 backdrop-blur-lg'>
@@ -41,23 +31,8 @@ const HeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
               drawerOpen={drawerOpen}
               collapsed={collapsed}
               onToggle={handleMobileMenuToggle}
-              t={t}
-            />
-
-            <HeaderLogo
-              isMobile={isMobile}
-              isConsoleRoute={isConsoleRoute}
-              isHomeRoute={isHomeRoute}
-              logo={logo}
-              logoLoaded={logoLoaded}
-              isLoading={isLoading}
-              systemName={systemName}
-              isSelfUseMode={isSelfUseMode}
-              isDemoSiteMode={isDemoSiteMode}
-              t={t}
             />
           </div>
-
           <Navigation
             mainNavLinks={mainNavLinks}
             isMobile={isMobile}
@@ -71,9 +46,6 @@ const HeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
             userState={userState}
             isLoading={isLoading}
             isMobile={isMobile}
-            logout={logout}
-            navigate={navigate}
-            t={t}
           />
         </div>
       </div>

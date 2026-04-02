@@ -3,11 +3,9 @@ import { Modal, Form, Col, Row } from '@douyinfe/semi-ui';
 import { API, showError, showSuccess } from '../../../../helpers';
 import { Typography } from '@douyinfe/semi-ui';
 import { IconLink } from '@douyinfe/semi-icons';
-import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 
 const EditVendorModal = ({ visible, handleClose, refresh, editingVendor }) => {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const formApiRef = useRef(null);
 
@@ -43,7 +41,7 @@ const EditVendorModal = ({ visible, handleClose, refresh, editingVendor }) => {
         showError(message);
       }
     } catch (error) {
-      showError(t('加载供应商信息失败'));
+      showError("加载供应商信息失败");
     }
     setLoading(false);
   };
@@ -74,32 +72,32 @@ const EditVendorModal = ({ visible, handleClose, refresh, editingVendor }) => {
         const res = await API.put('/api/vendors/', submitData);
         const { success, message } = res.data;
         if (success) {
-          showSuccess(t('供应商更新成功！'));
+          showSuccess("供应商更新成功！");
           refresh();
           handleClose();
         } else {
-          showError(t(message));
+          showError(message);
         }
       } else {
         const res = await API.post('/api/vendors/', submitData);
         const { success, message } = res.data;
         if (success) {
-          showSuccess(t('供应商创建成功！'));
+          showSuccess("供应商创建成功！");
           refresh();
           handleClose();
         } else {
-          showError(t(message));
+          showError(message);
         }
       }
     } catch (error) {
-      showError(error.response?.data?.message || t('操作失败'));
+      showError(error.response?.data?.message || "操作失败");
     }
     setLoading(false);
   };
 
   return (
     <Modal
-      title={isEdit ? t('编辑供应商') : t('新增供应商')}
+      title={isEdit ? "编辑供应商" : "新增供应商"}
       visible={visible}
       onOk={() => formApiRef.current?.submitForm()}
       onCancel={handleCancel}
@@ -115,17 +113,17 @@ const EditVendorModal = ({ visible, handleClose, refresh, editingVendor }) => {
           <Col span={24}>
             <Form.Input
               field='name'
-              label={t('供应商名称')}
-              placeholder={t('请输入供应商名称，如：OpenAI')}
-              rules={[{ required: true, message: t('请输入供应商名称') }]}
+              label={"供应商名称"}
+              placeholder={"请输入供应商名称，如：OpenAI"}
+              rules={[{ required: true, message: "请输入供应商名称" }]}
               showClear
             />
           </Col>
           <Col span={24}>
             <Form.TextArea
               field='description'
-              label={t('描述')}
-              placeholder={t('请输入供应商描述')}
+              label={"描述"}
+              placeholder={"请输入供应商描述"}
               rows={3}
               showClear
             />
@@ -133,13 +131,11 @@ const EditVendorModal = ({ visible, handleClose, refresh, editingVendor }) => {
           <Col span={24}>
             <Form.Input
               field='icon'
-              label={t('供应商图标')}
-              placeholder={t('请输入图标名称')}
+              label={"供应商图标"}
+              placeholder={"请输入图标名称"}
               extraText={
                 <span>
-                  {t(
-                    "图标使用@lobehub/icons库，如：OpenAI、Claude.Color，支持链式参数：OpenAI.Avatar.type={'platform'}、OpenRouter.Avatar.shape={'square'}，查询所有可用图标请 ",
-                  )}
+                  {"图标使用@lobehub/icons库，如：OpenAI、Claude.Color，支持链式参数：OpenAI.Avatar.type={'platform'}、OpenRouter.Avatar.shape={'square'}，查询所有可用图标请 "}
                   <Typography.Text
                     link={{
                       href: 'https://icons.lobehub.com/components/lobe-hub',
@@ -148,7 +144,7 @@ const EditVendorModal = ({ visible, handleClose, refresh, editingVendor }) => {
                     icon={<IconLink />}
                     underline
                   >
-                    {t('请点击我')}
+                    {"请点击我"}
                   </Typography.Text>
                 </span>
               }
@@ -156,7 +152,7 @@ const EditVendorModal = ({ visible, handleClose, refresh, editingVendor }) => {
             />
           </Col>
           <Col span={24}>
-            <Form.Switch field='status' label={t('状态')} initValue={true} />
+            <Form.Switch field='status' label={"状态"} initValue={true} />
           </Col>
         </Row>
       </Form>

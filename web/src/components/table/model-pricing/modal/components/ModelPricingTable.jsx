@@ -15,7 +15,6 @@ const ModelPricingTable = ({
   showRatio,
   usableGroup,
   autoGroups = [],
-  t,
 }) => {
   const modelEnableGroups = Array.isArray(modelData?.enable_groups)
     ? modelData.enable_groups
@@ -53,23 +52,23 @@ const ModelPricingTable = ({
         ratio: groupRatioValue,
         billingType:
           modelData?.quota_type === 0
-            ? t('按量计费')
+            ? "按量计费"
             : modelData?.quota_type === 1
-              ? t('按次计费')
+              ? "按次计费"
               : '-',
-        priceItems: getModelPriceItems(priceData, t, siteDisplayType),
+        priceItems: getModelPriceItems(priceData, siteDisplayType),
       };
     });
 
     // 定义表格列
     const columns = [
       {
-        title: t('分组'),
+        title: "分组",
         dataIndex: 'group',
         render: (text) => (
           <Tag color='white' size='small' shape='circle'>
             {text}
-            {t('分组')}
+            {"分组"}
           </Tag>
         ),
       },
@@ -78,7 +77,7 @@ const ModelPricingTable = ({
     // 如果显示倍率，添加倍率列
     if (showRatio) {
       columns.push({
-        title: t('倍率'),
+        title: "倍率",
         dataIndex: 'ratio',
         render: (text) => (
           <Tag color='white' size='small' shape='circle'>
@@ -90,12 +89,12 @@ const ModelPricingTable = ({
 
     // 添加计费类型列
     columns.push({
-      title: t('计费类型'),
+      title: "计费类型",
       dataIndex: 'billingType',
       render: (text) => {
         let color = 'white';
-        if (text === t('按量计费')) color = 'violet';
-        else if (text === t('按次计费')) color = 'teal';
+        if (text === "按量计费") color = 'violet';
+        else if (text === "按次计费") color = 'teal';
         return (
           <Tag color={color} size='small' shape='circle'>
             {text || '-'}
@@ -105,7 +104,7 @@ const ModelPricingTable = ({
     });
 
     columns.push({
-      title: siteDisplayType === 'TOKENS' ? t('计费摘要') : t('价格摘要'),
+      title: siteDisplayType === 'TOKENS' ? "计费摘要" : "价格摘要",
       dataIndex: 'priceItems',
       render: (items) => (
         <div className='space-y-1'>
@@ -140,21 +139,21 @@ const ModelPricingTable = ({
           <IconCoinMoneyStroked size={16} />
         </Avatar>
         <div>
-          <Text className='text-lg font-medium'>{t('分组价格')}</Text>
+          <Text className='text-lg font-medium'>{"分组价格"}</Text>
           <div className='text-xs text-gray-600'>
-            {t('不同用户分组的价格信息')}
+            {"不同用户分组的价格信息"}
           </div>
         </div>
       </div>
       {autoChain.length > 0 && (
         <div className='flex flex-wrap items-center gap-1 mb-4'>
-          <span className='text-sm text-gray-600'>{t('auto分组调用链路')}</span>
+          <span className='text-sm text-gray-600'>{"auto分组调用链路"}</span>
           <span className='text-sm'>→</span>
           {autoChain.map((g, idx) => (
             <React.Fragment key={g}>
               <Tag color='white' size='small' shape='circle'>
                 {g}
-                {t('分组')}
+                {"分组"}
               </Tag>
               {idx < autoChain.length - 1 && <span className='text-sm'>→</span>}
             </React.Fragment>

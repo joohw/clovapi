@@ -37,9 +37,7 @@ const LogsPage = () => {
           onPageChange: logsData.handlePageChange,
           onPageSizeChange: logsData.handlePageSizeChange,
           isMobile: isMobile,
-          t: logsData.t,
         })}
-        t={logsData.t}
       >
         <LogsTable {...logsData} />
       </CardPro>

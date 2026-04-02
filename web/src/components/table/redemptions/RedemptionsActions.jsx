@@ -25,7 +25,7 @@ const RedemptionsActions = ({
         onClick={handleAddRedemption}
         size='small'
       >
-        {t('添加兑换码')}
+        {"添加兑换码"}
       </Button>
 
       <Button
@@ -34,7 +34,7 @@ const RedemptionsActions = ({
         onClick={batchCopyRedemptions}
         size='small'
       >
-        {t('复制所选兑换码到剪贴板')}
+        {"复制所选兑换码到剪贴板"}
       </Button>
 
       <Button
@@ -43,7 +43,7 @@ const RedemptionsActions = ({
         onClick={batchDeleteRedemptions}
         size='small'
       >
-        {t('清除失效兑换码')}
+        {"清除失效兑换码"}
       </Button>
     </div>
   );

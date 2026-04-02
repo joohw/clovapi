@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   Table,
   Card,
@@ -26,11 +25,10 @@ const CardTable = ({
   loading = false,
   rowKey = 'key',
   hidePagination = false,
+  mobileRowUseCard = true,
   ...tableProps
 }) => {
   const isMobile = useIsMobile();
-  const { t } = useTranslation();
-
   const showSkeleton = useMinimumLoadingTime(loading);
 
   const getRowKey = (record, index) => {
@@ -69,20 +67,18 @@ const CardTable = ({
             if (!col.title) {
               return (
                 <div key={idx} className='mt-2 flex justify-end'>
-                  <Skeleton.Title active style={{ width: 100, height: 24 }} />
+                  <Skeleton.Title style={{ width: 100, height: 24 }} />
                 </div>
               );
             }
-
             return (
               <div
                 key={idx}
                 className='flex justify-between items-center py-1 border-b last:border-b-0 border-dashed'
                 style={{ borderColor: 'var(--semi-color-border)' }}
               >
-                <Skeleton.Title active style={{ width: 80, height: 14 }} />
+                <Skeleton.Title style={{ width: 80, height: 14 }} />
                 <Skeleton.Title
-                  active
                   style={{
                     width: `${50 + (idx % 3) * 10}%`,
                     maxWidth: 180,
@@ -95,10 +91,24 @@ const CardTable = ({
         </div>
       );
 
+      if (mobileRowUseCard) {
+        return (
+          <Card key={key} className='!rounded-2xl shadow-sm'>
+            <Skeleton loading={true} placeholder={placeholder}></Skeleton>
+          </Card>
+        );
+      }
+
       return (
-        <Card key={key} className='!rounded-2xl shadow-sm'>
-          <Skeleton loading={true} active placeholder={placeholder}></Skeleton>
-        </Card>
+        <div
+          key={key}
+          className='rounded-2xl p-3'
+          style={{
+            border: '1px solid var(--semi-color-border)',
+          }}
+        >
+          <Skeleton loading={true} placeholder={placeholder}></Skeleton>
+        </div>
       );
     };
 
@@ -119,8 +129,8 @@ const CardTable = ({
       tableProps.expandedRowRender &&
       (!tableProps.rowExpandable || tableProps.rowExpandable(record));
 
-    return (
-      <Card key={rowKeyVal} className='!rounded-2xl shadow-sm'>
+    const rowContent = (
+      <>
         {columns.map((col, colIdx) => {
           if (
             tableProps?.visibleColumns &&
@@ -172,7 +182,7 @@ const CardTable = ({
                 setShowDetails(!showDetails);
               }}
             >
-              {showDetails ? t('收起') : t('详情')}
+              {showDetails ? "收起" : "详情"}
             </Button>
             <Collapsible isOpen={showDetails} keepDOM>
               <div className='pt-2'>
@@ -181,7 +191,27 @@ const CardTable = ({
             </Collapsible>
           </>
         )}
-      </Card>
+      </>
+    );
+
+    if (mobileRowUseCard) {
+      return (
+        <Card key={rowKeyVal} className='!rounded-2xl shadow-sm'>
+          {rowContent}
+        </Card>
+      );
+    }
+
+    return (
+      <div
+        key={rowKeyVal}
+        className='rounded-2xl p-3'
+        style={{
+          border: '1px solid var(--semi-color-border)',
+        }}
+      >
+        {rowContent}
+      </div>
     );
   };
 
@@ -218,6 +248,7 @@ CardTable.propTypes = {
   loading: PropTypes.bool,
   rowKey: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),
   hidePagination: PropTypes.bool,
+  mobileRowUseCard: PropTypes.bool,
 };
 
 export default CardTable;

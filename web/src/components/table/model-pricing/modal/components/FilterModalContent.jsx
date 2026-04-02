@@ -7,7 +7,7 @@ import PricingVendors from '../../filter/PricingVendors';
 import PricingTags from '../../filter/PricingTags';
 import { usePricingFilterCounts } from '../../../../../hooks/model-pricing/usePricingFilterCounts';
 
-const FilterModalContent = ({ sidebarProps, t }) => {
+const FilterModalContent = ({ sidebarProps }) => {
   const {
     showWithRecharge,
     setShowWithRecharge,
@@ -59,7 +59,6 @@ const FilterModalContent = ({ sidebarProps, t }) => {
         showRatio={showRatio}
         setShowRatio={setShowRatio}
         loading={loading}
-        t={t}
       />
 
       <PricingVendors
@@ -68,7 +67,6 @@ const FilterModalContent = ({ sidebarProps, t }) => {
         models={vendorModels}
         allModels={categoryProps.models}
         loading={loading}
-        t={t}
       />
 
       <PricingGroups
@@ -78,7 +76,6 @@ const FilterModalContent = ({ sidebarProps, t }) => {
         groupRatio={categoryProps.groupRatio}
         models={groupCountModels}
         loading={loading}
-        t={t}
       />
 
       <PricingQuotaTypes
@@ -86,7 +83,6 @@ const FilterModalContent = ({ sidebarProps, t }) => {
         setFilterQuotaType={setFilterQuotaType}
         models={quotaTypeModels}
         loading={loading}
-        t={t}
       />
 
       <PricingTags
@@ -95,7 +91,6 @@ const FilterModalContent = ({ sidebarProps, t }) => {
         models={tagModels}
         allModels={categoryProps.models}
         loading={loading}
-        t={t}
       />
 
       <PricingEndpointTypes
@@ -104,7 +99,6 @@ const FilterModalContent = ({ sidebarProps, t }) => {
         models={endpointTypeModels}
         allModels={categoryProps.models}
         loading={loading}
-        t={t}
       />
     </>
   );

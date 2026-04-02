@@ -50,7 +50,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
       }
     } catch (error) {
       showError(
-        t('获取详情失败') +
+        "获取详情失败" +
           ': ' +
           (error.response?.data?.message || error.message),
       );
@@ -72,7 +72,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
       }
     } catch (error) {
       showError(
-        t('获取容器信息失败') +
+        "获取容器信息失败" +
           ': ' +
           (error.response?.data?.message || error.message),
       );
@@ -93,7 +93,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
 
   const handleCopyId = () => {
     navigator.clipboard.writeText(deployment?.id);
-    showSuccess(t('已复制 ID 到剪贴板'));
+    showSuccess("已复制 ID 到剪贴板");
   };
 
   const handleRefresh = () => {
@@ -124,7 +124,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
       title={
         <div className='flex items-center gap-2'>
           <FaInfoCircle className='text-blue-500' />
-          <span>{t('容器详情')}</span>
+          <span>{"容器详情"}</span>
         </div>
       }
       visible={visible}
@@ -137,9 +137,9 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
             loading={loading || containersLoading}
             theme='borderless'
           >
-            {t('刷新')}
+            {"刷新"}
           </Button>
-          <Button onClick={onCancel}>{t('关闭')}</Button>
+          <Button onClick={onCancel}>{"关闭"}</Button>
         </div>
       }
       width={800}
@@ -147,7 +147,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
     >
       {loading && !details ? (
         <div className='flex items-center justify-center py-12'>
-          <Spin size='large' tip={t('加载详情中...')} />
+          <Spin size='large' tip={"加载详情中..."} />
         </div>
       ) : details ? (
         <div className='space-y-4 max-h-[600px] overflow-y-auto'>
@@ -156,7 +156,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
             title={
               <div className='flex items-center gap-2'>
                 <FaServer className='text-blue-500' />
-                <span>{t('基本信息')}</span>
+                <span>{"基本信息"}</span>
               </div>
             }
             className='border-0 shadow-sm'
@@ -164,7 +164,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
             <Descriptions
               data={[
                 {
-                  key: t('容器名称'),
+                  key: "容器名称",
                   value: (
                     <div className='flex items-center gap-2'>
                       <Text strong className='text-base'>
@@ -181,7 +181,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
                   ),
                 },
                 {
-                  key: t('容器ID'),
+                  key: "容器ID",
                   value: (
                     <Text type='secondary' className='font-mono text-sm'>
                       {details.id}
@@ -189,18 +189,18 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
                   ),
                 },
                 {
-                  key: t('状态'),
+                  key: "状态",
                   value: (
                     <div className='flex items-center gap-2'>
                       <span>{statusConfig.icon}</span>
                       <Tag color={statusConfig.color}>
-                        {t(statusConfig.text)}
+                        {statusConfig.text}
                       </Tag>
                     </div>
                   ),
                 },
                 {
-                  key: t('创建时间'),
+                  key: "创建时间",
                   value: timestamp2string(details.created_at),
                 },
               ]}
@@ -212,7 +212,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
             title={
               <div className='flex items-center gap-2'>
                 <FaChartLine className='text-green-500' />
-                <span>{t('硬件与性能')}</span>
+                <span>{"硬件与性能"}</span>
               </div>
             }
             className='border-0 shadow-sm'
@@ -221,7 +221,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
               <Descriptions
                 data={[
                   {
-                    key: t('硬件类型'),
+                    key: "硬件类型",
                     value: (
                       <div className='flex items-center gap-2'>
                         <Tag color='blue'>{details.brand_name}</Tag>
@@ -230,7 +230,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
                     ),
                   },
                   {
-                    key: t('GPU数量'),
+                    key: "GPU数量",
                     value: (
                       <div className='flex items-center gap-2'>
                         <Badge
@@ -241,20 +241,20 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
                           <FaServer className='text-purple-500' />
                         </Badge>
                         <Text>
-                          {t('总计')} {details.total_gpus} {t('个GPU')}
+                          {"总计"} {details.total_gpus} {"个GPU"}
                         </Text>
                       </div>
                     ),
                   },
                   {
-                    key: t('容器配置'),
+                    key: "容器配置",
                     value: (
                       <div className='space-y-1'>
                         <div>
-                          {t('每容器GPU数')}: {details.gpus_per_container}
+                          {"每容器GPU数"}: {details.gpus_per_container}
                         </div>
                         <div>
-                          {t('容器总数')}: {details.total_containers}
+                          {"容器总数"}: {details.total_containers}
                         </div>
                       </div>
                     ),
@@ -265,7 +265,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
               {/* Progress Bar */}
               <div className='space-y-2'>
                 <div className='flex items-center justify-between'>
-                  <Text strong>{t('完成进度')}</Text>
+                  <Text strong>{"完成进度"}</Text>
                   <Text>{details.completed_percent}%</Text>
                 </div>
                 <Progress
@@ -278,10 +278,10 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
                 />
                 <div className='flex justify-between text-xs text-gray-500'>
                   <span>
-                    {t('已服务')}: {details.compute_minutes_served} {t('分钟')}
+                    {"已服务"}: {details.compute_minutes_served} {"分钟"}
                   </span>
                   <span>
-                    {t('剩余')}: {details.compute_minutes_remaining} {t('分钟')}
+                    {"剩余"}: {details.compute_minutes_remaining} {"分钟"}
                   </span>
                 </div>
               </div>
@@ -294,7 +294,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
               title={
                 <div className='flex items-center gap-2'>
                   <FaDocker className='text-blue-600' />
-                  <span>{t('容器配置')}</span>
+                  <span>{"容器配置"}</span>
                 </div>
               }
               className='border-0 shadow-sm'
@@ -303,7 +303,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
                 <Descriptions
                   data={[
                     {
-                      key: t('镜像地址'),
+                      key: "镜像地址",
                       value: (
                         <Text className='font-mono text-sm break-all'>
                           {details.container_config.image_url || 'N/A'}
@@ -311,11 +311,11 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
                       ),
                     },
                     {
-                      key: t('流量端口'),
+                      key: "流量端口",
                       value: details.container_config.traffic_port || 'N/A',
                     },
                     {
-                      key: t('启动命令'),
+                      key: "启动命令",
                       value: (
                         <Text className='font-mono text-sm'>
                           {details.container_config.entrypoint
@@ -333,7 +333,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
                     0 && (
                     <div className='mt-4'>
                       <Text strong className='block mb-2'>
-                        {t('环境变量')}:
+                        {"环境变量"}:
                       </Text>
                       <div className='bg-gray-50 p-3 rounded-lg max-h-32 overflow-y-auto'>
                         {Object.entries(
@@ -363,18 +363,18 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
             title={
               <div className='flex items-center gap-2'>
                 <FaServer className='text-indigo-500' />
-                <span>{t('容器实例')}</span>
+                <span>{"容器实例"}</span>
               </div>
             }
             className='border-0 shadow-sm'
           >
             {containersLoading ? (
               <div className='flex items-center justify-center py-6'>
-                <Spin tip={t('加载容器信息中...')} />
+                <Spin tip={"加载容器信息中..."} />
               </div>
             ) : containers.length === 0 ? (
               <Empty
-                description={t('暂无容器信息')}
+                description={"暂无容器信息"}
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
               />
             ) : (
@@ -391,11 +391,11 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
                           {ctr.container_id}
                         </Text>
                         <Text size='small' type='secondary'>
-                          {t('设备')} {ctr.device_id || '--'} · {t('状态')}{' '}
+                          {"设备"} {ctr.device_id || '--'} · {"状态"}{' '}
                           {ctr.status || '--'}
                         </Text>
                         <Text size='small' type='secondary'>
-                          {t('创建时间')}:{' '}
+                          {"创建时间"}:{' '}
                           {ctr.created_at
                             ? timestamp2string(ctr.created_at)
                             : '--'}
@@ -403,7 +403,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
                       </div>
                       <div className='flex flex-col items-end gap-2'>
                         <Tag color='blue' size='small'>
-                          {t('GPU/容器')}: {ctr.gpus_per_container ?? '--'}
+                          {"GPU/容器"}: {ctr.gpus_per_container ?? '--'}
                         </Tag>
                         {ctr.public_url && (
                           <Tooltip content={ctr.public_url}>
@@ -419,7 +419,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
                                 )
                               }
                             >
-                              {t('访问容器')}
+                              {"访问容器"}
                             </Button>
                           </Tooltip>
                         )}
@@ -433,7 +433,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
                           type='secondary'
                           className='block mb-2'
                         >
-                          {t('最近事件')}
+                          {"最近事件"}
                         </Text>
                         <div className='space-y-2 max-h-32 overflow-y-auto'>
                           {ctr.events.map((event, index) => (
@@ -466,7 +466,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
               title={
                 <div className='flex items-center gap-2'>
                   <FaMapMarkerAlt className='text-orange-500' />
-                  <span>{t('部署位置')}</span>
+                  <span>{"部署位置"}</span>
                 </div>
               }
               className='border-0 shadow-sm'
@@ -491,14 +491,14 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
             title={
               <div className='flex items-center gap-2'>
                 <FaMoneyBillWave className='text-green-500' />
-                <span>{t('费用信息')}</span>
+                <span>{"费用信息"}</span>
               </div>
             }
             className='border-0 shadow-sm'
           >
             <div className='space-y-3'>
               <div className='flex items-center justify-between p-3 bg-green-50 rounded-lg'>
-                <Text>{t('已支付金额')}</Text>
+                <Text>{"已支付金额"}</Text>
                 <Text strong className='text-lg text-green-600'>
                   $
                   {details.amount_paid
@@ -510,7 +510,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
 
               <div className='grid grid-cols-2 gap-4 text-sm'>
                 <div className='flex justify-between'>
-                  <Text type='secondary'>{t('计费开始')}:</Text>
+                  <Text type='secondary'>{"计费开始"}:</Text>
                   <Text>
                     {details.started_at
                       ? timestamp2string(details.started_at)
@@ -518,7 +518,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
                   </Text>
                 </div>
                 <div className='flex justify-between'>
-                  <Text type='secondary'>{t('预计结束')}:</Text>
+                  <Text type='secondary'>{"预计结束"}:</Text>
                   <Text>
                     {details.finished_at
                       ? timestamp2string(details.finished_at)
@@ -534,7 +534,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
             title={
               <div className='flex items-center gap-2'>
                 <FaClock className='text-purple-500' />
-                <span>{t('时间信息')}</span>
+                <span>{"时间信息"}</span>
               </div>
             }
             className='border-0 shadow-sm'
@@ -542,14 +542,14 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div className='space-y-2'>
                 <div className='flex items-center justify-between'>
-                  <Text type='secondary'>{t('已运行时间')}:</Text>
+                  <Text type='secondary'>{"已运行时间"}:</Text>
                   <Text strong>
                     {Math.floor(details.compute_minutes_served / 60)}h{' '}
                     {details.compute_minutes_served % 60}m
                   </Text>
                 </div>
                 <div className='flex items-center justify-between'>
-                  <Text type='secondary'>{t('剩余时间')}:</Text>
+                  <Text type='secondary'>{"剩余时间"}:</Text>
                   <Text strong className='text-orange-600'>
                     {Math.floor(details.compute_minutes_remaining / 60)}h{' '}
                     {details.compute_minutes_remaining % 60}m
@@ -558,11 +558,11 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
               </div>
               <div className='space-y-2'>
                 <div className='flex items-center justify-between'>
-                  <Text type='secondary'>{t('创建时间')}:</Text>
+                  <Text type='secondary'>{"创建时间"}:</Text>
                   <Text>{timestamp2string(details.created_at)}</Text>
                 </div>
                 <div className='flex items-center justify-between'>
-                  <Text type='secondary'>{t('最后更新')}:</Text>
+                  <Text type='secondary'>{"最后更新"}:</Text>
                   <Text>{timestamp2string(details.updated_at)}</Text>
                 </div>
               </div>
@@ -572,7 +572,7 @@ const ViewDetailsModal = ({ visible, onCancel, deployment, t }) => {
       ) : (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={t('无法获取容器详情')}
+          description={"无法获取容器详情"}
         />
       )}
     </Modal>

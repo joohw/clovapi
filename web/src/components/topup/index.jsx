@@ -11,7 +11,6 @@ import {
   getQuotaPerUnit,
 } from '../../helpers';
 import { Modal, Toast } from '@douyinfe/semi-ui';
-import { useTranslation } from 'react-i18next';
 import { UserContext } from '../../context/User';
 import { StatusContext } from '../../context/Status';
 
@@ -22,7 +21,6 @@ import PaymentConfirmModal from './modals/PaymentConfirmModal';
 import TopupHistoryModal from './modals/TopupHistoryModal';
 
 const TopUp = () => {
-  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [userState, userDispatch] = useContext(UserContext);
   const [statusState] = useContext(StatusContext);
@@ -95,7 +93,7 @@ const TopUp = () => {
 
   const topUp = async () => {
     if (redemptionCode === '') {
-      showInfo(t('请输入兑换码！'));
+      showInfo("请输入兑换码！");
       return;
     }
     setIsSubmitting(true);
@@ -105,10 +103,10 @@ const TopUp = () => {
       });
       const { success, message, data } = res.data;
       if (success) {
-        showSuccess(t('兑换成功！'));
+        showSuccess("兑换成功！");
         Modal.success({
-          title: t('兑换成功！'),
-          content: t('成功兑换额度：') + renderQuota(data),
+          title: "兑换成功！",
+          content: "成功兑换额度：" + renderQuota(data),
           centered: true,
         });
         if (userState.user) {
@@ -123,7 +121,7 @@ const TopUp = () => {
         showError(message);
       }
     } catch (err) {
-      showError(t('请求失败'));
+      showError("请求失败");
     } finally {
       setIsSubmitting(false);
     }
@@ -131,7 +129,7 @@ const TopUp = () => {
 
   const openTopUpLink = () => {
     if (!topUpLink) {
-      showError(t('超级管理员未设置充值链接！'));
+      showError("超级管理员未设置充值链接！");
       return;
     }
     window.open(topUpLink, '_blank');
@@ -140,12 +138,12 @@ const TopUp = () => {
   const preTopUp = async (payment) => {
     if (payment === 'stripe') {
       if (!enableStripeTopUp) {
-        showError(t('管理员未开启Stripe充值！'));
+        showError("管理员未开启Stripe充值！");
         return;
       }
     } else {
       if (!enableOnlineTopUp) {
-        showError(t('管理员未开启在线充值！'));
+        showError("管理员未开启在线充值！");
         return;
       }
     }
@@ -160,12 +158,12 @@ const TopUp = () => {
       }
 
       if (topUpCount < minTopUp) {
-        showError(t('充值数量不能小于') + minTopUp);
+        showError("充值数量不能小于" + minTopUp);
         return;
       }
       setOpen(true);
     } catch (error) {
-      showError(t('获取金额失败'));
+      showError("获取金额失败");
     } finally {
       setPaymentLoading(false);
     }
@@ -237,14 +235,14 @@ const TopUp = () => {
           }
         } else {
           const errorMsg =
-            typeof data === 'string' ? data : message || t('支付失败');
+            typeof data === 'string' ? data : message || "支付失败";
           showError(errorMsg);
         }
       } else {
         showError(res);
       }
     } catch (err) {
-      showError(t('支付请求失败'));
+      showError("支付请求失败");
     } finally {
       setOpen(false);
       setConfirmLoading(false);
@@ -253,7 +251,7 @@ const TopUp = () => {
 
   const creemPreTopUp = async (product) => {
     if (!enableCreemTopUp) {
-      showError(t('管理员未开启 Creem 充值！'));
+      showError("管理员未开启 Creem 充值！");
       return;
     }
     setSelectedCreemProduct(product);
@@ -262,12 +260,12 @@ const TopUp = () => {
 
   const onlineCreemTopUp = async () => {
     if (!selectedCreemProduct) {
-      showError(t('请选择产品'));
+      showError("请选择产品");
       return;
     }
     // Validate product has required fields
     if (!selectedCreemProduct.productId) {
-      showError(t('产品配置错误，请联系管理员'));
+      showError("产品配置错误，请联系管理员");
       return;
     }
     setConfirmLoading(true);
@@ -282,14 +280,14 @@ const TopUp = () => {
           processCreemCallback(data);
         } else {
           const errorMsg =
-            typeof data === 'string' ? data : message || t('支付失败');
+            typeof data === 'string' ? data : message || "支付失败";
           showError(errorMsg);
         }
       } else {
         showError(res);
       }
     } catch (err) {
-      showError(t('支付请求失败'));
+      showError("支付请求失败");
     } finally {
       setCreemOpen(false);
       setConfirmLoading(false);
@@ -299,7 +297,7 @@ const TopUp = () => {
   const waffoTopUp = async (payMethodIndex) => {
     try {
         if (topUpCount < waffoMinTopUp) {
-            showError(t('充值数量不能小于') + waffoMinTopUp);
+            showError("充值数量不能小于" + waffoMinTopUp);
             return;
         }
         setPaymentLoading(true);
@@ -315,13 +313,13 @@ const TopUp = () => {
             if (message === 'success' && data?.payment_url) {
                 window.open(data.payment_url, '_blank');
             } else {
-                showError(data || t('支付请求失败'));
+                showError(data || "支付请求失败");
             }
         } else {
             showError(res);
         }
     } catch (e) {
-        showError(t('支付请求失败'));
+        showError("支付请求失败");
     } finally {
         setPaymentLoading(false);
     }
@@ -383,16 +381,16 @@ const TopUp = () => {
         billing_preference: pref,
       });
       if (res.data?.success) {
-        showSuccess(t('更新成功'));
+        showSuccess("更新成功");
         const normalizedPref =
           res.data?.data?.billing_preference || pref || previousPref;
         setBillingPreference(normalizedPref);
       } else {
-        showError(res.data?.message || t('更新失败'));
+        showError(res.data?.message || "更新失败");
         setBillingPreference(previousPref);
       }
     } catch (e) {
-      showError(t('请求失败'));
+      showError("请求失败");
       setBillingPreference(previousPref);
     }
   };
@@ -507,10 +505,10 @@ const TopUp = () => {
           setPresetAmounts(customPresets);
         }
       } else {
-        showError(data || t('获取充值配置失败'));
+        showError(data || "获取充值配置失败");
       }
     } catch (error) {
-      showError(t('获取充值配置异常'));
+      showError("获取充值配置异常");
     }
   };
 
@@ -529,7 +527,7 @@ const TopUp = () => {
   // 划转邀请额度
   const transfer = async () => {
     if (transferAmount < getQuotaPerUnit()) {
-      showError(t('划转金额最低为') + ' ' + renderQuota(getQuotaPerUnit()));
+      showError("划转金额最低为" + ' ' + renderQuota(getQuotaPerUnit()));
       return;
     }
     const res = await API.post(`/api/user/aff_transfer`, {
@@ -548,7 +546,7 @@ const TopUp = () => {
   // 复制邀请链接
   const handleAffLinkClick = async () => {
     await copy(affLink);
-    showSuccess(t('邀请链接已复制到剪切板'));
+    showSuccess("邀请链接已复制到剪切板");
   };
 
   // URL 参数自动打开账单弹窗（支付回跳时触发）
@@ -592,7 +590,7 @@ const TopUp = () => {
   }, [statusState?.status]);
 
   const renderAmount = () => {
-    return amount + ' ' + t('元');
+    return amount + ' ' + "元";
   };
 
   const getAmount = async (value) => {
@@ -697,7 +695,6 @@ const TopUp = () => {
     <div className='w-full max-w-7xl mx-auto relative min-h-screen lg:min-h-0 mt-[60px] px-2'>
       {/* 划转模态框 */}
       <TransferModal
-        t={t}
         openTransfer={openTransfer}
         transfer={transfer}
         handleTransferCancel={handleTransferCancel}
@@ -710,7 +707,6 @@ const TopUp = () => {
 
       {/* 充值确认模态框 */}
       <PaymentConfirmModal
-        t={t}
         open={open}
         onlineTopUp={onlineTopUp}
         handleCancel={handleCancel}
@@ -729,12 +725,11 @@ const TopUp = () => {
       <TopupHistoryModal
         visible={openHistory}
         onCancel={handleHistoryCancel}
-        t={t}
       />
 
       {/* Creem 充值确认模态框 */}
       <Modal
-        title={t('确定要充值 $')}
+        title={"确定要充值 $"}
         visible={creemOpen}
         onOk={onlineCreemTopUp}
         onCancel={handleCreemCancel}
@@ -746,16 +741,16 @@ const TopUp = () => {
         {selectedCreemProduct && (
           <>
             <p>
-              {t('产品名称')}：{selectedCreemProduct.name}
+              {"产品名称"}：{selectedCreemProduct.name}
             </p>
             <p>
-              {t('价格')}：{selectedCreemProduct.currency === 'EUR' ? '€' : '$'}
+              {"价格"}：{selectedCreemProduct.currency === 'EUR' ? '€' : '$'}
               {selectedCreemProduct.price}
             </p>
             <p>
-              {t('充值额度')}：{selectedCreemProduct.quota}
+              {"充值额度"}：{selectedCreemProduct.quota}
             </p>
-            <p>{t('是否确认充值？')}</p>
+            <p>{"是否确认充值？"}</p>
           </>
         )}
       </Modal>
@@ -763,7 +758,6 @@ const TopUp = () => {
       {/* 主布局区域 */}
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
         <RechargeCard
-          t={t}
           enableOnlineTopUp={enableOnlineTopUp}
           enableStripeTopUp={enableStripeTopUp}
           enableCreemTopUp={enableCreemTopUp}
@@ -809,7 +803,6 @@ const TopUp = () => {
           reloadSubscriptionSelf={getSubscriptionSelf}
         />
         <InvitationCard
-          t={t}
           userState={userState}
           renderQuota={renderQuota}
           setOpenTransfer={setOpenTransfer}

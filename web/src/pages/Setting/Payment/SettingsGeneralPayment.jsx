@@ -6,10 +6,7 @@ import {
   showError,
   showSuccess,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 export default function SettingsGeneralPayment(props) {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState({
     ServerAddress: '',
@@ -39,13 +36,13 @@ export default function SettingsGeneralPayment(props) {
         value: ServerAddress,
       });
       if (res.data.success) {
-        showSuccess(t('更新成功'));
+        showSuccess("更新成功");
         props.refresh && props.refresh();
       } else {
         showError(res.data.message);
       }
     } catch (error) {
-      showError(t('更新失败'));
+      showError("更新失败");
     }
     setLoading(false);
   };
@@ -57,17 +54,15 @@ export default function SettingsGeneralPayment(props) {
         onValueChange={handleFormChange}
         getFormApi={(api) => (formApiRef.current = api)}
       >
-        <Form.Section text={t('通用设置')}>
+        <Form.Section text={"通用设置"}>
           <Form.Input
             field='ServerAddress'
-            label={t('服务器地址')}
+            label={"服务器地址"}
             placeholder={'https://yourdomain.com'}
             style={{ width: '100%' }}
-            extraText={t(
-              '该服务器地址将影响支付回调地址以及默认首页展示的地址，请确保正确配置',
-            )}
+            extraText={"该服务器地址将影响支付回调地址以及默认首页展示的地址，请确保正确配置"}
           />
-          <Button onClick={submitServerAddress}>{t('更新服务器地址')}</Button>
+          <Button onClick={submitServerAddress}>{"更新服务器地址"}</Button>
         </Form.Section>
       </Form>
     </Spin>

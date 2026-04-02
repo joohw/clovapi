@@ -28,49 +28,49 @@ const parseAuditLine = (line) => {
 const getActionLabel = (action, t) => {
   switch ((action || '').toLowerCase()) {
     case 'set':
-      return t('设置');
+      return "设置";
     case 'delete':
-      return t('删除');
+      return "删除";
     case 'copy':
-      return t('复制');
+      return "复制";
     case 'move':
-      return t('移动');
+      return "移动";
     case 'append':
-      return t('追加');
+      return "追加";
     case 'prepend':
-      return t('前置');
+      return "前置";
     case 'trim_prefix':
-      return t('去前缀');
+      return "去前缀";
     case 'trim_suffix':
-      return t('去后缀');
+      return "去后缀";
     case 'ensure_prefix':
-      return t('保前缀');
+      return "保前缀";
     case 'ensure_suffix':
-      return t('保后缀');
+      return "保后缀";
     case 'trim_space':
-      return t('去空格');
+      return "去空格";
     case 'to_lower':
-      return t('转小写');
+      return "转小写";
     case 'to_upper':
-      return t('转大写');
+      return "转大写";
     case 'replace':
-      return t('替换');
+      return "替换";
     case 'regex_replace':
-      return t('正则替换');
+      return "正则替换";
     case 'set_header':
-      return t('设请求头');
+      return "设请求头";
     case 'delete_header':
-      return t('删请求头');
+      return "删请求头";
     case 'copy_header':
-      return t('复制请求头');
+      return "复制请求头";
     case 'move_header':
-      return t('移动请求头');
+      return "移动请求头";
     case 'pass_headers':
-      return t('透传请求头');
+      return "透传请求头";
     case 'sync_fields':
-      return t('同步字段');
+      return "同步字段";
     case 'return_error':
-      return t('返回错误');
+      return "返回错误";
     default:
       return action;
   }
@@ -96,15 +96,15 @@ const ParamOverrideModal = ({
       return;
     }
     if (await copy(content)) {
-      showSuccess(t('参数覆盖已复制'));
+      showSuccess("参数覆盖已复制");
       return;
     }
-    showError(t('无法复制到剪贴板，请手动复制'));
+    showError("无法复制到剪贴板，请手动复制");
   };
 
   return (
     <Modal
-      title={t('参数覆盖详情')}
+      title={"参数覆盖详情"}
       visible={showParamOverrideModal}
       onCancel={() => setShowParamOverrideModal(false)}
       footer={null}
@@ -126,7 +126,7 @@ const ParamOverrideModal = ({
           <div style={{ minWidth: 0 }}>
             <div style={{ marginBottom: 4 }}>
               <Text style={{ fontWeight: 600 }}>
-                {t('{{count}} 项操作', { count: lines.length })}
+                {`${lines.length} 项操作`}
               </Text>
             </div>
             <div
@@ -145,12 +145,12 @@ const ParamOverrideModal = ({
               ) : null}
               {paramOverrideTarget?.requestId ? (
                 <Text type='tertiary' size='small'>
-                  {t('Request ID')}: {paramOverrideTarget.requestId}
+                  {"Request ID"}: {paramOverrideTarget.requestId}
                 </Text>
               ) : null}
               {paramOverrideTarget?.requestPath ? (
                 <Text type='tertiary' size='small'>
-                  {t('请求路径')}: {paramOverrideTarget.requestPath}
+                  {"请求路径"}: {paramOverrideTarget.requestPath}
                 </Text>
               ) : null}
             </div>
@@ -164,7 +164,7 @@ const ParamOverrideModal = ({
             onClick={copyAll}
             disabled={lines.length === 0}
           >
-            {t('复制')}
+            {"复制"}
           </Button>
         </div>
 
@@ -172,7 +172,7 @@ const ParamOverrideModal = ({
 
         {lines.length === 0 ? (
           <Empty
-            description={t('暂无参数覆盖记录')}
+            description={"暂无参数覆盖记录"}
             style={{ padding: '24px 0 8px' }}
           />
         ) : (

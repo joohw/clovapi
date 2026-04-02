@@ -15,8 +15,6 @@ import clsx from 'clsx';
 import { Button, Tooltip, Toast } from '@douyinfe/semi-ui';
 import { copy, rehypeSplitWordsIntoSpans } from '../../../helpers';
 import { IconCopy } from '@douyinfe/semi-icons';
-import { useTranslation } from 'react-i18next';
-
 mermaid.initialize({
   startOnLoad: false,
   theme: 'default',
@@ -121,8 +119,6 @@ export function PreCode(props) {
   const ref = useRef(null);
   const [mermaidCode, setMermaidCode] = useState('');
   const [htmlCode, setHtmlCode] = useState('');
-  const { t } = useTranslation();
-
   const renderArtifacts = useDebouncedCallback(() => {
     if (!ref.current) return;
     const mermaidDom = ref.current.querySelector('code.language-mermaid');
@@ -196,7 +192,7 @@ export function PreCode(props) {
             transition: 'opacity 0.2s ease',
           }}
         >
-          <Tooltip content={t('复制代码')}>
+          <Tooltip content={"复制代码"}>
             <Button
               size='small'
               theme='borderless'
@@ -209,9 +205,9 @@ export function PreCode(props) {
                   const code = codeElement?.textContent ?? '';
                   copy(code).then((success) => {
                     if (success) {
-                      Toast.success(t('代码已复制到剪贴板'));
+                      Toast.success("代码已复制到剪贴板");
                     } else {
-                      Toast.error(t('复制失败，请手动复制'));
+                      Toast.error("复制失败，请手动复制");
                     }
                   });
                 }
@@ -262,8 +258,6 @@ function CustomCode(props) {
   const ref = useRef(null);
   const [collapsed, setCollapsed] = useState(true);
   const [showToggle, setShowToggle] = useState(false);
-  const { t } = useTranslation();
-
   useEffect(() => {
     if (ref.current) {
       const codeHeight = ref.current.scrollHeight;
@@ -290,7 +284,7 @@ function CustomCode(props) {
           }}
         >
           <Button size='small' onClick={toggleCollapsed} theme='solid'>
-            {t('显示更多')}
+            {"显示更多"}
           </Button>
         </div>
       );

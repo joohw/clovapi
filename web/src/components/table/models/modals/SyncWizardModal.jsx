@@ -18,22 +18,22 @@ const SyncWizardModal = ({ visible, onClose, onConfirm, loading, t }) => {
 
   return (
     <Modal
-      title={t('同步向导')}
+      title={"同步向导"}
       visible={visible}
       onCancel={onClose}
       footer={
         <div className='flex justify-end'>
           {step === 1 && (
-            <Button onClick={() => setStep(0)}>{t('上一步')}</Button>
+            <Button onClick={() => setStep(0)}>{"上一步"}</Button>
           )}
-          <Button onClick={onClose}>{t('取消')}</Button>
+          <Button onClick={onClose}>{"取消"}</Button>
           {step === 0 && (
             <Button
               type='primary'
               onClick={() => setStep(1)}
               disabled={option !== 'official'}
             >
-              {t('下一步')}
+              {"下一步"}
             </Button>
           )}
           {step === 1 && (
@@ -45,7 +45,7 @@ const SyncWizardModal = ({ visible, onClose, onConfirm, loading, t }) => {
                 await onConfirm?.({ option, locale });
               }}
             >
-              {t('开始同步')}
+              {"开始同步"}
             </Button>
           )}
         </div>
@@ -54,8 +54,8 @@ const SyncWizardModal = ({ visible, onClose, onConfirm, loading, t }) => {
     >
       <div className='mb-3'>
         <Steps type='basic' current={step} size='small'>
-          <Steps.Step title={t('选择方式')} description={t('选择同步来源')} />
-          <Steps.Step title={t('选择语言')} description={t('选择同步语言')} />
+          <Steps.Step title={"选择方式"} description={"选择同步来源"} />
+          <Steps.Step title={"选择语言"} description={"选择同步语言"} />
         </Steps>
       </div>
 
@@ -69,11 +69,11 @@ const SyncWizardModal = ({ visible, onClose, onConfirm, loading, t }) => {
             aria-label='同步方式选择'
             name='sync-mode-selection'
           >
-            <Radio value='official' extra={t('从官方模型库同步')}>
-              {t('官方模型同步')}
+            <Radio value='official' extra={"从官方模型库同步"}>
+              {"官方模型同步"}
             </Radio>
-            <Radio value='config' extra={t('从配置文件同步')} disabled>
-              {t('配置文件同步')}
+            <Radio value='config' extra={"从配置文件同步"} disabled>
+              {"配置文件同步"}
             </Radio>
           </RadioGroup>
         </div>
@@ -82,7 +82,7 @@ const SyncWizardModal = ({ visible, onClose, onConfirm, loading, t }) => {
       {step === 1 && (
         <div className='mt-2'>
           <div className='mb-2 text-[var(--semi-color-text-2)]'>
-            {t('请选择同步语言')}
+            {"请选择同步语言"}
           </div>
           <div className='flex justify-center'>
             <RadioGroup

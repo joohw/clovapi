@@ -1,10 +1,8 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { Toast } from '@douyinfe/semi-ui';
-import { useTranslation } from 'react-i18next';
 import { usePlayground } from '../../contexts/PlaygroundContext';
 
 const CustomInputRender = (props) => {
-  const { t } = useTranslation();
   const { onPasteImage, imageEnabled } = usePlayground();
   const { detailProps } = props;
   const { clearContextNode, uploadNode, inputNode, sendNode, onClick } =
@@ -27,7 +25,7 @@ const CustomInputRender = (props) => {
             try {
               if (!imageEnabled) {
                 Toast.warning({
-                  content: t('请先在设置中启用图片功能'),
+                  content: "请先在设置中启用图片功能",
                   duration: 3,
                 });
                 return;
@@ -40,12 +38,12 @@ const CustomInputRender = (props) => {
                 if (onPasteImage) {
                   onPasteImage(base64);
                   Toast.success({
-                    content: t('图片已添加'),
+                    content: "图片已添加",
                     duration: 2,
                   });
                 } else {
                   Toast.error({
-                    content: t('无法添加图片'),
+                    content: "无法添加图片",
                     duration: 2,
                   });
                 }
@@ -53,7 +51,7 @@ const CustomInputRender = (props) => {
               reader.onerror = () => {
                 console.error('Failed to read image file:', reader.error);
                 Toast.error({
-                  content: t('粘贴图片失败'),
+                  content: "粘贴图片失败",
                   duration: 2,
                 });
               };
@@ -61,7 +59,7 @@ const CustomInputRender = (props) => {
             } catch (error) {
               console.error('Failed to paste image:', error);
               Toast.error({
-                content: t('粘贴图片失败'),
+                content: "粘贴图片失败",
                 duration: 2,
               });
             }
@@ -70,7 +68,7 @@ const CustomInputRender = (props) => {
         }
       }
     },
-    [onPasteImage, imageEnabled, t],
+    [onPasteImage, imageEnabled],
   );
 
   useEffect(() => {
@@ -121,7 +119,7 @@ const CustomInputRender = (props) => {
         className='flex items-center gap-2 sm:gap-3 p-2 bg-gray-50 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-shadow'
         style={{ border: '1px solid var(--semi-color-border)' }}
         onClick={onClick}
-        title={t('支持 Ctrl+V 粘贴图片')}
+        title={"支持 Ctrl+V 粘贴图片"}
       >
         {/* 清空对话按钮 - 左边 */}
         {styledClearNode}

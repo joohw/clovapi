@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { API, isAdmin, showError, timestamp2string } from '../../helpers';
 import { getDefaultTime, getInitialTimestamp } from '../../helpers/dashboard';
 import { TIME_OPTIONS } from '../../constants/dashboard.constants';
@@ -8,7 +7,6 @@ import { useIsMobile } from '../common/useIsMobile';
 import { useMinimumLoadingTime } from '../common/useMinimumLoadingTime';
 
 export const useDashboardData = (userState, userDispatch, statusState) => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const initialized = useRef(false);
@@ -66,9 +64,9 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
     () =>
       TIME_OPTIONS.map((option) => ({
         ...option,
-        label: t(option.label),
+        label: option.label,
       })),
-    [t],
+    [],
   );
 
   const performanceMetrics = useMemo(() => {
@@ -90,18 +88,18 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
     let greeting = '';
 
     if (hours >= 5 && hours < 12) {
-      greeting = t('早上好');
+      greeting = "早上好";
     } else if (hours >= 12 && hours < 14) {
-      greeting = t('中午好');
+      greeting = "中午好";
     } else if (hours >= 14 && hours < 18) {
-      greeting = t('下午好');
+      greeting = "下午好";
     } else {
-      greeting = t('晚上好');
+      greeting = "晚上好";
     }
 
     const username = userState?.user?.username || '';
     return `👋${greeting}，${username}`;
-  }, [t, userState?.user?.username]);
+  }, [userState?.user?.username]);
 
   // ========== 回调函数 ==========
   const handleInputChange = useCallback((value, name) => {
@@ -248,9 +246,8 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
     refresh,
     handleSearchConfirm,
 
-    // 导航和翻译
+    // 导航
     navigate,
-    t,
     isMobile,
   };
 };

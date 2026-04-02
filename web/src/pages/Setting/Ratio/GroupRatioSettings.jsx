@@ -8,10 +8,7 @@ import {
   showWarning,
   verifyJSON,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 export default function GroupRatioSettings(props) {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState({
     GroupRatio: '',
@@ -31,7 +28,7 @@ export default function GroupRatioSettings(props) {
         .then(() => {
           const updateArray = compareObjects(inputs, inputsRow);
           if (!updateArray.length)
-            return showWarning(t('你似乎并没有修改什么'));
+            return showWarning("你似乎并没有修改什么");
 
           const requestQueue = updateArray.map((item) => {
             const value =
@@ -47,8 +44,8 @@ export default function GroupRatioSettings(props) {
               if (res.includes(undefined)) {
                 return showError(
                   requestQueue.length > 1
-                    ? t('部分保存失败，请重试')
-                    : t('保存失败'),
+                    ? "部分保存失败，请重试"
+                    : "保存失败",
                 );
               }
 
@@ -58,22 +55,22 @@ export default function GroupRatioSettings(props) {
                 }
               }
 
-              showSuccess(t('保存成功'));
+              showSuccess("保存成功");
               props.refresh();
             })
             .catch((error) => {
               console.error('Unexpected error:', error);
-              showError(t('保存失败，请重试'));
+              showError("保存失败，请重试");
             })
             .finally(() => {
               setLoading(false);
             });
         })
         .catch(() => {
-          showError(t('请检查输入'));
+          showError("请检查输入");
         });
     } catch (error) {
-      showError(t('请检查输入'));
+      showError("请检查输入");
       console.error(error);
     }
   }
@@ -100,11 +97,9 @@ export default function GroupRatioSettings(props) {
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('分组倍率')}
-              placeholder={t('为一个 JSON 文本，键为分组名称，值为倍率')}
-              extraText={t(
-                '分组倍率设置，可以在此处新增分组或修改现有分组的倍率，格式为 JSON 字符串，例如：{"vip": 0.5, "test": 1}，表示 vip 分组的倍率为 0.5，test 分组的倍率为 1',
-              )}
+              label={"分组倍率"}
+              placeholder={"为一个 JSON 文本，键为分组名称，值为倍率"}
+              extraText={"分组倍率设置，可以在此处新增分组或修改现有分组的倍率，格式为 JSON 字符串，例如：{\"vip\": 0.5, \"test\": 1}，表示 vip 分组的倍率为 0.5，test 分组的倍率为 1"}
               field={'GroupRatio'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
@@ -112,7 +107,7 @@ export default function GroupRatioSettings(props) {
               rules={[
                 {
                   validator: (rule, value) => verifyJSON(value),
-                  message: t('不是合法的 JSON 字符串'),
+                  message: "不是合法的 JSON 字符串",
                 },
               ]}
               onChange={(value) => setInputs({ ...inputs, GroupRatio: value })}
@@ -122,11 +117,9 @@ export default function GroupRatioSettings(props) {
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('用户可选分组')}
-              placeholder={t('为一个 JSON 文本，键为分组名称，值为分组描述')}
-              extraText={t(
-                '用户新建令牌时可选的分组，格式为 JSON 字符串，例如：{"vip": "VIP 用户", "test": "测试"}，表示用户可以选择 vip 分组和 test 分组',
-              )}
+              label={"用户可选分组"}
+              placeholder={"为一个 JSON 文本，键为分组名称，值为分组描述"}
+              extraText={"用户新建令牌时可选的分组，格式为 JSON 字符串，例如：{\"vip\": \"VIP 用户\", \"test\": \"测试\"}，表示用户可以选择 vip 分组和 test 分组"}
               field={'UserUsableGroups'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
@@ -134,7 +127,7 @@ export default function GroupRatioSettings(props) {
               rules={[
                 {
                   validator: (rule, value) => verifyJSON(value),
-                  message: t('不是合法的 JSON 字符串'),
+                  message: "不是合法的 JSON 字符串",
                 },
               ]}
               onChange={(value) =>
@@ -146,11 +139,9 @@ export default function GroupRatioSettings(props) {
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('分组特殊倍率')}
-              placeholder={t('为一个 JSON 文本')}
-              extraText={t(
-                '键为分组名称，值为另一个 JSON 对象，键为分组名称，值为该分组的用户的特殊分组倍率，例如：{"vip": {"default": 0.5, "test": 1}}，表示 vip 分组的用户在使用default分组的令牌时倍率为0.5，使用test分组时倍率为1',
-              )}
+              label={"分组特殊倍率"}
+              placeholder={"为一个 JSON 文本"}
+              extraText={"键为分组名称，值为另一个 JSON 对象，键为分组名称，值为该分组的用户的特殊分组倍率，例如：{\"vip\": {\"default\": 0.5, \"test\": 1}}，表示 vip 分组的用户在使用default分组的令牌时倍率为0.5，使用test分组时倍率为1"}
               field={'GroupGroupRatio'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
@@ -158,7 +149,7 @@ export default function GroupRatioSettings(props) {
               rules={[
                 {
                   validator: (rule, value) => verifyJSON(value),
-                  message: t('不是合法的 JSON 字符串'),
+                  message: "不是合法的 JSON 字符串",
                 },
               ]}
               onChange={(value) =>
@@ -170,11 +161,9 @@ export default function GroupRatioSettings(props) {
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('分组特殊可用分组')}
-              placeholder={t('为一个 JSON 文本')}
-              extraText={t(
-                '键为用户分组名称，值为操作映射对象。内层键以"+:"开头表示添加指定分组（键值为分组名称，值为描述），以"-:"开头表示移除指定分组（键值为分组名称），不带前缀的键直接添加该分组。例如：{"vip": {"+:premium": "高级分组", "special": "特殊分组", "-:default": "默认分组"}}，表示 vip 分组的用户可以使用 premium 和 special 分组，同时移除 default 分组的访问权限',
-              )}
+              label={"分组特殊可用分组"}
+              placeholder={"为一个 JSON 文本"}
+              extraText={"键为用户分组名称，值为操作映射对象。内层键以\"+:\"开头表示添加指定分组（键值为分组名称，值为描述），以\"-:\"开头表示移除指定分组（键值为分组名称），不带前缀的键直接添加该分组。例如：{\"vip\": {\"+:premium\": \"高级分组\", \"special\": \"特殊分组\", \"-:default\": \"默认分组\"}}，表示 vip 分组的用户可以使用 premium 和 special 分组，同时移除 default 分组的访问权限"}
               field={'group_ratio_setting.group_special_usable_group'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
@@ -182,7 +171,7 @@ export default function GroupRatioSettings(props) {
               rules={[
                 {
                   validator: (rule, value) => verifyJSON(value),
-                  message: t('不是合法的 JSON 字符串'),
+                  message: "不是合法的 JSON 字符串",
                 },
               ]}
               onChange={(value) =>
@@ -197,8 +186,8 @@ export default function GroupRatioSettings(props) {
         <Row gutter={16}>
           <Col xs={24} sm={16}>
             <Form.TextArea
-              label={t('自动分组auto，从第一个开始选择')}
-              placeholder={t('为一个 JSON 文本')}
+              label={"自动分组auto，从第一个开始选择"}
+              placeholder={"为一个 JSON 文本"}
               field={'AutoGroups'}
               autosize={{ minRows: 6, maxRows: 12 }}
               trigger='blur'
@@ -225,7 +214,7 @@ export default function GroupRatioSettings(props) {
                       return false;
                     }
                   },
-                  message: t('必须是有效的 JSON 字符串数组，例如：["g1","g2"]'),
+                  message: "必须是有效的 JSON 字符串数组，例如：[\"g1\",\"g2\"]",
                 },
               ]}
               onChange={(value) => setInputs({ ...inputs, AutoGroups: value })}
@@ -235,9 +224,7 @@ export default function GroupRatioSettings(props) {
         <Row gutter={16}>
           <Col span={16}>
             <Form.Switch
-              label={t(
-                '创建令牌默认选择auto分组，初始令牌也将设为auto（否则留空，为用户默认分组）',
-              )}
+              label={"创建令牌默认选择auto分组，初始令牌也将设为auto（否则留空，为用户默认分组）"}
               field={'DefaultUseAutoGroup'}
               onChange={(value) =>
                 setInputs({ ...inputs, DefaultUseAutoGroup: value })
@@ -246,7 +233,7 @@ export default function GroupRatioSettings(props) {
           </Col>
         </Row>
       </Form>
-      <Button onClick={onSubmit}>{t('保存分组相关设置')}</Button>
+      <Button onClick={onSubmit}>{"保存分组相关设置"}</Button>
     </Spin>
   );
 }

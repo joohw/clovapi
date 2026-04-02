@@ -2,10 +2,7 @@ import React from 'react';
 import { useTokenKeys } from '../../hooks/chat/useTokenKeys';
 import { Spin } from '@douyinfe/semi-ui';
 import { useParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-
 const ChatPage = () => {
-  const { t } = useTranslation();
   const { id } = useParams();
   const { keys, serverAddress, isLoading } = useTokenKeys(id);
 
@@ -54,7 +51,7 @@ const ChatPage = () => {
           className='whitespace-nowrap mt-2 text-center'
           style={{ color: 'var(--semi-color-primary)' }}
         >
-          {t('正在跳转...')}
+          {"正在跳转..."}
         </span>
       </div>
     </div>

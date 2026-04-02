@@ -5,10 +5,10 @@ import { stringToColor } from '../../../../../helpers';
 
 const { Text } = Typography;
 
-const ModelBasicInfo = ({ modelData, vendorsMap = {}, t }) => {
+const ModelBasicInfo = ({ modelData, vendorsMap = {} }) => {
   // 获取模型描述（使用后端真实数据）
   const getModelDescription = () => {
-    if (!modelData) return t('暂无模型描述');
+    if (!modelData) return "暂无模型描述";
 
     // 优先使用后端提供的描述
     if (modelData.description) {
@@ -17,10 +17,10 @@ const ModelBasicInfo = ({ modelData, vendorsMap = {}, t }) => {
 
     // 如果没有描述但有供应商描述，显示供应商信息
     if (modelData.vendor_description) {
-      return t('供应商信息：') + modelData.vendor_description;
+      return "供应商信息：" + modelData.vendor_description;
     }
 
-    return t('暂无模型描述');
+    return "暂无模型描述";
   };
 
   // 获取模型标签
@@ -45,9 +45,9 @@ const ModelBasicInfo = ({ modelData, vendorsMap = {}, t }) => {
           <IconInfoCircle size={16} />
         </Avatar>
         <div>
-          <Text className='text-lg font-medium'>{t('基本信息')}</Text>
+          <Text className='text-lg font-medium'>{"基本信息"}</Text>
           <div className='text-xs text-gray-600'>
-            {t('模型的详细描述和基本特性')}
+            {"模型的详细描述和基本特性"}
           </div>
         </div>
       </div>

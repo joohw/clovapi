@@ -60,7 +60,7 @@ const ModelTestModal = ({
     : [];
 
   const endpointTypeOptions = [
-    { value: '', label: t('自动检测') },
+    { value: '', label: "自动检测" },
     { value: 'openai', label: 'OpenAI (/v1/chat/completions)' },
     { value: 'openai-response', label: 'OpenAI Response (/v1/responses)' },
     {
@@ -75,26 +75,26 @@ const ModelTestModal = ({
     { value: 'jina-rerank', label: 'Jina Rerank (/v1/rerank)' },
     {
       value: 'image-generation',
-      label: t('图像生成') + ' (/v1/images/generations)',
+      label: "图像生成" + ' (/v1/images/generations)',
     },
     { value: 'embeddings', label: 'Embeddings (/v1/embeddings)' },
   ];
 
   const handleCopySelected = () => {
     if (selectedModelKeys.length === 0) {
-      showError(t('请先选择模型！'));
+      showError("请先选择模型！");
       return;
     }
     copy(selectedModelKeys.join(',')).then((ok) => {
       if (ok) {
         showSuccess(
-          t('已复制 ${count} 个模型').replace(
+          "已复制 ${count} 个模型".replace(
             '${count}',
             selectedModelKeys.length,
           ),
         );
       } else {
-        showError(t('复制失败，请手动复制'));
+        showError("复制失败，请手动复制");
       }
     });
   };
@@ -109,14 +109,14 @@ const ModelTestModal = ({
         return result && result.success;
       });
     if (successKeys.length === 0) {
-      showInfo(t('暂无成功模型'));
+      showInfo("暂无成功模型");
     }
     setSelectedModelKeys(successKeys);
   };
 
   const columns = [
     {
-      title: t('模型名称'),
+      title: "模型名称",
       dataIndex: 'model',
       render: (text) => (
         <div className='flex items-center'>
@@ -125,7 +125,7 @@ const ModelTestModal = ({
       ),
     },
     {
-      title: t('状态'),
+      title: "状态",
       dataIndex: 'status',
       render: (text, record) => {
         const testResult =
@@ -135,7 +135,7 @@ const ModelTestModal = ({
         if (isTesting) {
           return (
             <Tag color='blue' shape='circle'>
-              {t('测试中')}
+              {"测试中"}
             </Tag>
           );
         }
@@ -143,7 +143,7 @@ const ModelTestModal = ({
         if (!testResult) {
           return (
             <Tag color='grey' shape='circle'>
-              {t('未开始')}
+              {"未开始"}
             </Tag>
           );
         }
@@ -151,11 +151,11 @@ const ModelTestModal = ({
         return (
           <div className='flex items-center gap-2'>
             <Tag color={testResult.success ? 'green' : 'red'} shape='circle'>
-              {testResult.success ? t('成功') : t('失败')}
+              {testResult.success ? "成功" : "失败"}
             </Tag>
             {testResult.success && (
               <Typography.Text type='tertiary'>
-                {t('请求时长: ${time}s').replace(
+                {"请求时长: ${time}s".replace(
                   '${time}',
                   testResult.time.toFixed(2),
                 )}
@@ -184,7 +184,7 @@ const ModelTestModal = ({
             loading={isTesting}
             size='small'
           >
-            {t('测试')}
+            {"测试"}
           </Button>
         );
       },
@@ -211,11 +211,11 @@ const ModelTestModal = ({
                 strong
                 className='!text-[var(--semi-color-text-0)] !text-base'
               >
-                {currentTestChannel.name} {t('渠道的模型测试')}
+                {currentTestChannel.name} {"渠道的模型测试"}
               </Typography.Text>
               <Typography.Text type='tertiary' size='small'>
-                {t('共')} {currentTestChannel.models.split(',').length}{' '}
-                {t('个模型')}
+                {"共"} {currentTestChannel.models.split(',').length}{' '}
+                {"个模型"}
               </Typography.Text>
             </div>
           </div>
@@ -228,11 +228,11 @@ const ModelTestModal = ({
           <div className='flex justify-end'>
             {isBatchTesting ? (
               <Button type='danger' onClick={handleCloseModal}>
-                {t('停止测试')}
+                {"停止测试"}
               </Button>
             ) : (
               <Button type='tertiary' onClick={handleCloseModal}>
-                {t('取消')}
+                {"取消"}
               </Button>
             )}
             <Button
@@ -241,8 +241,8 @@ const ModelTestModal = ({
               disabled={isBatchTesting}
             >
               {isBatchTesting
-                ? t('测试中...')
-                : t('批量测试${count}个模型').replace(
+                ? "测试中..."
+                : "批量测试${count}个模型".replace(
                     '${count}',
                     filteredModels.length,
                   )}
@@ -260,26 +260,26 @@ const ModelTestModal = ({
           <div className='flex flex-col sm:flex-row sm:items-center gap-2 w-full mb-2'>
             <div className='flex items-center gap-2 flex-1 min-w-0'>
               <Typography.Text strong className='shrink-0'>
-                {t('端点类型')}:
+                {"端点类型"}:
               </Typography.Text>
               <Select
                 value={selectedEndpointType}
                 onChange={setSelectedEndpointType}
                 optionList={endpointTypeOptions}
                 className='!w-full min-w-0'
-                placeholder={t('选择端点类型')}
+                placeholder={"选择端点类型"}
               />
             </div>
             <div className='flex items-center justify-between sm:justify-end gap-2 shrink-0'>
               <Typography.Text strong className='shrink-0'>
-                {t('流式')}:
+                {"流式"}:
               </Typography.Text>
               <Switch
                 checked={isStreamTest}
                 onChange={setIsStreamTest}
                 size='small'
                 disabled={streamToggleDisabled}
-                aria-label={t('流式')}
+                aria-label={"流式"}
               />
             </div>
           </div>
@@ -289,15 +289,13 @@ const ModelTestModal = ({
             closeIcon={null}
             icon={<IconInfoCircle />}
             className='!rounded-lg mb-2'
-            description={t(
-              '说明：本页测试为非流式请求；若渠道仅支持流式返回，可能出现测试失败，请以实际使用为准。',
-            )}
+            description={"说明：本页测试为非流式请求；若渠道仅支持流式返回，可能出现测试失败，请以实际使用为准。"}
           />
 
           {/* 搜索与操作按钮 */}
           <div className='flex flex-col sm:flex-row sm:items-center gap-2 w-full mb-2'>
             <Input
-              placeholder={t('搜索模型...')}
+              placeholder={"搜索模型..."}
               value={modelSearchKeyword}
               onChange={(v) => {
                 setModelSearchKeyword(v);
@@ -309,9 +307,9 @@ const ModelTestModal = ({
             />
 
             <div className='flex items-center justify-end gap-2'>
-              <Button onClick={handleCopySelected}>{t('复制已选')}</Button>
+              <Button onClick={handleCopySelected}>{"复制已选"}</Button>
               <Button type='tertiary' onClick={handleSelectSuccess}>
-                {t('选择成功')}
+                {"选择成功"}
               </Button>
             </div>
           </div>

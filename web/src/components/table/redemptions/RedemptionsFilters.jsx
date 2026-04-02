@@ -41,7 +41,7 @@ const RedemptionsFilters = ({
           <Form.Input
             field='searchKeyword'
             prefix={<IconSearch />}
-            placeholder={t('关键字(id或者名称)')}
+            placeholder={"关键字(id或者名称)"}
             showClear
             pure
             size='small'
@@ -55,7 +55,7 @@ const RedemptionsFilters = ({
             className='flex-1 md:flex-initial md:w-auto'
             size='small'
           >
-            {t('查询')}
+            {"查询"}
           </Button>
           <Button
             type='tertiary'
@@ -63,7 +63,7 @@ const RedemptionsFilters = ({
             className='flex-1 md:flex-initial md:w-auto'
             size='small'
           >
-            {t('重置')}
+            {"重置"}
           </Button>
         </div>
       </div>

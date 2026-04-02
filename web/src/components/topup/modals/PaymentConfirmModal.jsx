@@ -30,7 +30,7 @@ const PaymentConfirmModal = ({
       title={
         <div className='flex items-center'>
           <CreditCard className='mr-2' size={18} />
-          {t('充值确认')}
+          {"充值确认"}
         </div>
       }
       visible={open}
@@ -46,7 +46,7 @@ const PaymentConfirmModal = ({
           <div className='space-y-3'>
             <div className='flex justify-between items-center'>
               <Text strong className='text-slate-700 dark:text-slate-200'>
-                {t('充值数量')}：
+                {"充值数量"}：
               </Text>
               <Text className='text-slate-900 dark:text-slate-100'>
                 {renderQuotaWithAmount(topUpCount)}
@@ -54,7 +54,7 @@ const PaymentConfirmModal = ({
             </div>
             <div className='flex justify-between items-center'>
               <Text strong className='text-slate-700 dark:text-slate-200'>
-                {t('实付金额')}：
+                {"实付金额"}：
               </Text>
               {amountLoading ? (
                 <Skeleton.Title style={{ width: '60px', height: '16px' }} />
@@ -75,25 +75,25 @@ const PaymentConfirmModal = ({
               <>
                 <div className='flex justify-between items-center'>
                   <Text className='text-slate-500 dark:text-slate-400'>
-                    {t('原价')}：
+                    {"原价"}：
                   </Text>
                   <Text delete className='text-slate-500 dark:text-slate-400'>
-                    {`${originalAmount.toFixed(2)} ${t('元')}`}
+                    {`${originalAmount.toFixed(2)} ${"元"}`}
                   </Text>
                 </div>
                 <div className='flex justify-between items-center'>
                   <Text className='text-slate-500 dark:text-slate-400'>
-                    {t('优惠')}：
+                    {"优惠"}：
                   </Text>
                   <Text className='text-emerald-600 dark:text-emerald-400'>
-                    {`- ${discountAmount.toFixed(2)} ${t('元')}`}
+                    {`- ${discountAmount.toFixed(2)} ${"元"}`}
                   </Text>
                 </div>
               </>
             )}
             <div className='flex justify-between items-center'>
               <Text strong className='text-slate-700 dark:text-slate-200'>
-                {t('支付方式')}：
+                {"支付方式"}：
               </Text>
               <div className='flex items-center'>
                 {(() => {
@@ -146,7 +146,7 @@ const PaymentConfirmModal = ({
                             color='#1677FF'
                           />
                           <Text className='text-slate-900 dark:text-slate-100'>
-                            {t('支付宝')}
+                            {"支付宝"}
                           </Text>
                         </>
                       );
@@ -172,7 +172,7 @@ const PaymentConfirmModal = ({
                             color='#07C160'
                           />
                           <Text className='text-slate-900 dark:text-slate-100'>
-                            {t('微信')}
+                            {"微信"}
                           </Text>
                         </>
                       );

@@ -16,7 +16,6 @@ import {
   IllustrationNoResultDark,
 } from '@douyinfe/semi-illustrations';
 import { IconSearch, IconInfoCircle } from '@douyinfe/semi-icons';
-import { useTranslation } from 'react-i18next';
 import { getModelCategories } from '../../../../helpers/render';
 
 const ModelSelectModal = ({
@@ -27,8 +26,6 @@ const ModelSelectModal = ({
   onConfirm,
   onCancel,
 }) => {
-  const { t } = useTranslation();
-
   const getModelName = (model) => {
     if (!model) return '';
     if (typeof model === 'string') return model;
@@ -120,7 +117,7 @@ const ModelSelectModal = ({
 
   // 按厂商分类模型
   const categorizeModels = (models) => {
-    const categories = getModelCategories(t);
+    const categories = getModelCategories();
     const categorizedModels = {};
     const uncategorizedModels = [];
 
@@ -148,7 +145,7 @@ const ModelSelectModal = ({
     // 如果有未分类模型，添加到"其他"分类
     if (uncategorizedModels.length > 0) {
       categorizedModels['other'] = {
-        label: t('其他'),
+        label: "其他",
         icon: null,
         models: uncategorizedModels,
       };
@@ -165,7 +162,7 @@ const ModelSelectModal = ({
     ...(newModels.length > 0
       ? [
           {
-            tab: `${t('新获取的模型')} (${newModels.length})`,
+            tab: `${"新获取的模型"} (${newModels.length})`,
             itemKey: 'new',
           },
         ]
@@ -173,7 +170,7 @@ const ModelSelectModal = ({
     ...(existingModels.length > 0
       ? [
           {
-            tab: `${t('已有的模型')} (${existingModels.length})`,
+            tab: `${"已有的模型"} (${existingModels.length})`,
             itemKey: 'existing',
           },
         ]
@@ -254,12 +251,9 @@ const ModelSelectModal = ({
             <div className='flex items-center gap-2 mb-3'>
               {categoryData.icon}
               <Typography.Text type='secondary' size='small'>
-                {t('已选择 {{selected}} / {{total}}', {
-                  selected: categoryData.models.filter((model) =>
+                {`已选择 ${categoryData.models.filter((model) =>
                     checkedList.includes(model),
-                  ).length,
-                  total: categoryData.models.length,
-                })}
+                  ).length} / ${categoryData.models.length}`}
               </Typography.Text>
             </div>
             <div className='grid grid-cols-2 gap-x-4'>
@@ -270,7 +264,7 @@ const ModelSelectModal = ({
                     {redirectOnlySet.has(normalizeModelName(model)) && (
                       <Tooltip
                         position='top'
-                        content={t('来自模型重定向，尚未加入模型列表')}
+                        content={"来自模型重定向，尚未加入模型列表"}
                       >
                         <IconInfoCircle
                           size='small'
@@ -293,7 +287,7 @@ const ModelSelectModal = ({
       header={
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 py-4'>
           <Typography.Title heading={5} className='m-0'>
-            {t('选择模型')}
+            {"选择模型"}
           </Typography.Title>
           <div className='flex-shrink-0'>
             <Tabs
@@ -309,8 +303,8 @@ const ModelSelectModal = ({
       visible={visible}
       onOk={handleOk}
       onCancel={onCancel}
-      okText={t('确定')}
-      cancelText={t('取消')}
+      okText={"确定"}
+      cancelText={"取消"}
       size={isMobile ? 'full-width' : 'large'}
       closeOnEsc
       maskClosable
@@ -318,7 +312,7 @@ const ModelSelectModal = ({
     >
       <Input
         prefix={<IconSearch size={14} />}
-        placeholder={t('搜索模型')}
+        placeholder={"搜索模型"}
         value={keyword}
         onChange={(v) => setKeyword(v)}
         showClear
@@ -334,7 +328,7 @@ const ModelSelectModal = ({
               darkModeImage={
                 <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
               }
-              description={t('暂无匹配模型')}
+              description={"暂无匹配模型"}
               style={{ padding: 30 }}
             />
           ) : (
@@ -376,10 +370,7 @@ const ModelSelectModal = ({
             return (
               <>
                 <span>
-                  {t('已选择 {{selected}} / {{total}}', {
-                    selected: currentSelected,
-                    total: currentModels.length,
-                  })}
+                  {`已选择 ${currentSelected} / ${currentModels.length}`}
                 </span>
                 <Checkbox
                   checked={isAllSelected}

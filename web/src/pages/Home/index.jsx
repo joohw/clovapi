@@ -12,7 +12,6 @@ import { API_ENDPOINTS } from '../../constants/common.constant';
 import { StatusContext } from '../../context/Status';
 import { useActualTheme } from '../../context/Theme';
 import { marked } from 'marked';
-import { useTranslation } from 'react-i18next';
 import {
   IconGithubLogo,
   IconPlay,
@@ -46,7 +45,6 @@ import {
 const { Text } = Typography;
 
 const Home = () => {
-  const { t, i18n } = useTranslation();
   const [statusState] = useContext(StatusContext);
   const actualTheme = useActualTheme();
   const [homePageContentLoaded, setHomePageContentLoaded] = useState(false);
@@ -58,7 +56,7 @@ const Home = () => {
     statusState?.status?.server_address || `${window.location.origin}`;
   const endpointItems = API_ENDPOINTS.map((e) => ({ value: e }));
   const [endpointIndex, setEndpointIndex] = useState(0);
-  const isChinese = i18n.language.startsWith('zh');
+  const currentLang = 'zh-CN';
 
   const displayHomePageContent = async () => {
     setHomePageContent(localStorage.getItem('home_page_content') || '');
@@ -78,7 +76,7 @@ const Home = () => {
         if (iframe) {
           iframe.onload = () => {
             iframe.contentWindow.postMessage({ themeMode: actualTheme }, '*');
-            iframe.contentWindow.postMessage({ lang: i18n.language }, '*');
+            iframe.contentWindow.postMessage({ lang: currentLang }, '*');
           };
         }
       }
@@ -92,7 +90,7 @@ const Home = () => {
   const handleCopyBaseURL = async () => {
     const ok = await copy(serverAddress);
     if (ok) {
-      showSuccess(t('已复制到剪切板'));
+      showSuccess('已复制到剪切板');
     }
   };
 
@@ -145,17 +143,11 @@ const Home = () => {
               {/* 居中内容区 */}
               <div className='flex flex-col items-center justify-center text-center max-w-4xl mx-auto'>
                 <div className='flex flex-col items-center justify-center mb-6 md:mb-8'>
-                  <h1
-                    className={`text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-semi-color-text-0 leading-tight ${isChinese ? 'tracking-wide md:tracking-wider' : ''}`}
-                  >
-                    <>
-                      {t('统一的')}
-                      <br />
-                      <span className='shine-text'>{t('大模型接口网关')}</span>
-                    </>
+                  <h1 className='text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-semi-color-text-0 leading-tight tracking-wide md:tracking-wider'>
+                    <span className='shine-text'>一站聚合，极速中转</span>
                   </h1>
                   <p className='text-base md:text-lg lg:text-xl text-semi-color-text-1 mt-4 md:mt-6 max-w-xl'>
-                    {t('更好的价格，更好的稳定性，只需要将模型基址替换为：')}
+                    更好的价格，更好的稳定性，只需要将模型基址替换为：
                   </p>
                   {/* BASE URL 与端点选择 */}
                   <div className='flex flex-col md:flex-row items-center justify-center gap-4 w-full mt-4 md:mt-6 max-w-md'>
@@ -199,8 +191,8 @@ const Home = () => {
                       size={isMobile ? 'default' : 'large'}
                       className='!rounded-3xl px-8 py-2'
                       icon={<IconPlay />}
-                    >
-                      {t('获取密钥')}
+                  >
+                      获取密钥
                     </Button>
                   </Link>
                   {isDemoSiteMode && statusState?.status?.version && (
@@ -227,7 +219,7 @@ const Home = () => {
                       type='tertiary'
                       className='text-lg md:text-xl lg:text-2xl font-light'
                     >
-                      {t('支持众多的大模型供应商')}
+                      支持众多的大模型供应商
                     </Text>
                   </div>
                   <div className='flex flex-wrap items-center justify-center gap-3 sm:gap-4 md:gap-6 lg:gap-8 max-w-5xl mx-auto px-4'>

@@ -18,7 +18,7 @@ const ParamOverrideEntry = ({ count, onOpen, t }) => {
         size='small'
         style={{ fontVariantNumeric: 'tabular-nums' }}
       >
-        {t('{{count}} 项操作', { count })}
+        {"{{count}} 项操作"}
       </Text>
       <Text
         link
@@ -26,7 +26,7 @@ const ParamOverrideEntry = ({ count, onOpen, t }) => {
         style={{ fontWeight: 600 }}
         onClick={onOpen}
       >
-        {t('查看详情')}
+        {"查看详情"}
       </Text>
     </div>
   );

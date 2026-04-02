@@ -61,10 +61,10 @@ const TopupHistoryModal = ({ visible, onCancel, t }) => {
         setTopups(data.items || []);
         setTotal(data.total || 0);
       } else {
-        Toast.error({ content: message || t('加载失败') });
+        Toast.error({ content: message || "加载失败" });
       }
     } catch (error) {
-      Toast.error({ content: t('加载账单失败') });
+      Toast.error({ content: "加载账单失败" });
     } finally {
       setLoading(false);
     }
@@ -98,20 +98,20 @@ const TopupHistoryModal = ({ visible, onCancel, t }) => {
       });
       const { success, message } = res.data;
       if (success) {
-        Toast.success({ content: t('补单成功') });
+        Toast.success({ content: "补单成功" });
         await loadTopups(page, pageSize);
       } else {
-        Toast.error({ content: message || t('补单失败') });
+        Toast.error({ content: message || "补单失败" });
       }
     } catch (e) {
-      Toast.error({ content: t('补单失败') });
+      Toast.error({ content: "补单失败" });
     }
   };
 
   const confirmAdminComplete = (tradeNo) => {
     Modal.confirm({
-      title: t('确认补单'),
-      content: t('是否将该订单标记为成功并为用户入账？'),
+      title: "确认补单",
+      content: "是否将该订单标记为成功并为用户入账？",
       onOk: () => handleAdminComplete(tradeNo),
     });
   };
@@ -122,7 +122,7 @@ const TopupHistoryModal = ({ visible, onCancel, t }) => {
     return (
       <span className='flex items-center gap-2'>
         <Badge dot type={config.type} />
-        <span>{t(config.key)}</span>
+        <span>{config.key}</span>
       </span>
     );
   };
@@ -130,7 +130,7 @@ const TopupHistoryModal = ({ visible, onCancel, t }) => {
   // 渲染支付方式
   const renderPaymentMethod = (pm) => {
     const displayName = PAYMENT_METHOD_MAP[pm];
-    return <Text>{displayName ? t(displayName) : pm || '-'}</Text>;
+    return <Text>{displayName ? displayName : pm || '-'}</Text>;
   };
 
   const isSubscriptionTopup = (record) => {
@@ -144,26 +144,26 @@ const TopupHistoryModal = ({ visible, onCancel, t }) => {
   const columns = useMemo(() => {
     const baseColumns = [
       {
-        title: t('订单号'),
+        title: "订单号",
         dataIndex: 'trade_no',
         key: 'trade_no',
         render: (text) => <Text copyable>{text}</Text>,
       },
       {
-        title: t('支付方式'),
+        title: "支付方式",
         dataIndex: 'payment_method',
         key: 'payment_method',
         render: renderPaymentMethod,
       },
       {
-        title: t('充值额度'),
+        title: "充值额度",
         dataIndex: 'amount',
         key: 'amount',
         render: (amount, record) => {
           if (isSubscriptionTopup(record)) {
             return (
               <Tag color='purple' shape='circle' size='small'>
-                {t('订阅套餐')}
+                {"订阅套餐"}
               </Tag>
             );
           }
@@ -176,13 +176,13 @@ const TopupHistoryModal = ({ visible, onCancel, t }) => {
         },
       },
       {
-        title: t('支付金额'),
+        title: "支付金额",
         dataIndex: 'money',
         key: 'money',
         render: (money) => <Text type='danger'>¥{money.toFixed(2)}</Text>,
       },
       {
-        title: t('状态'),
+        title: "状态",
         dataIndex: 'status',
         key: 'status',
         render: renderStatusBadge,
@@ -192,7 +192,7 @@ const TopupHistoryModal = ({ visible, onCancel, t }) => {
     // 管理员才显示操作列
     if (userIsAdmin) {
       baseColumns.push({
-        title: t('操作'),
+        title: "操作",
         key: 'action',
         render: (_, record) => {
           const actions = [];
@@ -205,7 +205,7 @@ const TopupHistoryModal = ({ visible, onCancel, t }) => {
                 theme='outline'
                 onClick={() => confirmAdminComplete(record.trade_no)}
               >
-                {t('补单')}
+                {"补单"}
               </Button>
             );
           }
@@ -215,7 +215,7 @@ const TopupHistoryModal = ({ visible, onCancel, t }) => {
     }
 
     baseColumns.push({
-      title: t('创建时间'),
+      title: "创建时间",
       dataIndex: 'create_time',
       key: 'create_time',
       render: (time) => timestamp2string(time),
@@ -226,7 +226,7 @@ const TopupHistoryModal = ({ visible, onCancel, t }) => {
 
   return (
     <Modal
-      title={t('充值账单')}
+      title={"充值账单"}
       visible={visible}
       onCancel={onCancel}
       footer={null}
@@ -235,7 +235,7 @@ const TopupHistoryModal = ({ visible, onCancel, t }) => {
       <div className='mb-3'>
         <Input
           prefix={<IconSearch />}
-          placeholder={t('订单号')}
+          placeholder={"订单号"}
           value={keyword}
           onChange={handleKeywordChange}
           showClear
@@ -262,7 +262,7 @@ const TopupHistoryModal = ({ visible, onCancel, t }) => {
             darkModeImage={
               <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
             }
-            description={t('暂无充值记录')}
+            description={"暂无充值记录"}
             style={{ padding: 30 }}
           />
         }

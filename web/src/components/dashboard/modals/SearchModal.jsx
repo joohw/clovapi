@@ -11,7 +11,6 @@ const SearchModal = ({
   dataExportDefaultTime,
   timeOptions,
   handleInputChange,
-  t,
 }) => {
   const formRef = useRef();
 
@@ -27,7 +26,7 @@ const SearchModal = ({
 
   return (
     <Modal
-      title={t('搜索条件')}
+      title={"搜索条件"}
       visible={searchModalVisible}
       onOk={handleSearchConfirm}
       onCancel={handleCloseModal}
@@ -38,7 +37,7 @@ const SearchModal = ({
       <Form ref={formRef} layout='vertical' className='w-full'>
         {createFormField(Form.DatePicker, {
           field: 'start_timestamp',
-          label: t('起始时间'),
+          label: "起始时间",
           initValue: start_timestamp,
           value: start_timestamp,
           type: 'dateTime',
@@ -48,7 +47,7 @@ const SearchModal = ({
 
         {createFormField(Form.DatePicker, {
           field: 'end_timestamp',
-          label: t('结束时间'),
+          label: "结束时间",
           initValue: end_timestamp,
           value: end_timestamp,
           type: 'dateTime',
@@ -58,9 +57,9 @@ const SearchModal = ({
 
         {createFormField(Form.Select, {
           field: 'data_export_default_time',
-          label: t('时间粒度'),
+          label: "时间粒度",
           initValue: dataExportDefaultTime,
-          placeholder: t('时间粒度'),
+          placeholder: "时间粒度",
           name: 'data_export_default_time',
           optionList: timeOptions,
           onChange: (value) =>
@@ -70,9 +69,9 @@ const SearchModal = ({
         {isAdminUser &&
           createFormField(Form.Input, {
             field: 'username',
-            label: t('用户名称'),
+            label: "用户名称",
             value: username,
-            placeholder: t('可选值'),
+            placeholder: "可选值",
             name: 'username',
             onChange: (value) => handleInputChange(value, 'username'),
           })}

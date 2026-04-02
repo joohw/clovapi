@@ -4,7 +4,6 @@ import { IconDelete, IconUser } from '@douyinfe/semi-icons';
 import Turnstile from 'react-turnstile';
 
 const AccountDeleteModal = ({
-  t,
   showAccountDeleteModal,
   setShowAccountDeleteModal,
   inputs,
@@ -20,7 +19,7 @@ const AccountDeleteModal = ({
       title={
         <div className='flex items-center'>
           <IconDelete className='mr-2 text-red-500' />
-          {t('删除账户确认')}
+          {"删除账户确认"}
         </div>
       }
       visible={showAccountDeleteModal}
@@ -33,19 +32,17 @@ const AccountDeleteModal = ({
       <div className='space-y-4 py-4'>
         <Banner
           type='danger'
-          description={t('您正在删除自己的帐户，将清空所有数据且不可恢复')}
+          description={"您正在删除自己的帐户，将清空所有数据且不可恢复"}
           closeIcon={null}
           className='!rounded-lg'
         />
 
         <div>
           <Typography.Text strong className='block mb-2 text-red-600'>
-            {t('请输入您的用户名以确认删除')}
+            {"请输入您的用户名以确认删除"}
           </Typography.Text>
           <Input
-            placeholder={t('输入你的账户名{{username}}以确认删除', {
-              username: ` ${userState?.user?.username} `,
-            })}
+            placeholder={`输入你的账户名 ${userState?.user?.username} 以确认删除`}
             name='self_account_deletion_confirmation'
             value={inputs.self_account_deletion_confirmation}
             onChange={(value) =>

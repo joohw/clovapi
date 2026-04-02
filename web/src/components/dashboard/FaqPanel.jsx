@@ -14,7 +14,6 @@ const FaqPanel = ({
   CARD_PROPS,
   FLEX_CENTER_GAP2,
   ILLUSTRATION_SIZE,
-  t,
 }) => {
   return (
     <Card
@@ -23,7 +22,7 @@ const FaqPanel = ({
       title={
         <div className={FLEX_CENTER_GAP2}>
           <HelpCircle size={16} />
-          {t('常见问答')}
+          {"常见问答"}
         </div>
       }
       bodyStyle={{ padding: 0 }}
@@ -56,8 +55,8 @@ const FaqPanel = ({
               darkModeImage={
                 <IllustrationConstructionDark style={ILLUSTRATION_SIZE} />
               }
-              title={t('暂无常见问答')}
-              description={t('请联系管理员在系统设置中配置常见问答')}
+              title={"暂无常见问答"}
+              description={"请联系管理员在系统设置中配置常见问答"}
             />
           </div>
         )}

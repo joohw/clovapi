@@ -13,16 +13,6 @@ const PricingContent = ({ isMobile, sidebarProps, ...props }) => {
           {...props}
           isMobile={isMobile}
           sidebarProps={sidebarProps}
-          showWithRecharge={sidebarProps.showWithRecharge}
-          setShowWithRecharge={sidebarProps.setShowWithRecharge}
-          currency={sidebarProps.currency}
-          setCurrency={sidebarProps.setCurrency}
-          showRatio={sidebarProps.showRatio}
-          setShowRatio={sidebarProps.setShowRatio}
-          viewMode={sidebarProps.viewMode}
-          setViewMode={sidebarProps.setViewMode}
-          tokenUnit={sidebarProps.tokenUnit}
-          setTokenUnit={sidebarProps.setTokenUnit}
         />
       </div>
 
@@ -32,7 +22,9 @@ const PricingContent = ({ isMobile, sidebarProps, ...props }) => {
           isMobile ? 'pricing-view-container-mobile' : 'pricing-view-container'
         }
       >
-        <PricingView {...props} viewMode={sidebarProps.viewMode} />
+        <div className='pricing-model-region'>
+          <PricingView {...props} />
+        </div>
       </div>
     </div>
   );

@@ -15,12 +15,9 @@ import {
   Col,
 } from '@douyinfe/semi-ui';
 import { IconSave, IconClose, IconUserAdd } from '@douyinfe/semi-icons';
-import { useTranslation } from 'react-i18next';
-
 const { Text, Title } = Typography;
 
 const AddUserModal = (props) => {
-  const { t } = useTranslation();
   const formApiRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const isMobile = useIsMobile();
@@ -37,7 +34,7 @@ const AddUserModal = (props) => {
     const res = await API.post(`/api/user/`, values);
     const { success, message } = res.data;
     if (success) {
-      showSuccess(t('用户账户创建成功！'));
+      showSuccess("用户账户创建成功！");
       formApiRef.current?.setValues(getInitValues());
       props.refresh();
       props.handleClose();
@@ -58,10 +55,10 @@ const AddUserModal = (props) => {
         title={
           <Space>
             <Tag color='green' shape='circle'>
-              {t('新建')}
+              {"新建"}
             </Tag>
             <Title heading={4} className='m-0'>
-              {t('添加用户')}
+              {"添加用户"}
             </Title>
           </Space>
         }
@@ -77,7 +74,7 @@ const AddUserModal = (props) => {
                 icon={<IconSave />}
                 loading={loading}
               >
-                {t('提交')}
+                {"提交"}
               </Button>
               <Button
                 theme='light'
@@ -85,7 +82,7 @@ const AddUserModal = (props) => {
                 onClick={handleCancel}
                 icon={<IconClose />}
               >
-                {t('取消')}
+                {"取消"}
               </Button>
             </Space>
           </div>
@@ -111,9 +108,9 @@ const AddUserModal = (props) => {
                     <IconUserAdd size={16} />
                   </Avatar>
                   <div>
-                    <Text className='text-lg font-medium'>{t('用户信息')}</Text>
+                    <Text className='text-lg font-medium'>{"用户信息"}</Text>
                     <div className='text-xs text-gray-600'>
-                      {t('创建新用户账户')}
+                      {"创建新用户账户"}
                     </div>
                   </div>
                 </div>
@@ -122,35 +119,35 @@ const AddUserModal = (props) => {
                   <Col span={24}>
                     <Form.Input
                       field='username'
-                      label={t('用户名')}
-                      placeholder={t('请输入用户名')}
-                      rules={[{ required: true, message: t('请输入用户名') }]}
+                      label={"用户名"}
+                      placeholder={"请输入用户名"}
+                      rules={[{ required: true, message: "请输入用户名" }]}
                       showClear
                     />
                   </Col>
                   <Col span={24}>
                     <Form.Input
                       field='display_name'
-                      label={t('显示名称')}
-                      placeholder={t('请输入显示名称')}
+                      label={"显示名称"}
+                      placeholder={"请输入显示名称"}
                       showClear
                     />
                   </Col>
                   <Col span={24}>
                     <Form.Input
                       field='password'
-                      label={t('密码')}
+                      label={"密码"}
                       type='password'
-                      placeholder={t('请输入密码')}
-                      rules={[{ required: true, message: t('请输入密码') }]}
+                      placeholder={"请输入密码"}
+                      rules={[{ required: true, message: "请输入密码" }]}
                       showClear
                     />
                   </Col>
                   <Col span={24}>
                     <Form.Input
                       field='remark'
-                      label={t('备注')}
-                      placeholder={t('请输入备注（仅管理员可见）')}
+                      label={"备注"}
+                      placeholder={"请输入备注（仅管理员可见）"}
                       showClear
                     />
                   </Col>

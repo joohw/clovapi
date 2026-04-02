@@ -14,7 +14,6 @@ const ApiInfoPanel = ({
   CARD_PROPS,
   FLEX_CENTER_GAP2,
   ILLUSTRATION_SIZE,
-  t,
 }) => {
   return (
     <Card
@@ -23,7 +22,7 @@ const ApiInfoPanel = ({
       title={
         <div className={FLEX_CENTER_GAP2}>
           <Server size={16} />
-          {t('API信息')}
+          {"API信息"}
         </div>
       }
       bodyStyle={{ padding: 0 }}
@@ -52,7 +51,7 @@ const ApiInfoPanel = ({
                         onClick={() => handleSpeedTest(api.url)}
                         className='cursor-pointer hover:opacity-80 text-xs'
                       >
-                        {t('测速')}
+                        {"测速"}
                       </Tag>
                       <Tag
                         prefixIcon={<ExternalLink size={12} />}
@@ -64,7 +63,7 @@ const ApiInfoPanel = ({
                         }
                         className='cursor-pointer hover:opacity-80 text-xs'
                       >
-                        {t('跳转')}
+                        {"跳转"}
                       </Tag>
                     </div>
                   </div>
@@ -87,8 +86,8 @@ const ApiInfoPanel = ({
               darkModeImage={
                 <IllustrationConstructionDark style={ILLUSTRATION_SIZE} />
               }
-              title={t('暂无API信息')}
-              description={t('请联系管理员在系统设置中配置API信息')}
+              title={"暂无API信息"}
+              description={"请联系管理员在系统设置中配置API信息"}
             />
           </div>
         )}

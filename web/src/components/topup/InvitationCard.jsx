@@ -29,9 +29,9 @@ const InvitationCard = ({
         </Avatar>
         <div>
           <Typography.Text className='text-lg font-medium'>
-            {t('邀请奖励')}
+            {"邀请奖励"}
           </Typography.Text>
-          <div className='text-xs'>{t('邀请好友获得额外奖励')}</div>
+          <div className='text-xs'>{"邀请好友获得额外奖励"}</div>
         </div>
       </div>
 
@@ -55,7 +55,7 @@ const InvitationCard = ({
               <div className='relative z-10 h-full flex flex-col justify-between p-4'>
                 <div className='flex justify-between items-center'>
                   <Text strong style={{ color: 'white', fontSize: '16px' }}>
-                    {t('收益统计')}
+                    {"收益统计"}
                   </Text>
                   <Button
                     type='primary'
@@ -69,7 +69,7 @@ const InvitationCard = ({
                     className='!rounded-lg'
                   >
                     <Zap size={12} className='mr-1' />
-                    {t('划转到余额')}
+                    {"划转到余额"}
                   </Button>
                 </div>
 
@@ -95,7 +95,7 @@ const InvitationCard = ({
                           fontSize: '12px',
                         }}
                       >
-                        {t('待使用收益')}
+                        {"待使用收益"}
                       </Text>
                     </div>
                   </div>
@@ -120,7 +120,7 @@ const InvitationCard = ({
                           fontSize: '12px',
                         }}
                       >
-                        {t('总收益')}
+                        {"总收益"}
                       </Text>
                     </div>
                   </div>
@@ -145,7 +145,7 @@ const InvitationCard = ({
                           fontSize: '12px',
                         }}
                       >
-                        {t('邀请人数')}
+                        {"邀请人数"}
                       </Text>
                     </div>
                   </div>
@@ -159,7 +159,7 @@ const InvitationCard = ({
             value={affLink}
             readonly
             className='!rounded-lg'
-            prefix={t('邀请链接')}
+            prefix={"邀请链接"}
             suffix={
               <Button
                 type='primary'
@@ -168,7 +168,7 @@ const InvitationCard = ({
                 icon={<Copy size={14} />}
                 className='!rounded-lg'
               >
-                {t('复制')}
+                {"复制"}
               </Button>
             }
           />
@@ -177,27 +177,27 @@ const InvitationCard = ({
         {/* 奖励说明 */}
         <Card
           className='!rounded-xl w-full'
-          title={<Text type='tertiary'>{t('奖励说明')}</Text>}
+          title={<Text type='tertiary'>{"奖励说明"}</Text>}
         >
           <div className='space-y-3'>
             <div className='flex items-start gap-2'>
               <Badge dot type='success' />
               <Text type='tertiary' className='text-sm'>
-                {t('邀请好友注册，好友充值后您可获得相应奖励')}
+                {"邀请好友注册，好友充值后您可获得相应奖励"}
               </Text>
             </div>
 
             <div className='flex items-start gap-2'>
               <Badge dot type='success' />
               <Text type='tertiary' className='text-sm'>
-                {t('通过划转功能将奖励额度转入到您的账户余额中')}
+                {"通过划转功能将奖励额度转入到您的账户余额中"}
               </Text>
             </div>
 
             <div className='flex items-start gap-2'>
               <Badge dot type='success' />
               <Text type='tertiary' className='text-sm'>
-                {t('邀请的好友越多，获得的奖励越多')}
+                {"邀请的好友越多，获得的奖励越多"}
               </Text>
             </div>
           </div>

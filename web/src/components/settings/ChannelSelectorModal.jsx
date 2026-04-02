@@ -163,28 +163,28 @@ const ChannelSelectorModal = forwardRef(
         case 1:
           statusTag = (
             <Tag color='green' shape='circle'>
-              {t('已启用')}
+              {"已启用"}
             </Tag>
           );
           break;
         case 2:
           statusTag = (
             <Tag color='red' shape='circle'>
-              {t('已禁用')}
+              {"已禁用"}
             </Tag>
           );
           break;
         case 3:
           statusTag = (
             <Tag color='yellow' shape='circle'>
-              {t('自动禁用')}
+              {"自动禁用"}
             </Tag>
           );
           break;
         default:
           statusTag = (
             <Tag color='grey' shape='circle'>
-              {t('未知状态')}
+              {"未知状态"}
             </Tag>
           );
       }
@@ -193,7 +193,7 @@ const ChannelSelectorModal = forwardRef(
           {statusTag}
           {official && (
             <Tag color='green' shape='circle' type='light'>
-              {t('官方')}
+              {"官方"}
             </Tag>
           )}
         </div>
@@ -210,23 +210,23 @@ const ChannelSelectorModal = forwardRef(
 
     const columns = [
       {
-        title: t('名称'),
+        title: "名称",
         dataIndex: 'label',
         render: renderNameCell,
       },
       {
-        title: t('源地址'),
+        title: "源地址",
         dataIndex: '_originalData.base_url',
         render: (_, record) =>
           renderBaseUrlCell(record._originalData?.base_url || ''),
       },
       {
-        title: t('状态'),
+        title: "状态",
         dataIndex: '_originalData.status',
         render: (_, record) => renderStatusCell(record),
       },
       {
-        title: t('同步接口'),
+        title: "同步接口",
         dataIndex: 'endpoint',
         fixed: 'right',
         render: renderEndpointCell,
@@ -244,7 +244,7 @@ const ChannelSelectorModal = forwardRef(
         onCancel={onCancel}
         onOk={onOk}
         title={
-          <span className='text-lg font-semibold'>{t('选择同步渠道')}</span>
+          <span className='text-lg font-semibold'>{"选择同步渠道"}</span>
         }
         size={isMobile ? 'full-width' : 'large'}
         keepDOM
@@ -253,7 +253,7 @@ const ChannelSelectorModal = forwardRef(
         <Space vertical style={{ width: '100%' }}>
           <Input
             prefix={<IconSearch size={14} />}
-            placeholder={t('搜索渠道名称或地址')}
+            placeholder={"搜索渠道名称或地址"}
             value={searchText}
             onChange={setSearchText}
             showClear

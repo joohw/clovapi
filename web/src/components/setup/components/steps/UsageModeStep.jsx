@@ -24,24 +24,24 @@ const UsageModeStep = ({
       >
         <Radio
           value='external'
-          extra={t('适用于为多个用户提供服务的场景')}
+          extra={"适用于为多个用户提供服务的场景"}
           style={{ width: '30%', minWidth: 200 }}
         >
-          {t('对外运营模式')}
+          {"对外运营模式"}
         </Radio>
         <Radio
           value='self'
-          extra={t('适用于个人使用的场景，不需要设置模型价格')}
+          extra={"适用于个人使用的场景，不需要设置模型价格"}
           style={{ width: '30%', minWidth: 200 }}
         >
-          {t('自用模式')}
+          {"自用模式"}
         </Radio>
         <Radio
           value='demo'
-          extra={t('适用于展示系统功能的场景，提供基础功能演示')}
+          extra={"适用于展示系统功能的场景，提供基础功能演示"}
           style={{ width: '30%', minWidth: 200 }}
         >
-          {t('演示站点模式')}
+          {"演示站点模式"}
         </Radio>
       </RadioGroup>
       {renderNavigationButtons && renderNavigationButtons()}

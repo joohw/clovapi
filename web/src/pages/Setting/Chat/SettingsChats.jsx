@@ -29,10 +29,7 @@ import {
   showWarning,
   verifyJSON,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 export default function SettingsChats(props) {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState({
     Chats: '[]',
@@ -62,7 +59,7 @@ export default function SettingsChats(props) {
     const existingNames = new Set(chatConfigs.map((c) => c.name));
     const toAdd = templates.filter((tpl) => !existingNames.has(tpl.name));
     if (toAdd.length === 0) {
-      showWarning(t('所选模板已存在'));
+      showWarning("所选模板已存在");
       return;
     }
     let maxId = chatConfigs.length > 0
@@ -76,7 +73,7 @@ export default function SettingsChats(props) {
     const newConfigs = [...chatConfigs, ...newItems];
     setChatConfigs(newConfigs);
     syncConfigsToJson(newConfigs);
-    showSuccess(t('已添加 {{count}} 个模板', { count: toAdd.length }));
+    showSuccess(`已添加 ${toAdd.length} 个模板`);
   };
 
   const jsonToConfigs = (jsonString) => {
@@ -125,14 +122,14 @@ export default function SettingsChats(props) {
           await refForm.current.validate();
         } catch (error) {
           console.error('Validation failed:', error);
-          showError(t('请检查输入'));
+          showError("请检查输入");
           return;
         }
       }
 
       const updateArray = compareObjects(inputs, inputsRow);
       if (!updateArray.length)
-        return showWarning(t('你似乎并没有修改什么'));
+        return showWarning("你似乎并没有修改什么");
       const requestQueue = updateArray.map((item) => {
         let value = '';
         if (typeof inputs[item.key] === 'boolean') {
@@ -150,19 +147,19 @@ export default function SettingsChats(props) {
         const res = await Promise.all(requestQueue);
         if (res.includes(undefined)) {
           if (requestQueue.length > 1) {
-            showError(t('部分保存失败，请重试'));
+            showError("部分保存失败，请重试");
           }
           return;
         }
-        showSuccess(t('保存成功'));
+        showSuccess("保存成功");
         props.refresh();
       } catch {
-        showError(t('保存失败，请重试'));
+        showError("保存失败，请重试");
       } finally {
         setLoading(false);
       }
     } catch (error) {
-      showError(t('请检查输入'));
+      showError("请检查输入");
       console.error(error);
     }
   }
@@ -228,7 +225,7 @@ export default function SettingsChats(props) {
     const newConfigs = chatConfigs.filter((config) => config.id !== id);
     setChatConfigs(newConfigs);
     syncConfigsToJson(newConfigs);
-    showSuccess(t('删除成功'));
+    showSuccess("删除成功");
   };
 
   const handleModalOk = () => {
@@ -244,7 +241,7 @@ export default function SettingsChats(props) {
           );
 
           if (isDuplicate) {
-            showError(t('聊天应用名称已存在，请使用其他名称'));
+            showError("聊天应用名称已存在，请使用其他名称");
             return;
           }
 
@@ -272,7 +269,7 @@ export default function SettingsChats(props) {
           }
           setModalVisible(false);
           setEditingConfig(null);
-          showSuccess(isEdit ? t('编辑成功') : t('添加成功'));
+          showSuccess(isEdit ? "编辑成功" : "添加成功");
         })
         .catch((error) => {
           console.error('Modal form validation error:', error);
@@ -315,13 +312,13 @@ export default function SettingsChats(props) {
 
   const columns = [
     {
-      title: t('聊天应用名称'),
+      title: "聊天应用名称",
       dataIndex: 'name',
       key: 'name',
-      render: (text) => text || t('未命名'),
+      render: (text) => text || "未命名",
     },
     {
-      title: t('URL链接'),
+      title: "URL链接",
       dataIndex: 'url',
       key: 'url',
       render: (text) => (
@@ -331,7 +328,7 @@ export default function SettingsChats(props) {
       ),
     },
     {
-      title: t('操作'),
+      title: "操作",
       key: 'action',
       render: (_, record) => (
         <Space>
@@ -341,7 +338,7 @@ export default function SettingsChats(props) {
             size='small'
             onClick={() => handleEditConfig(record)}
           >
-            {t('编辑')}
+            {"编辑"}
           </Button>
           <Button
             type='danger'
@@ -349,7 +346,7 @@ export default function SettingsChats(props) {
             size='small'
             onClick={() => handleDeleteConfig(record.id)}
           >
-            {t('删除')}
+            {"删除"}
           </Button>
         </Space>
       ),
@@ -359,19 +356,17 @@ export default function SettingsChats(props) {
   return (
     <Spin spinning={loading}>
       <Space vertical style={{ width: '100%' }}>
-        <Form.Section text={t('聊天设置')}>
+        <Form.Section text={"聊天设置"}>
           <Banner
             type='info'
-            description={t(
-              '链接中的{key}将自动替换为sk-xxxx，{address}将自动替换为系统设置的服务器地址，末尾不带/和/v1',
-            )}
+            description={"链接中的{key}将自动替换为sk-xxxx，{address}将自动替换为系统设置的服务器地址，末尾不带/和/v1"}
           />
 
           <Divider />
 
           <div style={{ marginBottom: 16 }}>
             <span style={{ marginRight: 16, fontWeight: 600 }}>
-              {t('编辑模式')}:
+              {"编辑模式"}:
             </span>
             <RadioGroup
               type='button'
@@ -388,8 +383,8 @@ export default function SettingsChats(props) {
                 }, 100);
               }}
             >
-              <Radio value='visual'>{t('可视化编辑')}</Radio>
-              <Radio value='json'>{t('JSON编辑')}</Radio>
+              <Radio value='visual'>{"可视化编辑"}</Radio>
+              <Radio value='json'>{"JSON编辑"}</Radio>
             </RadioGroup>
           </div>
 
@@ -401,7 +396,7 @@ export default function SettingsChats(props) {
                   icon={<IconPlus />}
                   onClick={handleAddConfig}
                 >
-                  {t('添加聊天配置')}
+                  {"添加聊天配置"}
                 </Button>
                 <Dropdown
                   trigger='click'
@@ -417,13 +412,13 @@ export default function SettingsChats(props) {
                     {
                       node: 'item',
                       key: 'all',
-                      name: t('全部填入'),
+                      name: "全部填入",
                       onClick: () => addTemplates(BUILTIN_TEMPLATES),
                     },
                   ]}
                 >
                   <Button icon={<IconBolt />}>
-                    {t('填入模板')}
+                    {"填入模板"}
                   </Button>
                 </Dropdown>
                 <Button
@@ -432,11 +427,11 @@ export default function SettingsChats(props) {
                   icon={<IconSaveStroked />}
                   onClick={onSubmit}
                 >
-                  {t('保存聊天设置')}
+                  {"保存聊天设置"}
                 </Button>
                 <Input
                   prefix={<IconSearch />}
-                  placeholder={t('搜索聊天应用名称')}
+                  placeholder={"搜索聊天应用名称"}
                   value={searchText}
                   onChange={(value) => setSearchText(value)}
                   style={{ width: 250 }}
@@ -453,11 +448,7 @@ export default function SettingsChats(props) {
                   showSizeChanger: false,
                   showQuickJumper: true,
                   showTotal: (total, range) =>
-                    t('共 {{total}} 项，当前显示 {{start}}-{{end}} 项', {
-                      total,
-                      start: range[0],
-                      end: range[1],
-                    }),
+                    "共 {{total}} 项，当前显示 {{start}}-{{end}} 项",
                 }}
               />
             </div>
@@ -467,9 +458,9 @@ export default function SettingsChats(props) {
               getFormApi={(formAPI) => (refForm.current = formAPI)}
             >
               <Form.TextArea
-                label={t('聊天配置')}
+                label={"聊天配置"}
                 extraText={''}
-                placeholder={t('为一个 JSON 文本')}
+                placeholder={"为一个 JSON 文本"}
                 field={'Chats'}
                 autosize={{ minRows: 6, maxRows: 12 }}
                 trigger='blur'
@@ -479,7 +470,7 @@ export default function SettingsChats(props) {
                     validator: (rule, value) => {
                       return verifyJSON(value);
                     },
-                    message: t('不是合法的 JSON 字符串'),
+                    message: "不是合法的 JSON 字符串",
                   },
                 ]}
                 onChange={(value) =>
@@ -500,14 +491,14 @@ export default function SettingsChats(props) {
               icon={<IconSaveStroked />}
               onClick={onSubmit}
             >
-              {t('保存聊天设置')}
+              {"保存聊天设置"}
             </Button>
           </Space>
         )}
       </Space>
 
       <Modal
-        title={isEdit ? t('编辑聊天配置') : t('添加聊天配置')}
+        title={isEdit ? "编辑聊天配置" : "添加聊天配置"}
         visible={modalVisible}
         onOk={handleModalOk}
         onCancel={handleModalCancel}
@@ -516,24 +507,22 @@ export default function SettingsChats(props) {
         <Form getFormApi={(api) => (modalFormRef.current = api)}>
           <Form.Input
             field='name'
-            label={t('聊天应用名称')}
-            placeholder={t('请输入聊天应用名称')}
+            label={"聊天应用名称"}
+            placeholder={"请输入聊天应用名称"}
             rules={[
-              { required: true, message: t('请输入聊天应用名称') },
-              { min: 1, message: t('名称不能为空') },
+              { required: true, message: "请输入聊天应用名称" },
+              { min: 1, message: "名称不能为空" },
             ]}
           />
           <Form.Input
             field='url'
-            label={t('URL链接')}
-            placeholder={t('请输入完整的URL链接')}
-            rules={[{ required: true, message: t('请输入URL链接') }]}
+            label={"URL链接"}
+            placeholder={"请输入完整的URL链接"}
+            rules={[{ required: true, message: "请输入URL链接" }]}
           />
           <Banner
             type='info'
-            description={t(
-              '提示：链接中的{key}将被替换为API密钥，{address}将被替换为服务器地址',
-            )}
+            description={"提示：链接中的{key}将被替换为API密钥，{address}将被替换为服务器地址"}
             style={{ marginTop: 16 }}
           />
         </Form>

@@ -25,13 +25,13 @@ const DeleteRedemptionModal = ({
 
   return (
     <Modal
-      title={t('确定是否要删除此兑换码？')}
+      title={"确定是否要删除此兑换码？"}
       visible={visible}
       onCancel={onCancel}
       onOk={handleConfirm}
       type='warning'
     >
-      {t('此修改将不可逆')}
+      {"此修改将不可逆"}
     </Modal>
   );
 };

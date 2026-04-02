@@ -77,14 +77,14 @@ const CheckinCalendar = ({ t, status, turnstileEnabled, turnstileSiteKey }) => {
           setInitialLoaded(true);
         }
       } else {
-        showError(message || t('获取签到状态失败'));
+        showError(message || "获取签到状态失败");
         if (isFirstLoad) {
           setIsCollapsed(false);
           setInitialLoaded(true);
         }
       }
     } catch (error) {
-      showError(t('获取签到状态失败'));
+      showError("获取签到状态失败");
       if (isFirstLoad) {
         setIsCollapsed(false);
         setInitialLoaded(true);
@@ -114,7 +114,7 @@ const CheckinCalendar = ({ t, status, turnstileEnabled, turnstileSiteKey }) => {
       const { success, data, message } = res.data;
       if (success) {
         showSuccess(
-          t('签到成功！获得') + ' ' + renderQuota(data.quota_awarded),
+          "签到成功！获得" + ' ' + renderQuota(data.quota_awarded),
         );
         // 刷新签到状态
         fetchCheckinStatus(currentMonth);
@@ -131,10 +131,10 @@ const CheckinCalendar = ({ t, status, turnstileEnabled, turnstileSiteKey }) => {
         if (token && shouldTriggerTurnstile(message)) {
           setTurnstileWidgetKey((v) => v + 1);
         }
-        showError(message || t('签到失败'));
+        showError(message || "签到失败");
       }
     } catch (error) {
-      showError(t('签到失败'));
+      showError("签到失败");
     } finally {
       setCheckinLoading(false);
     }
@@ -170,7 +170,7 @@ const CheckinCalendar = ({ t, status, turnstileEnabled, turnstileSiteKey }) => {
     if (isCheckedIn) {
       return (
         <Tooltip
-          content={`${t('获得')} ${renderQuota(quotaAwarded)}`}
+          content={`${"获得"} ${renderQuota(quotaAwarded)}`}
           position='top'
         >
           <div className='absolute inset-0 flex flex-col items-center justify-center cursor-pointer'>
@@ -231,7 +231,7 @@ const CheckinCalendar = ({ t, status, turnstileEnabled, turnstileSiteKey }) => {
           <div className='flex-1'>
             <div className='flex items-center gap-2'>
               <Typography.Text className='text-lg font-medium'>
-                {t('每日签到')}
+                {"每日签到"}
               </Typography.Text>
               {isCollapsed ? (
                 <ChevronDown size={16} className='text-gray-400' />
@@ -241,12 +241,12 @@ const CheckinCalendar = ({ t, status, turnstileEnabled, turnstileSiteKey }) => {
             </div>
             <div className='text-xs text-gray-500 dark:text-gray-400'>
               {!initialLoaded
-                ? t('正在加载签到状态...')
+                ? "正在加载签到状态..."
                 : checkinData.stats?.checked_in_today
-                  ? t('今日已签到，累计签到') +
+                  ? "今日已签到，累计签到" +
                     ` ${checkinData.stats?.total_checkins || 0} ` +
-                    t('天')
-                  : t('每日签到可获得随机额度奖励')}
+                    "天"
+                  : "每日签到可获得随机额度奖励"}
             </div>
           </div>
         </div>
@@ -260,10 +260,10 @@ const CheckinCalendar = ({ t, status, turnstileEnabled, turnstileSiteKey }) => {
           className='!bg-green-600 hover:!bg-green-700'
         >
           {!initialLoaded
-            ? t('加载中...')
+            ? "加载中..."
             : checkinData.stats?.checked_in_today
-              ? t('今日已签到')
-              : t('立即签到')}
+              ? "今日已签到"
+              : "立即签到"}
         </Button>
       </div>
 
@@ -275,19 +275,19 @@ const CheckinCalendar = ({ t, status, turnstileEnabled, turnstileSiteKey }) => {
             <div className='text-xl font-bold text-green-600'>
               {checkinData.stats?.total_checkins || 0}
             </div>
-            <div className='text-xs text-gray-500'>{t('累计签到')}</div>
+            <div className='text-xs text-gray-500'>{"累计签到"}</div>
           </div>
           <div className='text-center p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg'>
             <div className='text-xl font-bold text-orange-600'>
               {renderQuota(monthlyQuota, 6)}
             </div>
-            <div className='text-xs text-gray-500'>{t('本月获得')}</div>
+            <div className='text-xs text-gray-500'>{"本月获得"}</div>
           </div>
           <div className='text-center p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg'>
             <div className='text-xl font-bold text-blue-600'>
               {renderQuota(checkinData.stats?.total_quota || 0, 6)}
             </div>
-            <div className='text-xs text-gray-500'>{t('累计获得')}</div>
+            <div className='text-xs text-gray-500'>{"累计获得"}</div>
           </div>
         </div>
 
@@ -351,9 +351,9 @@ const CheckinCalendar = ({ t, status, turnstileEnabled, turnstileSiteKey }) => {
         <div className='mt-3 p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg'>
           <Typography.Text type='tertiary' className='text-xs'>
             <ul className='list-disc list-inside space-y-0.5'>
-              <li>{t('每日签到可获得随机额度奖励')}</li>
-              <li>{t('签到奖励将直接添加到您的账户余额')}</li>
-              <li>{t('每日仅可签到一次，请勿重复签到')}</li>
+              <li>{"每日签到可获得随机额度奖励"}</li>
+              <li>{"签到奖励将直接添加到您的账户余额"}</li>
+              <li>{"每日仅可签到一次，请勿重复签到"}</li>
             </ul>
           </Typography.Text>
         </div>

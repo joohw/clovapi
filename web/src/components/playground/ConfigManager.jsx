@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
 import { Button, Typography, Toast, Modal, Dropdown } from '@douyinfe/semi-ui';
 import { Download, Upload, RotateCcw, Settings2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import {
   exportConfig,
   importConfig,
@@ -17,7 +16,6 @@ const ConfigManager = ({
   styleState,
   messages,
 }) => {
-  const { t } = useTranslation();
   const fileInputRef = useRef(null);
 
   const handleExport = () => {
@@ -34,12 +32,12 @@ const ConfigManager = ({
 
       exportConfig(currentConfig, messages);
       Toast.success({
-        content: t('配置已导出到下载文件夹'),
+        content: "配置已导出到下载文件夹",
         duration: 3,
       });
     } catch (error) {
       Toast.error({
-        content: t('导出配置失败: ') + error.message,
+        content: "导出配置失败: " + error.message,
         duration: 3,
       });
     }
@@ -57,21 +55,21 @@ const ConfigManager = ({
       const importedConfig = await importConfig(file);
 
       Modal.confirm({
-        title: t('确认导入配置'),
-        content: t('导入的配置将覆盖当前设置，是否继续？'),
-        okText: t('确定导入'),
-        cancelText: t('取消'),
+        title: "确认导入配置",
+        content: "导入的配置将覆盖当前设置，是否继续？",
+        okText: "确定导入",
+        cancelText: "取消",
         onOk: () => {
           onConfigImport(importedConfig);
           Toast.success({
-            content: t('配置导入成功'),
+            content: "配置导入成功",
             duration: 3,
           });
         },
       });
     } catch (error) {
       Toast.error({
-        content: t('导入配置失败: ') + error.message,
+        content: "导入配置失败: " + error.message,
         duration: 3,
       });
     } finally {
@@ -82,24 +80,20 @@ const ConfigManager = ({
 
   const handleReset = () => {
     Modal.confirm({
-      title: t('重置配置'),
-      content: t(
-        '将清除所有保存的配置并恢复默认设置，此操作不可撤销。是否继续？',
-      ),
-      okText: t('确定重置'),
-      cancelText: t('取消'),
+      title: "重置配置",
+      content: "将清除所有保存的配置并恢复默认设置，此操作不可撤销。是否继续？",
+      okText: "确定重置",
+      cancelText: "取消",
       okButtonProps: {
         type: 'danger',
       },
       onOk: () => {
         // 询问是否同时重置消息
         Modal.confirm({
-          title: t('重置选项'),
-          content: t(
-            '是否同时重置对话消息？选择"是"将清空所有对话记录并恢复默认示例；选择"否"将保留当前对话记录。',
-          ),
-          okText: t('同时重置消息'),
-          cancelText: t('仅重置配置'),
+          title: "重置选项",
+          content: "是否同时重置对话消息？选择\"是\"将清空所有对话记录并恢复默认示例；选择\"否\"将保留当前对话记录。",
+          okText: "同时重置消息",
+          cancelText: "仅重置配置",
           okButtonProps: {
             type: 'danger',
           },
@@ -107,7 +101,7 @@ const ConfigManager = ({
             clearConfig();
             onConfigReset({ resetMessages: true });
             Toast.success({
-              content: t('配置和消息已全部重置'),
+              content: "配置和消息已全部重置",
               duration: 3,
             });
           },
@@ -115,7 +109,7 @@ const ConfigManager = ({
             clearConfig();
             onConfigReset({ resetMessages: false });
             Toast.success({
-              content: t('配置已重置，对话消息已保留'),
+              content: "配置已重置，对话消息已保留",
               duration: 3,
             });
           },
@@ -129,11 +123,11 @@ const ConfigManager = ({
       const timestamp = getConfigTimestamp();
       if (timestamp) {
         const date = new Date(timestamp);
-        return t('上次保存: ') + date.toLocaleString();
+        return "上次保存: " + date.toLocaleString();
       }
-      return t('已有保存的配置');
+      return "已有保存的配置";
     }
-    return t('暂无保存的配置');
+    return "暂无保存的配置";
   };
 
   const dropdownItems = [
@@ -144,7 +138,7 @@ const ConfigManager = ({
       children: (
         <div className='flex items-center gap-2'>
           <Download size={14} />
-          {t('导出配置')}
+          {"导出配置"}
         </div>
       ),
     },
@@ -155,7 +149,7 @@ const ConfigManager = ({
       children: (
         <div className='flex items-center gap-2'>
           <Upload size={14} />
-          {t('导入配置')}
+          {"导入配置"}
         </div>
       ),
     },
@@ -169,7 +163,7 @@ const ConfigManager = ({
       children: (
         <div className='flex items-center gap-2 text-red-600'>
           <RotateCcw size={14} />
-          {t('重置配置')}
+          {"重置配置"}
         </div>
       ),
     },
@@ -233,7 +227,7 @@ const ConfigManager = ({
           onClick={handleExport}
           className='!rounded-lg flex-1 !text-xs !h-7'
         >
-          {t('导出')}
+          {"导出"}
         </Button>
 
         <Button
@@ -244,7 +238,7 @@ const ConfigManager = ({
           onClick={handleImportClick}
           className='!rounded-lg flex-1 !text-xs !h-7'
         >
-          {t('导入')}
+          {"导入"}
         </Button>
       </div>
 

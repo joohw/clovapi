@@ -52,61 +52,61 @@ function renderType(type, t) {
     case 'IMAGINE':
       return (
         <Tag color='blue' shape='circle' prefixIcon={<Palette size={14} />}>
-          {t('绘图')}
+          {"绘图"}
         </Tag>
       );
     case 'UPSCALE':
       return (
         <Tag color='orange' shape='circle' prefixIcon={<ZoomIn size={14} />}>
-          {t('放大')}
+          {"放大"}
         </Tag>
       );
     case 'VIDEO':
       return (
         <Tag color='orange' shape='circle' prefixIcon={<Video size={14} />}>
-          {t('视频')}
+          {"视频"}
         </Tag>
       );
     case 'EDITS':
       return (
         <Tag color='orange' shape='circle' prefixIcon={<Video size={14} />}>
-          {t('编辑')}
+          {"编辑"}
         </Tag>
       );
     case 'VARIATION':
       return (
         <Tag color='purple' shape='circle' prefixIcon={<Shuffle size={14} />}>
-          {t('变换')}
+          {"变换"}
         </Tag>
       );
     case 'HIGH_VARIATION':
       return (
         <Tag color='purple' shape='circle' prefixIcon={<Shuffle size={14} />}>
-          {t('强变换')}
+          {"强变换"}
         </Tag>
       );
     case 'LOW_VARIATION':
       return (
         <Tag color='purple' shape='circle' prefixIcon={<Shuffle size={14} />}>
-          {t('弱变换')}
+          {"弱变换"}
         </Tag>
       );
     case 'PAN':
       return (
         <Tag color='cyan' shape='circle' prefixIcon={<Move size={14} />}>
-          {t('平移')}
+          {"平移"}
         </Tag>
       );
     case 'DESCRIBE':
       return (
         <Tag color='yellow' shape='circle' prefixIcon={<FileText size={14} />}>
-          {t('图生文')}
+          {"图生文"}
         </Tag>
       );
     case 'BLEND':
       return (
         <Tag color='lime' shape='circle' prefixIcon={<Blend size={14} />}>
-          {t('图混合')}
+          {"图混合"}
         </Tag>
       );
     case 'UPLOAD':
@@ -118,13 +118,13 @@ function renderType(type, t) {
     case 'SHORTEN':
       return (
         <Tag color='pink' shape='circle' prefixIcon={<Minimize2 size={14} />}>
-          {t('缩词')}
+          {"缩词"}
         </Tag>
       );
     case 'REROLL':
       return (
         <Tag color='indigo' shape='circle' prefixIcon={<RotateCcw size={14} />}>
-          {t('重绘')}
+          {"重绘"}
         </Tag>
       );
     case 'INPAINT':
@@ -134,25 +134,25 @@ function renderType(type, t) {
           shape='circle'
           prefixIcon={<PaintBucket size={14} />}
         >
-          {t('局部重绘-提交')}
+          {"局部重绘-提交"}
         </Tag>
       );
     case 'ZOOM':
       return (
         <Tag color='teal' shape='circle' prefixIcon={<Focus size={14} />}>
-          {t('变焦')}
+          {"变焦"}
         </Tag>
       );
     case 'CUSTOM_ZOOM':
       return (
         <Tag color='teal' shape='circle' prefixIcon={<Move3D size={14} />}>
-          {t('自定义变焦-提交')}
+          {"自定义变焦-提交"}
         </Tag>
       );
     case 'MODAL':
       return (
         <Tag color='green' shape='circle' prefixIcon={<Monitor size={14} />}>
-          {t('窗口处理')}
+          {"窗口处理"}
         </Tag>
       );
     case 'SWAP_FACE':
@@ -162,13 +162,13 @@ function renderType(type, t) {
           shape='circle'
           prefixIcon={<UserCheck size={14} />}
         >
-          {t('换脸')}
+          {"换脸"}
         </Tag>
       );
     default:
       return (
         <Tag color='white' shape='circle' prefixIcon={<HelpCircle size={14} />}>
-          {t('未知')}
+          {"未知"}
         </Tag>
       );
   }
@@ -183,31 +183,31 @@ function renderCode(code, t) {
           shape='circle'
           prefixIcon={<CheckCircle size={14} />}
         >
-          {t('已提交')}
+          {"已提交"}
         </Tag>
       );
     case 21:
       return (
         <Tag color='lime' shape='circle' prefixIcon={<Clock size={14} />}>
-          {t('等待中')}
+          {"等待中"}
         </Tag>
       );
     case 22:
       return (
         <Tag color='orange' shape='circle' prefixIcon={<Copy size={14} />}>
-          {t('重复提交')}
+          {"重复提交"}
         </Tag>
       );
     case 0:
       return (
         <Tag color='yellow' shape='circle' prefixIcon={<FileX size={14} />}>
-          {t('未提交')}
+          {"未提交"}
         </Tag>
       );
     default:
       return (
         <Tag color='white' shape='circle' prefixIcon={<HelpCircle size={14} />}>
-          {t('未知')}
+          {"未知"}
         </Tag>
       );
   }
@@ -222,31 +222,31 @@ function renderStatus(type, t) {
           shape='circle'
           prefixIcon={<CheckCircle size={14} />}
         >
-          {t('成功')}
+          {"成功"}
         </Tag>
       );
     case 'NOT_START':
       return (
         <Tag color='grey' shape='circle' prefixIcon={<Pause size={14} />}>
-          {t('未启动')}
+          {"未启动"}
         </Tag>
       );
     case 'SUBMITTED':
       return (
         <Tag color='yellow' shape='circle' prefixIcon={<Clock size={14} />}>
-          {t('队列中')}
+          {"队列中"}
         </Tag>
       );
     case 'IN_PROGRESS':
       return (
         <Tag color='blue' shape='circle' prefixIcon={<Loader size={14} />}>
-          {t('执行中')}
+          {"执行中"}
         </Tag>
       );
     case 'FAILURE':
       return (
         <Tag color='red' shape='circle' prefixIcon={<XCircle size={14} />}>
-          {t('失败')}
+          {"失败"}
         </Tag>
       );
     case 'MODAL':
@@ -256,13 +256,13 @@ function renderStatus(type, t) {
           shape='circle'
           prefixIcon={<AlertCircle size={14} />}
         >
-          {t('窗口等待')}
+          {"窗口等待"}
         </Tag>
       );
     default:
       return (
         <Tag color='white' shape='circle' prefixIcon={<HelpCircle size={14} />}>
-          {t('未知')}
+          {"未知"}
         </Tag>
       );
   }
@@ -291,7 +291,7 @@ function renderDuration(submit_time, finishTime, t) {
 
   return (
     <Tag color={color} shape='circle' prefixIcon={<Clock size={14} />}>
-      {durationSec} {t('秒')}
+      {durationSec} {"秒"}
     </Tag>
   );
 }
@@ -307,7 +307,7 @@ export const getMjLogsColumns = ({
   return [
     {
       key: COLUMN_KEYS.SUBMIT_TIME,
-      title: t('提交时间'),
+      title: "提交时间",
       dataIndex: 'submit_time',
       render: (text, record, index) => {
         return <div>{renderTimestamp(text / 1000)}</div>;
@@ -315,7 +315,7 @@ export const getMjLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.DURATION,
-      title: t('花费时间'),
+      title: "花费时间",
       dataIndex: 'finish_time',
       render: (finish, record) => {
         return renderDuration(record.submit_time, finish, t);
@@ -323,7 +323,7 @@ export const getMjLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.CHANNEL,
-      title: t('渠道'),
+      title: "渠道",
       dataIndex: 'channel_id',
       render: (text, record, index) => {
         return isAdminUser ? (
@@ -347,7 +347,7 @@ export const getMjLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.TYPE,
-      title: t('类型'),
+      title: "类型",
       dataIndex: 'action',
       render: (text, record, index) => {
         return <div>{renderType(text, t)}</div>;
@@ -355,7 +355,7 @@ export const getMjLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.TASK_ID,
-      title: t('任务ID'),
+      title: "任务ID",
       dataIndex: 'mj_id',
       render: (text, record, index) => {
         return <div>{text}</div>;
@@ -363,7 +363,7 @@ export const getMjLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.SUBMIT_RESULT,
-      title: t('提交结果'),
+      title: "提交结果",
       dataIndex: 'code',
       render: (text, record, index) => {
         return isAdminUser ? <div>{renderCode(text, t)}</div> : <></>;
@@ -371,7 +371,7 @@ export const getMjLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.TASK_STATUS,
-      title: t('任务状态'),
+      title: "任务状态",
       dataIndex: 'status',
       render: (text, record, index) => {
         return <div>{renderStatus(text, t)}</div>;
@@ -379,7 +379,7 @@ export const getMjLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.PROGRESS,
-      title: t('进度'),
+      title: "进度",
       dataIndex: 'progress',
       render: (text, record, index) => {
         return (
@@ -403,11 +403,11 @@ export const getMjLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.IMAGE,
-      title: t('结果图片'),
+      title: "结果图片",
       dataIndex: 'image_url',
       render: (text, record, index) => {
         if (!text) {
-          return t('无');
+          return "无";
         }
         return (
           <Button
@@ -416,7 +416,7 @@ export const getMjLogsColumns = ({
               openImageModal(text);
             }}
           >
-            {t('查看图片')}
+            {"查看图片"}
           </Button>
         );
       },
@@ -427,7 +427,7 @@ export const getMjLogsColumns = ({
       dataIndex: 'prompt',
       render: (text, record, index) => {
         if (!text) {
-          return t('无');
+          return "无";
         }
 
         return (
@@ -449,7 +449,7 @@ export const getMjLogsColumns = ({
       dataIndex: 'prompt_en',
       render: (text, record, index) => {
         if (!text) {
-          return t('无');
+          return "无";
         }
 
         return (
@@ -467,12 +467,12 @@ export const getMjLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.FAIL_REASON,
-      title: t('失败原因'),
+      title: "失败原因",
       dataIndex: 'fail_reason',
       fixed: 'right',
       render: (text, record, index) => {
         if (!text) {
-          return t('无');
+          return "无";
         }
 
         return (

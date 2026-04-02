@@ -27,7 +27,6 @@ import {
 } from '../../../helpers';
 import { useIsMobile } from '../../../hooks/common/useIsMobile';
 import { DEFAULT_ENDPOINT } from '../../../constants';
-import { useTranslation } from 'react-i18next';
 import {
   IllustrationNoResult,
   IllustrationNoResultDark,
@@ -47,15 +46,15 @@ const MODELS_DEV_PRESET_ENDPOINT = 'https://models.dev/api.json';
 function ConflictConfirmModal({ t, visible, items, onOk, onCancel }) {
   const isMobile = useIsMobile();
   const columns = [
-    { title: t('渠道'), dataIndex: 'channel' },
-    { title: t('模型'), dataIndex: 'model' },
+    { title: "渠道", dataIndex: 'channel' },
+    { title: "模型", dataIndex: 'model' },
     {
-      title: t('当前计费'),
+      title: "当前计费",
       dataIndex: 'current',
       render: (text) => <div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>,
     },
     {
-      title: t('修改为'),
+      title: "修改为",
       dataIndex: 'newVal',
       render: (text) => <div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>,
     },
@@ -63,7 +62,7 @@ function ConflictConfirmModal({ t, visible, items, onOk, onCancel }) {
 
   return (
     <Modal
-      title={t('确认冲突项修改')}
+      title={"确认冲突项修改"}
       visible={visible}
       onCancel={onCancel}
       onOk={onOk}
@@ -80,7 +79,6 @@ function ConflictConfirmModal({ t, visible, items, onOk, onCancel }) {
 }
 
 export default function UpstreamRatioSync(props) {
-  const { t } = useTranslation();
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
@@ -173,7 +171,7 @@ export default function UpstreamRatioSync(props) {
         showError(res.data.message);
       }
     } catch (error) {
-      showError(t('获取渠道失败：') + error.message);
+      showError("获取渠道失败：" + error.message);
     } finally {
       setLoading(false);
     }
@@ -185,7 +183,7 @@ export default function UpstreamRatioSync(props) {
       .map((ch) => ch._originalData);
 
     if (selected.length === 0) {
-      showWarning(t('请至少选择一个渠道'));
+      showWarning("请至少选择一个渠道");
       return;
     }
 
@@ -212,7 +210,7 @@ export default function UpstreamRatioSync(props) {
       const res = await API.post('/api/ratio_sync/fetch', payload);
 
       if (!res.data.success) {
-        showError(res.data.message || t('后端请求失败'));
+        showError(res.data.message || "后端请求失败");
         setSyncLoading(false);
         return;
       }
@@ -222,7 +220,7 @@ export default function UpstreamRatioSync(props) {
       const errorResults = test_results.filter((r) => r.status === 'error');
       if (errorResults.length > 0) {
         showWarning(
-          t('部分渠道测试失败：') +
+          "部分渠道测试失败：" +
             errorResults.map((r) => `${r.name}: ${r.error}`).join(', '),
         );
       }
@@ -232,10 +230,10 @@ export default function UpstreamRatioSync(props) {
       setHasSynced(true);
 
       if (Object.keys(differences).length === 0) {
-        showSuccess(t('未找到差异化倍率，无需同步'));
+        showSuccess("未找到差异化倍率，无需同步");
       }
     } catch (e) {
-      showError(t('请求后端接口失败：') + e.message);
+      showError("请求后端接口失败：" + e.message);
     } finally {
       setSyncLoading(false);
     }
@@ -296,7 +294,7 @@ export default function UpstreamRatioSync(props) {
         const entry = Object.entries(upMap).find(([_, v]) => v === value);
         if (entry) return entry[0];
       }
-      return t('未知');
+      return "未知";
     };
 
     Object.entries(resolutions).forEach(([model, ratios]) => {
@@ -306,16 +304,16 @@ export default function UpstreamRatioSync(props) {
       if (localCat && localCat !== newCat) {
         const currentDesc =
           localCat === 'price'
-            ? `${t('固定价格')} : ${currentRatios.ModelPrice[model]}`
-            : `${t('模型倍率')} : ${currentRatios.ModelRatio[model] ?? '-'}\n${t('补全倍率')} : ${currentRatios.CompletionRatio[model] ?? '-'}`;
+            ? `${"固定价格"} : ${currentRatios.ModelPrice[model]}`
+            : `${"模型倍率"} : ${currentRatios.ModelRatio[model] ?? '-'}\n${"补全倍率"} : ${currentRatios.CompletionRatio[model] ?? '-'}`;
 
         let newDesc = '';
         if (newCat === 'price') {
-          newDesc = `${t('固定价格')} : ${ratios['model_price']}`;
+          newDesc = `${"固定价格"} : ${ratios['model_price']}`;
         } else {
           const newModelRatio = ratios['model_ratio'] ?? '-';
           const newCompRatio = ratios['completion_ratio'] ?? '-';
-          newDesc = `${t('模型倍率')} : ${newModelRatio}\n${t('补全倍率')} : ${newCompRatio}`;
+          newDesc = `${"模型倍率"} : ${newModelRatio}\n${"补全倍率"} : ${newCompRatio}`;
         }
 
         const channels = Object.entries(ratios)
@@ -385,7 +383,7 @@ export default function UpstreamRatioSync(props) {
         const results = await Promise.all(updates);
 
         if (results.every((res) => res.data.success)) {
-          showSuccess(t('同步成功'));
+          showSuccess("同步成功");
           props.refresh();
 
           setDifferences((prevDifferences) => {
@@ -408,10 +406,10 @@ export default function UpstreamRatioSync(props) {
 
           setResolutions({});
         } else {
-          showError(t('部分保存失败'));
+          showError("部分保存失败");
         }
       } catch (error) {
-        showError(t('保存失败'));
+        showError("保存失败");
       } finally {
         setLoading(false);
       }
@@ -439,7 +437,7 @@ export default function UpstreamRatioSync(props) {
               }
             }}
           >
-            {t('选择同步渠道')}
+            {"选择同步渠道"}
           </Button>
 
           {(() => {
@@ -453,7 +451,7 @@ export default function UpstreamRatioSync(props) {
                 disabled={!hasSelections}
                 className='w-full md:w-auto mt-2'
               >
-                {t('应用同步')}
+                {"应用同步"}
               </Button>
             );
           })()}
@@ -461,7 +459,7 @@ export default function UpstreamRatioSync(props) {
           <div className='flex flex-col sm:flex-row gap-2 w-full md:w-auto mt-2'>
             <Input
               prefix={<IconSearch size={14} />}
-              placeholder={t('搜索模型名称')}
+              placeholder={"搜索模型名称"}
               value={searchKeyword}
               onChange={setSearchKeyword}
               className='w-full sm:w-64'
@@ -469,19 +467,19 @@ export default function UpstreamRatioSync(props) {
             />
 
             <Select
-              placeholder={t('按倍率类型筛选')}
+              placeholder={"按倍率类型筛选"}
               value={ratioTypeFilter}
               onChange={setRatioTypeFilter}
               className='w-full sm:w-48'
               showClear
               onClear={() => setRatioTypeFilter('')}
             >
-              <Select.Option value='model_ratio'>{t('模型倍率')}</Select.Option>
+              <Select.Option value='model_ratio'>{"模型倍率"}</Select.Option>
               <Select.Option value='completion_ratio'>
-                {t('补全倍率')}
+                {"补全倍率"}
               </Select.Option>
-              <Select.Option value='cache_ratio'>{t('缓存倍率')}</Select.Option>
-              <Select.Option value='model_price'>{t('固定价格')}</Select.Option>
+              <Select.Option value='cache_ratio'>{"缓存倍率"}</Select.Option>
+              <Select.Option value='model_price'>{"固定价格"}</Select.Option>
             </Select>
           </div>
         </div>
@@ -552,12 +550,12 @@ export default function UpstreamRatioSync(props) {
           }
           description={
             searchKeyword.trim()
-              ? t('未找到匹配的模型')
+              ? "未找到匹配的模型"
               : Object.keys(differences).length === 0
                 ? hasSynced
-                  ? t('暂无差异化倍率显示')
-                  : t('请先选择同步渠道')
-                : t('请先选择同步渠道')
+                  ? "暂无差异化倍率显示"
+                  : "请先选择同步渠道"
+                : "请先选择同步渠道"
           }
           style={{ padding: 30 }}
         />
@@ -566,19 +564,19 @@ export default function UpstreamRatioSync(props) {
 
     const columns = [
       {
-        title: t('模型'),
+        title: "模型",
         dataIndex: 'model',
         fixed: 'left',
       },
       {
-        title: t('倍率类型'),
+        title: "倍率类型",
         dataIndex: 'ratioType',
         render: (text, record) => {
           const typeMap = {
-            model_ratio: t('模型倍率'),
-            completion_ratio: t('补全倍率'),
-            cache_ratio: t('缓存倍率'),
-            model_price: t('固定价格'),
+            model_ratio: "模型倍率",
+            completion_ratio: "补全倍率",
+            cache_ratio: "缓存倍率",
+            model_price: "固定价格",
           };
           const baseTag = (
             <Tag color={stringToColor(text)} shape='circle'>
@@ -591,9 +589,7 @@ export default function UpstreamRatioSync(props) {
                 {baseTag}
                 <Tooltip
                   position='top'
-                  content={t(
-                    '该模型存在固定价格与倍率计费方式冲突，请确认选择',
-                  )}
+                  content={"该模型存在固定价格与倍率计费方式冲突，请确认选择"}
                 >
                   <AlertTriangle size={14} className='text-yellow-500' />
                 </Tooltip>
@@ -604,7 +600,7 @@ export default function UpstreamRatioSync(props) {
         },
       },
       {
-        title: t('置信度'),
+        title: "置信度",
         dataIndex: 'confidence',
         render: (_, record) => {
           const allConfident = Object.values(record.confidence || {}).every(
@@ -613,14 +609,14 @@ export default function UpstreamRatioSync(props) {
 
           if (allConfident) {
             return (
-              <Tooltip content={t('所有上游数据均可信')}>
+              <Tooltip content={"所有上游数据均可信"}>
                 <Tag
                   color='green'
                   shape='circle'
                   type='light'
                   prefixIcon={<CheckCircle size={14} />}
                 >
-                  {t('可信')}
+                  {"可信"}
                 </Tag>
               </Tooltip>
             );
@@ -632,7 +628,7 @@ export default function UpstreamRatioSync(props) {
 
             return (
               <Tooltip
-                content={t('以下上游数据可能不可信：') + untrustedSources}
+                content={"以下上游数据可能不可信：" + untrustedSources}
               >
                 <Tag
                   color='yellow'
@@ -640,7 +636,7 @@ export default function UpstreamRatioSync(props) {
                   type='light'
                   prefixIcon={<AlertTriangle size={14} />}
                 >
-                  {t('谨慎')}
+                  {"谨慎"}
                 </Tag>
               </Tooltip>
             );
@@ -648,14 +644,14 @@ export default function UpstreamRatioSync(props) {
         },
       },
       {
-        title: t('当前值'),
+        title: "当前值",
         dataIndex: 'current',
         render: (text) => (
           <Tag
             color={text !== null && text !== undefined ? 'blue' : 'default'}
             shape='circle'
           >
-            {text !== null && text !== undefined ? String(text) : t('未设置')}
+            {text !== null && text !== undefined ? String(text) : "未设置"}
           </Tag>
         ),
       },
@@ -739,7 +735,7 @@ export default function UpstreamRatioSync(props) {
             if (upstreamVal === null || upstreamVal === undefined) {
               return (
                 <Tag color='default' shape='circle'>
-                  {t('未设置')}
+                  {"未设置"}
                 </Tag>
               );
             }
@@ -747,7 +743,7 @@ export default function UpstreamRatioSync(props) {
             if (upstreamVal === 'same') {
               return (
                 <Tag color='blue' shape='circle'>
-                  {t('与本地相同')}
+                  {"与本地相同"}
                 </Tag>
               );
             }
@@ -782,7 +778,7 @@ export default function UpstreamRatioSync(props) {
                 {!isConfident && (
                   <Tooltip
                     position='left'
-                    content={t('该数据可能不可信，请谨慎使用')}
+                    content={"该数据可能不可信，请谨慎使用"}
                   >
                     <AlertTriangle size={16} className='text-yellow-500' />
                   </Tooltip>
@@ -840,7 +836,6 @@ export default function UpstreamRatioSync(props) {
 
       <ChannelSelectorModal
         ref={channelSelectorRef}
-        t={t}
         visible={modalVisible}
         onCancel={handleModalClose}
         onOk={confirmChannelSelection}
@@ -852,7 +847,6 @@ export default function UpstreamRatioSync(props) {
       />
 
       <ConflictConfirmModal
-        t={t}
         visible={confirmVisible}
         items={conflictItems}
         onOk={async () => {

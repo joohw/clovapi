@@ -14,8 +14,6 @@ import {
 } from '../../helpers';
 import { UserContext } from '../../context/User';
 import { Modal } from '@douyinfe/semi-ui';
-import { useTranslation } from 'react-i18next';
-
 // 导入子组件
 import UserInfoHeader from './personal/components/UserInfoHeader';
 import AccountManagement from './personal/cards/AccountManagement';
@@ -30,8 +28,6 @@ import ChangePasswordModal from './personal/modals/ChangePasswordModal';
 const PersonalSetting = () => {
   const [userState, userDispatch] = useContext(UserContext);
   let navigate = useNavigate();
-  const { t } = useTranslation();
-
   const [inputs, setInputs] = useState({
     wechat_verification_code: '',
     email_verification_code: '',
@@ -159,7 +155,7 @@ const PersonalSetting = () => {
     if (success) {
       setSystemToken(data);
       await copy(data);
-      showSuccess(t('令牌已重置并已复制到剪贴板'));
+      showSuccess("令牌已重置并已复制到剪贴板");
     } else {
       showError(message);
     }
@@ -186,7 +182,7 @@ const PersonalSetting = () => {
 
   const handleRegisterPasskey = async () => {
     if (!passkeySupported || !window.PublicKeyCredential) {
-      showInfo(t('当前设备不支持 Passkey'));
+      showInfo("当前设备不支持 Passkey");
       return;
     }
     setPasskeyRegisterLoading(true);
@@ -194,7 +190,7 @@ const PersonalSetting = () => {
       const beginRes = await API.post('/api/user/passkey/register/begin');
       const { success, message, data } = beginRes.data;
       if (!success) {
-        showError(message || t('无法发起 Passkey 注册'));
+        showError(message || "无法发起 Passkey 注册");
         return;
       }
 
@@ -204,7 +200,7 @@ const PersonalSetting = () => {
       const credential = await navigator.credentials.create({ publicKey });
       const payload = buildRegistrationResult(credential);
       if (!payload) {
-        showError(t('Passkey 注册失败，请重试'));
+        showError("Passkey 注册失败，请重试");
         return;
       }
 
@@ -213,16 +209,16 @@ const PersonalSetting = () => {
         payload,
       );
       if (finishRes.data.success) {
-        showSuccess(t('Passkey 注册成功'));
+        showSuccess("Passkey 注册成功");
         await loadPasskeyStatus();
       } else {
-        showError(finishRes.data.message || t('Passkey 注册失败，请重试'));
+        showError(finishRes.data.message || "Passkey 注册失败，请重试");
       }
     } catch (error) {
       if (error?.name === 'AbortError') {
-        showInfo(t('已取消 Passkey 注册'));
+        showInfo("已取消 Passkey 注册");
       } else {
-        showError(t('Passkey 注册失败，请重试'));
+        showError("Passkey 注册失败，请重试");
       }
     } finally {
       setPasskeyRegisterLoading(false);
@@ -235,13 +231,13 @@ const PersonalSetting = () => {
       const res = await API.delete('/api/user/passkey');
       const { success, message } = res.data;
       if (success) {
-        showSuccess(t('Passkey 已解绑'));
+        showSuccess("Passkey 已解绑");
         await loadPasskeyStatus();
       } else {
-        showError(message || t('操作失败，请重试'));
+        showError(message || "操作失败，请重试");
       }
     } catch (error) {
-      showError(t('操作失败，请重试'));
+      showError("操作失败，请重试");
     } finally {
       setPasskeyDeleteLoading(false);
     }
@@ -262,12 +258,12 @@ const PersonalSetting = () => {
   const handleSystemTokenClick = async (e) => {
     e.target.select();
     await copy(e.target.value);
-    showSuccess(t('系统令牌已复制到剪切板'));
+    showSuccess("系统令牌已复制到剪切板");
   };
 
   const deleteAccount = async () => {
     if (inputs.self_account_deletion_confirmation !== userState.user.username) {
-      showError(t('请输入你的账户名以确认删除！'));
+      showError("请输入你的账户名以确认删除！");
       return;
     }
 
@@ -275,7 +271,7 @@ const PersonalSetting = () => {
     const { success, message } = res.data;
 
     if (success) {
-      showSuccess(t('账户已删除！'));
+      showSuccess("账户已删除！");
       await API.get('/api/user/logout');
       userDispatch({ type: 'logout' });
       localStorage.removeItem('user');
@@ -292,7 +288,7 @@ const PersonalSetting = () => {
     });
     const { success, message } = res.data;
     if (success) {
-      showSuccess(t('微信账户绑定成功！'));
+      showSuccess("微信账户绑定成功！");
       setShowWeChatBindModal(false);
     } else {
       showError(message);
@@ -301,19 +297,19 @@ const PersonalSetting = () => {
 
   const changePassword = async () => {
     // if (inputs.original_password === '') {
-    //   showError(t('请输入原密码！'));
+    //   showError("请输入原密码！");
     //   return;
     // }
     if (inputs.set_new_password === '') {
-      showError(t('请输入新密码！'));
+      showError("请输入新密码！");
       return;
     }
     if (inputs.original_password === inputs.set_new_password) {
-      showError(t('新密码需要和原密码不一致！'));
+      showError("新密码需要和原密码不一致！");
       return;
     }
     if (inputs.set_new_password !== inputs.set_new_password_confirmation) {
-      showError(t('两次输入的密码不一致！'));
+      showError("两次输入的密码不一致！");
       return;
     }
     const res = await API.put(`/api/user/self`, {
@@ -322,7 +318,7 @@ const PersonalSetting = () => {
     });
     const { success, message } = res.data;
     if (success) {
-      showSuccess(t('密码修改成功！'));
+      showSuccess("密码修改成功！");
       setShowWeChatBindModal(false);
     } else {
       showError(message);
@@ -332,12 +328,12 @@ const PersonalSetting = () => {
 
   const sendVerificationCode = async () => {
     if (inputs.email === '') {
-      showError(t('请输入邮箱！'));
+      showError("请输入邮箱！");
       return;
     }
     setDisableButton(true);
     if (turnstileEnabled && turnstileToken === '') {
-      showInfo(t('请稍后几秒重试，Turnstile 正在检查用户环境！'));
+      showInfo("请稍后几秒重试，Turnstile 正在检查用户环境！");
       return;
     }
     setLoading(true);
@@ -346,7 +342,7 @@ const PersonalSetting = () => {
     );
     const { success, message } = res.data;
     if (success) {
-      showSuccess(t('验证码发送成功，请检查邮箱！'));
+      showSuccess("验证码发送成功，请检查邮箱！");
     } else {
       showError(message);
     }
@@ -355,7 +351,7 @@ const PersonalSetting = () => {
 
   const bindEmail = async () => {
     if (inputs.email_verification_code === '') {
-      showError(t('请输入邮箱验证码！'));
+      showError("请输入邮箱验证码！");
       return;
     }
     setLoading(true);
@@ -365,7 +361,7 @@ const PersonalSetting = () => {
     });
     const { success, message } = res.data;
     if (success) {
-      showSuccess(t('邮箱账户绑定成功！'));
+      showSuccess("邮箱账户绑定成功！");
       setShowEmailBindModal(false);
       userState.user.email = inputs.email;
     } else {
@@ -376,10 +372,10 @@ const PersonalSetting = () => {
 
   const copyText = async (text) => {
     if (await copy(text)) {
-      showSuccess(t('已复制：') + text);
+      showSuccess("已复制：" + text);
     } else {
       // setSearchKeyword(text);
-      Modal.error({ title: t('无法复制到剪贴板，请手动复制'), content: text });
+      Modal.error({ title: "无法复制到剪贴板，请手动复制", content: text });
     }
   };
 
@@ -419,13 +415,13 @@ const PersonalSetting = () => {
       });
 
       if (res.data.success) {
-        showSuccess(t('设置保存成功'));
+        showSuccess("设置保存成功");
         await getUserData();
       } else {
         showError(res.data.message);
       }
     } catch (error) {
-      showError(t('设置保存失败'));
+      showError("设置保存失败");
     }
   };
 
@@ -434,13 +430,12 @@ const PersonalSetting = () => {
       <div className='flex justify-center'>
         <div className='w-full max-w-7xl mx-auto px-2'>
           {/* 顶部用户信息区域 */}
-          <UserInfoHeader t={t} userState={userState} />
+          <UserInfoHeader userState={userState} />
 
           {/* 签到日历 - 仅在启用时显示 */}
           {status?.checkin_enabled && (
             <div className='mt-4 md:mt-6'>
               <CheckinCalendar
-                t={t}
                 status={status}
                 turnstileEnabled={turnstileEnabled}
                 turnstileSiteKey={turnstileSiteKey}
@@ -453,7 +448,6 @@ const PersonalSetting = () => {
             {/* 左侧：账户管理设置 */}
             <div className='flex flex-col gap-4 md:gap-6'>
               <AccountManagement
-                t={t}
                 userState={userState}
                 status={status}
                 systemToken={systemToken}
@@ -472,12 +466,11 @@ const PersonalSetting = () => {
               />
 
               {/* 偏好设置（语言等） */}
-              <PreferencesSettings t={t} />
+              <PreferencesSettings />
             </div>
 
             {/* 右侧：其他设置 */}
             <NotificationSettings
-              t={t}
               notificationSettings={notificationSettings}
               handleNotificationSettingChange={handleNotificationSettingChange}
               saveNotificationSettings={saveNotificationSettings}
@@ -488,7 +481,6 @@ const PersonalSetting = () => {
 
       {/* 模态框组件 */}
       <EmailBindModal
-        t={t}
         showEmailBindModal={showEmailBindModal}
         setShowEmailBindModal={setShowEmailBindModal}
         inputs={inputs}
@@ -504,7 +496,6 @@ const PersonalSetting = () => {
       />
 
       <WeChatBindModal
-        t={t}
         showWeChatBindModal={showWeChatBindModal}
         setShowWeChatBindModal={setShowWeChatBindModal}
         inputs={inputs}
@@ -514,7 +505,6 @@ const PersonalSetting = () => {
       />
 
       <AccountDeleteModal
-        t={t}
         showAccountDeleteModal={showAccountDeleteModal}
         setShowAccountDeleteModal={setShowAccountDeleteModal}
         inputs={inputs}
@@ -527,7 +517,6 @@ const PersonalSetting = () => {
       />
 
       <ChangePasswordModal
-        t={t}
         showChangePasswordModal={showChangePasswordModal}
         setShowChangePasswordModal={setShowChangePasswordModal}
         inputs={inputs}

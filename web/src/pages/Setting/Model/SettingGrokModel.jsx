@@ -7,8 +7,6 @@ import {
   showSuccess,
   showWarning,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 const XAI_VIOLATION_FEE_DOC_URL =
   'https://docs.x.ai/docs/models#usage-guidelines-violation-fee';
 
@@ -18,8 +16,6 @@ const DEFAULT_GROK_INPUTS = {
 };
 
 export default function SettingGrokModel(props) {
-  const { t } = useTranslation();
-
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState(DEFAULT_GROK_INPUTS);
   const [inputsRow, setInputsRow] = useState(DEFAULT_GROK_INPUTS);
@@ -30,7 +26,7 @@ export default function SettingGrokModel(props) {
       .validate()
       .then(() => {
         const updateArray = compareObjects(inputs, inputsRow);
-        if (!updateArray.length) return showWarning(t('你似乎并没有修改什么'));
+        if (!updateArray.length) return showWarning("你似乎并没有修改什么");
 
         const requestQueue = updateArray.map((item) => {
           const value = String(inputs[item.key]);
@@ -44,13 +40,13 @@ export default function SettingGrokModel(props) {
               if (res.includes(undefined)) return;
             } else if (requestQueue.length > 1) {
               if (res.includes(undefined))
-                return showError(t('部分保存失败，请重试'));
+                return showError("部分保存失败，请重试");
             }
-            showSuccess(t('保存成功'));
+            showSuccess("保存成功");
             props.refresh();
           })
           .catch(() => {
-            showError(t('保存失败，请重试'));
+            showError("保存失败，请重试");
           })
           .finally(() => {
             setLoading(false);
@@ -58,7 +54,7 @@ export default function SettingGrokModel(props) {
       })
       .catch((error) => {
         console.error('Validation failed:', error);
-        showError(t('请检查输入'));
+        showError("请检查输入");
       });
   }
 
@@ -84,11 +80,11 @@ export default function SettingGrokModel(props) {
         getFormApi={(formAPI) => (refForm.current = formAPI)}
         style={{ marginBottom: 15 }}
       >
-        <Form.Section text={t('Grok设置')}>
+        <Form.Section text={"Grok设置"}>
           <Row>
             <Col xs={24} sm={12} md={8} lg={8} xl={8}>
               <Form.Switch
-                label={t('启用违规扣费')}
+                label={"启用违规扣费"}
                 field={'grok.violation_deduction_enabled'}
                 onChange={(value) =>
                   setInputs({
@@ -98,13 +94,13 @@ export default function SettingGrokModel(props) {
                 }
                 extraText={
                   <span>
-                    {t('开启后，违规请求将额外扣费。')}{' '}
+                    {"开启后，违规请求将额外扣费。"}{' '}
                     <a
                       href={XAI_VIOLATION_FEE_DOC_URL}
                       target='_blank'
                       rel='noreferrer'
                     >
-                      {t('官方说明')}
+                      {"官方说明"}
                     </a>
                   </span>
                 }
@@ -115,7 +111,7 @@ export default function SettingGrokModel(props) {
           <Row>
             <Col xs={24} sm={12} md={8} lg={8} xl={8}>
               <Form.InputNumber
-                label={t('违规扣费金额')}
+                label={"违规扣费金额"}
                 field={'grok.violation_deduction_amount'}
                 min={0}
                 step={0.01}
@@ -129,13 +125,13 @@ export default function SettingGrokModel(props) {
                 }
                 extraText={
                   <span>
-                    {t('这是基础金额，实际扣费 = 基础金额 x 系统分组倍率。')}{' '}
+                    {"这是基础金额，实际扣费 = 基础金额 x 系统分组倍率。"}{' '}
                     <a
                       href={XAI_VIOLATION_FEE_DOC_URL}
                       target='_blank'
                       rel='noreferrer'
                     >
-                      {t('官方说明')}
+                      {"官方说明"}
                     </a>
                   </span>
                 }
@@ -145,7 +141,7 @@ export default function SettingGrokModel(props) {
 
           <Row>
             <Button size='default' onClick={onSubmit}>
-              {t('保存')}
+              {"保存"}
             </Button>
           </Row>
         </Form.Section>

@@ -52,13 +52,13 @@ const ChannelsActions = ({
             className='w-full md:w-auto'
             onClick={() => {
               Modal.confirm({
-                title: t('确定是否要删除所选通道？'),
-                content: t('此修改将不可逆'),
+                title: "确定是否要删除所选通道？",
+                content: "此修改将不可逆",
                 onOk: () => batchDeleteChannels(),
               });
             }}
           >
-            {t('删除所选通道')}
+            {"删除所选通道"}
           </Button>
 
           <Button
@@ -68,7 +68,7 @@ const ChannelsActions = ({
             onClick={() => setShowBatchSetTag(true)}
             className='w-full md:w-auto'
           >
-            {t('批量设置标签')}
+            {"批量设置标签"}
           </Button>
 
           <Dropdown
@@ -85,15 +85,15 @@ const ChannelsActions = ({
                     disabled={detectAllUpstreamUpdatesLoading}
                     onClick={() => {
                       Modal.confirm({
-                        title: t('确定？'),
-                        content: t('确定要测试所有未手动禁用渠道吗？'),
+                        title: "确定？",
+                        content: "确定要测试所有未手动禁用渠道吗？",
                         onOk: () => testAllChannels(),
                         size: 'small',
                         centered: true,
                       });
                     }}
                   >
-                    {t('测试所有未手动禁用渠道')}
+                    {"测试所有未手动禁用渠道"}
                   </Button>
                 </Dropdown.Item>
                 <Dropdown.Item>
@@ -102,17 +102,15 @@ const ChannelsActions = ({
                     className='w-full'
                     onClick={() => {
                       Modal.confirm({
-                        title: t('确定是否要修复数据库一致性？'),
-                        content: t(
-                          '进行该操作时，可能导致渠道访问错误，请仅在数据库出现问题时使用',
-                        ),
+                        title: "确定是否要修复数据库一致性？",
+                        content: "进行该操作时，可能导致渠道访问错误，请仅在数据库出现问题时使用",
                         onOk: () => fixChannelsAbilities(),
                         size: 'sm',
                         centered: true,
                       });
                     }}
                   >
-                    {t('修复数据库一致性')}
+                    {"修复数据库一致性"}
                   </Button>
                 </Dropdown.Item>
                 <Dropdown.Item>
@@ -122,15 +120,15 @@ const ChannelsActions = ({
                     className='w-full'
                     onClick={() => {
                       Modal.confirm({
-                        title: t('确定？'),
-                        content: t('确定要更新所有已启用通道余额吗？'),
+                        title: "确定？",
+                        content: "确定要更新所有已启用通道余额吗？",
                         onOk: () => updateAllChannelsBalance(),
                         size: 'sm',
                         centered: true,
                       });
                     }}
                   >
-                    {t('更新所有已启用通道余额')}
+                    {"更新所有已启用通道余额"}
                   </Button>
                 </Dropdown.Item>
                 <Dropdown.Item>
@@ -140,17 +138,15 @@ const ChannelsActions = ({
                     className='w-full'
                     onClick={() => {
                       Modal.confirm({
-                        title: t('确定？'),
-                        content: t(
-                          '确定要仅检测全部渠道上游模型更新吗？（不执行新增/删除）',
-                        ),
+                        title: "确定？",
+                        content: "确定要仅检测全部渠道上游模型更新吗？（不执行新增/删除）",
                         onOk: () => detectAllUpstreamUpdates(),
                         size: 'sm',
                         centered: true,
                       });
                     }}
                   >
-                    {t('检测全部渠道上游更新')}
+                    {"检测全部渠道上游更新"}
                   </Button>
                 </Dropdown.Item>
                 <Dropdown.Item>
@@ -162,15 +158,15 @@ const ChannelsActions = ({
                     disabled={applyAllUpstreamUpdatesLoading}
                     onClick={() => {
                       Modal.confirm({
-                        title: t('确定？'),
-                        content: t('确定要对全部渠道执行上游模型更新吗？'),
+                        title: "确定？",
+                        content: "确定要对全部渠道执行上游模型更新吗？",
                         onOk: () => applyAllUpstreamUpdates(),
                         size: 'sm',
                         centered: true,
                       });
                     }}
                   >
-                    {t('处理全部渠道上游更新')}
+                    {"处理全部渠道上游更新"}
                   </Button>
                 </Dropdown.Item>
                 <Dropdown.Item>
@@ -180,15 +176,15 @@ const ChannelsActions = ({
                     className='w-full'
                     onClick={() => {
                       Modal.confirm({
-                        title: t('确定是否要删除禁用通道？'),
-                        content: t('此修改将不可逆'),
+                        title: "确定是否要删除禁用通道？",
+                        content: "此修改将不可逆",
                         onOk: () => deleteAllDisabledChannels(),
                         size: 'sm',
                         centered: true,
                       });
                     }}
                   >
-                    {t('删除禁用通道')}
+                    {"删除禁用通道"}
                   </Button>
                 </Dropdown.Item>
               </Dropdown.Menu>
@@ -200,14 +196,13 @@ const ChannelsActions = ({
               type='tertiary'
               className='w-full md:w-auto'
             >
-              {t('批量操作')}
+              {"批量操作"}
             </Button>
           </Dropdown>
 
           <CompactModeToggle
             compactMode={compactMode}
             setCompactMode={setCompactMode}
-            t={t}
           />
         </div>
 
@@ -215,7 +210,7 @@ const ChannelsActions = ({
         <div className='flex flex-col md:flex-row items-start md:items-center gap-2 w-full md:w-auto order-1 md:order-2'>
           <div className='flex items-center justify-between w-full md:w-auto'>
             <Typography.Text strong className='mr-2'>
-              {t('使用ID排序')}
+              {"使用ID排序"}
             </Typography.Text>
             <Switch
               size='small'
@@ -247,7 +242,7 @@ const ChannelsActions = ({
 
           <div className='flex items-center justify-between w-full md:w-auto'>
             <Typography.Text strong className='mr-2'>
-              {t('开启批量操作')}
+              {"开启批量操作"}
             </Typography.Text>
             <Switch
               size='small'
@@ -261,7 +256,7 @@ const ChannelsActions = ({
 
           <div className='flex items-center justify-between w-full md:w-auto'>
             <Typography.Text strong className='mr-2'>
-              {t('标签聚合模式')}
+              {"标签聚合模式"}
             </Typography.Text>
             <Switch
               size='small'
@@ -277,7 +272,7 @@ const ChannelsActions = ({
 
           <div className='flex items-center justify-between w-full md:w-auto'>
             <Typography.Text strong className='mr-2'>
-              {t('状态筛选')}
+              {"状态筛选"}
             </Typography.Text>
             <Select
               size='small'
@@ -296,9 +291,9 @@ const ChannelsActions = ({
                 );
               }}
             >
-              <Select.Option value='all'>{t('全部')}</Select.Option>
-              <Select.Option value='enabled'>{t('已启用')}</Select.Option>
-              <Select.Option value='disabled'>{t('已禁用')}</Select.Option>
+              <Select.Option value='all'>{"全部"}</Select.Option>
+              <Select.Option value='enabled'>{"已启用"}</Select.Option>
+              <Select.Option value='disabled'>{"已禁用"}</Select.Option>
             </Select>
           </div>
         </div>

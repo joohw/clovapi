@@ -4,7 +4,6 @@ import {
   Button,
   Space,
   Toast,
-  Typography,
   Select,
 } from '@douyinfe/semi-ui';
 import {
@@ -13,30 +12,14 @@ import {
   getModelCategories,
   selectFilter,
 } from '../../../helpers';
-import CardPro from '../../common/ui/CardPro';
 import TokensTable from './TokensTable';
-import TokensActions from './TokensActions';
-import TokensFilters from './TokensFilters';
-import TokensDescription from './TokensDescription';
 import EditTokenModal from './modals/EditTokenModal';
-import CCSwitchModal from './modals/CCSwitchModal';
 import { useTokensData } from '../../../hooks/tokens/useTokensData';
-import { useIsMobile } from '../../../hooks/common/useIsMobile';
-import { createCardProPagination } from '../../../helpers/utils';
 
 function TokensPage() {
-  // Define the function first, then pass it into the hook to avoid TDZ errors
-  const openFluentNotificationRef = useRef(null);
-  const openCCSwitchModalRef = useRef(null);
-  const tokensData = useTokensData(
-    (key) => openFluentNotificationRef.current?.(key),
-    (key) => openCCSwitchModalRef.current?.(key),
-  );
-  const isMobile = useIsMobile();
+  const tokensData = useTokensData();
   const latestRef = useRef({
     tokens: [],
-    selectedKeys: [],
-    t: (k) => k,
     selectedModel: '',
     prefillKey: '',
     fetchTokenKey: async () => '',
@@ -45,23 +28,17 @@ function TokensPage() {
   const [selectedModel, setSelectedModel] = useState('');
   const [fluentNoticeOpen, setFluentNoticeOpen] = useState(false);
   const [prefillKey, setPrefillKey] = useState('');
-  const [ccSwitchVisible, setCCSwitchVisible] = useState(false);
-  const [ccSwitchKey, setCCSwitchKey] = useState('');
 
   // Keep latest data for handlers inside notifications
   useEffect(() => {
     latestRef.current = {
       tokens: tokensData.tokens,
-      selectedKeys: tokensData.selectedKeys,
-      t: tokensData.t,
       selectedModel,
       prefillKey,
       fetchTokenKey: tokensData.fetchTokenKey,
     };
   }, [
     tokensData.tokens,
-    tokensData.selectedKeys,
-    tokensData.t,
     selectedModel,
     prefillKey,
     tokensData.fetchTokenKey,
@@ -72,7 +49,7 @@ function TokensPage() {
       const res = await API.get('/api/user/models');
       const { success, message, data } = res.data || {};
       if (success) {
-        const categories = getModelCategories(tokensData.t);
+        const categories = getModelCategories();
         const options = (data || []).map((model) => {
           let icon = null;
           for (const [key, category] of Object.entries(categories)) {
@@ -93,7 +70,7 @@ function TokensPage() {
         });
         setModelOptions(options);
       } else {
-        showError(tokensData.t(message));
+        showError(message);
       }
     } catch (e) {
       showError(e.message || 'Failed to load models');
@@ -101,7 +78,6 @@ function TokensPage() {
   };
 
   function openFluentNotification(key) {
-    const { t } = latestRef.current;
     const SUPPRESS_KEY = 'fluent_notify_suppressed';
     if (modelOptions.length === 0) {
       // fire-and-forget; a later effect will refresh the notice content
@@ -110,31 +86,31 @@ function TokensPage() {
     if (!key && localStorage.getItem(SUPPRESS_KEY) === '1') return;
     const container = document.getElementById('fluent-new-api-container');
     if (!container) {
-      Toast.warning(t('未检测到 FluentRead（流畅阅读），请确认扩展已启用'));
+      Toast.warning("未检测到 FluentRead（流畅阅读），请确认扩展已启用");
       return;
     }
     setPrefillKey(key || '');
     setFluentNoticeOpen(true);
     Notification.info({
       id: 'fluent-detected',
-      title: t('检测到 FluentRead（流畅阅读）'),
+      title: "检测到 FluentRead（流畅阅读）",
       content: (
         <div>
           <div style={{ marginBottom: 8 }}>
             {key
-              ? t('请选择模型。')
-              : t('选择模型后可一键填充当前选中令牌（或本页第一个令牌）。')}
+              ? "请选择模型。"
+              : "选择模型后可一键填充当前选中令牌（或本页第一个令牌）。"}
           </div>
           <div style={{ marginBottom: 8 }}>
             <Select
-              placeholder={t('请选择模型')}
+              placeholder={"请选择模型"}
               optionList={modelOptions}
               onChange={setSelectedModel}
               filter={selectFilter}
               style={{ width: 320 }}
               showClear
               searchable
-              emptyContent={t('暂无数据')}
+              emptyContent={"暂无数据"}
             />
           </div>
           <Space>
@@ -143,7 +119,7 @@ function TokensPage() {
               type='primary'
               onClick={handlePrefillToFluent}
             >
-              {t('一键填充到 FluentRead')}
+              {"一键填充到 FluentRead"}
             </Button>
             {!key && (
               <Button
@@ -151,17 +127,17 @@ function TokensPage() {
                 onClick={() => {
                   localStorage.setItem(SUPPRESS_KEY, '1');
                   Notification.close('fluent-detected');
-                  Toast.info(t('已关闭后续提醒'));
+                  Toast.info("已关闭后续提醒");
                 }}
               >
-                {t('不再提醒')}
+                {"不再提醒"}
               </Button>
             )}
             <Button
               type='tertiary'
               onClick={() => Notification.close('fluent-detected')}
             >
-              {t('关闭')}
+              {"关闭"}
             </Button>
           </Space>
         </div>
@@ -169,36 +145,22 @@ function TokensPage() {
       duration: 0,
     });
   }
-  // assign after definition so hook callback can call it safely
-  openFluentNotificationRef.current = openFluentNotification;
-
-  function openCCSwitchModal(key) {
-    if (modelOptions.length === 0) {
-      loadModels();
-    }
-    setCCSwitchKey(key || '');
-    setCCSwitchVisible(true);
-  }
-  openCCSwitchModalRef.current = openCCSwitchModal;
-
   // Prefill to Fluent handler
   const handlePrefillToFluent = async () => {
     const {
       tokens,
-      selectedKeys,
-      t,
       selectedModel: chosenModel,
       prefillKey: overrideKey,
       fetchTokenKey,
     } = latestRef.current;
     const container = document.getElementById('fluent-new-api-container');
     if (!container) {
-      Toast.error(t('未检测到 Fluent 容器'));
+      Toast.error("未检测到 Fluent 容器");
       return;
     }
 
     if (!chosenModel) {
-      Toast.warning(t('请选择模型'));
+      Toast.warning("请选择模型");
       return;
     }
 
@@ -216,14 +178,9 @@ function TokensPage() {
     if (overrideKey) {
       apiKeyToUse = 'sk-' + overrideKey;
     } else {
-      const token =
-        selectedKeys && selectedKeys.length === 1
-          ? selectedKeys[0]
-          : tokens && tokens.length > 0
-            ? tokens[0]
-            : null;
+      const token = tokens && tokens.length > 0 ? tokens[0] : null;
       if (!token) {
-        Toast.warning(t('没有可用令牌用于填充'));
+        Toast.warning("没有可用令牌用于填充");
         return;
       }
       try {
@@ -243,7 +200,7 @@ function TokensPage() {
     container.dispatchEvent(
       new CustomEvent('fluent:prefill', { detail: payload }),
     );
-    Toast.success(t('已发送到 Fluent'));
+    Toast.success("已发送到 Fluent");
     Notification.close('fluent-detected');
   };
 
@@ -271,7 +228,7 @@ function TokensPage() {
       openFluentNotification();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modelOptions, selectedModel, tokensData.t, fluentNoticeOpen]);
+  }, [modelOptions, selectedModel, fluentNoticeOpen]);
 
   useEffect(() => {
     const selector = '#fluent-new-api-container';
@@ -333,27 +290,8 @@ function TokensPage() {
     editingToken,
     closeEdit,
     refresh,
-
-    // Actions state
-    selectedKeys,
     setEditingToken,
     setShowEdit,
-    batchCopyTokens,
-    batchDeleteTokens,
-
-    // Filters state
-    formInitValues,
-    setFormApi,
-    searchTokens,
-    loading,
-    searching,
-
-    // Description state
-    compactMode,
-    setCompactMode,
-
-    // Translation
-    t,
   } = tokensData;
 
   return (
@@ -364,59 +302,19 @@ function TokensPage() {
         visiable={showEdit}
         handleClose={closeEdit}
       />
-
-      <CCSwitchModal
-        visible={ccSwitchVisible}
-        onClose={() => setCCSwitchVisible(false)}
-        tokenKey={ccSwitchKey}
-        modelOptions={modelOptions}
-      />
-
-      <CardPro
-        type='type1'
-        descriptionArea={
-          <TokensDescription
-            compactMode={compactMode}
-            setCompactMode={setCompactMode}
-            t={t}
-          />
-        }
-        actionsArea={
-          <div className='flex flex-col md:flex-row justify-between items-center gap-2 w-full'>
-            <TokensActions
-              selectedKeys={selectedKeys}
-              setEditingToken={setEditingToken}
-              setShowEdit={setShowEdit}
-              batchCopyTokens={batchCopyTokens}
-              batchDeleteTokens={batchDeleteTokens}
-              t={t}
-            />
-
-            <div className='w-full md:w-full lg:w-auto order-1 md:order-2'>
-              <TokensFilters
-                formInitValues={formInitValues}
-                setFormApi={setFormApi}
-                searchTokens={searchTokens}
-                loading={loading}
-                searching={searching}
-                t={t}
-              />
-            </div>
-          </div>
-        }
-        paginationArea={createCardProPagination({
-          currentPage: tokensData.activePage,
-          pageSize: tokensData.pageSize,
-          total: tokensData.tokenCount,
-          onPageChange: tokensData.handlePageChange,
-          onPageSizeChange: tokensData.handlePageSizeChange,
-          isMobile: isMobile,
-          t: tokensData.t,
-        })}
-        t={tokensData.t}
-      >
-        <TokensTable {...tokensData} />
-      </CardPro>
+      <div className='flex justify-end mb-2'>
+        <Button
+          type='primary'
+          size='small'
+          onClick={() => {
+            setEditingToken({ id: undefined });
+            setShowEdit(true);
+          }}
+        >
+          {"添加令牌"}
+        </Button>
+      </div>
+      <TokensTable {...tokensData} />
     </>
   );
 }

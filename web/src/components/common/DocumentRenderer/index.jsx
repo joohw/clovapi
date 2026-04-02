@@ -6,7 +6,6 @@ import {
   IllustrationConstruction,
   IllustrationConstructionDark,
 } from '@douyinfe/semi-illustrations';
-import { useTranslation } from 'react-i18next';
 import MarkdownRenderer from '../markdown/MarkdownRenderer';
 
 // 检查是否为 URL
@@ -54,7 +53,6 @@ const sanitizeHtml = (html) => {
  * @param {string} emptyMessage - 空内容时的提示消息
  */
 const DocumentRenderer = ({ apiEndpoint, title, cacheKey, emptyMessage }) => {
-  const { t } = useTranslation();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [htmlStyles, setHtmlStyles] = useState('');
@@ -145,7 +143,7 @@ const DocumentRenderer = ({ apiEndpoint, title, cacheKey, emptyMessage }) => {
     return (
       <div className='flex justify-center items-center min-h-screen bg-gray-50'>
         <Empty
-          title={t('管理员未设置' + title + '内容')}
+          title={'管理员未设置' + title + '内容'}
           image={
             <IllustrationConstruction style={{ width: 150, height: 150 }} />
           }
@@ -168,17 +166,17 @@ const DocumentRenderer = ({ apiEndpoint, title, cacheKey, emptyMessage }) => {
               {title}
             </Title>
             <p className='text-gray-600 mb-4'>
-              {t('管理员设置了外部链接，点击下方按钮访问')}
+              {"管理员设置了外部链接，点击下方按钮访问"}
             </p>
             <a
               href={content.trim()}
               target='_blank'
               rel='noopener noreferrer'
               title={content.trim()}
-              aria-label={`${t('访问' + title)}: ${content.trim()}`}
+              aria-label={`访问${title}: ${content.trim()}`}
               className='inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
             >
-              {t('访问' + title)}
+              {'访问' + title}
             </a>
           </div>
         </Card>

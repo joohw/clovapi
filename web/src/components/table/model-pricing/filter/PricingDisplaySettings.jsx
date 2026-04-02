@@ -5,12 +5,11 @@ const PricingDisplaySettings = ({
   showRatio,
   setShowRatio,
   loading = false,
-  t,
 }) => {
   const items = [
     {
       value: 'ratio',
-      label: t('显示倍率'),
+      label: "显示倍率",
     },
   ];
 
@@ -31,14 +30,13 @@ const PricingDisplaySettings = ({
   return (
     <div>
       <SelectableButtonGroup
-        title={t('显示设置')}
+        title={"显示设置"}
         items={items}
         activeValue={getActiveValues()}
         onChange={handleChange}
         withCheckbox
         collapsible={false}
         loading={loading}
-        t={t}
       />
     </div>
   );

@@ -1,5 +1,5 @@
-import React, { useContext, useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { useContext, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { StatusContext } from '../../context/Status';
 
 const SetupCheck = ({ children }) => {

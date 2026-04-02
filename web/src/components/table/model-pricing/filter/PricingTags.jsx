@@ -8,7 +8,6 @@ import SelectableButtonGroup from '../../../common/ui/SelectableButtonGroup';
  * @param {Array} models 当前过滤后模型列表（用于计数）
  * @param {Array} allModels 所有模型列表（用于获取所有标签）
  * @param {boolean} loading 是否加载中
- * @param {Function} t i18n
  */
 const PricingTags = ({
   filterTag,
@@ -16,7 +15,6 @@ const PricingTags = ({
   models = [],
   allModels = [],
   loading = false,
-  t,
 }) => {
   // 提取系统所有标签
   const getAllTags = React.useMemo(() => {
@@ -57,7 +55,7 @@ const PricingTags = ({
     const result = [
       {
         value: 'all',
-        label: t('全部标签'),
+        label: "全部标签",
         tagCount: getTagCount('all'),
       },
     ];
@@ -72,17 +70,16 @@ const PricingTags = ({
     });
 
     return result;
-  }, [getAllTags, getTagCount, t, models.length]);
+  }, [getAllTags, getTagCount, models.length]);
 
   return (
     <SelectableButtonGroup
-      title={t('标签')}
+      title={"标签"}
       items={items}
       activeValue={filterTag}
       onChange={setFilterTag}
       loading={loading}
       variant='rose'
-      t={t}
     />
   );
 };

@@ -11,12 +11,12 @@ const ColumnSelectorModal = ({
 }) => {
   const columnOptions = useMemo(
     () => [
-      { key: columnKeys.container_name, label: t('容器名称'), required: true },
-      { key: columnKeys.status, label: t('状态') },
-      { key: columnKeys.time_remaining, label: t('剩余时间') },
-      { key: columnKeys.hardware_info, label: t('硬件配置') },
-      { key: columnKeys.created_at, label: t('创建时间') },
-      { key: columnKeys.actions, label: t('操作'), required: true },
+      { key: columnKeys.container_name, label: "容器名称", required: true },
+      { key: columnKeys.status, label: "状态" },
+      { key: columnKeys.time_remaining, label: "剩余时间" },
+      { key: columnKeys.hardware_info, label: "硬件配置" },
+      { key: columnKeys.created_at, label: "创建时间" },
+      { key: columnKeys.actions, label: "操作", required: true },
     ],
     [columnKeys, t],
   );
@@ -61,15 +61,15 @@ const ColumnSelectorModal = ({
 
   return (
     <Modal
-      title={t('列设置')}
+      title={"列设置"}
       visible={visible}
       onCancel={onCancel}
       footer={
         <div className='flex justify-end gap-2'>
-          <Button onClick={handleReset}>{t('重置')}</Button>
-          <Button onClick={onCancel}>{t('取消')}</Button>
+          <Button onClick={handleReset}>{"重置"}</Button>
+          <Button onClick={onCancel}>{"取消"}</Button>
           <Button type='primary' onClick={handleConfirm}>
-            {t('确定')}
+            {"确定"}
           </Button>
         </div>
       }
@@ -80,7 +80,7 @@ const ColumnSelectorModal = ({
           indeterminate={indeterminate}
           onChange={(e) => handleSelectAll(e.target.checked)}
         >
-          {t('全选')}
+          {"全选"}
         </Checkbox>
       </div>
       <div

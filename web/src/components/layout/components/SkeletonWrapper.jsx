@@ -12,7 +12,6 @@ const SkeletonWrapper = ({
   collapsed = false,
   showAdmin = true,
   children,
-  ...props
 }) => {
   if (!loading) {
     return children;

@@ -1,6 +1,10 @@
 import { useCallback, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { API, processModelsData, processGroupsData } from '../../helpers';
+import {
+  API,
+  processModelsData,
+  processGroupsData,
+  showError,
+} from '../../helpers';
 import { API_ENDPOINTS } from '../../constants/playground.constants';
 
 export const useDataLoader = (
@@ -10,8 +14,6 @@ export const useDataLoader = (
   setModels,
   setGroups,
 ) => {
-  const { t } = useTranslation();
-
   const loadModels = useCallback(async () => {
     try {
       const res = await API.get(API_ENDPOINTS.USER_MODELS);
@@ -28,12 +30,12 @@ export const useDataLoader = (
           handleInputChange('model', selectedModel);
         }
       } else {
-        showError(t(message));
+        showError(message);
       }
     } catch (error) {
-      showError(t('加载模型失败'));
+      showError("加载模型失败");
     }
-  }, [inputs.model, handleInputChange, setModels, t]);
+  }, [inputs.model, handleInputChange, setModels]);
 
   const loadGroups = useCallback(async () => {
     try {
@@ -54,12 +56,12 @@ export const useDataLoader = (
           handleInputChange('group', groupOptions[0]?.value || '');
         }
       } else {
-        showError(t(message));
+        showError(message);
       }
     } catch (error) {
-      showError(t('加载分组失败'));
+      showError("加载分组失败");
     }
-  }, [userState, inputs.group, handleInputChange, setGroups, t]);
+  }, [userState, inputs.group, handleInputChange, setGroups]);
 
   // 自动加载数据
   useEffect(() => {

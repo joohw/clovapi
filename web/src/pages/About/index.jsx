@@ -6,10 +6,7 @@ import {
   IllustrationConstruction,
   IllustrationConstructionDark,
 } from '@douyinfe/semi-illustrations';
-import { useTranslation } from 'react-i18next';
-
 const About = () => {
-  const { t } = useTranslation();
   const [about, setAbout] = useState('');
   const [aboutLoaded, setAboutLoaded] = useState(false);
 
@@ -26,7 +23,7 @@ const About = () => {
       localStorage.setItem('about', aboutContent);
     } else {
       showError(message);
-      setAbout(t('加载关于内容失败...'));
+      setAbout("加载关于内容失败...");
     }
     setAboutLoaded(true);
   };
@@ -52,7 +49,7 @@ const About = () => {
                 style={{ width: 150, height: 150 }}
               />
             }
-            description={t('管理员暂时未设置任何关于内容')}
+            description={"管理员暂时未设置任何关于内容"}
             style={emptyStyle}
           />
         </div>

@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 import {
   Collapse,
@@ -23,7 +22,6 @@ const SingleModelSelectModal = ({
   onConfirm,
   onCancel,
 }) => {
-  const { t } = useTranslation();
   const isMobile = useIsMobile();
 
   const normalizeModelName = (model) => String(model ?? '').trim();
@@ -49,7 +47,7 @@ const SingleModelSelectModal = ({
   }, [normalizedModels, keyword]);
 
   const modelsByCategory = useMemo(() => {
-    const categories = getModelCategories(t);
+    const categories = getModelCategories();
     const categorized = {};
     const uncategorized = [];
 
@@ -76,14 +74,14 @@ const SingleModelSelectModal = ({
 
     if (uncategorized.length > 0) {
       categorized.other = {
-        label: t('其他'),
+        label: "其他",
         icon: null,
         models: uncategorized,
       };
     }
 
     return categorized;
-  }, [filteredModels, t]);
+  }, [filteredModels]);
 
   const categoryEntries = useMemo(
     () => Object.entries(modelsByCategory),
@@ -95,15 +93,15 @@ const SingleModelSelectModal = ({
       header={
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 py-4'>
           <Typography.Title heading={5} className='m-0'>
-            {t('选择模型')}
+            {"选择模型"}
           </Typography.Title>
         </div>
       }
       visible={visible}
       onOk={() => onConfirm?.(selectedModel)}
       onCancel={onCancel}
-      okText={t('确定')}
-      cancelText={t('取消')}
+      okText={"确定"}
+      cancelText={"取消"}
       okButtonProps={{ disabled: !selectedModel }}
       size={isMobile ? 'full-width' : 'large'}
       closeOnEsc
@@ -112,7 +110,7 @@ const SingleModelSelectModal = ({
     >
       <Input
         prefix={<IconSearch size={14} />}
-        placeholder={t('搜索模型')}
+        placeholder={"搜索模型"}
         value={keyword}
         onChange={(v) => setKeyword(v)}
         showClear
@@ -125,7 +123,7 @@ const SingleModelSelectModal = ({
             darkModeImage={
               <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
             }
-            description={t('暂无匹配模型')}
+            description={"暂无匹配模型"}
             style={{ padding: 30 }}
           />
         ) : (

@@ -4,18 +4,13 @@ import {
   copy,
   showError,
   showNotice,
-  getLogo,
-  getSystemName,
 } from '../../helpers';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Button, Card, Form, Typography, Banner } from '@douyinfe/semi-ui';
-import { IconMail, IconLock, IconCopy } from '@douyinfe/semi-icons';
-import { useTranslation } from 'react-i18next';
-
+import { Button, Card, Typography, Banner } from '@douyinfe/semi-ui';
+import { IconCopy } from '@douyinfe/semi-icons';
 const { Text, Title } = Typography;
 
 const PasswordResetConfirm = () => {
-  const { t } = useTranslation();
   const [inputs, setInputs] = useState({
     email: '',
     token: '',
@@ -28,10 +23,6 @@ const PasswordResetConfirm = () => {
   const [countdown, setCountdown] = useState(30);
   const [newPassword, setNewPassword] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
-  const [formApi, setFormApi] = useState(null);
-
-  const logo = getLogo();
-  const systemName = getSystemName();
 
   useEffect(() => {
     let token = searchParams.get('token');
@@ -40,13 +31,7 @@ const PasswordResetConfirm = () => {
       token: token || '',
       email: email || '',
     });
-    if (formApi) {
-      formApi.setValues({
-        email: email || '',
-        newPassword: newPassword || '',
-      });
-    }
-  }, [searchParams, newPassword, formApi]);
+  }, [searchParams]);
 
   useEffect(() => {
     let countdownInterval = null;
@@ -62,8 +47,9 @@ const PasswordResetConfirm = () => {
   }, [disableButton, countdown]);
 
   async function handleSubmit(e) {
+    e?.preventDefault?.();
     if (!email || !token) {
-      showError(t('无效的重置链接，请重新发起密码重置请求'));
+      showError("无效的重置链接，请重新发起密码重置请求");
       return;
     }
     setDisableButton(true);
@@ -77,7 +63,7 @@ const PasswordResetConfirm = () => {
       let password = res.data.data;
       setNewPassword(password);
       await copy(password);
-      showNotice(`${t('密码已重置并已复制到剪贴板：')} ${password}`);
+      showNotice(`${"密码已重置并已复制到剪贴板："} ${password}`);
     } else {
       showError(message);
     }
@@ -89,53 +75,57 @@ const PasswordResetConfirm = () => {
       <div className='w-full max-w-sm mt-[60px]'>
         <div className='flex flex-col items-center'>
           <div className='w-full max-w-md'>
-            <div className='flex items-center justify-center mb-6 gap-2'>
-              <img src={logo} alt='Logo' className='h-10 rounded-full' />
-              <Title heading={3} className='!text-gray-800'>
-                {systemName}
-              </Title>
-            </div>
-
             <Card className='border-0 !rounded-2xl overflow-hidden'>
               <div className='flex justify-center pt-6 pb-2'>
                 <Title heading={3} className='text-gray-800 dark:text-gray-200'>
-                  {t('密码重置确认')}
+                  {"密码重置确认"}
                 </Title>
               </div>
               <div className='px-2 py-8'>
                 {!isValidResetLink && (
                   <Banner
                     type='danger'
-                    description={t('无效的重置链接，请重新发起密码重置请求')}
+                    description={"无效的重置链接，请重新发起密码重置请求"}
                     className='mb-4 !rounded-lg'
                     closeIcon={null}
                   />
                 )}
-                <Form
-                  getFormApi={(api) => setFormApi(api)}
-                  initValues={{
-                    email: email || '',
-                    newPassword: newPassword || '',
-                  }}
-                  className='space-y-4'
-                >
-                  <Form.Input
-                    field='email'
-                    label={t('邮箱')}
-                    name='email'
-                    disabled={true}
-                    prefix={<IconMail />}
-                    placeholder={email ? '' : t('等待获取邮箱信息...')}
-                  />
+                <form className='space-y-4 login-clean-form' onSubmit={handleSubmit}>
+                  <div>
+                    <label
+                      htmlFor='reset-confirm-email'
+                      className='block text-sm mb-1 text-semi-color-text-1'
+                    >
+                      {"邮箱"}
+                    </label>
+                    <input
+                      id='reset-confirm-email'
+                      name='email'
+                      type='email'
+                      value={email}
+                      disabled={true}
+                      placeholder={email ? '' : "等待获取邮箱信息..."}
+                      className='login-clean-native-input'
+                    />
+                  </div>
 
                   {newPassword && (
-                    <Form.Input
-                      field='newPassword'
-                      label={t('新密码')}
-                      name='newPassword'
-                      disabled={true}
-                      prefix={<IconLock />}
-                      suffix={
+                    <div>
+                      <label
+                        htmlFor='reset-confirm-password'
+                        className='block text-sm mb-1 text-semi-color-text-1'
+                      >
+                        {"新密码"}
+                      </label>
+                      <div className='flex items-center gap-2'>
+                        <input
+                          id='reset-confirm-password'
+                          name='newPassword'
+                          type='text'
+                          value={newPassword}
+                          disabled={true}
+                          className='login-clean-native-input'
+                        />
                         <Button
                           icon={<IconCopy />}
                           type='tertiary'
@@ -143,14 +133,14 @@ const PasswordResetConfirm = () => {
                           onClick={async () => {
                             await copy(newPassword);
                             showNotice(
-                              `${t('密码已复制到剪贴板：')} ${newPassword}`,
+                              `${"密码已复制到剪贴板："} ${newPassword}`,
                             );
                           }}
                         >
-                          {t('复制')}
+                          {"复制"}
                         </Button>
-                      }
-                    />
+                      </div>
+                    </div>
                   )}
 
                   <div className='space-y-2 pt-2'>
@@ -165,10 +155,10 @@ const PasswordResetConfirm = () => {
                         disableButton || newPassword || !isValidResetLink
                       }
                     >
-                      {newPassword ? t('密码重置完成') : t('确认重置密码')}
+                      {newPassword ? "密码重置完成" : "确认重置密码"}
                     </Button>
                   </div>
-                </Form>
+                </form>
 
                 <div className='mt-6 text-center text-sm'>
                   <Text>
@@ -176,7 +166,7 @@ const PasswordResetConfirm = () => {
                       to='/login'
                       className='text-blue-600 hover:text-blue-800 font-medium'
                     >
-                      {t('返回登录')}
+                      {"返回登录"}
                     </Link>
                   </Text>
                 </div>

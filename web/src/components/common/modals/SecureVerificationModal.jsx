@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   Modal,
   Button,
@@ -36,7 +35,6 @@ const SecureVerificationModal = ({
   title,
   description,
 }) => {
-  const { t } = useTranslation();
   const [isAnimating, setIsAnimating] = useState(false);
   const [verifySuccess, setVerifySuccess] = useState(false);
 
@@ -65,10 +63,10 @@ const SecureVerificationModal = ({
   if (visible && !has2FA && !hasPasskey) {
     return (
       <Modal
-        title={title || t('安全验证')}
+        title={title || "安全验证"}
         visible={visible}
         onCancel={onCancel}
-        footer={<Button onClick={onCancel}>{t('确定')}</Button>}
+        footer={<Button onClick={onCancel}>{"确定"}</Button>}
         width={500}
         style={{ maxWidth: '90vw' }}
       >
@@ -87,14 +85,14 @@ const SecureVerificationModal = ({
             </svg>
           </div>
           <Typography.Title heading={4} className='mb-2'>
-            {t('需要安全验证')}
+            {"需要安全验证"}
           </Typography.Title>
           <Typography.Text type='tertiary'>
-            {t('您需要先启用两步验证或 Passkey 才能查看敏感信息。')}
+            {"您需要先启用两步验证或 Passkey 才能查看敏感信息。"}
           </Typography.Text>
           <br />
           <Typography.Text type='tertiary'>
-            {t('请前往个人设置 → 安全设置进行配置。')}
+            {"请前往个人设置 → 安全设置进行配置。"}
           </Typography.Text>
         </div>
       </Modal>
@@ -103,7 +101,7 @@ const SecureVerificationModal = ({
 
   return (
     <Modal
-      title={title || t('安全验证')}
+      title={title || "安全验证"}
       visible={visible}
       onCancel={loading ? undefined : onCancel}
       closeOnEsc={!loading}
@@ -141,11 +139,11 @@ const SecureVerificationModal = ({
           style={{ margin: 0 }}
         >
           {has2FA && (
-            <TabPane tab={t('两步验证')} itemKey='2fa'>
+            <TabPane tab={"两步验证"} itemKey='2fa'>
               <div style={{ paddingTop: '20px' }}>
                 <div style={{ marginBottom: '12px' }}>
                   <Input
-                    placeholder={t('请输入6位验证码或8位备用码')}
+                    placeholder={"请输入6位验证码或8位备用码"}
                     value={code}
                     onChange={onCodeChange}
                     size='large'
@@ -185,7 +183,7 @@ const SecureVerificationModal = ({
                     lineHeight: '1.5',
                   }}
                 >
-                  {t('从认证器应用中获取验证码，或使用备用码')}
+                  {"从认证器应用中获取验证码，或使用备用码"}
                 </Typography.Text>
 
                 <div
@@ -197,7 +195,7 @@ const SecureVerificationModal = ({
                   }}
                 >
                   <Button onClick={onCancel} disabled={loading}>
-                    {t('取消')}
+                    {"取消"}
                   </Button>
                   <Button
                     theme='solid'
@@ -206,7 +204,7 @@ const SecureVerificationModal = ({
                     disabled={!code.trim() || loading}
                     onClick={() => onVerify(method, code)}
                   >
-                    {t('验证')}
+                    {"验证"}
                   </Button>
                 </div>
               </div>
@@ -214,7 +212,7 @@ const SecureVerificationModal = ({
           )}
 
           {hasPasskey && passkeySupported && (
-            <TabPane tab={t('Passkey')} itemKey='passkey'>
+            <TabPane tab={"Passkey"} itemKey='passkey'>
               <div style={{ paddingTop: '20px' }}>
                 <div
                   style={{
@@ -255,7 +253,7 @@ const SecureVerificationModal = ({
                     heading={5}
                     style={{ margin: '0 0 8px', fontSize: '16px' }}
                   >
-                    {t('使用 Passkey 验证')}
+                    {"使用 Passkey 验证"}
                   </Typography.Title>
                   <Typography.Text
                     type='tertiary'
@@ -266,7 +264,7 @@ const SecureVerificationModal = ({
                       lineHeight: '1.5',
                     }}
                   >
-                    {t('点击验证按钮，使用您的生物特征或安全密钥')}
+                    {"点击验证按钮，使用您的生物特征或安全密钥"}
                   </Typography.Text>
                 </div>
 
@@ -279,7 +277,7 @@ const SecureVerificationModal = ({
                   }}
                 >
                   <Button onClick={onCancel} disabled={loading}>
-                    {t('取消')}
+                    {"取消"}
                   </Button>
                   <Button
                     theme='solid'
@@ -288,7 +286,7 @@ const SecureVerificationModal = ({
                     disabled={loading}
                     onClick={() => onVerify(method)}
                   >
-                    {t('验证 Passkey')}
+                    {"验证 Passkey"}
                   </Button>
                 </div>
               </div>

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import { SecureVerificationService } from '../../services/secureVerification';
 import { showError, showSuccess } from '../../helpers';
 import { isVerificationRequiredError } from '../../helpers/secureApiCall';
@@ -18,8 +17,6 @@ export const useSecureVerification = ({
   successMessage,
   autoReset = true,
 } = {}) => {
-  const { t } = useTranslation();
-
   // 验证方式可用性状态
   const [verificationMethods, setVerificationMethods] = useState({
     has2FA: false,
@@ -71,7 +68,7 @@ export const useSecureVerification = ({
       const methods = await checkVerificationMethods();
 
       if (!methods.has2FA && !methods.hasPasskey) {
-        const errorMessage = t('您需要先启用两步验证或 Passkey 才能执行此操作');
+        const errorMessage = "您需要先启用两步验证或 Passkey 才能执行此操作";
         showError(errorMessage);
         onError?.(new Error(errorMessage));
         return false;
@@ -98,14 +95,14 @@ export const useSecureVerification = ({
 
       return true;
     },
-    [checkVerificationMethods, onError, t],
+    [checkVerificationMethods, onError],
   );
 
   // 执行验证
   const executeVerification = useCallback(
     async (method, code = '') => {
       if (!verificationState.apiCall) {
-        showError(t('验证配置错误'));
+        showError("验证配置错误");
         return;
       }
 
@@ -133,7 +130,7 @@ export const useSecureVerification = ({
 
         return result;
       } catch (error) {
-        showError(error.message || t('验证失败，请重试'));
+        showError(error.message || "验证失败，请重试");
         onError?.(error);
         throw error;
       } finally {
@@ -147,7 +144,6 @@ export const useSecureVerification = ({
       onError,
       autoReset,
       resetState,
-      t,
     ],
   );
 

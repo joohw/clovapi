@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { Toast, Modal } from '@douyinfe/semi-ui';
-import { useTranslation } from 'react-i18next';
 import { getTextContent } from '../../helpers';
 import { ERROR_MESSAGES } from '../../constants/playground.constants';
 
@@ -10,8 +9,6 @@ export const useMessageActions = (
   onMessageSend,
   saveMessages,
 ) => {
-  const { t } = useTranslation();
-
   // 复制消息
   const handleMessageCopy = useCallback(
     (targetMessage) => {
@@ -19,7 +16,7 @@ export const useMessageActions = (
 
       if (!textToCopy) {
         Toast.warning({
-          content: t(ERROR_MESSAGES.NO_TEXT_CONTENT),
+          content: ERROR_MESSAGES.NO_TEXT_CONTENT,
           duration: 2,
         });
         return;
@@ -30,7 +27,7 @@ export const useMessageActions = (
           try {
             await navigator.clipboard.writeText(text);
             Toast.success({
-              content: t('消息已复制到剪贴板'),
+              content: "消息已复制到剪贴板",
               duration: 2,
             });
           } catch (err) {
@@ -65,7 +62,7 @@ export const useMessageActions = (
 
           if (successful) {
             Toast.success({
-              content: t('消息已复制到剪贴板'),
+              content: "消息已复制到剪贴板",
               duration: 2,
             });
           } else {
@@ -74,14 +71,14 @@ export const useMessageActions = (
         } catch (err) {
           console.error('回退复制方案也失败:', err);
 
-          let errorMessage = t(ERROR_MESSAGES.COPY_FAILED);
+          let errorMessage = ERROR_MESSAGES.COPY_FAILED;
           if (
             window.location.protocol === 'http:' &&
             window.location.hostname !== 'localhost'
           ) {
-            errorMessage = t(ERROR_MESSAGES.COPY_HTTPS_REQUIRED);
+            errorMessage = ERROR_MESSAGES.COPY_HTTPS_REQUIRED;
           } else if (!navigator.clipboard && !document.execCommand) {
-            errorMessage = t(ERROR_MESSAGES.BROWSER_NOT_SUPPORTED);
+            errorMessage = ERROR_MESSAGES.BROWSER_NOT_SUPPORTED;
           }
 
           Toast.error({
@@ -93,7 +90,7 @@ export const useMessageActions = (
 
       copyToClipboard(textToCopy);
     },
-    [t],
+    [],
   );
 
   // 重新生成消息
@@ -158,10 +155,10 @@ export const useMessageActions = (
   const handleMessageDelete = useCallback(
     (targetMessage) => {
       Modal.confirm({
-        title: t('确认删除'),
-        content: t('确定要删除这条消息吗？'),
-        okText: t('确定'),
-        cancelText: t('取消'),
+        title: "确认删除",
+        content: "确定要删除这条消息吗？",
+        okText: "确定",
+        cancelText: "取消",
         okButtonProps: {
           type: 'danger',
         },
@@ -189,7 +186,7 @@ export const useMessageActions = (
               const nextMessage = prevMessages[messageIndex + 1];
               if (nextMessage.role === 'assistant') {
                 Toast.success({
-                  content: t('已删除消息及其回复'),
+                  content: "已删除消息及其回复",
                   duration: 2,
                 });
                 updatedMessages = prevMessages.filter(
@@ -198,7 +195,7 @@ export const useMessageActions = (
                 );
               } else {
                 Toast.success({
-                  content: t('消息已删除'),
+                  content: "消息已删除",
                   duration: 2,
                 });
                 updatedMessages = prevMessages.filter(
@@ -207,7 +204,7 @@ export const useMessageActions = (
               }
             } else {
               Toast.success({
-                content: t('消息已删除'),
+                content: "消息已删除",
                 duration: 2,
               });
               updatedMessages = prevMessages.filter(
@@ -222,7 +219,7 @@ export const useMessageActions = (
         },
       });
     },
-    [setMessage, t, saveMessages],
+    [setMessage, saveMessages],
   );
 
   // 切换角色
@@ -254,13 +251,11 @@ export const useMessageActions = (
       });
 
       Toast.success({
-        content: t(
-          `已切换为${newRole === 'system' ? 'System' : 'Assistant'}角色`,
-        ),
+        content: `已切换为${newRole === 'system' ? 'System' : 'Assistant'}角色`,
         duration: 2,
       });
     },
-    [setMessage, t, saveMessages],
+    [setMessage, saveMessages],
   );
 
   return {

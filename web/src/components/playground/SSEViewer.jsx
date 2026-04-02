@@ -15,7 +15,6 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { copy } from '../../helpers';
 
 /**
@@ -25,7 +24,6 @@ import { copy } from '../../helpers';
  * @returns {JSX.Element} Rendered SSE viewer component
  */
 const SSEViewer = ({ sseData }) => {
-  const { t } = useTranslation();
   const [expandedKeys, setExpandedKeys] = useState([]);
   const [copied, setCopied] = useState(false);
 
@@ -89,10 +87,10 @@ const SSEViewer = ({ sseData }) => {
 
       await copy(allData);
       setCopied(true);
-      Toast.success(t('已复制全部数据'));
+      Toast.success("已复制全部数据");
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      Toast.error(t('复制失败'));
+      Toast.error("复制失败");
       console.error('Copy failed:', err);
     }
   }, [parsedSSEData, t]);
@@ -104,9 +102,9 @@ const SSEViewer = ({ sseData }) => {
           ? JSON.stringify(item.parsed, null, 2)
           : item.raw;
         await copy(textToCopy);
-        Toast.success(t('已复制'));
+        Toast.success("已复制");
       } catch (err) {
-        Toast.error(t('复制失败'));
+        Toast.error("复制失败");
       }
     },
     [t],
@@ -118,7 +116,7 @@ const SSEViewer = ({ sseData }) => {
         <div className='flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg'>
           <CheckCircle size={16} className='text-green-600' />
           <Typography.Text className='text-green-600 font-medium'>
-            {t('流式响应完成')} [DONE]
+            {"流式响应完成"} [DONE]
           </Typography.Text>
         </div>
       );
@@ -130,7 +128,7 @@ const SSEViewer = ({ sseData }) => {
           <div className='flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg'>
             <XCircle size={16} className='text-red-600' />
             <Typography.Text className='text-red-600'>
-              {t('解析错误')}: {item.error}
+              {"解析错误"}: {item.error}
             </Typography.Text>
           </div>
           <div className='p-3 bg-gray-100 dark:bg-gray-800 rounded-lg font-mono text-xs overflow-auto'>
@@ -161,22 +159,22 @@ const SSEViewer = ({ sseData }) => {
           <div className='flex flex-wrap gap-2 text-xs'>
             {item.parsed.choices[0].delta?.content && (
               <Badge
-                count={`${t('内容')}: "${String(item.parsed.choices[0].delta.content).substring(0, 20)}..."`}
+                count={`${"内容"}: "${String(item.parsed.choices[0].delta.content).substring(0, 20)}..."`}
                 type='primary'
               />
             )}
             {item.parsed.choices[0].delta?.reasoning_content && (
-              <Badge count={t('有 Reasoning')} type='warning' />
+              <Badge count={"有 Reasoning"} type='warning' />
             )}
             {item.parsed.choices[0].finish_reason && (
               <Badge
-                count={`${t('完成')}: ${item.parsed.choices[0].finish_reason}`}
+                count={`${"完成"}: ${item.parsed.choices[0].finish_reason}`}
                 type='success'
               />
             )}
             {item.parsed.usage && (
               <Badge
-                count={`${t('令牌')}: ${item.parsed.usage.prompt_tokens || 0}/${item.parsed.usage.completion_tokens || 0}`}
+                count={`${"令牌"}: ${item.parsed.usage.prompt_tokens || 0}/${item.parsed.usage.completion_tokens || 0}`}
                 type='tertiary'
               />
             )}
@@ -189,7 +187,7 @@ const SSEViewer = ({ sseData }) => {
   if (!parsedSSEData || parsedSSEData.length === 0) {
     return (
       <div className='flex items-center justify-center h-full min-h-[200px] text-gray-500'>
-        <span>{t('暂无SSE响应数据')}</span>
+        <span>{"暂无SSE响应数据"}</span>
       </div>
     );
   }
@@ -200,29 +198,29 @@ const SSEViewer = ({ sseData }) => {
       <div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0'>
         <div className='flex items-center gap-3'>
           <Zap size={16} className='text-blue-500' />
-          <Typography.Text strong>{t('SSE数据流')}</Typography.Text>
+          <Typography.Text strong>{"SSE数据流"}</Typography.Text>
           <Badge count={stats.total} type='primary' />
           {stats.errors > 0 && (
-            <Badge count={`${stats.errors} ${t('错误')}`} type='danger' />
+            <Badge count={`${stats.errors} ${"错误"}`} type='danger' />
           )}
         </div>
 
         <div className='flex items-center gap-2'>
-          <Tooltip content={t('复制全部')}>
+          <Tooltip content={"复制全部"}>
             <Button
               icon={<Copy size={14} />}
               size='small'
               onClick={handleCopyAll}
               theme='borderless'
             >
-              {copied ? t('已复制') : t('复制全部')}
+              {copied ? "已复制" : "复制全部"}
             </Button>
           </Tooltip>
           <Tooltip
             content={
               expandedKeys.length === parsedSSEData.length
-                ? t('全部收起')
-                : t('全部展开')
+                ? "全部收起"
+                : "全部展开"
             }
           >
             <Button
@@ -238,8 +236,8 @@ const SSEViewer = ({ sseData }) => {
               theme='borderless'
             >
               {expandedKeys.length === parsedSSEData.length
-                ? t('收起')
-                : t('展开')}
+                ? "收起"
+                : "展开"}
             </Button>
           </Tooltip>
         </div>
@@ -262,13 +260,13 @@ const SSEViewer = ({ sseData }) => {
                   {item.isDone ? (
                     <span className='text-green-600 font-medium'>[DONE]</span>
                   ) : item.error ? (
-                    <span className='text-red-600'>{t('解析错误')}</span>
+                    <span className='text-red-600'>{"解析错误"}</span>
                   ) : (
                     <>
                       <span className='text-gray-600'>
                         {item.parsed?.id ||
                           item.parsed?.object ||
-                          t('SSE 事件')}
+                          "SSE 事件"}
                       </span>
                       {item.parsed?.choices?.[0]?.delta && (
                         <span className='text-xs text-gray-400'>

@@ -20,7 +20,6 @@ import { IconChevronDown, IconChevronUp } from '@douyinfe/semi-icons';
  * @param {Array<{value:any,label:string,icon?:React.ReactNode,tagCount?:number}>} items 按钮项
  * @param {*|Array} activeValue 当前激活的值，可以是单个值或数组（多选）
  * @param {(value:any)=>void} onChange 选择改变回调
- * @param {function} t i18n
  * @param {object} style 额外样式
  * @param {boolean} collapsible 是否支持折叠，默认true
  * @param {number} collapseHeight 折叠时的高度，默认200
@@ -33,7 +32,6 @@ const SelectableButtonGroup = ({
   items = [],
   activeValue,
   onChange,
-  t = (v) => v,
   style = {},
   collapsible = true,
   collapseHeight = 200,
@@ -248,7 +246,7 @@ const SelectableButtonGroup = ({
           {isOpen ? null : (
             <div onClick={toggle} style={{ ...linkStyle }}>
               <IconChevronDown size='small' />
-              <span>{t('展开更多')}</span>
+              <span>{"展开更多"}</span>
             </div>
           )}
           {isOpen && (
@@ -262,7 +260,7 @@ const SelectableButtonGroup = ({
               }}
             >
               <IconChevronUp size='small' />
-              <span>{t('收起')}</span>
+              <span>{"收起"}</span>
             </div>
           )}
         </div>

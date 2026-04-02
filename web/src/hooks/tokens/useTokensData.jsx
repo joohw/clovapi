@@ -1,35 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Modal } from '@douyinfe/semi-ui';
 import {
   API,
   copy,
   showError,
   showSuccess,
-  encodeToBase64,
 } from '../../helpers';
 import { ITEMS_PER_PAGE } from '../../constants';
-import { useTableCompactMode } from '../common/useTableCompactMode';
 import {
   fetchTokenKey as fetchTokenKeyById,
   getServerAddress,
   encodeChannelConnectionString,
 } from '../../helpers/token';
 
-export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
-  const { t } = useTranslation();
-
+export const useTokensData = () => {
   // Basic state
   const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activePage, setActivePage] = useState(1);
   const [tokenCount, setTokenCount] = useState(0);
   const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
-  const [searching, setSearching] = useState(false);
-  const [searchMode, setSearchMode] = useState(false); // 是否处于搜索结果视图
-
-  // Selection state
-  const [selectedKeys, setSelectedKeys] = useState([]);
 
   // Edit state
   const [showEdit, setShowEdit] = useState(false);
@@ -37,28 +27,10 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
     id: undefined,
   });
 
-  // UI state
-  const [compactMode, setCompactMode] = useTableCompactMode('tokens');
   const [showKeys, setShowKeys] = useState({});
   const [resolvedTokenKeys, setResolvedTokenKeys] = useState({});
   const [loadingTokenKeys, setLoadingTokenKeys] = useState({});
   const keyRequestsRef = useRef({});
-
-  // Form state
-  const [formApi, setFormApi] = useState(null);
-  const formInitValues = {
-    searchKeyword: '',
-    searchToken: '',
-  };
-
-  // Get form values helper function
-  const getFormValues = () => {
-    const formValues = formApi ? formApi.getValues() : {};
-    return {
-      searchKeyword: formValues.searchKeyword || '',
-      searchToken: formValues.searchToken || '',
-    };
-  };
 
   // Close edit modal
   const closeEdit = () => {
@@ -82,7 +54,6 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
   // Load tokens function
   const loadTokens = async (page = 1, size = pageSize) => {
     setLoading(true);
-    setSearchMode(false);
     const res = await API.get(`/api/token/?p=${page}&size=${size}`);
     const { success, message, data } = res.data;
     if (success) {
@@ -96,16 +67,15 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
   // Refresh function
   const refresh = async (page = activePage) => {
     await loadTokens(page);
-    setSelectedKeys([]);
   };
 
   // Copy text function
   const copyText = async (text) => {
     if (await copy(text)) {
-      showSuccess(t('已复制到剪贴板！'));
+      showSuccess("已复制到剪贴板！");
     } else {
       Modal.error({
-        title: t('无法复制到剪贴板，请手动复制'),
+        title: "无法复制到剪贴板，请手动复制",
         content: text,
         size: 'large',
       });
@@ -118,7 +88,7 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
       typeof tokenOrId === 'object' ? tokenOrId?.id : Number(tokenOrId);
 
     if (!tokenId) {
-      const error = new Error(t('令牌不存在'));
+      const error = new Error("令牌不存在");
       if (!suppressError) {
         showError(error.message);
       }
@@ -141,7 +111,7 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
         return fullKey;
       } catch (error) {
         const normalizedError = new Error(
-          error?.message || t('获取令牌密钥失败'),
+          error?.message || "获取令牌密钥失败",
         );
         if (!suppressError) {
           showError(normalizedError.message);
@@ -190,55 +160,6 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
     await copyText(connStr);
   };
 
-  // Open link function for chat integrations
-  const onOpenLink = async (type, url, record) => {
-    const fullKey = await fetchTokenKey(record);
-    if (url && url.startsWith('ccswitch')) {
-      openCCSwitchModal(fullKey);
-      return;
-    }
-    if (url && url.startsWith('fluent')) {
-      openFluentNotification(fullKey);
-      return;
-    }
-    let status = localStorage.getItem('status');
-    let serverAddress = '';
-    if (status) {
-      status = JSON.parse(status);
-      serverAddress = status.server_address;
-    }
-    if (serverAddress === '') {
-      serverAddress = window.location.origin;
-    }
-    if (url.includes('{cherryConfig}') === true) {
-      let cherryConfig = {
-        id: 'new-api',
-        baseUrl: serverAddress,
-        apiKey: `sk-${fullKey}`,
-      };
-      let encodedConfig = encodeURIComponent(
-        encodeToBase64(JSON.stringify(cherryConfig)),
-      );
-      url = url.replaceAll('{cherryConfig}', encodedConfig);
-    } else if (url.includes('{aionuiConfig}') === true) {
-      let aionuiConfig = {
-        platform: 'new-api',
-        baseUrl: serverAddress,
-        apiKey: `sk-${fullKey}`,
-      };
-      let encodedConfig = encodeURIComponent(
-        encodeToBase64(JSON.stringify(aionuiConfig)),
-      );
-      url = url.replaceAll('{aionuiConfig}', encodedConfig);
-    } else {
-      let encodedServerAddress = encodeURIComponent(serverAddress);
-      url = url.replaceAll('{address}', encodedServerAddress);
-      url = url.replaceAll('{key}', `sk-${fullKey}`);
-    }
-
-    window.open(url, '_blank');
-  };
-
   // Manage token function (delete, enable, disable)
   const manageToken = async (id, action, record) => {
     setLoading(true);
@@ -259,7 +180,7 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
     }
     const { success, message } = res.data;
     if (success) {
-      showSuccess(t('操作成功完成！'));
+      showSuccess("操作成功完成！");
       let token = res.data.data;
       let newTokens = [...tokens];
       if (action !== 'delete') {
@@ -270,32 +191,6 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
       showError(message);
     }
     setLoading(false);
-  };
-
-  // Search tokens function
-  const searchTokens = async (page = 1, size = pageSize) => {
-    const normalizedPage = Number.isInteger(page) && page > 0 ? page : 1;
-    const normalizedSize =
-      Number.isInteger(size) && size > 0 ? size : pageSize;
-
-    const { searchKeyword, searchToken } = getFormValues();
-    if (searchKeyword === '' && searchToken === '') {
-      setSearchMode(false);
-      await loadTokens(1);
-      return;
-    }
-    setSearching(true);
-    const res = await API.get(
-      `/api/token/search?keyword=${encodeURIComponent(searchKeyword)}&token=${encodeURIComponent(searchToken)}&p=${normalizedPage}&size=${normalizedSize}`,
-    );
-    const { success, message, data } = res.data;
-    if (success) {
-      setSearchMode(true);
-      syncPageData(data);
-    } else {
-      showError(message);
-    }
-    setSearching(false);
   };
 
   // Sort tokens function
@@ -315,29 +210,12 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
 
   // Page handlers
   const handlePageChange = (page) => {
-    if (searchMode) {
-      searchTokens(page, pageSize).then();
-    } else {
-      loadTokens(page, pageSize).then();
-    }
+    loadTokens(page, pageSize).then();
   };
 
   const handlePageSizeChange = async (size) => {
     setPageSize(size);
-    if (searchMode) {
-      await searchTokens(1, size);
-    } else {
-      await loadTokens(1, size);
-    }
-  };
-
-  // Row selection handlers
-  const rowSelection = {
-    onSelect: (record, selected) => {},
-    onSelectAll: (selected, selectedRows) => {},
-    onChange: (selectedRowKeys, selectedRows) => {
-      setSelectedKeys(selectedRows);
-    },
+    await loadTokens(1, size);
   };
 
   // Handle row styling
@@ -350,60 +228,6 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
       };
     } else {
       return {};
-    }
-  };
-
-  // Batch delete tokens
-  const batchDeleteTokens = async () => {
-    if (selectedKeys.length === 0) {
-      showError(t('请先选择要删除的令牌！'));
-      return;
-    }
-    setLoading(true);
-    try {
-      const ids = selectedKeys.map((token) => token.id);
-      const res = await API.post('/api/token/batch', { ids });
-      if (res?.data?.success) {
-        const count = res.data.data || 0;
-        showSuccess(t('已删除 {{count}} 个令牌！', { count }));
-        await refresh();
-        setTimeout(() => {
-          if (tokens.length === 0 && activePage > 1) {
-            refresh(activePage - 1);
-          }
-        }, 100);
-      } else {
-        showError(res?.data?.message || t('删除失败'));
-      }
-    } catch (error) {
-      showError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Batch copy tokens
-  const batchCopyTokens = async (copyType) => {
-    if (selectedKeys.length === 0) {
-      showError(t('请至少选择一个令牌！'));
-      return;
-    }
-    try {
-      const keys = await Promise.all(
-        selectedKeys.map((token) => fetchTokenKey(token, { suppressError: true })),
-      );
-      let content = '';
-      for (let i = 0; i < selectedKeys.length; i++) {
-        const fullKey = keys[i];
-        if (copyType === 'name+key') {
-          content += `${selectedKeys[i].name}    sk-${fullKey}\n`;
-        } else {
-          content += `sk-${fullKey}\n`;
-        }
-      }
-      await copyText(content);
-    } catch (error) {
-      showError(error?.message || t('复制令牌失败'));
     }
   };
 
@@ -423,11 +247,6 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
     activePage,
     tokenCount,
     pageSize,
-    searching,
-
-    // Selection state
-    selectedKeys,
-    setSelectedKeys,
 
     // Edit state
     showEdit,
@@ -437,18 +256,10 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
     closeEdit,
 
     // UI state
-    compactMode,
-    setCompactMode,
     showKeys,
     setShowKeys,
     resolvedTokenKeys,
     loadingTokenKeys,
-
-    // Form state
-    formApi,
-    setFormApi,
-    formInitValues,
-    getFormValues,
 
     // Functions
     loadTokens,
@@ -458,19 +269,11 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
     toggleTokenVisibility,
     copyTokenKey,
     copyTokenConnectionString,
-    onOpenLink,
     manageToken,
-    searchTokens,
     sortToken,
     handlePageChange,
     handlePageSizeChange,
-    rowSelection,
     handleRow,
-    batchDeleteTokens,
-    batchCopyTokens,
     syncPageData,
-
-    // Translation
-    t,
   };
 };

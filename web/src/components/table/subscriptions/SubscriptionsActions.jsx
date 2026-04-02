@@ -10,7 +10,7 @@ const SubscriptionsActions = ({ openCreate, t }) => {
         onClick={openCreate}
         size='small'
       >
-        {t('新建套餐')}
+        {"新建套餐"}
       </Button>
     </div>
   );

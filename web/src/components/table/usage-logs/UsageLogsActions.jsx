@@ -36,7 +36,7 @@ const LogsActions = ({
             }}
             className='!rounded-lg'
           >
-            {t('消耗额度')}: {renderQuota(stat.quota)}
+            {"消耗额度"}: {renderQuota(stat.quota)}
           </Tag>
           <Tag
             color='pink'
@@ -67,7 +67,6 @@ const LogsActions = ({
       <CompactModeToggle
         compactMode={compactMode}
         setCompactMode={setCompactMode}
-        t={t}
       />
     </div>
   );

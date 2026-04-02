@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   Modal,
   Button,
@@ -32,7 +31,6 @@ import {
 const { Text } = Typography;
 
 const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [keyStatusList, setKeyStatusList] = useState([]);
   const [operationLoading, setOperationLoading] = useState({});
@@ -92,7 +90,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
       }
     } catch (error) {
       console.error(error);
-      showError(t('获取密钥状态失败'));
+      showError("获取密钥状态失败");
     } finally {
       setLoading(false);
     }
@@ -111,14 +109,14 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
       });
 
       if (res.data.success) {
-        showSuccess(t('密钥已禁用'));
+        showSuccess("密钥已禁用");
         await loadKeyStatus(currentPage, pageSize); // Reload current page
         onRefresh && onRefresh(); // Refresh parent component
       } else {
         showError(res.data.message);
       }
     } catch (error) {
-      showError(t('禁用密钥失败'));
+      showError("禁用密钥失败");
     } finally {
       setOperationLoading((prev) => ({ ...prev, [operationId]: false }));
     }
@@ -137,14 +135,14 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
       });
 
       if (res.data.success) {
-        showSuccess(t('密钥已启用'));
+        showSuccess("密钥已启用");
         await loadKeyStatus(currentPage, pageSize); // Reload current page
         onRefresh && onRefresh(); // Refresh parent component
       } else {
         showError(res.data.message);
       }
     } catch (error) {
-      showError(t('启用密钥失败'));
+      showError("启用密钥失败");
     } finally {
       setOperationLoading((prev) => ({ ...prev, [operationId]: false }));
     }
@@ -161,7 +159,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
       });
 
       if (res.data.success) {
-        showSuccess(res.data.message || t('已启用所有密钥'));
+        showSuccess(res.data.message || "已启用所有密钥");
         // Reset to first page after bulk operation
         setCurrentPage(1);
         await loadKeyStatus(1, pageSize);
@@ -170,7 +168,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
         showError(res.data.message);
       }
     } catch (error) {
-      showError(t('启用所有密钥失败'));
+      showError("启用所有密钥失败");
     } finally {
       setOperationLoading((prev) => ({ ...prev, enable_all: false }));
     }
@@ -187,7 +185,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
       });
 
       if (res.data.success) {
-        showSuccess(res.data.message || t('已禁用所有密钥'));
+        showSuccess(res.data.message || "已禁用所有密钥");
         // Reset to first page after bulk operation
         setCurrentPage(1);
         await loadKeyStatus(1, pageSize);
@@ -196,7 +194,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
         showError(res.data.message);
       }
     } catch (error) {
-      showError(t('禁用所有密钥失败'));
+      showError("禁用所有密钥失败");
     } finally {
       setOperationLoading((prev) => ({ ...prev, disable_all: false }));
     }
@@ -222,7 +220,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
         showError(res.data.message);
       }
     } catch (error) {
-      showError(t('删除禁用密钥失败'));
+      showError("删除禁用密钥失败");
     } finally {
       setOperationLoading((prev) => ({ ...prev, delete_disabled: false }));
     }
@@ -241,14 +239,14 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
       });
 
       if (res.data.success) {
-        showSuccess(t('密钥已删除'));
+        showSuccess("密钥已删除");
         await loadKeyStatus(currentPage, pageSize); // Reload current page
         onRefresh && onRefresh(); // Refresh parent component
       } else {
         showError(res.data.message);
       }
     } catch (error) {
-      showError(t('删除密钥失败'));
+      showError("删除密钥失败");
     } finally {
       setOperationLoading((prev) => ({ ...prev, [operationId]: false }));
     }
@@ -312,25 +310,25 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
       case 1:
         return (
           <Tag color='green' shape='circle' size='small'>
-            {t('已启用')}
+            {"已启用"}
           </Tag>
         );
       case 2:
         return (
           <Tag color='red' shape='circle' size='small'>
-            {t('已禁用')}
+            {"已禁用"}
           </Tag>
         );
       case 3:
         return (
           <Tag color='orange' shape='circle' size='small'>
-            {t('自动禁用')}
+            {"自动禁用"}
           </Tag>
         );
       default:
         return (
           <Tag color='grey' shape='circle' size='small'>
-            {t('未知状态')}
+            {"未知状态"}
           </Tag>
         );
     }
@@ -339,12 +337,12 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
   // Table columns definition
   const columns = [
     {
-      title: t('索引'),
+      title: "索引",
       dataIndex: 'index',
       render: (text) => `#${text}`,
     },
     // {
-    //   title: t('密钥预览'),
+    //   title: "密钥预览",
     //   dataIndex: 'key_preview',
     //   render: (text) => (
     //     <Text code style={{ fontSize: '12px' }}>
@@ -353,12 +351,12 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
     //   ),
     // },
     {
-      title: t('状态'),
+      title: "状态",
       dataIndex: 'status',
       render: (status) => renderStatusTag(status),
     },
     {
-      title: t('禁用原因'),
+      title: "禁用原因",
       dataIndex: 'reason',
       render: (reason, record) => {
         if (record.status === 1 || !reason) {
@@ -374,7 +372,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
       },
     },
     {
-      title: t('禁用时间'),
+      title: "禁用时间",
       dataIndex: 'disabled_time',
       render: (time, record) => {
         if (record.status === 1 || !time) {
@@ -388,7 +386,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
       },
     },
     {
-      title: t('操作'),
+      title: "操作",
       key: 'action',
       fixed: 'right',
       width: 150,
@@ -401,7 +399,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
               loading={operationLoading[`disable_${record.index}`]}
               onClick={() => handleDisableKey(record.index)}
             >
-              {t('禁用')}
+              {"禁用"}
             </Button>
           ) : (
             <Button
@@ -410,12 +408,12 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
               loading={operationLoading[`enable_${record.index}`]}
               onClick={() => handleEnableKey(record.index)}
             >
-              {t('启用')}
+              {"启用"}
             </Button>
           )}
           <Popconfirm
-            title={t('确定要删除此密钥吗？')}
-            content={t('此操作不可撤销，将永久删除该密钥')}
+            title={"确定要删除此密钥吗？"}
+            content={"此操作不可撤销，将永久删除该密钥"}
             onConfirm={() => handleDeleteKey(record.index)}
             okType={'danger'}
             position={'topRight'}
@@ -425,7 +423,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
               size='small'
               loading={operationLoading[`delete_${record.index}`]}
             >
-              {t('删除')}
+              {"删除"}
             </Button>
           </Popconfirm>
         </Space>
@@ -437,20 +435,20 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
     <Modal
       title={
         <Space>
-          <Text>{t('多密钥管理')}</Text>
+          <Text>{"多密钥管理"}</Text>
           {channel?.name && (
             <Tag size='small' shape='circle' color='white'>
               {channel.name}
             </Tag>
           )}
           <Tag size='small' shape='circle' color='white'>
-            {t('总密钥数')}: {total}
+            {"总密钥数"}: {total}
           </Tag>
           {channel?.channel_info?.multi_key_mode && (
             <Tag size='small' shape='circle' color='white'>
               {channel.channel_info.multi_key_mode === 'random'
-                ? t('随机模式')
-                : t('轮询模式')}
+                ? "随机模式"
+                : "轮询模式"}
             </Tag>
           )}
         </Space>
@@ -481,7 +479,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
               >
                 <div className='flex items-center gap-2 mb-2'>
                   <Badge dot type='success' />
-                  <Text type='tertiary'>{t('已启用')}</Text>
+                  <Text type='tertiary'>{"已启用"}</Text>
                 </div>
                 <div className='flex items-end gap-2 mb-2'>
                   <Text
@@ -515,7 +513,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
               >
                 <div className='flex items-center gap-2 mb-2'>
                   <Badge dot type='danger' />
-                  <Text type='tertiary'>{t('手动禁用')}</Text>
+                  <Text type='tertiary'>{"手动禁用"}</Text>
                 </div>
                 <div className='flex items-end gap-2 mb-2'>
                   <Text
@@ -549,7 +547,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
               >
                 <div className='flex items-center gap-2 mb-2'>
                   <Badge dot type='warning' />
-                  <Text type='tertiary'>{t('自动禁用')}</Text>
+                  <Text type='tertiary'>{"自动禁用"}</Text>
                 </div>
                 <div className='flex items-end gap-2 mb-2'>
                   <Text
@@ -589,19 +587,19 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
                             value={statusFilter}
                             onChange={handleStatusFilterChange}
                             size='small'
-                            placeholder={t('全部状态')}
+                            placeholder={"全部状态"}
                           >
                             <Select.Option value={null}>
-                              {t('全部状态')}
+                              {"全部状态"}
                             </Select.Option>
                             <Select.Option value={1}>
-                              {t('已启用')}
+                              {"已启用"}
                             </Select.Option>
                             <Select.Option value={2}>
-                              {t('手动禁用')}
+                              {"手动禁用"}
                             </Select.Option>
                             <Select.Option value={3}>
-                              {t('自动禁用')}
+                              {"自动禁用"}
                             </Select.Option>
                           </Select>
                         </Col>
@@ -618,11 +616,11 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
                           onClick={() => loadKeyStatus(currentPage, pageSize)}
                           loading={loading}
                         >
-                          {t('刷新')}
+                          {"刷新"}
                         </Button>
                         {manualDisabledCount + autoDisabledCount > 0 && (
                           <Popconfirm
-                            title={t('确定要启用所有密钥吗？')}
+                            title={"确定要启用所有密钥吗？"}
                             onConfirm={handleEnableAll}
                             position={'topRight'}
                           >
@@ -631,13 +629,13 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
                               type='primary'
                               loading={operationLoading.enable_all}
                             >
-                              {t('启用全部')}
+                              {"启用全部"}
                             </Button>
                           </Popconfirm>
                         )}
                         {enabledCount > 0 && (
                           <Popconfirm
-                            title={t('确定要禁用所有的密钥吗？')}
+                            title={"确定要禁用所有的密钥吗？"}
                             onConfirm={handleDisableAll}
                             okType={'danger'}
                             position={'topRight'}
@@ -647,15 +645,13 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
                               type='danger'
                               loading={operationLoading.disable_all}
                             >
-                              {t('禁用全部')}
+                              {"禁用全部"}
                             </Button>
                           </Popconfirm>
                         )}
                         <Popconfirm
-                          title={t('确定要删除所有已自动禁用的密钥吗？')}
-                          content={t(
-                            '此操作不可撤销，将永久删除已自动禁用的密钥',
-                          )}
+                          title={"确定要删除所有已自动禁用的密钥吗？"}
+                          content={"此操作不可撤销，将永久删除已自动禁用的密钥"}
                           onConfirm={handleDeleteDisabledKeys}
                           okType={'danger'}
                           position={'topRight'}
@@ -665,7 +661,7 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
                             type='warning'
                             loading={operationLoading.delete_disabled}
                           >
-                            {t('删除自动禁用密钥')}
+                            {"删除自动禁用密钥"}
                           </Button>
                         </Popconfirm>
                       </Space>
@@ -706,8 +702,8 @@ const MultiKeyManageModal = ({ visible, onCancel, channel, onRefresh }) => {
                         style={{ width: 140, height: 140 }}
                       />
                     }
-                    title={t('暂无密钥数据')}
-                    description={t('请检查渠道配置或刷新重试')}
+                    title={"暂无密钥数据"}
+                    description={"请检查渠道配置或刷新重试"}
                     style={{ padding: 30 }}
                   />
                 }

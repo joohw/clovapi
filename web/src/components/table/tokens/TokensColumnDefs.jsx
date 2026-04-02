@@ -2,39 +2,18 @@ import React from 'react';
 import {
   Button,
   Dropdown,
-  Space,
-  SplitButtonGroup,
   Tag,
-  AvatarGroup,
-  Avatar,
-  Tooltip,
-  Progress,
   Popover,
   Typography,
   Input,
   Modal,
 } from '@douyinfe/semi-ui';
+import { timestamp2string, renderQuota } from '../../../helpers';
 import {
-  timestamp2string,
-  renderGroup,
-  renderQuota,
-  getModelCategories,
-  showError,
-} from '../../../helpers';
-import {
-  IconTreeTriangleDown,
   IconCopy,
   IconEyeOpened,
   IconEyeClosed,
 } from '@douyinfe/semi-icons';
-
-// progress color helper
-const getProgressColor = (pct) => {
-  if (pct === 100) return 'var(--semi-color-success)';
-  if (pct <= 10) return 'var(--semi-color-danger)';
-  if (pct <= 30) return 'var(--semi-color-warning)';
-  return undefined;
-};
 
 // Render functions
 function renderTimestamp(timestamp) {
@@ -46,19 +25,19 @@ const renderStatus = (text, record, t) => {
   const enabled = text === 1;
 
   let tagColor = 'black';
-  let tagText = t('未知状态');
+  let tagText = "未知状态";
   if (enabled) {
     tagColor = 'green';
-    tagText = t('已启用');
+    tagText = "已启用";
   } else if (text === 2) {
     tagColor = 'red';
-    tagText = t('已禁用');
+    tagText = "已禁用";
   } else if (text === 3) {
     tagColor = 'yellow';
-    tagText = t('已过期');
+    tagText = "已过期";
   } else if (text === 4) {
     tagColor = 'grey';
-    tagText = t('已耗尽');
+    tagText = "已耗尽";
   }
 
   return (
@@ -66,26 +45,6 @@ const renderStatus = (text, record, t) => {
       {tagText}
     </Tag>
   );
-};
-
-// Render group column
-const renderGroupColumn = (text, record, t) => {
-  if (text === 'auto') {
-    return (
-      <Tooltip
-        content={t(
-          '当前分组为 auto，会自动选择最优分组，当一个组不可用时自动降级到下一个组（熔断机制）',
-        )}
-        position='top'
-      >
-        <Tag color='white' shape='circle'>
-          {t('智能熔断')}
-          {record && record.cross_group_retry ? `(${t('跨分组')})` : ''}
-        </Tag>
-      </Tooltip>
-    );
-  }
-  return renderGroup(text);
 };
 
 // Render token key column with show/hide and copy functionality
@@ -135,12 +94,12 @@ const renderTokenKey = (
               menu={[
                 {
                   node: 'item',
-                  name: t('复制密钥'),
+                  name: "复制密钥",
                   onClick: () => copyTokenKey(record),
                 },
                 {
                   node: 'item',
-                  name: t('复制连接信息'),
+                  name: "复制连接信息",
                   onClick: () => copyTokenConnectionString(record),
                 },
               ]}
@@ -164,107 +123,6 @@ const renderTokenKey = (
   );
 };
 
-// Render model limits column
-const renderModelLimits = (text, record, t) => {
-  if (record.model_limits_enabled && text) {
-    const models = text.split(',').filter(Boolean);
-    const categories = getModelCategories(t);
-
-    const vendorAvatars = [];
-    const matchedModels = new Set();
-    Object.entries(categories).forEach(([key, category]) => {
-      if (key === 'all') return;
-      if (!category.icon || !category.filter) return;
-      const vendorModels = models.filter((m) =>
-        category.filter({ model_name: m }),
-      );
-      if (vendorModels.length > 0) {
-        vendorAvatars.push(
-          <Tooltip
-            key={key}
-            content={vendorModels.join(', ')}
-            position='top'
-            showArrow
-          >
-            <Avatar
-              size='extra-extra-small'
-              alt={category.label}
-              color='transparent'
-            >
-              {category.icon}
-            </Avatar>
-          </Tooltip>,
-        );
-        vendorModels.forEach((m) => matchedModels.add(m));
-      }
-    });
-
-    const unmatchedModels = models.filter((m) => !matchedModels.has(m));
-    if (unmatchedModels.length > 0) {
-      vendorAvatars.push(
-        <Tooltip
-          key='unknown'
-          content={unmatchedModels.join(', ')}
-          position='top'
-          showArrow
-        >
-          <Avatar size='extra-extra-small' alt='unknown'>
-            {t('其他')}
-          </Avatar>
-        </Tooltip>,
-      );
-    }
-
-    return <AvatarGroup size='extra-extra-small'>{vendorAvatars}</AvatarGroup>;
-  } else {
-    return (
-      <Tag color='white' shape='circle'>
-        {t('无限制')}
-      </Tag>
-    );
-  }
-};
-
-// Render IP restrictions column
-const renderAllowIps = (text, t) => {
-  if (!text || text.trim() === '') {
-    return (
-      <Tag color='white' shape='circle'>
-        {t('无限制')}
-      </Tag>
-    );
-  }
-
-  const ips = text
-    .split('\n')
-    .map((ip) => ip.trim())
-    .filter(Boolean);
-
-  const displayIps = ips.slice(0, 1);
-  const extraCount = ips.length - displayIps.length;
-
-  const ipTags = displayIps.map((ip, idx) => (
-    <Tag key={idx} shape='circle'>
-      {ip}
-    </Tag>
-  ));
-
-  if (extraCount > 0) {
-    ipTags.push(
-      <Tooltip
-        key='extra'
-        content={ips.slice(1).join(', ')}
-        position='top'
-        showArrow
-      >
-        <Tag shape='circle'>{'+' + extraCount}</Tag>
-      </Tooltip>,
-    );
-  }
-
-  return <Space wrap>{ipTags}</Space>;
-};
-
 // Render separate quota usage column
 const renderQuotaUsage = (text, record, t) => {
   const { Paragraph } = Typography;
@@ -275,14 +133,14 @@ const renderQuotaUsage = (text, record, t) => {
     const popoverContent = (
       <div className='text-xs p-2'>
         <Paragraph copyable={{ content: renderQuota(used) }}>
-          {t('已用额度')}: {renderQuota(used)}
+          {"已用额度"}: {renderQuota(used)}
         </Paragraph>
       </div>
     );
     return (
       <Popover content={popoverContent} position='top'>
         <Tag color='white' shape='circle'>
-          {t('无限额度')}
+          {"无限额度"}
         </Tag>
       </Popover>
     );
@@ -291,151 +149,84 @@ const renderQuotaUsage = (text, record, t) => {
   const popoverContent = (
     <div className='text-xs p-2'>
       <Paragraph copyable={{ content: renderQuota(used) }}>
-        {t('已用额度')}: {renderQuota(used)}
+        {"已用额度"}: {renderQuota(used)}
       </Paragraph>
       <Paragraph copyable={{ content: renderQuota(remain) }}>
-        {t('剩余额度')}: {renderQuota(remain)} ({percent.toFixed(0)}%)
+        {"剩余额度"}: {renderQuota(remain)} ({percent.toFixed(0)}%)
       </Paragraph>
       <Paragraph copyable={{ content: renderQuota(total) }}>
-        {t('总额度')}: {renderQuota(total)}
+        {"总额度"}: {renderQuota(total)}
       </Paragraph>
     </div>
   );
   return (
     <Popover content={popoverContent} position='top'>
       <Tag color='white' shape='circle'>
-        <div className='flex flex-col items-end'>
-          <span className='text-xs leading-none'>{`${renderQuota(remain)} / ${renderQuota(total)}`}</span>
-          <Progress
-            percent={percent}
-            stroke={getProgressColor(percent)}
-            aria-label='quota usage'
-            format={() => `${percent.toFixed(0)}%`}
-            style={{ width: '100%', marginTop: '1px', marginBottom: 0 }}
-          />
-        </div>
+        <span className='whitespace-nowrap text-xs'>{`${renderQuota(remain)} / ${renderQuota(total)} (${percent.toFixed(0)}%)`}</span>
       </Tag>
     </Popover>
   );
 };
 
-// Render operations column
-const renderOperations = (
-  text,
+const renderToggleAction = (
   record,
-  onOpenLink,
-  setEditingToken,
-  setShowEdit,
   manageToken,
   refresh,
-  t,
 ) => {
-  let chatsArray = [];
-  try {
-    const raw = localStorage.getItem('chats');
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      for (let i = 0; i < parsed.length; i++) {
-        const item = parsed[i];
-        const name = Object.keys(item)[0];
-        if (!name) continue;
-        chatsArray.push({
-          node: 'item',
-          key: i,
-          name,
-          value: item[name],
-          onClick: () => onOpenLink(name, item[name], record),
-        });
-      }
-    }
-  } catch (_) {
-    showError(t('聊天链接配置错误，请联系管理员'));
-  }
-
   return (
-    <Space wrap>
-      <SplitButtonGroup
-        className='overflow-hidden'
-        aria-label={t('项目操作按钮组')}
-      >
-        <Button
-          size='small'
-          type='tertiary'
-          onClick={() => {
-            if (chatsArray.length === 0) {
-              showError(t('请联系管理员配置聊天链接'));
-            } else {
-              const first = chatsArray[0];
-              onOpenLink(first.name, first.value, record);
-            }
-          }}
-        >
-          {t('聊天')}
-        </Button>
-        <Dropdown trigger='click' position='bottomRight' menu={chatsArray}>
-          <Button
-            type='tertiary'
-            icon={<IconTreeTriangleDown />}
-            size='small'
-          ></Button>
-        </Dropdown>
-      </SplitButtonGroup>
-
-      {record.status === 1 ? (
-        <Button
-          type='danger'
-          size='small'
-          onClick={async () => {
-            await manageToken(record.id, 'disable', record);
-            await refresh();
-          }}
-        >
-          {t('禁用')}
-        </Button>
-      ) : (
-        <Button
-          size='small'
-          onClick={async () => {
-            await manageToken(record.id, 'enable', record);
-            await refresh();
-          }}
-        >
-          {t('启用')}
-        </Button>
-      )}
-
-      <Button
-        type='tertiary'
-        size='small'
-        onClick={() => {
-          setEditingToken(record);
-          setShowEdit(true);
-        }}
-      >
-        {t('编辑')}
-      </Button>
-
-      <Button
-        type='danger'
-        size='small'
-        onClick={() => {
-          Modal.confirm({
-            title: t('确定是否要删除此令牌？'),
-            content: t('此修改将不可逆'),
-            onOk: () => {
-              (async () => {
-                await manageToken(record.id, 'delete', record);
-                await refresh();
-              })();
-            },
-          });
-        }}
-      >
-        {t('删除')}
-      </Button>
-    </Space>
+    <Button
+      type={record.status === 1 ? 'danger' : 'primary'}
+      size='small'
+      className='whitespace-nowrap'
+      onClick={async () => {
+        await manageToken(
+          record.id,
+          record.status === 1 ? 'disable' : 'enable',
+          record,
+        );
+        await refresh();
+      }}
+    >
+      {record.status === 1 ? "禁用" : "启用"}
+    </Button>
   );
 };
+
+const renderEditAction = (record, setEditingToken, setShowEdit) => (
+  <Button
+    type='tertiary'
+    size='small'
+    className='whitespace-nowrap'
+    onClick={() => {
+      setEditingToken(record);
+      setShowEdit(true);
+    }}
+  >
+    {"编辑"}
+  </Button>
+);
+
+const renderDeleteAction = (record, manageToken, refresh) => (
+  <Button
+    type='danger'
+    size='small'
+    className='whitespace-nowrap'
+    onClick={() => {
+      Modal.confirm({
+        title: "确定是否要删除此令牌？",
+        content: "此修改将不可逆",
+        onOk: () => {
+          (async () => {
+            await manageToken(record.id, 'delete', record);
+            await refresh();
+          })();
+        },
+      });
+    }}
+  >
+    {"删除"}
+  </Button>
+);
 
 export const getTokensColumns = ({
   t,
@@ -446,35 +237,30 @@ export const getTokensColumns = ({
   copyTokenKey,
   copyTokenConnectionString,
   manageToken,
-  onOpenLink,
   setEditingToken,
   setShowEdit,
   refresh,
 }) => {
   return [
     {
-      title: t('名称'),
+      title: "名称",
       dataIndex: 'name',
+      ellipsis: true,
     },
     {
-      title: t('状态'),
+      title: "状态",
       dataIndex: 'status',
       key: 'status',
       render: (text, record) => renderStatus(text, record, t),
     },
     {
-      title: t('剩余额度/总额度'),
+      title: "剩余额度/总额度",
       key: 'quota_usage',
+      ellipsis: true,
       render: (text, record) => renderQuotaUsage(text, record, t),
     },
     {
-      title: t('分组'),
-      dataIndex: 'group',
-      key: 'group',
-      render: (text, record) => renderGroupColumn(text, record, t),
-    },
-    {
-      title: t('密钥'),
+      title: "密钥",
       key: 'token_key',
       render: (text, record) =>
         renderTokenKey(
@@ -490,48 +276,39 @@ export const getTokensColumns = ({
         ),
     },
     {
-      title: t('可用模型'),
-      dataIndex: 'model_limits',
-      render: (text, record) => renderModelLimits(text, record, t),
-    },
-    {
-      title: t('IP限制'),
-      dataIndex: 'allow_ips',
-      render: (text) => renderAllowIps(text, t),
-    },
-    {
-      title: t('创建时间'),
-      dataIndex: 'created_time',
-      render: (text, record, index) => {
-        return <div>{renderTimestamp(text)}</div>;
-      },
-    },
-    {
-      title: t('过期时间'),
+      title: "过期时间",
       dataIndex: 'expired_time',
+      ellipsis: true,
       render: (text, record, index) => {
         return (
           <div>
-            {record.expired_time === -1 ? t('永不过期') : renderTimestamp(text)}
+            {record.expired_time === -1 ? "永不过期" : renderTimestamp(text)}
           </div>
         );
       },
     },
     {
-      title: '',
-      dataIndex: 'operate',
-      fixed: 'right',
+      title: "禁用",
+      key: 'toggle_action',
+      width: 90,
       render: (text, record, index) =>
-        renderOperations(
-          text,
+        renderToggleAction(
           record,
-          onOpenLink,
-          setEditingToken,
-          setShowEdit,
           manageToken,
           refresh,
-          t,
         ),
+    },
+    {
+      title: "编辑",
+      key: 'edit_action',
+      width: 80,
+      render: (text, record) => renderEditAction(record, setEditingToken, setShowEdit),
+    },
+    {
+      title: "删除",
+      key: 'delete_action',
+      width: 80,
+      render: (text, record) => renderDeleteAction(record, manageToken, refresh),
     },
   ];
 };

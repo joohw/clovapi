@@ -38,9 +38,6 @@ const UsersPage = () => {
     // Description state
     compactMode,
     setCompactMode,
-
-    // Translation
-    t,
   } = usersData;
 
   return (
@@ -64,12 +61,11 @@ const UsersPage = () => {
           <UsersDescription
             compactMode={compactMode}
             setCompactMode={setCompactMode}
-            t={t}
           />
         }
         actionsArea={
           <div className='flex flex-col md:flex-row justify-between items-center gap-2 w-full'>
-            <UsersActions setShowAddUser={setShowAddUser} t={t} />
+            <UsersActions setShowAddUser={setShowAddUser} />
 
             <UsersFilters
               formInitValues={formInitValues}
@@ -81,7 +77,6 @@ const UsersPage = () => {
               groupOptions={groupOptions}
               loading={loading}
               searching={searching}
-              t={t}
             />
           </div>
         }
@@ -92,9 +87,7 @@ const UsersPage = () => {
           onPageChange: usersData.handlePageChange,
           onPageSizeChange: usersData.handlePageSizeChange,
           isMobile: isMobile,
-          t: usersData.t,
         })}
-        t={usersData.t}
       >
         <UsersTable {...usersData} />
       </CardPro>

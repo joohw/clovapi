@@ -8,7 +8,6 @@ import {
   Dropdown,
 } from '@douyinfe/semi-ui';
 import { Code, Zap, Clock, X, Eye, Send } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import CodeViewer from './CodeViewer';
 import SSEViewer from './SSEViewer';
 
@@ -20,8 +19,6 @@ const DebugPanel = ({
   onCloseDebugPanel,
   customRequestMode,
 }) => {
-  const { t } = useTranslation();
-
   const [activeKey, setActiveKey] = useState(activeDebugTab);
 
   useEffect(() => {
@@ -94,7 +91,7 @@ const DebugPanel = ({
             <Code size={20} className='text-white' />
           </div>
           <Typography.Title heading={5} className='mb-0'>
-            {t('调试信息')}
+            {"调试信息"}
           </Typography.Title>
         </div>
 
@@ -124,7 +121,7 @@ const DebugPanel = ({
             tab={
               <div className='flex items-center gap-2'>
                 <Eye size={16} />
-                {t('预览请求体')}
+                {"预览请求体"}
                 {customRequestMode && (
                   <span className='px-1.5 py-0.5 text-xs bg-orange-100 text-orange-600 rounded-full'>
                     自定义
@@ -145,7 +142,7 @@ const DebugPanel = ({
             tab={
               <div className='flex items-center gap-2'>
                 <Send size={16} />
-                {t('实际请求体')}
+                {"实际请求体"}
               </div>
             }
             itemKey='request'
@@ -161,7 +158,7 @@ const DebugPanel = ({
             tab={
               <div className='flex items-center gap-2'>
                 <Zap size={16} />
-                {t('响应')}
+                {"响应"}
                 {debugData.sseMessages && debugData.sseMessages.length > 0 && (
                   <span className='px-1.5 py-0.5 text-xs bg-blue-100 text-blue-600 rounded-full'>
                     SSE ({debugData.sseMessages.length})
@@ -190,9 +187,9 @@ const DebugPanel = ({
             <Clock size={14} className='text-gray-500' />
             <Typography.Text className='text-xs text-gray-500'>
               {activeKey === 'preview' && debugData.previewTimestamp
-                ? `${t('预览更新')}: ${new Date(debugData.previewTimestamp).toLocaleString()}`
+                ? `${"预览更新"}: ${new Date(debugData.previewTimestamp).toLocaleString()}`
                 : debugData.timestamp
-                  ? `${t('最后请求')}: ${new Date(debugData.timestamp).toLocaleString()}`
+                  ? `${"最后请求"}: ${new Date(debugData.timestamp).toLocaleString()}`
                   : ''}
             </Typography.Text>
           </div>

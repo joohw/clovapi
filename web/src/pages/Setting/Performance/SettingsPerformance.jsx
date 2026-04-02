@@ -22,8 +22,6 @@ import {
   showSuccess,
   showWarning,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 const { Text } = Typography;
 
 // 格式化字节大小
@@ -40,7 +38,6 @@ function formatBytes(bytes, decimals = 2) {
 }
 
 export default function SettingsPerformance(props) {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
   const [stats, setStats] = useState(null);
@@ -69,7 +66,7 @@ export default function SettingsPerformance(props) {
 
   function onSubmit() {
     const updateArray = compareObjects(inputs, inputsRow);
-    if (!updateArray.length) return showWarning(t('你似乎并没有修改什么'));
+    if (!updateArray.length) return showWarning("你似乎并没有修改什么");
     const requestQueue = updateArray.map((item) => {
       let value = '';
       if (typeof inputs[item.key] === 'boolean') {
@@ -89,14 +86,14 @@ export default function SettingsPerformance(props) {
           if (res.includes(undefined)) return;
         } else if (requestQueue.length > 1) {
           if (res.includes(undefined))
-            return showError(t('部分保存失败，请重试'));
+            return showError("部分保存失败，请重试");
         }
-        showSuccess(t('保存成功'));
+        showSuccess("保存成功");
         props.refresh();
         fetchStats();
       })
       .catch(() => {
-        showError(t('保存失败，请重试'));
+        showError("保存失败，请重试");
       })
       .finally(() => {
         setLoading(false);
@@ -121,13 +118,13 @@ export default function SettingsPerformance(props) {
     try {
       const res = await API.delete('/api/performance/disk_cache');
       if (res.data.success) {
-        showSuccess(t('磁盘缓存已清理'));
+        showSuccess("磁盘缓存已清理");
         fetchStats();
       } else {
-        showError(res.data.message || t('清理失败'));
+        showError(res.data.message || "清理失败");
       }
     } catch (error) {
-      showError(t('清理失败'));
+      showError("清理失败");
     }
   }
 
@@ -135,11 +132,11 @@ export default function SettingsPerformance(props) {
     try {
       const res = await API.post('/api/performance/reset_stats');
       if (res.data.success) {
-        showSuccess(t('统计已重置'));
+        showSuccess("统计已重置");
         fetchStats();
       }
     } catch (error) {
-      showError(t('重置失败'));
+      showError("重置失败");
     }
   }
 
@@ -147,11 +144,11 @@ export default function SettingsPerformance(props) {
     try {
       const res = await API.post('/api/performance/gc');
       if (res.data.success) {
-        showSuccess(t('GC 已执行'));
+        showSuccess("GC 已执行");
         fetchStats();
       }
     } catch (error) {
-      showError(t('GC 执行失败'));
+      showError("GC 执行失败");
     }
   }
 
@@ -168,7 +165,7 @@ export default function SettingsPerformance(props) {
 
   async function cleanupLogFiles() {
     if (logCleanupValue == null || isNaN(logCleanupValue) || logCleanupValue < 1) {
-      showError(t('请输入有效的数值'));
+      showError("请输入有效的数值");
       return;
     }
     setLogCleanupLoading(true);
@@ -179,17 +176,14 @@ export default function SettingsPerformance(props) {
       if (res.data.success) {
         const { deleted_count, freed_bytes } = res.data.data;
         showSuccess(
-          t('已清理 {{count}} 个日志文件，释放 {{size}}', {
-            count: deleted_count,
-            size: formatBytes(freed_bytes),
-          }),
+          `已清理 ${deleted_count} 个日志文件，释放 ${formatBytes(freed_bytes)}`,
         );
       } else {
-        showError(res.data.message || t('清理失败'));
+        showError(res.data.message || "清理失败");
       }
       fetchLogInfo();
     } catch (error) {
-      showError(t('清理失败'));
+      showError("清理失败");
     } finally {
       setLogCleanupLoading(false);
     }
@@ -235,20 +229,18 @@ export default function SettingsPerformance(props) {
           getFormApi={(formAPI) => (refForm.current = formAPI)}
           style={{ marginBottom: 15 }}
         >
-          <Form.Section text={t('磁盘缓存设置（磁盘换内存）')}>
+          <Form.Section text={"磁盘缓存设置（磁盘换内存）"}>
             <Banner
               type='info'
-              description={t(
-                '启用磁盘缓存后，大请求体将临时存储到磁盘而非内存，可显著降低内存占用，适用于处理包含大量图片/文件的请求。建议在 SSD 环境下使用。',
-              )}
+              description={"启用磁盘缓存后，大请求体将临时存储到磁盘而非内存，可显著降低内存占用，适用于处理包含大量图片/文件的请求。建议在 SSD 环境下使用。"}
               style={{ marginBottom: 16 }}
             />
             <Row gutter={16}>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Switch
                   field={'performance_setting.disk_cache_enabled'}
-                  label={t('启用磁盘缓存')}
-                  extraText={t('将大请求体临时存储到磁盘')}
+                  label={"启用磁盘缓存"}
+                  extraText={"将大请求体临时存储到磁盘"}
                   size='default'
                   checkedText='｜'
                   uncheckedText='〇'
@@ -260,8 +252,8 @@ export default function SettingsPerformance(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
                   field={'performance_setting.disk_cache_threshold_mb'}
-                  label={t('磁盘缓存阈值 (MB)')}
-                  extraText={t('请求体超过此大小时使用磁盘缓存')}
+                  label={"磁盘缓存阈值 (MB)"}
+                  extraText={"请求体超过此大小时使用磁盘缓存"}
                   min={1}
                   max={1024}
                   onChange={handleFieldChange(
@@ -273,14 +265,11 @@ export default function SettingsPerformance(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
                   field={'performance_setting.disk_cache_max_size_mb'}
-                  label={t('磁盘缓存最大总量 (MB)')}
+                  label={"磁盘缓存最大总量 (MB)"}
                   extraText={
                     stats?.disk_space_info?.total > 0
-                      ? t('可用空间: {{free}} / 总空间: {{total}}', {
-                          free: formatBytes(stats.disk_space_info.free),
-                          total: formatBytes(stats.disk_space_info.total),
-                        })
-                      : t('磁盘缓存占用的最大空间')
+                      ? `可用空间: ${formatBytes(stats.disk_space_info.free)} / 总空间: ${formatBytes(stats.disk_space_info.total)}`
+                      : "磁盘缓存占用的最大空间"
                   }
                   min={100}
                   max={102400}
@@ -295,9 +284,9 @@ export default function SettingsPerformance(props) {
                 <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                   <Form.Input
                     field={'performance_setting.disk_cache_path'}
-                    label={t('缓存目录')}
-                    extraText={t('留空使用系统临时目录')}
-                    placeholder={t('例如 /var/cache/new-api')}
+                    label={"缓存目录"}
+                    extraText={"留空使用系统临时目录"}
+                    placeholder={"例如 /var/cache/new-api"}
                     onChange={handleFieldChange(
                       'performance_setting.disk_cache_path',
                     )}
@@ -309,20 +298,18 @@ export default function SettingsPerformance(props) {
             </Row>
           </Form.Section>
 
-          <Form.Section text={t('系统性能监控')}>
+          <Form.Section text={"系统性能监控"}>
             <Banner
               type='info'
-              description={t(
-                '启用性能监控后，当系统资源使用率超过设定阈值时，将拒绝新的 Relay 请求 (/v1, /v1beta 等)，以保护系统稳定性。',
-              )}
+              description={"启用性能监控后，当系统资源使用率超过设定阈值时，将拒绝新的 Relay 请求 (/v1, /v1beta 等)，以保护系统稳定性。"}
               style={{ marginBottom: 16 }}
             />
             <Row gutter={16}>
               <Col xs={24} sm={12} md={6} lg={6} xl={6}>
                 <Form.Switch
                   field={'performance_setting.monitor_enabled'}
-                  label={t('启用性能监控')}
-                  extraText={t('超过阈值时拒绝新请求')}
+                  label={"启用性能监控"}
+                  extraText={"超过阈值时拒绝新请求"}
                   size='default'
                   checkedText='｜'
                   uncheckedText='〇'
@@ -334,8 +321,8 @@ export default function SettingsPerformance(props) {
               <Col xs={24} sm={12} md={6} lg={6} xl={6}>
                 <Form.InputNumber
                   field={'performance_setting.monitor_cpu_threshold'}
-                  label={t('CPU 阈值 (%)')}
-                  extraText={t('CPU 使用率超过此值时拒绝请求')}
+                  label={"CPU 阈值 (%)"}
+                  extraText={"CPU 使用率超过此值时拒绝请求"}
                   min={0}
                   max={100}
                   onChange={handleFieldChange(
@@ -347,8 +334,8 @@ export default function SettingsPerformance(props) {
               <Col xs={24} sm={12} md={6} lg={6} xl={6}>
                 <Form.InputNumber
                   field={'performance_setting.monitor_memory_threshold'}
-                  label={t('内存 阈值 (%)')}
-                  extraText={t('内存使用率超过此值时拒绝请求')}
+                  label={"内存 阈值 (%)"}
+                  extraText={"内存使用率超过此值时拒绝请求"}
                   min={0}
                   max={100}
                   onChange={handleFieldChange(
@@ -360,8 +347,8 @@ export default function SettingsPerformance(props) {
               <Col xs={24} sm={12} md={6} lg={6} xl={6}>
                 <Form.InputNumber
                   field={'performance_setting.monitor_disk_threshold'}
-                  label={t('磁盘 阈值 (%)')}
-                  extraText={t('磁盘使用率超过此值时拒绝请求')}
+                  label={"磁盘 阈值 (%)"}
+                  extraText={"磁盘使用率超过此值时拒绝请求"}
                   min={0}
                   max={100}
                   onChange={handleFieldChange(
@@ -373,7 +360,7 @@ export default function SettingsPerformance(props) {
             </Row>
             <Row>
               <Button size='default' onClick={onSubmit}>
-                {t('保存性能设置')}
+                {"保存性能设置"}
               </Button>
             </Row>
           </Form.Section>
@@ -381,31 +368,29 @@ export default function SettingsPerformance(props) {
       </Spin>
 
       {/* 服务器日志管理 */}
-      <Form.Section text={t('服务器日志管理')}>
+      <Form.Section text={"服务器日志管理"}>
         <Banner
           type='info'
-          description={t(
-            '管理服务器运行日志文件。日志文件会随运行时间不断累积，建议定期清理以释放磁盘空间。',
-          )}
+          description={"管理服务器运行日志文件。日志文件会随运行时间不断累积，建议定期清理以释放磁盘空间。"}
           style={{ marginBottom: 16 }}
         />
         {logInfo === null ? null : logInfo.enabled ? (
           <>
             <Descriptions
               data={[
-                { key: t('日志目录'), value: logInfo.log_dir },
+                { key: "日志目录", value: logInfo.log_dir },
                 {
-                  key: t('日志文件数'),
+                  key: "日志文件数",
                   value: logInfo.file_count,
                 },
                 {
-                  key: t('日志总大小'),
+                  key: "日志总大小",
                   value: formatBytes(logInfo.total_size),
                 },
                 ...(logInfo.oldest_time && logInfo.newest_time
                   ? [
                       {
-                        key: t('日志时间范围'),
+                        key: "日志时间范围",
                         value: `${new Date(logInfo.oldest_time).toLocaleDateString()} ~ ${new Date(logInfo.newest_time).toLocaleDateString()}`,
                       },
                     ]
@@ -417,14 +402,14 @@ export default function SettingsPerformance(props) {
               <Col xs={24} sm={12} md={8}>
                 <div style={{ marginBottom: 12 }}>
                   <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                    {t('清理方式')}
+                    {"清理方式"}
                   </Text>
                   <RadioGroup
                     value={logCleanupMode}
                     onChange={(e) => setLogCleanupMode(e.target.value)}
                   >
-                    <Radio value='by_count'>{t('保留最近N个文件')}</Radio>
-                    <Radio value='by_days'>{t('保留最近N天')}</Radio>
+                    <Radio value='by_count'>{"保留最近N个文件"}</Radio>
+                    <Radio value='by_days'>{"保留最近N天"}</Radio>
                   </RadioGroup>
                 </div>
               </Col>
@@ -432,8 +417,8 @@ export default function SettingsPerformance(props) {
                 <div style={{ marginBottom: 12 }}>
                   <Text strong style={{ display: 'block', marginBottom: 8 }}>
                     {logCleanupMode === 'by_count'
-                      ? t('保留文件数')
-                      : t('保留天数')}
+                      ? "保留文件数"
+                      : "保留天数"}
                   </Text>
                   <InputNumber
                     value={logCleanupValue}
@@ -457,21 +442,16 @@ export default function SettingsPerformance(props) {
                     &nbsp;
                   </Text>
                 <Popconfirm
-                  title={t('确认清理日志文件？')}
+                  title={"确认清理日志文件？"}
                   content={
                     logCleanupMode === 'by_count'
-                      ? t(
-                          '将只保留最近 {{value}} 个日志文件，其余将被删除。',
-                          { value: logCleanupValue },
-                        )
-                      : t('将删除 {{value}} 天前的日志文件。', {
-                          value: logCleanupValue,
-                        })
+                      ? `将只保留最近 ${logCleanupValue} 个日志文件，其余将被删除。`
+                      : `将删除 ${logCleanupValue} 天前的日志文件。`
                   }
                   onConfirm={cleanupLogFiles}
                 >
                   <Button type='danger' loading={logCleanupLoading}>
-                    {t('清理日志文件')}
+                    {"清理日志文件"}
                   </Button>
                 </Popconfirm>
                 </div>
@@ -481,27 +461,27 @@ export default function SettingsPerformance(props) {
         ) : (
           <Banner
             type='warning'
-            description={t('服务器日志功能未启用（未配置日志目录）')}
+            description={"服务器日志功能未启用（未配置日志目录）"}
           />
         )}
       </Form.Section>
 
       {/* 性能统计 */}
       <Spin spinning={statsLoading}>
-        <Form.Section text={t('性能监控')}>
+        <Form.Section text={"性能监控"}>
           <Row gutter={16} style={{ marginBottom: 16 }}>
             <Col span={24}>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <Button onClick={fetchStats}>{t('刷新统计')}</Button>
+                <Button onClick={fetchStats}>{"刷新统计"}</Button>
                 <Popconfirm
-                  title={t('确认清理不活跃的磁盘缓存？')}
-                  content={t('这将删除超过 10 分钟未使用的临时缓存文件')}
+                  title={"确认清理不活跃的磁盘缓存？"}
+                  content={"这将删除超过 10 分钟未使用的临时缓存文件"}
                   onConfirm={clearDiskCache}
                 >
-                  <Button type='warning'>{t('清理不活跃缓存')}</Button>
+                  <Button type='warning'>{"清理不活跃缓存"}</Button>
                 </Popconfirm>
-                <Button onClick={resetStats}>{t('重置统计')}</Button>
-                <Button onClick={forceGC}>{t('执行 GC')}</Button>
+                <Button onClick={resetStats}>{"重置统计"}</Button>
+                <Button onClick={forceGC}>{"执行 GC"}</Button>
               </div>
             </Col>
           </Row>
@@ -529,7 +509,7 @@ export default function SettingsPerformance(props) {
                     }}
                   >
                     <Text strong style={{ marginBottom: 8, display: 'block' }}>
-                      {t('请求体磁盘缓存')}
+                      {"请求体磁盘缓存"}
                     </Text>
                     <Progress
                       percent={parseFloat(diskCacheUsagePercent)}
@@ -555,12 +535,12 @@ export default function SettingsPerformance(props) {
                         / {formatBytes(stats.cache_stats.disk_cache_max_bytes)}
                       </Text>
                       <Text type='tertiary'>
-                        {t('活跃文件')}: {stats.cache_stats.active_disk_files}
+                        {"活跃文件"}: {stats.cache_stats.active_disk_files}
                       </Text>
                     </div>
                     <div style={{ marginTop: 'auto' }}>
                       <Tag color='blue'>
-                        {t('磁盘命中')}: {stats.cache_stats.disk_cache_hits}
+                        {"磁盘命中"}: {stats.cache_stats.disk_cache_hits}
                       </Tag>
                     </div>
                   </div>
@@ -577,7 +557,7 @@ export default function SettingsPerformance(props) {
                     }}
                   >
                     <Text strong style={{ marginBottom: 8, display: 'block' }}>
-                      {t('请求体内存缓存')}
+                      {"请求体内存缓存"}
                     </Text>
                     <div
                       style={{
@@ -587,19 +567,19 @@ export default function SettingsPerformance(props) {
                       }}
                     >
                       <Text>
-                        {t('当前缓存大小')}:{' '}
+                        {"当前缓存大小"}:{' '}
                         {formatBytes(
                           stats.cache_stats.current_memory_usage_bytes,
                         )}
                       </Text>
                       <Text>
-                        {t('活跃缓存数')}:{' '}
+                        {"活跃缓存数"}:{' '}
                         {stats.cache_stats.active_memory_buffers}
                       </Text>
                     </div>
                     <div style={{ marginTop: 'auto' }}>
                       <Tag color='green'>
-                        {t('内存命中')}: {stats.cache_stats.memory_cache_hits}
+                        {"内存命中"}: {stats.cache_stats.memory_cache_hits}
                       </Tag>
                     </div>
                   </div>
@@ -621,7 +601,7 @@ export default function SettingsPerformance(props) {
                         strong
                         style={{ marginBottom: 8, display: 'block' }}
                       >
-                        {t('缓存目录磁盘空间')}
+                        {"缓存目录磁盘空间"}
                       </Text>
                       <Progress
                         percent={parseFloat(
@@ -646,13 +626,13 @@ export default function SettingsPerformance(props) {
                         }}
                       >
                         <Text type='tertiary'>
-                          {t('已用')}: {formatBytes(stats.disk_space_info.used)}
+                          {"已用"}: {formatBytes(stats.disk_space_info.used)}
                         </Text>
                         <Text type='tertiary'>
-                          {t('可用')}: {formatBytes(stats.disk_space_info.free)}
+                          {"可用"}: {formatBytes(stats.disk_space_info.free)}
                         </Text>
                         <Text type='tertiary'>
-                          {t('总计')}:{' '}
+                          {"总计"}:{' '}
                           {formatBytes(stats.disk_space_info.total)}
                         </Text>
                       </div>
@@ -662,7 +642,7 @@ export default function SettingsPerformance(props) {
                           1024 && (
                         <Banner
                           type='warning'
-                          description={t('磁盘可用空间小于缓存最大总量设置')}
+                          description={"磁盘可用空间小于缓存最大总量设置"}
                           style={{ marginTop: 8 }}
                         />
                       )}
@@ -677,32 +657,32 @@ export default function SettingsPerformance(props) {
                   <Descriptions
                     data={[
                       {
-                        key: t('已分配内存'),
+                        key: "已分配内存",
                         value: formatBytes(stats.memory_stats.alloc),
                       },
                       {
-                        key: t('总分配内存'),
+                        key: "总分配内存",
                         value: formatBytes(stats.memory_stats.total_alloc),
                       },
                       {
-                        key: t('系统内存'),
+                        key: "系统内存",
                         value: formatBytes(stats.memory_stats.sys),
                       },
-                      { key: t('GC 次数'), value: stats.memory_stats.num_gc },
+                      { key: "GC 次数", value: stats.memory_stats.num_gc },
                       {
-                        key: t('Goroutine 数'),
+                        key: "Goroutine 数",
                         value: stats.memory_stats.num_goroutine,
                       },
                       {
-                        key: t('缓存目录'),
+                        key: "缓存目录",
                         value: stats.disk_cache_info.path,
                       },
                       {
-                        key: t('目录文件数'),
+                        key: "目录文件数",
                         value: stats.disk_cache_info.file_count,
                       },
                       {
-                        key: t('目录总大小'),
+                        key: "目录总大小",
                         value: formatBytes(stats.disk_cache_info.total_size),
                       },
                     ]}

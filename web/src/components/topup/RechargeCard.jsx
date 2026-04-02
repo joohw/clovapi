@@ -118,7 +118,7 @@ const RechargeCard = ({
             <div className='relative z-10 h-full flex flex-col justify-between p-4'>
               <div className='flex justify-between items-center'>
                 <Text strong style={{ color: 'white', fontSize: '16px' }}>
-                  {t('账户统计')}
+                  {"账户统计"}
                 </Text>
               </div>
 
@@ -144,7 +144,7 @@ const RechargeCard = ({
                         fontSize: '12px',
                       }}
                     >
-                      {t('当前余额')}
+                      {"当前余额"}
                     </Text>
                   </div>
                 </div>
@@ -169,7 +169,7 @@ const RechargeCard = ({
                         fontSize: '12px',
                       }}
                     >
-                      {t('历史消耗')}
+                      {"历史消耗"}
                     </Text>
                   </div>
                 </div>
@@ -194,7 +194,7 @@ const RechargeCard = ({
                         fontSize: '12px',
                       }}
                     >
-                      {t('请求次数')}
+                      {"请求次数"}
                     </Text>
                   </div>
                 </div>
@@ -219,10 +219,10 @@ const RechargeCard = ({
                   <Col xs={24} sm={24} md={24} lg={10} xl={10}>
                     <Form.InputNumber
                       field='topUpCount'
-                      label={t('充值数量')}
+                      label={"充值数量"}
                       disabled={!enableOnlineTopUp && !enableStripeTopUp && !enableWaffoTopUp}
                       placeholder={
-                        t('充值数量，最低 ') + renderQuotaWithAmount(minTopUp)
+                        "充值数量，最低 " + renderQuotaWithAmount(minTopUp)
                       }
                       value={topUpCount}
                       min={minTopUp}
@@ -262,7 +262,7 @@ const RechargeCard = ({
                           }
                         >
                           <Text type='secondary' className='text-red-600'>
-                            {t('实付金额：')}
+                            {"实付金额："}
                             <span style={{ color: 'red' }}>
                               {renderAmount()}
                             </span>
@@ -274,7 +274,7 @@ const RechargeCard = ({
                   </Col>
                   {payMethods && payMethods.filter(m => m.type !== 'waffo').length > 0 && (
                   <Col xs={24} sm={24} md={24} lg={14} xl={14}>
-                    <Form.Slot label={t('选择支付方式')}>
+                    <Form.Slot label={"选择支付方式"}>
                         <Space wrap>
                           {payMethods.filter(m => m.type !== 'waffo').map((payMethod) => {
                             const minTopupVal = Number(payMethod.min_topup) || 0;
@@ -321,7 +321,7 @@ const RechargeCard = ({
                               minTopupVal > Number(topUpCount || 0) ? (
                               <Tooltip
                                 content={
-                                  t('此支付方式最低充值金额为') +
+                                  "此支付方式最低充值金额为" +
                                   ' ' +
                                   minTopupVal
                                 }
@@ -346,7 +346,7 @@ const RechargeCard = ({
                 <Form.Slot
                   label={
                     <div className='flex items-center gap-2'>
-                      <span>{t('选择充值额度')}</span>
+                      <span>{"选择充值额度"}</span>
                       {(() => {
                         const { symbol, rate, type } = getCurrencyConfig();
                         if (type === 'USD') return null;
@@ -435,10 +435,10 @@ const RechargeCard = ({
                               {formatLargeNumber(displayValue)} {symbol}
                               {hasDiscount && (
                                 <Tag style={{ marginLeft: 4 }} color='green'>
-                                  {t('折').includes('off')
+                                  {"折".includes('off')
                                     ? ((1 - parseFloat(discount)) * 100).toFixed(1)
                                     : (discount * 10).toFixed(1)}
-                                  {t('折')}
+                                  {"折"}
                                 </Tag>
                               )}
                             </Typography.Title>
@@ -449,11 +449,11 @@ const RechargeCard = ({
                                 margin: '4px 0',
                               }}
                             >
-                              {t('实付')} {symbol}
+                              {"实付"} {symbol}
                               {displayActualPay.toFixed(2)}，
                               {hasDiscount
-                                ? `${t('节省')} ${symbol}${displaySave.toFixed(2)}`
-                                : `${t('节省')} ${symbol}0.00`}
+                                ? `${"节省"} ${symbol}${displaySave.toFixed(2)}`
+                                : `${"节省"} ${symbol}0.00`}
                             </div>
                           </div>
                         </Card>
@@ -467,7 +467,7 @@ const RechargeCard = ({
               {enableWaffoTopUp &&
                 waffoPayMethods &&
                 waffoPayMethods.length > 0 && (
-                  <Form.Slot label={t('Waffo 充值')}>
+                  <Form.Slot label={"Waffo 充值"}>
                     <Space wrap>
                       {waffoPayMethods.map((method, index) => (
                         <Button
@@ -505,7 +505,7 @@ const RechargeCard = ({
 
               {/* Creem 充值区域 */}
               {enableCreemTopUp && creemProducts.length > 0 && (
-                <Form.Slot label={t('Creem 充值')}>
+                <Form.Slot label={"Creem 充值"}>
                   <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3'>
                     {creemProducts.map((product, index) => (
                       <Card
@@ -518,7 +518,7 @@ const RechargeCard = ({
                           {product.name}
                         </div>
                         <div className='text-sm text-gray-600 mb-2'>
-                          {t('充值额度')}: {product.quota}
+                          {"充值额度"}: {product.quota}
                         </div>
                         <div className='text-lg font-semibold text-blue-600'>
                           {product.currency === 'EUR' ? '€' : '$'}
@@ -534,9 +534,7 @@ const RechargeCard = ({
         ) : (
           <Banner
             type='info'
-            description={t(
-              '管理员未开启在线充值功能，请联系管理员开启或使用兑换码充值。',
-            )}
+            description={"管理员未开启在线充值功能，请联系管理员开启或使用兑换码充值。"}
             className='!rounded-xl'
             closeIcon={null}
           />
@@ -548,7 +546,7 @@ const RechargeCard = ({
         className='!rounded-xl w-full'
         title={
           <Text type='tertiary' strong>
-            {t('兑换码充值')}
+            {"兑换码充值"}
           </Text>
         }
       >
@@ -559,7 +557,7 @@ const RechargeCard = ({
           <Form.Input
             field='redemptionCode'
             noLabel={true}
-            placeholder={t('请输入兑换码')}
+            placeholder={"请输入兑换码"}
             value={redemptionCode}
             onChange={(value) => setRedemptionCode(value)}
             prefix={<IconGift />}
@@ -571,7 +569,7 @@ const RechargeCard = ({
                   onClick={topUp}
                   loading={isSubmitting}
                 >
-                  {t('兑换额度')}
+                  {"兑换额度"}
                 </Button>
               </div>
             }
@@ -580,14 +578,14 @@ const RechargeCard = ({
             extraText={
               topUpLink && (
                 <Text type='tertiary'>
-                  {t('在找兑换码？')}
+                  {"在找兑换码？"}
                   <Text
                     type='secondary'
                     underline
                     className='cursor-pointer'
                     onClick={openTopUpLink}
                   >
-                    {t('购买兑换码')}
+                    {"购买兑换码"}
                   </Text>
                 </Text>
               )
@@ -608,9 +606,9 @@ const RechargeCard = ({
           </Avatar>
           <div>
             <Typography.Text className='text-lg font-medium'>
-              {t('账户充值')}
+              {"账户充值"}
             </Typography.Text>
-            <div className='text-xs'>{t('多种充值方式，安全便捷')}</div>
+            <div className='text-xs'>{"多种充值方式，安全便捷"}</div>
           </div>
         </div>
         <Button
@@ -618,7 +616,7 @@ const RechargeCard = ({
           theme='solid'
           onClick={onOpenHistory}
         >
-          {t('账单')}
+          {"账单"}
         </Button>
       </div>
 
@@ -628,14 +626,13 @@ const RechargeCard = ({
             tab={
               <div className='flex items-center gap-2'>
                 <Sparkles size={16} />
-                {t('订阅套餐')}
+                {"订阅套餐"}
               </div>
             }
             itemKey='subscription'
           >
             <div className='py-2'>
               <SubscriptionPlansCard
-                t={t}
                 loading={subscriptionLoading}
                 plans={subscriptionPlans}
                 payMethods={payMethods}
@@ -655,7 +652,7 @@ const RechargeCard = ({
             tab={
               <div className='flex items-center gap-2'>
                 <Wallet size={16} />
-                {t('额度充值')}
+                {"额度充值"}
               </div>
             }
             itemKey='topup'

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card, Chat, Typography, Button } from '@douyinfe/semi-ui';
 import { MessageSquare, Eye, EyeOff } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import CustomInputRender from './CustomInputRender';
 
 const ChatArea = ({
@@ -21,8 +20,6 @@ const ChatArea = ({
   renderCustomChatContent,
   renderChatBoxAction,
 }) => {
-  const { t } = useTranslation();
-
   const renderInputArea = React.useCallback((props) => {
     return <CustomInputRender {...props} />;
   }, []);
@@ -51,10 +48,10 @@ const ChatArea = ({
               </div>
               <div>
                 <Typography.Title heading={5} className='!text-white mb-0'>
-                  {t('AI 对话')}
+                  {"AI 对话"}
                 </Typography.Title>
                 <Typography.Text className='!text-white/80 text-sm hidden sm:inline'>
-                  {inputs.model || t('选择模型开始对话')}
+                  {inputs.model || "选择模型开始对话"}
                 </Typography.Text>
               </div>
             </div>
@@ -67,7 +64,7 @@ const ChatArea = ({
                 size='small'
                 className='!rounded-lg !text-white/80 hover:!text-white hover:!bg-white/10'
               >
-                {showDebugPanel ? t('隐藏调试') : t('显示调试')}
+                {showDebugPanel ? "隐藏调试" : "显示调试"}
               </Button>
             </div>
           </div>
@@ -78,6 +75,10 @@ const ChatArea = ({
       <div className='flex-1 overflow-hidden'>
         <Chat
           ref={chatRef}
+          uploadProps={{
+            action: '/api/upload',
+            beforeUpload: () => false,
+          }}
           chatBoxRenderConfig={{
             renderChatBoxContent: renderCustomChatContent,
             renderChatBoxAction: renderChatBoxAction,
@@ -100,7 +101,7 @@ const ChatArea = ({
           onStopGenerator={onStopGenerator}
           onClear={onClearMessages}
           className='h-full'
-          placeholder={t('请输入您的问题...')}
+          placeholder={"请输入您的问题..."}
         />
       </div>
     </Card>

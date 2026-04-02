@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Layout, TabPane, Tabs } from '@douyinfe/semi-ui';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import {
   Settings,
   Calculator,
@@ -32,7 +31,6 @@ import ModelDeploymentSetting from '../../components/settings/ModelDeploymentSet
 import PerformanceSetting from '../../components/settings/PerformanceSetting';
 
 const Setting = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [tabActiveKey, setTabActiveKey] = useState('1');
@@ -43,7 +41,7 @@ const Setting = () => {
       tab: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <Settings size={18} />
-          {t('运营设置')}
+          {"运营设置"}
         </span>
       ),
       content: <OperationSetting />,
@@ -53,7 +51,7 @@ const Setting = () => {
       tab: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <LayoutDashboard size={18} />
-          {t('仪表盘设置')}
+          {"仪表盘设置"}
         </span>
       ),
       content: <DashboardSetting />,
@@ -63,7 +61,7 @@ const Setting = () => {
       tab: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <MessageSquare size={18} />
-          {t('聊天设置')}
+          {"聊天设置"}
         </span>
       ),
       content: <ChatsSetting />,
@@ -73,7 +71,7 @@ const Setting = () => {
       tab: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <Palette size={18} />
-          {t('绘图设置')}
+          {"绘图设置"}
         </span>
       ),
       content: <DrawingSetting />,
@@ -83,7 +81,7 @@ const Setting = () => {
       tab: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <CreditCard size={18} />
-          {t('支付设置')}
+          {"支付设置"}
         </span>
       ),
       content: <PaymentSetting />,
@@ -93,7 +91,7 @@ const Setting = () => {
       tab: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <Calculator size={18} />
-          {t('分组与模型定价设置')}
+          {"分组与模型定价设置"}
         </span>
       ),
       content: <RatioSetting />,
@@ -103,7 +101,7 @@ const Setting = () => {
       tab: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <Gauge size={18} />
-          {t('速率限制设置')}
+          {"速率限制设置"}
         </span>
       ),
       content: <RateLimitSetting />,
@@ -113,7 +111,7 @@ const Setting = () => {
       tab: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <Shapes size={18} />
-          {t('模型相关设置')}
+          {"模型相关设置"}
         </span>
       ),
       content: <ModelSetting />,
@@ -123,7 +121,7 @@ const Setting = () => {
       tab: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <Server size={18} />
-          {t('模型部署设置')}
+          {"模型部署设置"}
         </span>
       ),
       content: <ModelDeploymentSetting />,
@@ -133,7 +131,7 @@ const Setting = () => {
       tab: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <Activity size={18} />
-          {t('性能设置')}
+          {"性能设置"}
         </span>
       ),
       content: <PerformanceSetting />,
@@ -143,7 +141,7 @@ const Setting = () => {
       tab: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <Cog size={18} />
-          {t('系统设置')}
+          {"系统设置"}
         </span>
       ),
       content: <SystemSetting />,
@@ -153,7 +151,7 @@ const Setting = () => {
       tab: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <MoreHorizontal size={18} />
-          {t('其他设置')}
+          {"其他设置"}
         </span>
       ),
       content: <OtherSetting />,

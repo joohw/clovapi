@@ -15,7 +15,6 @@ import {
 } from '@douyinfe/semi-ui';
 import { IconLayers, IconSave, IconClose } from '@douyinfe/semi-icons';
 import { API, showError, showSuccess } from '../../../../helpers';
-import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 
 const { Text, Title } = Typography;
@@ -37,7 +36,6 @@ const EditPrefillGroupModal = ({
   editingGroup,
   onSuccess,
 }) => {
-  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const formRef = useRef(null);
@@ -51,9 +49,9 @@ const EditPrefillGroupModal = ({
   }, [editingGroup?.type]);
 
   const typeOptions = [
-    { label: t('模型组'), value: 'model' },
-    { label: t('标签组'), value: 'tag' },
-    { label: t('端点组'), value: 'endpoint' },
+    { label: "模型组", value: 'model' },
+    { label: "标签组", value: 'tag' },
+    { label: "端点组", value: 'endpoint' },
   ];
 
   // 提交表单
@@ -73,22 +71,22 @@ const EditPrefillGroupModal = ({
         submitData.id = editingGroup.id;
         const res = await API.put('/api/prefill_group', submitData);
         if (res.data.success) {
-          showSuccess(t('更新成功'));
+          showSuccess("更新成功");
           onSuccess();
         } else {
-          showError(res.data.message || t('更新失败'));
+          showError(res.data.message || "更新失败");
         }
       } else {
         const res = await API.post('/api/prefill_group', submitData);
         if (res.data.success) {
-          showSuccess(t('创建成功'));
+          showSuccess("创建成功");
           onSuccess();
         } else {
-          showError(res.data.message || t('创建失败'));
+          showError(res.data.message || "创建失败");
         }
       }
     } catch (error) {
-      showError(t('操作失败'));
+      showError("操作失败");
     }
     setLoading(false);
   };
@@ -100,15 +98,15 @@ const EditPrefillGroupModal = ({
         <Space>
           {isEdit ? (
             <Tag color='blue' shape='circle'>
-              {t('更新')}
+              {"更新"}
             </Tag>
           ) : (
             <Tag color='green' shape='circle'>
-              {t('新建')}
+              {"新建"}
             </Tag>
           )}
           <Title heading={4} className='m-0'>
-            {isEdit ? t('更新预填组') : t('创建新的预填组')}
+            {isEdit ? "更新预填组" : "创建新的预填组"}
           </Title>
         </Space>
       }
@@ -126,7 +124,7 @@ const EditPrefillGroupModal = ({
               icon={<IconSave />}
               loading={loading}
             >
-              {t('提交')}
+              {"提交"}
             </Button>
             <Button
               theme='light'
@@ -135,7 +133,7 @@ const EditPrefillGroupModal = ({
               onClick={onClose}
               icon={<IconClose />}
             >
-              {t('取消')}
+              {"取消"}
             </Button>
           </Space>
         </div>
@@ -175,9 +173,9 @@ const EditPrefillGroupModal = ({
                   <IconLayers size={16} />
                 </Avatar>
                 <div>
-                  <Text className='text-lg font-medium'>{t('基本信息')}</Text>
+                  <Text className='text-lg font-medium'>{"基本信息"}</Text>
                   <div className='text-xs text-gray-600'>
-                    {t('设置预填组的基本信息')}
+                    {"设置预填组的基本信息"}
                   </div>
                 </div>
               </div>
@@ -185,19 +183,19 @@ const EditPrefillGroupModal = ({
                 <Col span={24}>
                   <Form.Input
                     field='name'
-                    label={t('组名')}
-                    placeholder={t('请输入组名')}
-                    rules={[{ required: true, message: t('请输入组名') }]}
+                    label={"组名"}
+                    placeholder={"请输入组名"}
+                    rules={[{ required: true, message: "请输入组名" }]}
                     showClear
                   />
                 </Col>
                 <Col span={24}>
                   <Form.Select
                     field='type'
-                    label={t('类型')}
-                    placeholder={t('选择组类型')}
+                    label={"类型"}
+                    placeholder={"选择组类型"}
                     optionList={typeOptions}
-                    rules={[{ required: true, message: t('请选择组类型') }]}
+                    rules={[{ required: true, message: "请选择组类型" }]}
                     style={{ width: '100%' }}
                     onChange={(val) => setSelectedType(val)}
                   />
@@ -205,8 +203,8 @@ const EditPrefillGroupModal = ({
                 <Col span={24}>
                   <Form.TextArea
                     field='description'
-                    label={t('描述')}
-                    placeholder={t('请输入组描述')}
+                    label={"描述"}
+                    placeholder={"请输入组描述"}
                     rows={3}
                     showClear
                   />
@@ -215,7 +213,7 @@ const EditPrefillGroupModal = ({
                   {selectedType === 'endpoint' ? (
                     <JSONEditor
                       field='items'
-                      label={t('端点映射')}
+                      label={"端点映射"}
                       value={
                         formRef.current?.getValue('items') ??
                         (typeof editingGroup?.items === 'string'
@@ -230,14 +228,14 @@ const EditPrefillGroupModal = ({
                         '{\n  "openai": {"path": "/v1/chat/completions", "method": "POST"}\n}'
                       }
                       template={ENDPOINT_TEMPLATE}
-                      templateLabel={t('填入模板')}
-                      extraText={t('键为端点类型，值为路径和方法对象')}
+                      templateLabel={"填入模板"}
+                      extraText={"键为端点类型，值为路径和方法对象"}
                     />
                   ) : (
                     <Form.TagInput
                       field='items'
-                      label={t('项目')}
-                      placeholder={t('输入项目名称，按回车添加')}
+                      label={"项目"}
+                      placeholder={"输入项目名称，按回车添加"}
                       addOnBlur
                       showClear
                       style={{ width: '100%' }}

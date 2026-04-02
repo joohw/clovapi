@@ -34,7 +34,6 @@ import {
   toBoolean,
   verifyJSON,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
 import {
   CHANNEL_AFFINITY_RULE_TEMPLATES,
   cloneChannelAffinityTemplate,
@@ -173,7 +172,6 @@ const parseOptionalObjectJson = (jsonString, label) => {
 };
 
 export default function SettingsChannelAffinity(props) {
-  const { t } = useTranslation();
   const { Text } = Typography;
   const [loading, setLoading] = useState(false);
 
@@ -238,27 +236,27 @@ export default function SettingsChannelAffinity(props) {
     const raw = (paramTemplateDraft || '').trim();
     if (!raw) {
       return {
-        tagLabel: t('未设置'),
+        tagLabel: "未设置",
         tagColor: 'grey',
-        preview: t('当前规则未设置参数覆盖模板'),
+        preview: "当前规则未设置参数覆盖模板",
       };
     }
     if (!verifyJSON(raw)) {
       return {
-        tagLabel: t('JSON 无效'),
+        tagLabel: "JSON 无效",
         tagColor: 'red',
         preview: raw,
       };
     }
     try {
       return {
-        tagLabel: t('已设置'),
+        tagLabel: "已设置",
         tagColor: 'orange',
         preview: JSON.stringify(JSON.parse(raw), null, 2),
       };
     } catch (error) {
       return {
-        tagLabel: t('JSON 无效'),
+        tagLabel: "JSON 无效",
         tagColor: 'red',
         preview: raw,
       };
@@ -277,24 +275,24 @@ export default function SettingsChannelAffinity(props) {
     const raw = (paramTemplateDraft || '').trim();
     if (!raw) return;
     if (!verifyJSON(raw)) {
-      showError(t('参数覆盖模板 JSON 格式不正确'));
+      showError("参数覆盖模板 JSON 格式不正确");
       return;
     }
     try {
       updateParamTemplateDraft(JSON.stringify(JSON.parse(raw), null, 2));
     } catch (error) {
-      showError(t('参数覆盖模板 JSON 格式不正确'));
+      showError("参数覆盖模板 JSON 格式不正确");
     }
   };
 
   const openParamTemplatePreview = (rule) => {
     const raw = rule?.param_override_template;
     if (!raw || typeof raw !== 'object') {
-      showWarning(t('该规则未设置参数覆盖模板'));
+      showWarning("该规则未设置参数覆盖模板");
       return;
     }
     Modal.info({
-      title: t('参数覆盖模板预览'),
+      title: "参数覆盖模板预览",
       content: (
         <div style={{ marginTop: 6, paddingBottom: 10 }}>
           <pre
@@ -328,10 +326,10 @@ export default function SettingsChannelAffinity(props) {
         disableDuplicate: true,
       });
       const { success, message, data } = res.data;
-      if (!success) return showError(t(message));
+      if (!success) return showError(message);
       setCacheStats(data || {});
     } catch (e) {
-      showError(t('刷新缓存统计失败'));
+      showError("刷新缓存统计失败");
     } finally {
       setCacheLoading(false);
     }
@@ -339,10 +337,10 @@ export default function SettingsChannelAffinity(props) {
 
   const confirmClearAllCache = () => {
     Modal.confirm({
-      title: t('确认清空全部渠道亲和性缓存'),
+      title: "确认清空全部渠道亲和性缓存",
       content: (
         <div style={{ lineHeight: '1.6' }}>
-          <Text>{t('将删除所有仍在内存中的渠道亲和性缓存条目。')}</Text>
+          <Text>{"将删除所有仍在内存中的渠道亲和性缓存条目。"}</Text>
         </div>
       ),
       onOk: async () => {
@@ -351,10 +349,10 @@ export default function SettingsChannelAffinity(props) {
         });
         const { success, message } = res.data;
         if (!success) {
-          showError(t(message));
+          showError(message);
           return;
         }
-        showSuccess(t('已清空'));
+        showSuccess("已清空");
         await refreshCacheStats();
       },
     });
@@ -365,15 +363,15 @@ export default function SettingsChannelAffinity(props) {
     if (!name) return;
     if (!rule?.include_rule_name) {
       showWarning(
-        t('该规则未启用“作用域：包含规则名称”，无法按规则清空缓存。'),
+        "该规则未启用“作用域：包含规则名称”，无法按规则清空缓存。",
       );
       return;
     }
     Modal.confirm({
-      title: t('确认清空该规则缓存'),
+      title: "确认清空该规则缓存",
       content: (
         <div style={{ lineHeight: '1.6' }}>
-          <Text>{t('规则')}：</Text> <Text strong>{name}</Text>
+          <Text>{"规则"}：</Text> <Text strong>{name}</Text>
         </div>
       ),
       onOk: async () => {
@@ -382,10 +380,10 @@ export default function SettingsChannelAffinity(props) {
         });
         const { success, message } = res.data;
         if (!success) {
-          showError(t(message));
+          showError(message);
           return;
         }
-        showSuccess(t('已清空'));
+        showSuccess("已清空");
         await refreshCacheStats();
       },
     });
@@ -409,7 +407,7 @@ export default function SettingsChannelAffinity(props) {
   const switchToVisualMode = () => {
     const validation = tryParseRulesJsonArray(inputs[KEY_RULES] || '[]');
     if (!validation.ok) {
-      showError(t(validation.message));
+      showError(validation.message);
       return;
     }
     setEditMode('visual');
@@ -449,7 +447,7 @@ export default function SettingsChannelAffinity(props) {
         id: idx,
       }));
       updateRulesState(next);
-      showSuccess(t('已填充模版'));
+      showSuccess("已填充模版");
     };
 
     if ((rules || []).length === 0) {
@@ -458,10 +456,10 @@ export default function SettingsChannelAffinity(props) {
     }
 
     Modal.confirm({
-      title: t('填充 Codex CLI / Claude CLI 模版'),
+      title: "填充 Codex CLI / Claude CLI 模版",
       content: (
         <div style={{ lineHeight: '1.6' }}>
-          <Text type='tertiary'>{t('将追加 2 条规则到现有规则列表。')}</Text>
+          <Text type='tertiary'>{"将追加 2 条规则到现有规则列表。"}</Text>
         </div>
       ),
       onOk: doAppend,
@@ -470,12 +468,12 @@ export default function SettingsChannelAffinity(props) {
 
   const ruleColumns = [
     {
-      title: t('名称'),
+      title: "名称",
       dataIndex: 'name',
       render: (text) => <Text>{text || '-'}</Text>,
     },
     {
-      title: t('模型正则'),
+      title: "模型正则",
       dataIndex: 'model_regex',
       render: (list) =>
         (list || []).length > 0
@@ -487,7 +485,7 @@ export default function SettingsChannelAffinity(props) {
           : '-',
     },
     {
-      title: t('路径正则'),
+      title: "路径正则",
       dataIndex: 'path_regex',
       render: (list) =>
         (list || []).length > 0
@@ -499,7 +497,7 @@ export default function SettingsChannelAffinity(props) {
           : '-',
     },
     {
-      title: t('Key 来源'),
+      title: "Key 来源",
       dataIndex: 'key_sources',
       render: (list) => {
         const xs = list || [];
@@ -516,21 +514,21 @@ export default function SettingsChannelAffinity(props) {
       },
     },
     {
-      title: t('TTL（秒）'),
+      title: "TTL（秒）",
       dataIndex: 'ttl_seconds',
       render: (v) => <Text>{Number(v || 0) || '-'}</Text>,
     },
     {
-      title: t('失败后不重试'),
+      title: "失败后不重试",
       dataIndex: 'skip_retry_on_failure',
       render: (value) => (
         <Tag color={value ? 'orange' : 'grey'} style={{ marginRight: 4 }}>
-          {value ? t('是') : t('否')}
+          {value ? "是" : "否"}
         </Tag>
       ),
     },
     {
-      title: t('覆盖模板'),
+      title: "覆盖模板",
       render: (_, record) => {
         if (!record?.param_override_template) {
           return <Text type='tertiary'>-</Text>;
@@ -542,13 +540,13 @@ export default function SettingsChannelAffinity(props) {
             type='tertiary'
             onClick={() => openParamTemplatePreview(record)}
           >
-            {t('预览模板')}
+            {"预览模板"}
           </Button>
         );
       },
     },
     {
-      title: t('缓存条目数'),
+      title: "缓存条目数",
       render: (_, record) => {
         const name = (record?.name || '').trim();
         if (!name || !record?.include_rule_name) {
@@ -559,7 +557,7 @@ export default function SettingsChannelAffinity(props) {
       },
     },
     {
-      title: t('作用域'),
+      title: "作用域",
       render: (_, record) => {
         const tags = [];
         if (record?.include_using_group) tags.push('分组');
@@ -573,7 +571,7 @@ export default function SettingsChannelAffinity(props) {
       },
     },
     {
-      title: t('操作'),
+      title: "操作",
       render: (_, record) => (
         <Space>
           <Button
@@ -581,23 +579,23 @@ export default function SettingsChannelAffinity(props) {
             theme='borderless'
             type='warning'
             disabled={!record?.include_rule_name}
-            title={t('清空该规则缓存')}
-            aria-label={t('清空该规则缓存')}
+            title={"清空该规则缓存"}
+            aria-label={"清空该规则缓存"}
             onClick={() => confirmClearRuleCache(record)}
           />
           <Button
             icon={<IconEdit />}
             theme='borderless'
-            title={t('编辑规则')}
-            aria-label={t('编辑规则')}
+            title={"编辑规则"}
+            aria-label={"编辑规则"}
             onClick={() => handleEditRule(record)}
           />
           <Button
             icon={<IconDelete />}
             theme='borderless'
             type='danger'
-            title={t('删除规则')}
-            aria-label={t('删除规则')}
+            title={"删除规则"}
+            aria-label={"删除规则"}
             onClick={() => handleDeleteRule(record.id)}
           />
         </Space>
@@ -669,18 +667,18 @@ export default function SettingsChannelAffinity(props) {
   const handleDeleteRule = (id) => {
     const next = (rules || []).filter((r) => r.id !== id);
     updateRulesState(next.map((r, idx) => ({ ...r, id: idx })));
-    showSuccess(t('删除成功'));
+    showSuccess("删除成功");
   };
 
   const handleModalSave = async () => {
     try {
       const values = await modalFormRef.current.validate();
       const modelRegex = normalizeStringList(values.model_regex_text);
-      if (modelRegex.length === 0) return showError(t('模型正则不能为空'));
+      if (modelRegex.length === 0) return showError("模型正则不能为空");
 
       const keySourcesValidation = validateKeySources(editingRule?.key_sources);
       if (!keySourcesValidation.ok)
-        return showError(t(keySourcesValidation.message));
+        return showError(keySourcesValidation.message);
 
       const userAgentInclude = normalizeStringList(
         values.user_agent_include_text,
@@ -690,7 +688,7 @@ export default function SettingsChannelAffinity(props) {
         '参数覆盖模板',
       );
       if (!paramTemplateValidation.ok) {
-        return showError(t(paramTemplateValidation.message));
+        return showError(paramTemplateValidation.message);
       }
 
       const rulePayload = {
@@ -714,7 +712,7 @@ export default function SettingsChannelAffinity(props) {
           : {}),
       };
 
-      if (!rulePayload.name) return showError(t('名称不能为空'));
+      if (!rulePayload.name) return showError("名称不能为空");
 
       const next = [...(rules || [])];
       if (isEdit) {
@@ -724,7 +722,7 @@ export default function SettingsChannelAffinity(props) {
             (r) => (r?.name || '').trim() === (editingRule?.name || '').trim(),
           );
         }
-        if (idx < 0) return showError(t('规则未找到，请刷新后重试'));
+        if (idx < 0) return showError("规则未找到，请刷新后重试");
         next[idx] = rulePayload;
       } else {
         next.push(rulePayload);
@@ -735,9 +733,9 @@ export default function SettingsChannelAffinity(props) {
       setModalInitValues(null);
       setParamTemplateDraft('');
       setParamTemplateEditorVisible(false);
-      showSuccess(t('保存成功'));
+      showSuccess("保存成功");
     } catch (e) {
-      showError(t('请检查输入'));
+      showError("请检查输入");
     }
   };
 
@@ -765,15 +763,15 @@ export default function SettingsChannelAffinity(props) {
 
   async function onSubmit() {
     const updateArray = compareObjects(inputs, inputsRow);
-    if (!updateArray.length) return showWarning(t('你似乎并没有修改什么'));
+    if (!updateArray.length) return showWarning("你似乎并没有修改什么");
 
     if (!verifyJSON(inputs[KEY_RULES] || '[]'))
-      return showError(t('规则 JSON 格式不正确'));
+      return showError("规则 JSON 格式不正确");
     let compactRules;
     try {
       compactRules = stringifyCompact(JSON.parse(inputs[KEY_RULES] || '[]'));
     } catch (e) {
-      return showError(t('规则 JSON 格式不正确'));
+      return showError("规则 JSON 格式不正确");
     }
 
     const requestQueue = updateArray.map((item) => {
@@ -795,12 +793,12 @@ export default function SettingsChannelAffinity(props) {
           if (res.includes(undefined)) return;
         } else if (requestQueue.length > 1) {
           if (res.includes(undefined))
-            return showError(t('部分保存失败，请重试'));
+            return showError("部分保存失败，请重试");
         }
-        showSuccess(t('保存成功'));
+        showSuccess("保存成功");
         props.refresh();
       })
-      .catch(() => showError(t('保存失败，请重试')))
+      .catch(() => showError("保存失败，请重试"))
       .finally(() => setLoading(false));
   }
 
@@ -863,9 +861,7 @@ export default function SettingsChannelAffinity(props) {
     <Banner
       fullMode={false}
       type='info'
-      description={t(
-        '渠道亲和性会基于从请求上下文或 JSON Body 提取的 Key，优先复用上一次成功的渠道。',
-      )}
+      description={"渠道亲和性会基于从请求上下文或 JSON Body 提取的 Key，优先复用上一次成功的渠道。"}
     />
   );
 
@@ -877,14 +873,14 @@ export default function SettingsChannelAffinity(props) {
           getFormApi={(formAPI) => (refForm.current = formAPI)}
           style={{ marginBottom: 15 }}
         >
-          <Form.Section text={t('渠道亲和性')}>
+          <Form.Section text={"渠道亲和性"}>
             {banner}
             <Divider style={{ marginTop: 12, marginBottom: 12 }} />
             <Row gutter={16}>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Switch
                   field={KEY_ENABLED}
-                  label={t('启用')}
+                  label={"启用"}
                   checkedText='|'
                   uncheckedText='O'
                   onChange={(value) =>
@@ -892,20 +888,18 @@ export default function SettingsChannelAffinity(props) {
                   }
                 />
                 <Text type='tertiary' size='small'>
-                  {t('启用后将优先复用上一次成功的渠道（粘滞选路）。')}
+                  {"启用后将优先复用上一次成功的渠道（粘滞选路）。"}
                 </Text>
               </Col>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
                   field={KEY_MAX_ENTRIES}
-                  label={t('最大条目数')}
+                  label={"最大条目数"}
                   min={0}
                   placeholder='例如 100000…'
                   extraText={
                     <Text type='tertiary' size='small'>
-                      {t(
-                        '内存缓存最大条目数。0 表示使用后端默认容量：100000。',
-                      )}
+                      {"内存缓存最大条目数。0 表示使用后端默认容量：100000。"}
                     </Text>
                   }
                   onChange={(value) =>
@@ -919,14 +913,12 @@ export default function SettingsChannelAffinity(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
                   field={KEY_DEFAULT_TTL}
-                  label={t('默认 TTL（秒）')}
+                  label={"默认 TTL（秒）"}
                   min={0}
                   placeholder='例如 3600…'
                   extraText={
                     <Text type='tertiary' size='small'>
-                      {t(
-                        '规则 ttl_seconds 为 0 时使用。0 表示使用后端默认 TTL：3600 秒。',
-                      )}
+                      {"规则 ttl_seconds 为 0 时使用。0 表示使用后端默认 TTL：3600 秒。"}
                     </Text>
                   }
                   onChange={(value) =>
@@ -943,7 +935,7 @@ export default function SettingsChannelAffinity(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Switch
                   field={KEY_SWITCH_ON_SUCCESS}
-                  label={t('成功后切换亲和')}
+                  label={"成功后切换亲和"}
                   checkedText='|'
                   uncheckedText='O'
                   onChange={(value) =>
@@ -951,9 +943,7 @@ export default function SettingsChannelAffinity(props) {
                   }
                 />
                 <Text type='tertiary' size='small'>
-                  {t(
-                    '如果亲和到的渠道失败，重试到其他渠道成功后，将亲和更新到成功的渠道。',
-                  )}
+                  {"如果亲和到的渠道失败，重试到其他渠道成功后，将亲和更新到成功的渠道。"}
                 </Text>
               </Col>
             </Row>
@@ -965,32 +955,32 @@ export default function SettingsChannelAffinity(props) {
                 type={editMode === 'visual' ? 'primary' : 'tertiary'}
                 onClick={switchToVisualMode}
               >
-                {t('可视化')}
+                {"可视化"}
               </Button>
               <Button
                 type={editMode === 'json' ? 'primary' : 'tertiary'}
                 onClick={switchToJsonMode}
               >
-                {t('JSON 模式')}
+                {"JSON 模式"}
               </Button>
               <Button onClick={appendCodexAndClaudeCodeTemplates}>
-                {t('填充 Codex CLI / Claude CLI 模版')}
+                {"填充 Codex CLI / Claude CLI 模版"}
               </Button>
               <Button icon={<IconPlus />} onClick={openAddModal}>
-                {t('新增规则')}
+                {"新增规则"}
               </Button>
               <Button theme='solid' onClick={onSubmit}>
-                {t('保存')}
+                {"保存"}
               </Button>
               <Button
                 icon={<IconRefresh />}
                 loading={cacheLoading}
                 onClick={refreshCacheStats}
               >
-                {t('刷新缓存统计')}
+                {"刷新缓存统计"}
               </Button>
               <Button type='danger' onClick={confirmClearAllCache}>
-                {t('清空全部缓存')}
+                {"清空全部缓存"}
               </Button>
             </Space>
 
@@ -1005,10 +995,8 @@ export default function SettingsChannelAffinity(props) {
             ) : (
               <Form.TextArea
                 field={KEY_RULES}
-                label={t('规则 JSON')}
-                extraText={t(
-                  '规则为 JSON 数组；可视化与 JSON 模式共用同一份数据。',
-                )}
+                label={"规则 JSON"}
+                extraText={"规则为 JSON 数组；可视化与 JSON 模式共用同一份数据。"}
                 placeholder={RULES_JSON_PLACEHOLDER}
                 style={{ width: '100%' }}
                 autosize={{ minRows: 10, maxRows: 28 }}
@@ -1027,7 +1015,7 @@ export default function SettingsChannelAffinity(props) {
       </Spin>
 
       <Modal
-        title={isEdit ? t('编辑规则') : t('新增规则')}
+        title={isEdit ? "编辑规则" : "新增规则"}
         visible={modalVisible}
         onCancel={() => {
           setModalVisible(false);
@@ -1038,8 +1026,8 @@ export default function SettingsChannelAffinity(props) {
           setParamTemplateEditorVisible(false);
         }}
         onOk={handleModalSave}
-        okText={t('保存')}
-        cancelText={t('取消')}
+        okText={"保存"}
+        cancelText={"取消"}
         width={720}
       >
         <Form
@@ -1051,8 +1039,8 @@ export default function SettingsChannelAffinity(props) {
         >
           <Form.Input
             field='name'
-            label={t('名称')}
-            extraText={t('规则名称（可读性更好，也会出现在管理侧日志中）。')}
+            label={"名称"}
+            extraText={"规则名称（可读性更好，也会出现在管理侧日志中）。"}
             placeholder='例如 prefer-by-conversation-id…'
             rules={[{ required: true }]}
             onChange={(value) =>
@@ -1064,10 +1052,8 @@ export default function SettingsChannelAffinity(props) {
             <Col xs={24} sm={12}>
               <Form.TextArea
                 field='model_regex_text'
-                label={t('模型正则（每行一个）')}
-                extraText={t(
-                  '必填。对请求的 model 名称进行匹配，任意一条匹配即命中该规则。',
-                )}
+                label={"模型正则（每行一个）"}
+                extraText={"必填。对请求的 model 名称进行匹配，任意一条匹配即命中该规则。"}
                 placeholder={'^gpt-4o.*$\n^claude-3.*$…'}
                 autosize={{ minRows: 4, maxRows: 10 }}
                 rules={[{ required: true }]}
@@ -1076,10 +1062,8 @@ export default function SettingsChannelAffinity(props) {
             <Col xs={24} sm={12}>
               <Form.TextArea
                 field='path_regex_text'
-                label={t('路径正则（每行一个）')}
-                extraText={t(
-                  '可选。对请求路径进行匹配；不填表示匹配所有路径。',
-                )}
+                label={"路径正则（每行一个）"}
+                extraText={"可选。对请求路径进行匹配；不填表示匹配所有路径。"}
                 placeholder={'/v1/chat/completions\n/v1/responses…'}
                 autosize={{ minRows: 4, maxRows: 10 }}
               />
@@ -1090,10 +1074,10 @@ export default function SettingsChannelAffinity(props) {
             <Col xs={24} sm={12}>
               <Form.Switch
                 field='skip_retry_on_failure'
-                label={t('失败后不重试')}
+                label={"失败后不重试"}
               />
               <Text type='tertiary' size='small'>
-                {t('开启后，若该规则命中且请求失败，将不会切换渠道重试。')}
+                {"开启后，若该规则命中且请求失败，将不会切换渠道重试。"}
               </Text>
             </Col>
           </Row>
@@ -1106,25 +1090,19 @@ export default function SettingsChannelAffinity(props) {
               setModalAdvancedActiveKey(keys.filter(Boolean));
             }}
           >
-            <Collapse.Panel header={t('高级设置')} itemKey='advanced'>
+            <Collapse.Panel header={"高级设置"} itemKey='advanced'>
               <Row gutter={16}>
                 <Col xs={24}>
                   <Form.TextArea
                     field='user_agent_include_text'
-                    label={t('User-Agent include（每行一个，可不写）')}
+                    label={"User-Agent include（每行一个，可不写）"}
                     extraText={
                       <Text type='tertiary' size='small'>
-                        {t(
-                          '可选。匹配入口请求的 User-Agent；任意一行作为子串匹配（忽略大小写）即命中。',
-                        )}
+                        {"可选。匹配入口请求的 User-Agent；任意一行作为子串匹配（忽略大小写）即命中。"}
                         <br />
-                        {t(
-                          'NewAPI 默认不会将入口请求的 User-Agent 透传到上游渠道；该条件仅用于识别访问本站点的客户端。',
-                        )}
+                        {"NewAPI 默认不会将入口请求的 User-Agent 透传到上游渠道；该条件仅用于识别访问本站点的客户端。"}
                         <br />
-                        {t(
-                          '为保证匹配准确，请确保客户端直连本站点（避免反向代理/网关改写 User-Agent）。',
-                        )}
+                        {"为保证匹配准确，请确保客户端直连本站点（避免反向代理/网关改写 User-Agent）。"}
                       </Text>
                     }
                     placeholder={'curl\nPostmanRuntime\nMyApp/…'}
@@ -1137,24 +1115,22 @@ export default function SettingsChannelAffinity(props) {
                 <Col xs={24} sm={12}>
                   <Form.Input
                     field='value_regex'
-                    label={t('Value 正则')}
+                    label={"Value 正则"}
                     placeholder='^[-0-9A-Za-z._:]{1,128}$'
-                    extraText={t(
-                      '可选。对提取到的亲和 Key 做正则校验；不填表示不校验。',
-                    )}
+                    extraText={"可选。对提取到的亲和 Key 做正则校验；不填表示不校验。"}
                   />
                 </Col>
                 <Col xs={24} sm={12}>
                   <Form.InputNumber
                     field='ttl_seconds'
-                    label={t('TTL（秒，0 表示默认）')}
+                    label={"TTL（秒，0 表示默认）"}
                     placeholder='例如 600…'
                     min={0}
                     extraText={
                       <Text type='tertiary' size='small'>
-                        {t('该规则的缓存保留时长；0 表示使用默认 TTL：')}
+                        {"该规则的缓存保留时长；0 表示使用默认 TTL："}
                         {effectiveDefaultTTLSeconds}
-                        {t(' 秒。')}
+                        {" 秒。"}
                       </Text>
                     }
                   />
@@ -1164,12 +1140,10 @@ export default function SettingsChannelAffinity(props) {
               <Row gutter={16}>
                 <Col xs={24}>
                   <div style={{ marginBottom: 8 }}>
-                    <Text strong>{t('参数覆盖模板')}</Text>
+                    <Text strong>{"参数覆盖模板"}</Text>
                   </div>
                   <Text type='tertiary' size='small'>
-                    {t(
-                      '命中该亲和规则后，会把此模板合并到渠道参数覆盖中（同名键由模板覆盖）。',
-                    )}
+                    {"命中该亲和规则后，会把此模板合并到渠道参数覆盖中（同名键由模板覆盖）。"}
                   </Text>
                   <div
                     style={{
@@ -1200,17 +1174,17 @@ export default function SettingsChannelAffinity(props) {
                           icon={<IconCode />}
                           onClick={() => setParamTemplateEditorVisible(true)}
                         >
-                          {t('可视化编辑')}
+                          {"可视化编辑"}
                         </Button>
                         <Button size='small' onClick={formatParamTemplateDraft}>
-                          {t('格式化')}
+                          {"格式化"}
                         </Button>
                         <Button
                           size='small'
                           type='tertiary'
                           onClick={() => updateParamTemplateDraft('')}
                         >
-                          {t('清空')}
+                          {"清空"}
                         </Button>
                       </Space>
                     </div>
@@ -1235,21 +1209,19 @@ export default function SettingsChannelAffinity(props) {
                 <Col xs={24} sm={12}>
                   <Form.Switch
                     field='include_using_group'
-                    label={t('作用域：包含分组')}
+                    label={"作用域：包含分组"}
                   />
                   <Text type='tertiary' size='small'>
-                    {t(
-                      '开启后，using_group 会参与 cache key（不同分组隔离）。',
-                    )}
+                    {"开启后，using_group 会参与 cache key（不同分组隔离）。"}
                   </Text>
                 </Col>
                 <Col xs={24} sm={12}>
                   <Form.Switch
                     field='include_rule_name'
-                    label={t('作用域：包含规则名称')}
+                    label={"作用域：包含规则名称"}
                   />
                   <Text type='tertiary' size='small'>
-                    {t('开启后，规则名称会参与 cache key（不同规则隔离）。')}
+                    {"开启后，规则名称会参与 cache key（不同规则隔离）。"}
                   </Text>
                 </Col>
               </Row>
@@ -1258,19 +1230,17 @@ export default function SettingsChannelAffinity(props) {
 
           <Divider style={{ marginTop: 12, marginBottom: 12 }} />
           <Space style={{ marginBottom: 10 }}>
-            <Text>{t('Key 来源')}</Text>
+            <Text>{"Key 来源"}</Text>
             <Button icon={<IconPlus />} onClick={addKeySource}>
-              {t('新增 Key 来源')}
+              {"新增 Key 来源"}
             </Button>
           </Space>
           <Text type='tertiary' size='small'>
-            {t(
-              'context_int/context_string 从请求上下文读取；gjson 从入口请求的 JSON body 按 gjson path 读取。',
-            )}
+            {"context_int/context_string 从请求上下文读取；gjson 从入口请求的 JSON body 按 gjson path 读取。"}
           </Text>
           <div style={{ marginTop: 8, marginBottom: 8 }}>
             <Text type='tertiary' size='small'>
-              {t('常用上下文 Key（用于 context_*）')}：
+              {"常用上下文 Key（用于 context_*）"}：
             </Text>
             <div style={{ marginTop: 6 }}>
               {(CONTEXT_KEY_PRESETS || []).map((x) => (
@@ -1284,7 +1254,7 @@ export default function SettingsChannelAffinity(props) {
           <Table
             columns={[
               {
-                title: t('类型'),
+                title: "类型",
                 render: (_, __, idx) => (
                   <Select
                     style={{ width: 160 }}
@@ -1292,13 +1262,13 @@ export default function SettingsChannelAffinity(props) {
                     value={(
                       editingRule?.key_sources?.[idx]?.type || 'gjson'
                     ).trim()}
-                    aria-label={t('Key 来源类型')}
+                    aria-label={"Key 来源类型"}
                     onChange={(value) => updateKeySource(idx, { type: value })}
                   />
                 ),
               },
               {
-                title: t('Key 或 Path'),
+                title: "Key 或 Path",
                 render: (_, __, idx) => {
                   const src = normalizeKeySource(
                     editingRule?.key_sources?.[idx],
@@ -1309,7 +1279,7 @@ export default function SettingsChannelAffinity(props) {
                       placeholder={
                         isGjson ? 'metadata.conversation_id' : 'user_id'
                       }
-                      aria-label={t('Key 或 Path')}
+                      aria-label={"Key 或 Path"}
                       value={isGjson ? src.path : src.key}
                       onChange={(value) =>
                         updateKeySource(
@@ -1322,15 +1292,15 @@ export default function SettingsChannelAffinity(props) {
                 },
               },
               {
-                title: t('操作'),
+                title: "操作",
                 width: 90,
                 render: (_, __, idx) => (
                   <Button
                     icon={<IconDelete />}
                     theme='borderless'
                     type='danger'
-                    title={t('删除 Key 来源')}
-                    aria-label={t('删除 Key 来源')}
+                    title={"删除 Key 来源"}
+                    aria-label={"删除 Key 来源"}
                     onClick={() => removeKeySource(idx)}
                   />
                 ),

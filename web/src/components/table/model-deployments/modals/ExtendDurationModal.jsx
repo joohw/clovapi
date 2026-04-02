@@ -60,7 +60,7 @@ const ExtendDurationModal = ({
       }
 
       const message = response.data.message || '';
-      const errorMessage = t('获取详情失败') + (message ? `: ${message}` : '');
+      const errorMessage = "获取详情失败" + (message ? `: ${message}` : '');
       showError(errorMessage);
       setDeploymentDetails(null);
       setPriceEstimation(null);
@@ -68,7 +68,7 @@ const ExtendDurationModal = ({
       return null;
     } catch (error) {
       const message = error?.response?.data?.message || error.message || '';
-      const errorMessage = t('获取详情失败') + (message ? `: ${message}` : '');
+      const errorMessage = "获取详情失败" + (message ? `: ${message}` : '');
       showError(errorMessage);
       setDeploymentDetails(null);
       setPriceEstimation(null);
@@ -124,7 +124,7 @@ const ExtendDurationModal = ({
       locationIds.length === 0
     ) {
       setPriceEstimation(null);
-      setPriceError(t('价格计算失败'));
+      setPriceError("价格计算失败");
       return;
     }
 
@@ -160,7 +160,7 @@ const ExtendDurationModal = ({
       } else {
         const message = response.data.message || '';
         setPriceEstimation(null);
-        setPriceError(t('价格计算失败') + (message ? `: ${message}` : ''));
+        setPriceError("价格计算失败" + (message ? `: ${message}` : ''));
       }
     } catch (error) {
       if (costRequestIdRef.current !== requestId) {
@@ -169,7 +169,7 @@ const ExtendDurationModal = ({
 
       const message = error?.response?.data?.message || error.message || '';
       setPriceEstimation(null);
-      setPriceError(t('价格计算失败') + (message ? `: ${message}` : ''));
+      setPriceError("价格计算失败" + (message ? `: ${message}` : ''));
     } finally {
       if (costRequestIdRef.current === requestId) {
         setCostLoading(false);
@@ -217,13 +217,13 @@ const ExtendDurationModal = ({
       );
 
       if (response.data.success) {
-        showSuccess(t('容器时长延长成功'));
+        showSuccess("容器时长延长成功");
         onSuccess?.(response.data.data);
         handleCancel();
       }
     } catch (error) {
       showError(
-        t('延长时长失败') +
+        "延长时长失败" +
           ': ' +
           (error?.response?.data?.message || error.message),
       );
@@ -241,7 +241,7 @@ const ExtendDurationModal = ({
   };
 
   const currentRemainingTime = deployment?.time_remaining || '0分钟';
-  const newTotalTime = `${currentRemainingTime} + ${durationHours}${t('小时')}`;
+  const newTotalTime = `${currentRemainingTime} + ${durationHours}${"小时"}`;
 
   const priceData = priceEstimation || {};
   const breakdown = priceData.price_breakdown || priceData.PriceBreakdown || {};
@@ -277,14 +277,14 @@ const ExtendDurationModal = ({
       title={
         <div className='flex items-center gap-2'>
           <FaClock className='text-blue-500' />
-          <span>{t('延长容器时长')}</span>
+          <span>{"延长容器时长"}</span>
         </div>
       }
       visible={visible}
       onCancel={handleCancel}
       onOk={handleExtend}
-      okText={t('确认延长')}
-      cancelText={t('取消')}
+      okText={"确认延长"}
+      cancelText={"取消"}
       confirmLoading={loading}
       okButtonProps={{
         disabled:
@@ -317,7 +317,7 @@ const ExtendDurationModal = ({
                 </Tag>
               </div>
               <Text size='small' type='secondary'>
-                {t('当前剩余')}: <Text strong>{currentRemainingTime}</Text>
+                {"当前剩余"}: <Text strong>{currentRemainingTime}</Text>
               </Text>
             </div>
           </div>
@@ -326,13 +326,13 @@ const ExtendDurationModal = ({
         <Banner
           type='warning'
           icon={<FaExclamationTriangle />}
-          title={t('重要提醒')}
+          title={"重要提醒"}
           description={
             <div className='space-y-2'>
               <p>
-                {t('延长容器时长将会产生额外费用，请确认您有足够的账户余额。')}
+                {"延长容器时长将会产生额外费用，请确认您有足够的账户余额。"}
               </p>
-              <p>{t('延长操作一旦确认无法撤销，费用将立即扣除。')}</p>
+              <p>{"延长操作一旦确认无法撤销，费用将立即扣除。"}</p>
             </div>
           }
         />
@@ -351,25 +351,25 @@ const ExtendDurationModal = ({
         >
           <Form.InputNumber
             field='duration_hours'
-            label={t('延长时长（小时）')}
-            placeholder={t('请输入要延长的小时数')}
+            label={"延长时长（小时）"}
+            placeholder={"请输入要延长的小时数"}
             min={1}
             max={720}
             step={1}
             initValue={1}
             style={{ width: '100%' }}
-            suffix={t('小时')}
+            suffix={"小时"}
             rules={[
-              { required: true, message: t('请输入延长时长') },
+              { required: true, message: "请输入延长时长" },
               {
                 type: 'number',
                 min: 1,
-                message: t('延长时长至少为1小时'),
+                message: "延长时长至少为1小时",
               },
               {
                 type: 'number',
                 max: 720,
-                message: t('延长时长不能超过720小时（30天）'),
+                message: "延长时长不能超过720小时（30天）",
               },
             ]}
           />
@@ -377,7 +377,7 @@ const ExtendDurationModal = ({
 
         <div className='space-y-2'>
           <Text size='small' type='secondary'>
-            {t('快速选择')}:
+            {"快速选择"}:
           </Text>
           <Space wrap>
             {[1, 2, 6, 12, 24, 48, 72, 168].map((hours) => (
@@ -394,8 +394,8 @@ const ExtendDurationModal = ({
                 }}
               >
                 {hours < 24
-                  ? `${hours}${t('小时')}`
-                  : `${hours / 24}${t('天')}`}
+                  ? `${hours}${"小时"}`
+                  : `${hours / 24}${"天"}`}
               </Button>
             ))}
           </Space>
@@ -407,7 +407,7 @@ const ExtendDurationModal = ({
           title={
             <div className='flex items-center gap-2'>
               <FaCalculator className='text-green-500' />
-              <span>{t('费用预估')}</span>
+              <span>{"费用预估"}</span>
             </div>
           }
           className='border border-green-200'
@@ -415,14 +415,14 @@ const ExtendDurationModal = ({
           {priceEstimation ? (
             <div className='space-y-3'>
               <div className='flex items-center justify-between'>
-                <Text>{t('延长时长')}:</Text>
+                <Text>{"延长时长"}:</Text>
                 <Text strong>
-                  {Math.round(durationHours)} {t('小时')}
+                  {Math.round(durationHours)} {"小时"}
                 </Text>
               </div>
 
               <div className='flex items-center justify-between'>
-                <Text>{t('硬件配置')}:</Text>
+                <Text>{"硬件配置"}:</Text>
                 <Text strong>
                   {resolvedHardwareName}
                   {gpuCount ? ` x${gpuCount}` : ''}
@@ -431,13 +431,13 @@ const ExtendDurationModal = ({
 
               {containers ? (
                 <div className='flex items-center justify-between'>
-                  <Text>{t('容器数量')}:</Text>
+                  <Text>{"容器数量"}:</Text>
                   <Text strong>{containers}</Text>
                 </div>
               ) : null}
 
               <div className='flex items-center justify-between'>
-                <Text>{t('单GPU小时费率')}:</Text>
+                <Text>{"单GPU小时费率"}:</Text>
                 <Text strong>
                   {typeof hourlyRate === 'number'
                     ? `${hourlyRate.toFixed(4)} ${currencyLabel}`
@@ -447,7 +447,7 @@ const ExtendDurationModal = ({
 
               {typeof computeCost === 'number' && (
                 <div className='flex items-center justify-between'>
-                  <Text>{t('计算成本')}:</Text>
+                  <Text>{"计算成本"}:</Text>
                   <Text strong>
                     {computeCost.toFixed(4)} {currencyLabel}
                   </Text>
@@ -458,7 +458,7 @@ const ExtendDurationModal = ({
 
               <div className='flex items-center justify-between'>
                 <Text strong className='text-lg'>
-                  {t('预估总费用')}:
+                  {"预估总费用"}:
                 </Text>
                 <Text strong className='text-lg text-green-600'>
                   {typeof estimatedTotalCost === 'number'
@@ -472,11 +472,11 @@ const ExtendDurationModal = ({
                   <FaInfoCircle className='text-blue-500 mt-0.5' />
                   <div>
                     <Text size='small' type='secondary'>
-                      {t('延长后总时长')}: <Text strong>{newTotalTime}</Text>
+                      {"延长后总时长"}: <Text strong>{newTotalTime}</Text>
                     </Text>
                     <br />
                     <Text size='small' type='secondary'>
-                      {t('预估费用仅供参考，实际费用可能略有差异')}
+                      {"预估费用仅供参考，实际费用可能略有差异"}
                     </Text>
                   </div>
                 </div>
@@ -487,14 +487,14 @@ const ExtendDurationModal = ({
               {costLoading ? (
                 <Space align='center' className='justify-center'>
                   <Spin size='small' />
-                  <Text type='secondary'>{t('计算费用中...')}</Text>
+                  <Text type='secondary'>{"计算费用中..."}</Text>
                 </Space>
               ) : priceError ? (
                 <Text type='danger'>{priceError}</Text>
               ) : deploymentDetails ? (
-                <Text type='secondary'>{t('请输入延长时长')}</Text>
+                <Text type='secondary'>{"请输入延长时长"}</Text>
               ) : (
-                <Text type='secondary'>{t('加载详情中...')}</Text>
+                <Text type='secondary'>{"加载详情中..."}</Text>
               )}
             </div>
           )}
@@ -505,11 +505,11 @@ const ExtendDurationModal = ({
             <FaExclamationTriangle className='text-red-500 mt-0.5' />
             <div>
               <Text strong className='text-red-700'>
-                {t('确认延长容器时长')}
+                {"确认延长容器时长"}
               </Text>
               <div className='mt-1'>
                 <Text size='small' className='text-red-600'>
-                  {t('点击"确认延长"后将立即扣除费用并延长容器运行时间')}
+                  {"点击\"确认延长\"后将立即扣除费用并延长容器运行时间"}
                 </Text>
               </div>
             </div>

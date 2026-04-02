@@ -3,7 +3,7 @@ import { Button, Dropdown } from '@douyinfe/semi-ui';
 import { Sun, Moon, Monitor } from 'lucide-react';
 import { useActualTheme } from '../../../context/Theme';
 
-const ThemeToggle = ({ theme, onThemeToggle, t }) => {
+const ThemeToggle = ({ theme, onThemeToggle }) => {
   const actualTheme = useActualTheme();
 
   const themeOptions = useMemo(
@@ -12,25 +12,25 @@ const ThemeToggle = ({ theme, onThemeToggle, t }) => {
         key: 'light',
         icon: <Sun size={18} />,
         buttonIcon: <Sun size={18} />,
-        label: t('浅色模式'),
-        description: t('始终使用浅色主题'),
+        label: "浅色模式",
+        description: "始终使用浅色主题",
       },
       {
         key: 'dark',
         icon: <Moon size={18} />,
         buttonIcon: <Moon size={18} />,
-        label: t('深色模式'),
-        description: t('始终使用深色主题'),
+        label: "深色模式",
+        description: "始终使用深色主题",
       },
       {
         key: 'auto',
         icon: <Monitor size={18} />,
         buttonIcon: <Monitor size={18} />,
-        label: t('自动模式'),
-        description: t('跟随系统主题设置'),
+        label: "自动模式",
+        description: "跟随系统主题设置",
       },
     ],
-    [t],
+    [],
   );
 
   const getItemClassName = (isSelected) =>
@@ -68,8 +68,8 @@ const ThemeToggle = ({ theme, onThemeToggle, t }) => {
             <>
               <Dropdown.Divider />
               <div className='px-3 py-2 text-xs text-semi-color-text-2'>
-                {t('当前跟随系统')}：
-                {actualTheme === 'dark' ? t('深色') : t('浅色')}
+                {"当前跟随系统"}：
+                {actualTheme === 'dark' ? "深色" : "浅色"}
               </div>
             </>
           )}
@@ -78,7 +78,7 @@ const ThemeToggle = ({ theme, onThemeToggle, t }) => {
     >
       <Button
         icon={currentButtonIcon}
-        aria-label={t('切换主题')}
+        aria-label={"切换主题"}
         theme='borderless'
         type='tertiary'
         className='!p-1.5 !text-current focus:!bg-semi-color-fill-1 !rounded-full !bg-semi-color-fill-0 hover:!bg-semi-color-fill-1'

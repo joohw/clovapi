@@ -18,13 +18,9 @@ import {
 } from '@douyinfe/semi-illustrations';
 import { Plus, Edit, Trash2, Save, Settings } from 'lucide-react';
 import { API, showError, showSuccess } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 const { Text } = Typography;
 
 const SettingsAPIInfo = ({ options, refresh }) => {
-  const { t } = useTranslation();
-
   const [apiInfoList, setApiInfoList] = useState([]);
   const [showApiModal, setShowApiModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -209,7 +205,7 @@ const SettingsAPIInfo = ({ options, refresh }) => {
       });
       if (res.data.success) {
         setPanelEnabled(checked);
-        showSuccess(t('设置已保存'));
+        showSuccess("设置已保存");
         refresh?.();
       } else {
         showError(res.data.message);
@@ -225,7 +221,7 @@ const SettingsAPIInfo = ({ options, refresh }) => {
       dataIndex: 'id',
     },
     {
-      title: t('API地址'),
+      title: "API地址",
       dataIndex: 'url',
       render: (text, record) => (
         <Tag color={record.color} shape='circle' style={{ maxWidth: '280px' }}>
@@ -234,23 +230,23 @@ const SettingsAPIInfo = ({ options, refresh }) => {
       ),
     },
     {
-      title: t('线路描述'),
+      title: "线路描述",
       dataIndex: 'route',
       render: (text, record) => <Tag shape='circle'>{text}</Tag>,
     },
     {
-      title: t('说明'),
+      title: "说明",
       dataIndex: 'description',
       ellipsis: true,
       render: (text, record) => <Tag shape='circle'>{text || '-'}</Tag>,
     },
     {
-      title: t('颜色'),
+      title: "颜色",
       dataIndex: 'color',
       render: (color) => <Avatar size='extra-extra-small' color={color} />,
     },
     {
-      title: t('操作'),
+      title: "操作",
       fixed: 'right',
       width: 150,
       render: (_, record) => (
@@ -262,7 +258,7 @@ const SettingsAPIInfo = ({ options, refresh }) => {
             size='small'
             onClick={() => handleEditApi(record)}
           >
-            {t('编辑')}
+            {"编辑"}
           </Button>
           <Button
             icon={<Trash2 size={14} />}
@@ -271,7 +267,7 @@ const SettingsAPIInfo = ({ options, refresh }) => {
             size='small'
             onClick={() => handleDeleteApi(record)}
           >
-            {t('删除')}
+            {"删除"}
           </Button>
         </Space>
       ),
@@ -301,9 +297,7 @@ const SettingsAPIInfo = ({ options, refresh }) => {
         <div className='flex items-center text-blue-500'>
           <Settings size={16} className='mr-2' />
           <Text>
-            {t(
-              'API信息管理，可以配置多个API地址用于状态展示和负载均衡（最多50个）',
-            )}
+            {"API信息管理，可以配置多个API地址用于状态展示和负载均衡（最多50个）"}
           </Text>
         </div>
       </div>
@@ -319,7 +313,7 @@ const SettingsAPIInfo = ({ options, refresh }) => {
             className='w-full md:w-auto'
             onClick={handleAddApi}
           >
-            {t('添加API')}
+            {"添加API"}
           </Button>
           <Button
             icon={<Trash2 size={14} />}
@@ -329,7 +323,7 @@ const SettingsAPIInfo = ({ options, refresh }) => {
             disabled={selectedRowKeys.length === 0}
             className='w-full md:w-auto'
           >
-            {t('批量删除')}{' '}
+            {"批量删除"}{' '}
             {selectedRowKeys.length > 0 && `(${selectedRowKeys.length})`}
           </Button>
           <Button
@@ -340,14 +334,14 @@ const SettingsAPIInfo = ({ options, refresh }) => {
             type='secondary'
             className='w-full md:w-auto'
           >
-            {t('保存设置')}
+            {"保存设置"}
           </Button>
         </div>
 
         {/* 启用开关 */}
         <div className='order-1 md:order-2 flex items-center gap-2'>
           <Switch checked={panelEnabled} onChange={handleToggleEnabled} />
-          <Text>{panelEnabled ? t('已启用') : t('已禁用')}</Text>
+          <Text>{panelEnabled ? "已启用" : "已禁用"}</Text>
         </div>
       </div>
     </div>
@@ -412,7 +406,7 @@ const SettingsAPIInfo = ({ options, refresh }) => {
               darkModeImage={
                 <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
               }
-              description={t('暂无API信息')}
+              description={"暂无API信息"}
               style={{ padding: 30 }}
             />
           }
@@ -421,12 +415,12 @@ const SettingsAPIInfo = ({ options, refresh }) => {
       </Form.Section>
 
       <Modal
-        title={editingApi ? t('编辑API') : t('添加API')}
+        title={editingApi ? "编辑API" : "添加API"}
         visible={showApiModal}
         onOk={handleSaveApi}
         onCancel={() => setShowApiModal(false)}
-        okText={t('保存')}
-        cancelText={t('取消')}
+        okText={"保存"}
+        cancelText={"取消"}
         confirmLoading={modalLoading}
       >
         <Form
@@ -436,28 +430,28 @@ const SettingsAPIInfo = ({ options, refresh }) => {
         >
           <Form.Input
             field='url'
-            label={t('API地址')}
+            label={"API地址"}
             placeholder='https://api.example.com'
-            rules={[{ required: true, message: t('请输入API地址') }]}
+            rules={[{ required: true, message: "请输入API地址" }]}
             onChange={(value) => setApiForm({ ...apiForm, url: value })}
           />
           <Form.Input
             field='route'
-            label={t('线路描述')}
-            placeholder={t('如：香港线路')}
-            rules={[{ required: true, message: t('请输入线路描述') }]}
+            label={"线路描述"}
+            placeholder={"如：香港线路"}
+            rules={[{ required: true, message: "请输入线路描述" }]}
             onChange={(value) => setApiForm({ ...apiForm, route: value })}
           />
           <Form.Input
             field='description'
-            label={t('说明')}
-            placeholder={t('如：大带宽批量分析图片推荐')}
-            rules={[{ required: true, message: t('请输入说明') }]}
+            label={"说明"}
+            placeholder={"如：大带宽批量分析图片推荐"}
+            rules={[{ required: true, message: "请输入说明" }]}
             onChange={(value) => setApiForm({ ...apiForm, description: value })}
           />
           <Form.Select
             field='color'
-            label={t('标识颜色')}
+            label={"标识颜色"}
             optionList={colorOptions}
             onChange={(value) => setApiForm({ ...apiForm, color: value })}
             render={(option) => (
@@ -471,22 +465,22 @@ const SettingsAPIInfo = ({ options, refresh }) => {
       </Modal>
 
       <Modal
-        title={t('确认删除')}
+        title={"确认删除"}
         visible={showDeleteModal}
         onOk={confirmDeleteApi}
         onCancel={() => {
           setShowDeleteModal(false);
           setDeletingApi(null);
         }}
-        okText={t('确认删除')}
-        cancelText={t('取消')}
+        okText={"确认删除"}
+        cancelText={"取消"}
         type='warning'
         okButtonProps={{
           type: 'danger',
           theme: 'solid',
         }}
       >
-        <Text>{t('确定要删除此API信息吗？')}</Text>
+        <Text>{"确定要删除此API信息吗？"}</Text>
       </Modal>
     </>
   );

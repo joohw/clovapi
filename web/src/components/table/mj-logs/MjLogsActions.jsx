@@ -30,10 +30,8 @@ const MjLogsActions = ({
           <IconEyeOpened className='mr-2' />
           <Text>
             {isAdminUser && showBanner
-              ? t(
-                  '当前未开启Midjourney回调，部分项目可能无法获得绘图结果，可在运营设置中开启。',
-                )
-              : t('Midjourney 任务记录')}
+              ? "当前未开启Midjourney回调，部分项目可能无法获得绘图结果，可在运营设置中开启。"
+              : "Midjourney 任务记录"}
           </Text>
         </div>
       </Skeleton>
@@ -41,7 +39,6 @@ const MjLogsActions = ({
       <CompactModeToggle
         compactMode={compactMode}
         setCompactMode={setCompactMode}
-        t={t}
       />
     </div>
   );

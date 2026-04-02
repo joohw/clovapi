@@ -92,7 +92,7 @@ const ConversationDetailModal = ({
         const { success, message, data } = res.data || {};
         if (!success) {
           setRecord(null);
-          showError(t(message || '请求失败'));
+          showError(message || '请求失败');
           return;
         }
         setRecord(data || null);
@@ -110,7 +110,7 @@ const ConversationDetailModal = ({
       } catch (e) {
         if (reqSeq !== requestSeqRef.current) return;
         setRecord(null);
-        showError(t('请求失败'));
+        showError("请求失败");
       } finally {
         if (reqSeq === requestSeqRef.current) {
           setLoading(false);
@@ -126,37 +126,37 @@ const ConversationDetailModal = ({
     const text = displayBody || '';
     if (!text.trim()) return;
     if (await copy(text)) {
-      showSuccess(t('已复制'));
+      showSuccess("已复制");
     } else {
-      showError(t('无法复制到剪贴板，请手动复制'));
+      showError("无法复制到剪贴板，请手动复制");
     }
   };
 
   const metaRows = useMemo(() => {
     if (!record) return [];
     const rows = [];
-    if (record.path) rows.push({ key: t('路径'), value: record.path });
-    if (record.method) rows.push({ key: t('方法'), value: record.method });
-    if (record.model_name) rows.push({ key: t('模型'), value: record.model_name });
+    if (record.path) rows.push({ key: "路径", value: record.path });
+    if (record.method) rows.push({ key: "方法", value: record.method });
+    if (record.model_name) rows.push({ key: "模型", value: record.model_name });
     if (record.status_code != null) {
       rows.push({ key: 'HTTP', value: String(record.status_code) });
     }
     rows.push({
-      key: t('流式'),
-      value: record.is_stream ? t('是') : t('否'),
+      key: "流式",
+      value: record.is_stream ? "是" : "否",
     });
     if (record.request_truncated) {
-      rows.push({ key: t('请求体'), value: t('已截断（见配置）') });
+      rows.push({ key: "请求体", value: "已截断（见配置）" });
     }
     if (record.response_truncated) {
-      rows.push({ key: t('响应体'), value: t('已截断（见配置）') });
+      rows.push({ key: "响应体", value: "已截断（见配置）" });
     }
     return rows;
   }, [record, t]);
 
   return (
     <Modal
-      title={t('对话详情')}
+      title={"对话详情"}
       visible={showConversationDetailModal}
       onCancel={() => setShowConversationDetailModal(false)}
       footer={null}
@@ -168,7 +168,7 @@ const ConversationDetailModal = ({
       <div className='conversation-detail-modal__container'>
         <div className='conversation-detail-modal__header'>
           <Text type='tertiary' size='small'>
-            {requestId ? `${t('Request ID')}: ${requestId}` : ''}
+            {requestId ? `${"Request ID"}: ${requestId}` : ''}
           </Text>
           <Button
             icon={<IconCopy />}
@@ -178,13 +178,13 @@ const ConversationDetailModal = ({
             onClick={copyAll}
             disabled={!mergedBody}
           >
-            {t('复制全部')}
+            {"复制全部"}
           </Button>
         </div>
-        <Spin spinning={loading} tip={t('加载中...')}>
+        <Spin spinning={loading} tip={"加载中..."}>
           {!loading && !record ? (
             <Text type='tertiary' size='small'>
-              {t('暂无对话记录')}
+              {"暂无对话记录"}
             </Text>
           ) : null}
           {record && metaRows.length > 0 ? (

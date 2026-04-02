@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   Modal,
   Checkbox,
@@ -43,7 +42,6 @@ const ChannelUpstreamUpdateModal = ({
   onConfirm,
   onCancel,
 }) => {
-  const { t } = useTranslation();
   const isMobile = useIsMobile();
 
   const normalizedAddModels = useMemo(
@@ -126,12 +124,12 @@ const ChannelUpstreamUpdateModal = ({
   const tabList = [
     {
       itemKey: 'add',
-      tab: `${t('新增模型')} (${selectedAddCount}/${normalizedAddModels.length})`,
+      tab: `${"新增模型"} (${selectedAddCount}/${normalizedAddModels.length})`,
       disabled: !addTabEnabled,
     },
     {
       itemKey: 'remove',
-      tab: `${t('删除模型')} (${selectedRemoveCount}/${normalizedRemoveModels.length})`,
+      tab: `${"删除模型"} (${selectedRemoveCount}/${normalizedRemoveModels.length})`,
       disabled: !removeTabEnabled,
     },
   ];
@@ -159,22 +157,16 @@ const ChannelUpstreamUpdateModal = ({
         return;
       }
       const missingTab = hasUnselectedAdd ? 'add' : 'remove';
-      const missingType = hasUnselectedAdd ? t('新增') : t('删除');
+      const missingType = hasUnselectedAdd ? "新增" : "删除";
       const missingCount = hasUnselectedAdd
         ? normalizedAddModels.length
         : normalizedRemoveModels.length;
       setActiveTab(missingTab);
       Modal.confirm({
-        title: t('仍有未处理项'),
-        content: t(
-          '你还没有处理{{type}}模型（{{count}}个）。是否仅提交当前已勾选内容？',
-          {
-            type: missingType,
-            count: missingCount,
-          },
-        ),
-        okText: t('仅提交已勾选'),
-        cancelText: t('去处理{{type}}', { type: missingType }),
+        title: "仍有未处理项",
+        content: `你还没有处理${missingType}模型（${missingCount}个）。是否仅提交当前已勾选内容？`,
+        okText: "仅提交已勾选",
+        cancelText: `去处理${missingType}`,
         centered: true,
         onOk: () => {
           setPartialSubmitConfirmed(true);
@@ -190,9 +182,9 @@ const ChannelUpstreamUpdateModal = ({
   return (
     <Modal
       visible={visible}
-      title={t('处理上游模型更新')}
-      okText={t('确定')}
-      cancelText={t('取消')}
+      title={"处理上游模型更新"}
+      okText={"确定"}
+      cancelText={"取消"}
       size={isMobile ? 'full-width' : 'medium'}
       centered
       closeOnEsc
@@ -203,9 +195,7 @@ const ChannelUpstreamUpdateModal = ({
     >
       <div className='flex flex-col gap-3'>
         <Typography.Text type='secondary' size='small'>
-          {t(
-            '可勾选需要执行的变更：新增会加入渠道模型列表，删除会从渠道模型列表移除。',
-          )}
+          {"可勾选需要执行的变更：新增会加入渠道模型列表，删除会从渠道模型列表移除。"}
         </Typography.Text>
 
         <Tabs
@@ -217,22 +207,16 @@ const ChannelUpstreamUpdateModal = ({
         />
         <div className='flex items-center gap-3 text-xs text-gray-500'>
           <span>
-            {t('新增已选 {{selected}} / {{total}}', {
-              selected: selectedAddCount,
-              total: normalizedAddModels.length,
-            })}
+            {`新增已选 ${selectedAddCount} / ${normalizedAddModels.length}`}
           </span>
           <span>
-            {t('删除已选 {{selected}} / {{total}}', {
-              selected: selectedRemoveCount,
-              total: normalizedRemoveModels.length,
-            })}
+            {`删除已选 ${selectedRemoveCount} / ${normalizedRemoveModels.length}`}
           </span>
         </div>
 
         <Input
           prefix={<IconSearch size={14} />}
-          placeholder={t('搜索模型')}
+          placeholder={"搜索模型"}
           value={keyword}
           onChange={(value) => setKeyword(value)}
           showClear
@@ -247,7 +231,7 @@ const ChannelUpstreamUpdateModal = ({
               darkModeImage={
                 <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
               }
-              description={t('暂无匹配模型')}
+              description={"暂无匹配模型"}
               style={{ padding: 24 }}
             />
           ) : (
@@ -274,15 +258,12 @@ const ChannelUpstreamUpdateModal = ({
 
         <div className='flex items-center justify-end gap-2'>
           <Typography.Text type='secondary' size='small'>
-            {t('已选择 {{selected}} / {{total}}', {
-              selected: checkedCount,
-              total: currentModels.length,
-            })}
+            {`已选择 ${checkedCount} / ${currentModels.length}`}
           </Typography.Text>
           <Checkbox
             checked={isAllChecked}
             indeterminate={isIndeterminate}
-            aria-label={t('全选当前列表模型')}
+            aria-label={"全选当前列表模型"}
             onChange={(e) => handleToggleAllCurrent(e.target.checked)}
           />
         </div>

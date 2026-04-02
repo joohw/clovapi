@@ -16,13 +16,9 @@ import {
 } from '@douyinfe/semi-illustrations';
 import { Plus, Edit, Trash2, Save, Activity } from 'lucide-react';
 import { API, showError, showSuccess } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 const { Text } = Typography;
 
 const SettingsUptimeKuma = ({ options, refresh }) => {
-  const { t } = useTranslation();
-
   const [uptimeGroupsList, setUptimeGroupsList] = useState([]);
   const [showUptimeModal, setShowUptimeModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -43,7 +39,7 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
 
   const columns = [
     {
-      title: t('分类名称'),
+      title: "分类名称",
       dataIndex: 'categoryName',
       key: 'categoryName',
       render: (text) => (
@@ -58,7 +54,7 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
       ),
     },
     {
-      title: t('Uptime Kuma地址'),
+      title: "Uptime Kuma地址",
       dataIndex: 'url',
       key: 'url',
       render: (text) => (
@@ -75,7 +71,7 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
       ),
     },
     {
-      title: t('状态页面Slug'),
+      title: "状态页面Slug",
       dataIndex: 'slug',
       key: 'slug',
       render: (text) => (
@@ -90,7 +86,7 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
       ),
     },
     {
-      title: t('操作'),
+      title: "操作",
       key: 'action',
       fixed: 'right',
       width: 150,
@@ -103,7 +99,7 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
             size='small'
             onClick={() => handleEditGroup(record)}
           >
-            {t('编辑')}
+            {"编辑"}
           </Button>
           <Button
             icon={<Trash2 size={14} />}
@@ -112,7 +108,7 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
             size='small'
             onClick={() => handleDeleteGroup(record)}
           >
-            {t('删除')}
+            {"删除"}
           </Button>
         </Space>
       ),
@@ -281,7 +277,7 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
       });
       if (res.data.success) {
         setPanelEnabled(checked);
-        showSuccess(t('设置已保存'));
+        showSuccess("设置已保存");
         refresh?.();
       } else {
         showError(res.data.message);
@@ -314,9 +310,7 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
         <div className='flex items-center text-blue-500'>
           <Activity size={16} className='mr-2' />
           <Text>
-            {t(
-              'Uptime Kuma监控分类管理，可以配置多个监控分类用于服务状态展示（最多20个）',
-            )}
+            {"Uptime Kuma监控分类管理，可以配置多个监控分类用于服务状态展示（最多20个）"}
           </Text>
         </div>
       </div>
@@ -332,7 +326,7 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
             className='w-full md:w-auto'
             onClick={handleAddGroup}
           >
-            {t('添加分类')}
+            {"添加分类"}
           </Button>
           <Button
             icon={<Trash2 size={14} />}
@@ -342,7 +336,7 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
             disabled={selectedRowKeys.length === 0}
             className='w-full md:w-auto'
           >
-            {t('批量删除')}{' '}
+            {"批量删除"}{' '}
             {selectedRowKeys.length > 0 && `(${selectedRowKeys.length})`}
           </Button>
           <Button
@@ -353,14 +347,14 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
             type='secondary'
             className='w-full md:w-auto'
           >
-            {t('保存设置')}
+            {"保存设置"}
           </Button>
         </div>
 
         {/* 启用开关 */}
         <div className='order-1 md:order-2 flex items-center gap-2'>
           <Switch checked={panelEnabled} onChange={handleToggleEnabled} />
-          <Text>{panelEnabled ? t('已启用') : t('已禁用')}</Text>
+          <Text>{panelEnabled ? "已启用" : "已禁用"}</Text>
         </div>
       </div>
     </div>
@@ -424,7 +418,7 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
               darkModeImage={
                 <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
               }
-              description={t('暂无监控数据')}
+              description={"暂无监控数据"}
               style={{ padding: 30 }}
             />
           }
@@ -433,12 +427,12 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
       </Form.Section>
 
       <Modal
-        title={editingGroup ? t('编辑分类') : t('添加分类')}
+        title={editingGroup ? "编辑分类" : "添加分类"}
         visible={showUptimeModal}
         onOk={handleSaveGroup}
         onCancel={() => setShowUptimeModal(false)}
-        okText={t('保存')}
-        cancelText={t('取消')}
+        okText={"保存"}
+        cancelText={"取消"}
         confirmLoading={modalLoading}
         width={600}
       >
@@ -449,52 +443,50 @@ const SettingsUptimeKuma = ({ options, refresh }) => {
         >
           <Form.Input
             field='categoryName'
-            label={t('分类名称')}
-            placeholder={t('请输入分类名称，如：OpenAI、Claude等')}
+            label={"分类名称"}
+            placeholder={"请输入分类名称，如：OpenAI、Claude等"}
             maxLength={50}
-            rules={[{ required: true, message: t('请输入分类名称') }]}
+            rules={[{ required: true, message: "请输入分类名称" }]}
             onChange={(value) =>
               setUptimeForm({ ...uptimeForm, categoryName: value })
             }
           />
           <Form.Input
             field='url'
-            label={t('Uptime Kuma地址')}
-            placeholder={t(
-              '请输入Uptime Kuma服务地址，如：https://status.example.com',
-            )}
+            label={"Uptime Kuma地址"}
+            placeholder={"请输入Uptime Kuma服务地址，如：https://status.example.com"}
             maxLength={500}
-            rules={[{ required: true, message: t('请输入Uptime Kuma地址') }]}
+            rules={[{ required: true, message: "请输入Uptime Kuma地址" }]}
             onChange={(value) => setUptimeForm({ ...uptimeForm, url: value })}
           />
           <Form.Input
             field='slug'
-            label={t('状态页面Slug')}
-            placeholder={t('请输入状态页面的Slug，如：my-status')}
+            label={"状态页面Slug"}
+            placeholder={"请输入状态页面的Slug，如：my-status"}
             maxLength={100}
-            rules={[{ required: true, message: t('请输入状态页面Slug') }]}
+            rules={[{ required: true, message: "请输入状态页面Slug" }]}
             onChange={(value) => setUptimeForm({ ...uptimeForm, slug: value })}
           />
         </Form>
       </Modal>
 
       <Modal
-        title={t('确认删除')}
+        title={"确认删除"}
         visible={showDeleteModal}
         onOk={confirmDeleteGroup}
         onCancel={() => {
           setShowDeleteModal(false);
           setDeletingGroup(null);
         }}
-        okText={t('确认删除')}
-        cancelText={t('取消')}
+        okText={"确认删除"}
+        cancelText={"取消"}
         type='warning'
         okButtonProps={{
           type: 'danger',
           theme: 'solid',
         }}
       >
-        <Text>{t('确定要删除此分类吗？')}</Text>
+        <Text>{"确定要删除此分类吗？"}</Text>
       </Modal>
     </>
   );

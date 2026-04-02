@@ -121,14 +121,14 @@ const renderQuotaTypes = (arr, t) => {
       if (qt === 1) {
         return (
           <Tag key={`${qt}-${idx}`} color='teal' size='small' shape='circle'>
-            {t('按次计费')}
+            {"按次计费"}
           </Tag>
         );
       }
       if (qt === 0) {
         return (
           <Tag key={`${qt}-${idx}`} color='violet' size='small' shape='circle'>
-            {t('按量计费')}
+            {"按量计费"}
           </Tag>
         );
       }
@@ -173,14 +173,14 @@ const renderOperations = (
           size='small'
           onClick={() => manageModel(record.id, 'disable', record)}
         >
-          {t('禁用')}
+          {"禁用"}
         </Button>
       ) : (
         <Button
           size='small'
           onClick={() => manageModel(record.id, 'enable', record)}
         >
-          {t('启用')}
+          {"启用"}
         </Button>
       )}
 
@@ -192,7 +192,7 @@ const renderOperations = (
           setShowEdit(true);
         }}
       >
-        {t('编辑')}
+        {"编辑"}
       </Button>
 
       <Button
@@ -200,8 +200,8 @@ const renderOperations = (
         size='small'
         onClick={() => {
           Modal.confirm({
-            title: t('确定是否要删除此模型？'),
-            content: t('此修改将不可逆'),
+            title: "确定是否要删除此模型？",
+            content: "此修改将不可逆",
             onOk: () => {
               (async () => {
                 await manageModel(record.id, 'delete', record);
@@ -211,7 +211,7 @@ const renderOperations = (
           });
         }}
       >
-        {t('删除')}
+        {"删除"}
       </Button>
     </Space>
   );
@@ -220,17 +220,17 @@ const renderOperations = (
 // 名称匹配类型渲染（带匹配数量 Tooltip）
 const renderNameRule = (rule, record, t) => {
   const map = {
-    0: { color: 'green', label: t('精确') },
-    1: { color: 'blue', label: t('前缀') },
-    2: { color: 'orange', label: t('包含') },
-    3: { color: 'purple', label: t('后缀') },
+    0: { color: 'green', label: "精确" },
+    1: { color: 'blue', label: "前缀" },
+    2: { color: 'orange', label: "包含" },
+    3: { color: 'purple', label: "后缀" },
   };
   const cfg = map[rule];
   if (!cfg) return '-';
 
   let label = cfg.label;
   if (rule !== 0 && record.matched_count) {
-    label = `${cfg.label} ${record.matched_count}${t('个模型')}`;
+    label = `${cfg.label} ${record.matched_count}${"个模型"}`;
   }
 
   const tagElement = (
@@ -264,14 +264,14 @@ export const getModelsColumns = ({
 }) => {
   return [
     {
-      title: t('图标'),
+      title: "图标",
       dataIndex: 'icon',
       width: 70,
       align: 'center',
       render: (text, record) => renderModelIconCol(record, vendorMap),
     },
     {
-      title: t('模型名称'),
+      title: "模型名称",
       dataIndex: 'model_name',
       render: (text) => (
         <Text copyable onClick={(e) => e.stopPropagation()}>
@@ -280,63 +280,63 @@ export const getModelsColumns = ({
       ),
     },
     {
-      title: t('匹配类型'),
+      title: "匹配类型",
       dataIndex: 'name_rule',
       render: (val, record) => renderNameRule(val, record, t),
     },
     {
-      title: t('参与官方同步'),
+      title: "参与官方同步",
       dataIndex: 'sync_official',
       render: (val) => (
         <Tag size='small' shape='circle' color={val === 1 ? 'green' : 'orange'}>
-          {val === 1 ? t('是') : t('否')}
+          {val === 1 ? "是" : "否"}
         </Tag>
       ),
     },
     {
-      title: t('描述'),
+      title: "描述",
       dataIndex: 'description',
       render: (text) => renderDescription(text, 200),
     },
     {
-      title: t('供应商'),
+      title: "供应商",
       dataIndex: 'vendor_id',
       render: (vendorId, record) => renderVendorTag(vendorId, vendorMap, t),
     },
     {
-      title: t('标签'),
+      title: "标签",
       dataIndex: 'tags',
       render: renderTags,
     },
     {
-      title: t('端点'),
+      title: "端点",
       dataIndex: 'endpoints',
       render: renderEndpoints,
     },
     {
-      title: t('已绑定渠道'),
+      title: "已绑定渠道",
       dataIndex: 'bound_channels',
       render: renderBoundChannels,
     },
     {
-      title: t('可用分组'),
+      title: "可用分组",
       dataIndex: 'enable_groups',
       render: renderGroups,
     },
     {
-      title: t('计费类型'),
+      title: "计费类型",
       dataIndex: 'quota_types',
       render: (qts) => renderQuotaTypes(qts, t),
     },
     {
-      title: t('创建时间'),
+      title: "创建时间",
       dataIndex: 'created_time',
       render: (text, record, index) => {
         return <div>{renderTimestamp(text)}</div>;
       },
     },
     {
-      title: t('更新时间'),
+      title: "更新时间",
       dataIndex: 'updated_time',
       render: (text, record, index) => {
         return <div>{renderTimestamp(text)}</div>;

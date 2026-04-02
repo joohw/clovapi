@@ -36,7 +36,7 @@ const ChannelsTabs = ({
         itemKey='all'
         tab={
           <span className='flex items-center gap-2'>
-            {t('全部')}
+            {"全部"}
             <Tag
               color={activeTypeKey === 'all' ? 'red' : 'grey'}
               shape='circle'

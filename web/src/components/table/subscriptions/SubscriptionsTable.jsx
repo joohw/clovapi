@@ -54,7 +54,7 @@ const SubscriptionsTable = (subscriptionsData) => {
           darkModeImage={
             <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
           }
-          description={t('暂无订阅套餐')}
+          description={"暂无订阅套餐"}
           style={{ padding: 30 }}
         />
       }

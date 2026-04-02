@@ -12,7 +12,6 @@ const UsersFilters = ({
   groupOptions,
   loading,
   searching,
-  t,
 }) => {
   const formApiRef = useRef(null);
 
@@ -46,7 +45,7 @@ const UsersFilters = ({
           <Form.Input
             field='searchKeyword'
             prefix={<IconSearch />}
-            placeholder={t('支持搜索用户的 ID、用户名、显示名称和邮箱地址')}
+            placeholder={"支持搜索用户的 ID、用户名、显示名称和邮箱地址"}
             showClear
             pure
             size='small'
@@ -55,7 +54,7 @@ const UsersFilters = ({
         <div className='w-full md:w-48'>
           <Form.Select
             field='searchGroup'
-            placeholder={t('选择分组')}
+            placeholder={"选择分组"}
             optionList={groupOptions}
             onChange={(value) => {
               // Group change triggers automatic search
@@ -77,7 +76,7 @@ const UsersFilters = ({
             className='flex-1 md:flex-initial md:w-auto'
             size='small'
           >
-            {t('查询')}
+            {"查询"}
           </Button>
           <Button
             type='tertiary'
@@ -85,7 +84,7 @@ const UsersFilters = ({
             className='flex-1 md:flex-initial md:w-auto'
             size='small'
           >
-            {t('重置')}
+            {"重置"}
           </Button>
         </div>
       </div>

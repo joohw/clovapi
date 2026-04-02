@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   Button,
   Form,
@@ -44,8 +43,6 @@ const JSONEditor = ({
   renderStringValueSuffix,
   ...props
 }) => {
-  const { t } = useTranslation();
-
   // 将对象转换为键值对数组（包含唯一ID）
   const objectToKeyValueArray = useCallback((obj, prevPairs = []) => {
     if (!obj || typeof obj !== 'object') return [];
@@ -328,7 +325,7 @@ const JSONEditor = ({
             onChange={(newValue) => updateValue(pairId, newValue)}
           />
           <Text type='tertiary' className='ml-2'>
-            {value ? t('true') : t('false')}
+            {value ? "true" : "false"}
           </Text>
         </div>
       );
@@ -340,7 +337,7 @@ const JSONEditor = ({
           value={value}
           onChange={(newValue) => updateValue(pairId, newValue)}
           style={{ width: '100%' }}
-          placeholder={t('输入数字')}
+          placeholder={"输入数字"}
         />
       );
     }
@@ -359,7 +356,7 @@ const JSONEditor = ({
               // 忽略解析错误
             }
           }}
-          placeholder={t('输入JSON对象')}
+          placeholder={"输入JSON对象"}
         />
       );
     }
@@ -367,7 +364,7 @@ const JSONEditor = ({
     // 字符串或其他原始类型
     return (
       <Input
-        placeholder={t('参数值')}
+        placeholder={"参数值"}
         value={String(value)}
         suffix={renderStringValueSuffix?.({ pairId, pairKey, value })}
         onChange={(newValue) => {
@@ -398,11 +395,11 @@ const JSONEditor = ({
             icon={<IconAlertTriangle />}
             description={
               <div>
-                <Text strong>{t('存在重复的键名：')}</Text>
+                <Text strong>{"存在重复的键名："}</Text>
                 <Text>{Array.from(duplicateKeys).join(', ')}</Text>
                 <br />
                 <Text type='tertiary' size='small'>
-                  {t('注意：JSON中重复的键只会保留最后一个同名键的值')}
+                  {"注意：JSON中重复的键只会保留最后一个同名键的值"}
                 </Text>
               </div>
             }
@@ -413,7 +410,7 @@ const JSONEditor = ({
         {keyValuePairs.length === 0 && (
           <div className='text-center py-6 px-4'>
             <Text type='tertiary' className='text-gray-500 text-sm'>
-              {t('暂无数据，点击下方按钮添加键值对')}
+              {"暂无数据，点击下方按钮添加键值对"}
             </Text>
           </div>
         )}
@@ -429,7 +426,7 @@ const JSONEditor = ({
               <Col span={10}>
                 <div className='relative'>
                   <Input
-                    placeholder={t('键名')}
+                    placeholder={"键名"}
                     value={pair.key}
                     onChange={(newKey) => updateKey(pair.id, newKey)}
                     status={isDuplicate ? 'warning' : undefined}
@@ -438,8 +435,8 @@ const JSONEditor = ({
                     <Tooltip
                       content={
                         isLastDuplicate
-                          ? t('这是重复键中的最后一个，其值将被使用')
-                          : t('重复的键名，此值将被后面的同名键覆盖')
+                          ? "这是重复键中的最后一个，其值将被使用"
+                          : "重复的键名，此值将被后面的同名键覆盖"
                       }
                     >
                       <IconAlertTriangle
@@ -476,7 +473,7 @@ const JSONEditor = ({
             theme='outline'
             onClick={addKeyValue}
           >
-            {t('添加键值对')}
+            {"添加键值对"}
           </Button>
         </div>
       </div>
@@ -497,11 +494,11 @@ const JSONEditor = ({
             icon={<IconAlertTriangle />}
             description={
               <div>
-                <Text strong>{t('存在重复的键名：')}</Text>
+                <Text strong>{"存在重复的键名："}</Text>
                 <Text>{Array.from(duplicateKeys).join(', ')}</Text>
                 <br />
                 <Text type='tertiary' size='small'>
-                  {t('注意：JSON中重复的键只会保留最后一个同名键的值')}
+                  {"注意：JSON中重复的键只会保留最后一个同名键的值"}
                 </Text>
               </div>
             }
@@ -510,9 +507,9 @@ const JSONEditor = ({
         )}
 
         {/* 默认区域 */}
-        <Form.Slot label={t('默认区域')}>
+        <Form.Slot label={"默认区域"}>
           <Input
-            placeholder={t('默认区域，如: us-central1')}
+            placeholder={"默认区域，如: us-central1"}
             value={defaultPair ? defaultPair.value : ''}
             onChange={(value) => {
               if (defaultPair) {
@@ -533,7 +530,7 @@ const JSONEditor = ({
         </Form.Slot>
 
         {/* 模型专用区域 */}
-        <Form.Slot label={t('模型专用区域')}>
+        <Form.Slot label={"模型专用区域"}>
           <div>
             {modelPairs.map((pair) => {
               const isDuplicate = duplicateKeys.has(pair.key);
@@ -542,13 +539,13 @@ const JSONEditor = ({
                   <Col span={10}>
                     <div className='relative'>
                       <Input
-                        placeholder={t('模型名称')}
+                        placeholder={"模型名称"}
                         value={pair.key}
                         onChange={(newKey) => updateKey(pair.id, newKey)}
                         status={isDuplicate ? 'warning' : undefined}
                       />
                       {isDuplicate && (
-                        <Tooltip content={t('重复的键名')}>
+                        <Tooltip content={"重复的键名"}>
                           <IconAlertTriangle
                             className='absolute right-2 top-1/2 transform -translate-y-1/2'
                             style={{ color: '#faad14', fontSize: '14px' }}
@@ -559,7 +556,7 @@ const JSONEditor = ({
                   </Col>
                   <Col span={12}>
                     <Input
-                      placeholder={t('区域')}
+                      placeholder={"区域"}
                       value={pair.value}
                       onChange={(newValue) => updateValue(pair.id, newValue)}
                     />
@@ -584,7 +581,7 @@ const JSONEditor = ({
                 type='primary'
                 theme='outline'
               >
-                {t('添加模型区域')}
+                {"添加模型区域"}
               </Button>
             </div>
           </div>
@@ -623,8 +620,8 @@ const JSONEditor = ({
                 }
               }}
             >
-              <TabPane tab={t('可视化')} itemKey='visual' />
-              <TabPane tab={t('手动编辑')} itemKey='manual' />
+              <TabPane tab={"可视化"} itemKey='visual' />
+              <TabPane tab={"手动编辑"} itemKey='manual' />
             </Tabs>
 
             {template && templateLabel && (

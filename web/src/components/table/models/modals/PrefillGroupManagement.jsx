@@ -22,7 +22,6 @@ import {
   showSuccess,
   stringToColor,
 } from '../../../../helpers';
-import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 import CardTable from '../../../common/ui/CardTable';
 import EditPrefillGroupModal from './EditPrefillGroupModal';
@@ -34,7 +33,6 @@ import {
 const { Text, Title } = Typography;
 
 const PrefillGroupManagement = ({ visible, onClose }) => {
-  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [groups, setGroups] = useState([]);
@@ -42,9 +40,9 @@ const PrefillGroupManagement = ({ visible, onClose }) => {
   const [editingGroup, setEditingGroup] = useState({ id: undefined });
 
   const typeOptions = [
-    { label: t('模型组'), value: 'model' },
-    { label: t('标签组'), value: 'tag' },
-    { label: t('端点组'), value: 'endpoint' },
+    { label: "模型组", value: 'model' },
+    { label: "标签组", value: 'tag' },
+    { label: "端点组", value: 'endpoint' },
   ];
 
   // 加载组列表
@@ -55,10 +53,10 @@ const PrefillGroupManagement = ({ visible, onClose }) => {
       if (res.data.success) {
         setGroups(res.data.data || []);
       } else {
-        showError(res.data.message || t('获取组列表失败'));
+        showError(res.data.message || "获取组列表失败");
       }
     } catch (error) {
-      showError(t('获取组列表失败'));
+      showError("获取组列表失败");
     }
     setLoading(false);
   };
@@ -68,13 +66,13 @@ const PrefillGroupManagement = ({ visible, onClose }) => {
     try {
       const res = await API.delete(`/api/prefill_group/${id}`);
       if (res.data.success) {
-        showSuccess(t('删除成功'));
+        showSuccess("删除成功");
         loadGroups();
       } else {
-        showError(res.data.message || t('删除失败'));
+        showError(res.data.message || "删除失败");
       }
     } catch (error) {
-      showError(t('删除失败'));
+      showError("删除失败");
     }
   };
 
@@ -101,7 +99,7 @@ const PrefillGroupManagement = ({ visible, onClose }) => {
   // 表格列定义
   const columns = [
     {
-      title: t('组名'),
+      title: "组名",
       dataIndex: 'name',
       key: 'name',
       render: (text, record) => (
@@ -115,13 +113,13 @@ const PrefillGroupManagement = ({ visible, onClose }) => {
       ),
     },
     {
-      title: t('描述'),
+      title: "描述",
       dataIndex: 'description',
       key: 'description',
       render: (text) => renderDescription(text, 150),
     },
     {
-      title: t('项目内容'),
+      title: "项目内容",
       dataIndex: 'items',
       key: 'items',
       render: (items, record) => {
@@ -133,7 +131,7 @@ const PrefillGroupManagement = ({ visible, onClose }) => {
                 : items || {};
             const keys = Object.keys(obj);
             if (keys.length === 0)
-              return <Text type='tertiary'>{t('暂无项目')}</Text>;
+              return <Text type='tertiary'>{"暂无项目"}</Text>;
             return renderLimitedItems({
               items: keys,
               renderItem: (key, idx) => (
@@ -152,7 +150,7 @@ const PrefillGroupManagement = ({ visible, onClose }) => {
           const itemsArray =
             typeof items === 'string' ? JSON.parse(items) : items;
           if (!Array.isArray(itemsArray) || itemsArray.length === 0) {
-            return <Text type='tertiary'>{t('暂无项目')}</Text>;
+            return <Text type='tertiary'>{"暂无项目"}</Text>;
           }
           return renderLimitedItems({
             items: itemsArray,
@@ -169,7 +167,7 @@ const PrefillGroupManagement = ({ visible, onClose }) => {
             maxDisplay: 3,
           });
         } catch {
-          return <Text type='tertiary'>{t('数据格式错误')}</Text>;
+          return <Text type='tertiary'>{"数据格式错误"}</Text>;
         }
       },
     },
@@ -181,14 +179,14 @@ const PrefillGroupManagement = ({ visible, onClose }) => {
       render: (_, record) => (
         <Space>
           <Button size='small' onClick={() => handleEdit(record)}>
-            {t('编辑')}
+            {"编辑"}
           </Button>
           <Popconfirm
-            title={t('确定删除此组？')}
+            title={"确定删除此组？"}
             onConfirm={() => deleteGroup(record.id)}
           >
             <Button size='small' type='danger'>
-              {t('删除')}
+              {"删除"}
             </Button>
           </Popconfirm>
         </Space>
@@ -209,10 +207,10 @@ const PrefillGroupManagement = ({ visible, onClose }) => {
         title={
           <Space>
             <Tag color='blue' shape='circle'>
-              {t('管理')}
+              {"管理"}
             </Tag>
             <Title heading={4} className='m-0'>
-              {t('预填组管理')}
+              {"预填组管理"}
             </Title>
           </Space>
         }
@@ -230,9 +228,9 @@ const PrefillGroupManagement = ({ visible, onClose }) => {
                   <IconLayers size={16} />
                 </Avatar>
                 <div>
-                  <Text className='text-lg font-medium'>{t('组列表')}</Text>
+                  <Text className='text-lg font-medium'>{"组列表"}</Text>
                   <div className='text-xs text-gray-600'>
-                    {t('管理模型、标签、端点等预填组')}
+                    {"管理模型、标签、端点等预填组"}
                   </div>
                 </div>
               </div>
@@ -244,7 +242,7 @@ const PrefillGroupManagement = ({ visible, onClose }) => {
                   icon={<IconPlus />}
                   onClick={() => handleEdit()}
                 >
-                  {t('新建组')}
+                  {"新建组"}
                 </Button>
               </div>
               {groups.length > 0 ? (
@@ -266,7 +264,7 @@ const PrefillGroupManagement = ({ visible, onClose }) => {
                       style={{ width: 150, height: 150 }}
                     />
                   }
-                  description={t('暂无预填组')}
+                  description={"暂无预填组"}
                   style={{ padding: 30 }}
                 />
               )}

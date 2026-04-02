@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   Card,
   Form,
@@ -15,7 +14,6 @@ import { StatusContext } from '../../../context/Status';
 const { Text } = Typography;
 
 export default function SettingsSidebarModulesAdmin(props) {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [statusState, statusDispatch] = useContext(StatusContext);
 
@@ -43,7 +41,6 @@ export default function SettingsSidebarModulesAdmin(props) {
       enabled: true,
       channel: true,
       models: true,
-      deployment: true,
       redemption: true,
       user: true,
       subscription: true,
@@ -104,7 +101,6 @@ export default function SettingsSidebarModulesAdmin(props) {
         enabled: true,
         channel: true,
         models: true,
-        deployment: true,
         redemption: true,
         user: true,
         subscription: true,
@@ -112,7 +108,7 @@ export default function SettingsSidebarModulesAdmin(props) {
       },
     };
     setSidebarModulesAdmin(defaultModules);
-    showSuccess(t('已重置为默认配置'));
+    showSuccess("已重置为默认配置");
   }
 
   // 保存配置
@@ -125,7 +121,7 @@ export default function SettingsSidebarModulesAdmin(props) {
       });
       const { success, message } = res.data;
       if (success) {
-        showSuccess(t('保存成功'));
+        showSuccess("保存成功");
 
         // 立即更新StatusContext中的状态
         statusDispatch({
@@ -144,7 +140,7 @@ export default function SettingsSidebarModulesAdmin(props) {
         showError(message);
       }
     } catch (error) {
-      showError(t('保存失败，请重试'));
+      showError("保存失败，请重试");
     } finally {
       setLoading(false);
     }
@@ -173,7 +169,6 @@ export default function SettingsSidebarModulesAdmin(props) {
             enabled: true,
             channel: true,
             models: true,
-            deployment: true,
             redemption: true,
             user: true,
             subscription: true,
@@ -189,73 +184,68 @@ export default function SettingsSidebarModulesAdmin(props) {
   const sectionConfigs = [
     {
       key: 'chat',
-      title: t('聊天区域'),
-      description: t('操练场和聊天功能'),
+      title: "聊天区域",
+      description: "操练场和聊天功能",
       modules: [
         {
           key: 'playground',
-          title: t('操练场'),
-          description: t('AI模型测试环境'),
+          title: "操练场",
+          description: "AI模型测试环境",
         },
-        { key: 'chat', title: t('聊天'), description: t('聊天会话管理') },
+        { key: 'chat', title: "聊天", description: "聊天会话管理" },
       ],
     },
     {
       key: 'console',
-      title: t('控制台区域'),
-      description: t('数据管理和日志查看'),
+      title: "控制台区域",
+      description: "数据管理和日志查看",
       modules: [
-        { key: 'detail', title: t('数据看板'), description: t('系统数据统计') },
-        { key: 'token', title: t('令牌管理'), description: t('API令牌管理') },
-        { key: 'log', title: t('使用日志'), description: t('API使用记录') },
+        { key: 'detail', title: "数据看板", description: "系统数据统计" },
+        { key: 'token', title: 'ApiKeys', description: 'API Keys 管理' },
+        { key: 'log', title: "使用日志", description: "API使用记录" },
         {
           key: 'midjourney',
-          title: t('绘图日志'),
-          description: t('绘图任务记录'),
+          title: "绘图日志",
+          description: "绘图任务记录",
         },
-        { key: 'task', title: t('任务日志'), description: t('系统任务记录') },
+        { key: 'task', title: "任务日志", description: "系统任务记录" },
       ],
     },
     {
       key: 'personal',
-      title: t('个人中心区域'),
-      description: t('用户个人功能'),
+      title: "个人中心区域",
+      description: "用户个人功能",
       modules: [
-        { key: 'topup', title: t('钱包管理'), description: t('余额充值管理') },
+        { key: 'topup', title: "钱包管理", description: "余额充值管理" },
         {
           key: 'personal',
-          title: t('个人设置'),
-          description: t('个人信息设置'),
+          title: "个人设置",
+          description: "个人信息设置",
         },
       ],
     },
     {
       key: 'admin',
-      title: t('管理员区域'),
-      description: t('系统管理功能'),
+      title: "管理员区域",
+      description: "系统管理功能",
       modules: [
-        { key: 'channel', title: t('渠道管理'), description: t('API渠道配置') },
-        { key: 'models', title: t('模型管理'), description: t('AI模型配置') },
-        {
-          key: 'deployment',
-          title: t('模型部署'),
-          description: t('模型部署管理'),
-        },
+        { key: 'channel', title: "渠道管理", description: "API渠道配置" },
+        { key: 'models', title: "模型管理", description: "AI模型配置" },
         {
           key: 'subscription',
-          title: t('订阅管理'),
-          description: t('订阅套餐管理'),
+          title: "订阅管理",
+          description: "订阅套餐管理",
         },
         {
           key: 'redemption',
-          title: t('兑换码管理'),
-          description: t('兑换码生成管理'),
+          title: "兑换码管理",
+          description: "兑换码生成管理",
         },
-        { key: 'user', title: t('用户管理'), description: t('用户账户管理') },
+        { key: 'user', title: "用户管理", description: "用户账户管理" },
         {
           key: 'setting',
-          title: t('系统设置'),
-          description: t('系统参数配置'),
+          title: "系统设置",
+          description: "系统参数配置",
         },
       ],
     },
@@ -264,10 +254,8 @@ export default function SettingsSidebarModulesAdmin(props) {
   return (
     <Card>
       <Form.Section
-        text={t('侧边栏管理（全局控制）')}
-        extraText={t(
-          '全局控制侧边栏区域和功能显示，管理员隐藏的功能用户无法启用',
-        )}
+        text={"侧边栏管理（全局控制）"}
+        extraText={"全局控制侧边栏区域和功能显示，管理员隐藏的功能用户无法启用"}
       >
         {sectionConfigs.map((section) => (
           <div key={section.key} style={{ marginBottom: '32px' }}>
@@ -397,7 +385,7 @@ export default function SettingsSidebarModulesAdmin(props) {
               fontWeight: '500',
             }}
           >
-            {t('重置为默认')}
+            {"重置为默认"}
           </Button>
           <Button
             size='default'
@@ -410,7 +398,7 @@ export default function SettingsSidebarModulesAdmin(props) {
               minWidth: '100px',
             }}
           >
-            {t('保存设置')}
+            {"保存设置"}
           </Button>
         </div>
       </Form.Section>

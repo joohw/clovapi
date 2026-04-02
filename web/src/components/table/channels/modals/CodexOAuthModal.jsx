@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   Modal,
   Button,
@@ -13,7 +12,6 @@ import { API, copy, showError, showSuccess } from '../../../../helpers';
 const { Text } = Typography;
 
 const CodexOAuthModal = ({ visible, onCancel, onSuccess }) => {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [authorizeUrl, setAuthorizeUrl] = useState('');
   const [input, setInput] = useState('');
@@ -28,7 +26,7 @@ const CodexOAuthModal = ({ visible, onCancel, onSuccess }) => {
       );
       if (!res?.data?.success) {
         console.error('Codex OAuth start failed:', res?.data?.message);
-        throw new Error(t('启动授权失败'));
+        throw new Error("启动授权失败");
       }
       const url = res?.data?.data?.authorize_url || '';
       if (!url) {
@@ -36,13 +34,13 @@ const CodexOAuthModal = ({ visible, onCancel, onSuccess }) => {
           'Codex OAuth start response missing authorize_url:',
           res?.data,
         );
-        throw new Error(t('响应缺少授权链接'));
+        throw new Error("响应缺少授权链接");
       }
       setAuthorizeUrl(url);
       window.open(url, '_blank', 'noopener,noreferrer');
-      showSuccess(t('已打开授权页面'));
+      showSuccess("已打开授权页面");
     } catch (error) {
-      showError(error?.message || t('启动授权失败'));
+      showError(error?.message || "启动授权失败");
     } finally {
       setLoading(false);
     }
@@ -50,7 +48,7 @@ const CodexOAuthModal = ({ visible, onCancel, onSuccess }) => {
 
   const completeOAuth = async () => {
     if (!input || !input.trim()) {
-      showError(t('请先粘贴回调 URL'));
+      showError("请先粘贴回调 URL");
       return;
     }
 
@@ -63,20 +61,20 @@ const CodexOAuthModal = ({ visible, onCancel, onSuccess }) => {
       );
       if (!res?.data?.success) {
         console.error('Codex OAuth complete failed:', res?.data?.message);
-        throw new Error(t('授权失败'));
+        throw new Error("授权失败");
       }
 
       const key = res?.data?.data?.key || '';
       if (!key) {
         console.error('Codex OAuth complete response missing key:', res?.data);
-        throw new Error(t('响应缺少凭据'));
+        throw new Error("响应缺少凭据");
       }
 
       onSuccess && onSuccess(key);
-      showSuccess(t('已生成授权凭据'));
+      showSuccess("已生成授权凭据");
       onCancel && onCancel();
     } catch (error) {
-      showError(error?.message || t('授权失败'));
+      showError(error?.message || "授权失败");
     } finally {
       setLoading(false);
     }
@@ -90,7 +88,7 @@ const CodexOAuthModal = ({ visible, onCancel, onSuccess }) => {
 
   return (
     <Modal
-      title={t('Codex 授权')}
+      title={"Codex 授权"}
       visible={visible}
       onCancel={onCancel}
       maskClosable={false}
@@ -99,7 +97,7 @@ const CodexOAuthModal = ({ visible, onCancel, onSuccess }) => {
       footer={
         <Space>
           <Button theme='borderless' onClick={onCancel} disabled={loading}>
-            {t('取消')}
+            {"取消"}
           </Button>
           <Button
             theme='solid'
@@ -107,7 +105,7 @@ const CodexOAuthModal = ({ visible, onCancel, onSuccess }) => {
             onClick={completeOAuth}
             loading={loading}
           >
-            {t('生成并填入')}
+            {"生成并填入"}
           </Button>
         </Space>
       }
@@ -115,35 +113,31 @@ const CodexOAuthModal = ({ visible, onCancel, onSuccess }) => {
       <Space vertical spacing='tight' style={{ width: '100%' }}>
         <Banner
           type='info'
-          description={t(
-            '1) 点击「打开授权页面」完成登录；2) 浏览器会跳转到 localhost（页面打不开也没关系）；3) 复制地址栏完整 URL 粘贴到下方；4) 点击「生成并填入」。',
-          )}
+          description={"1) 点击「打开授权页面」完成登录；2) 浏览器会跳转到 localhost（页面打不开也没关系）；3) 复制地址栏完整 URL 粘贴到下方；4) 点击「生成并填入」。"}
         />
 
         <Space wrap>
           <Button type='primary' onClick={startOAuth} loading={loading}>
-            {t('打开授权页面')}
+            {"打开授权页面"}
           </Button>
           <Button
             theme='outline'
             disabled={!authorizeUrl || loading}
             onClick={() => copy(authorizeUrl)}
           >
-            {t('复制授权链接')}
+            {"复制授权链接"}
           </Button>
         </Space>
 
         <Input
           value={input}
           onChange={(value) => setInput(value)}
-          placeholder={t('请粘贴完整回调 URL（包含 code 与 state）')}
+          placeholder={"请粘贴完整回调 URL（包含 code 与 state）"}
           showClear
         />
 
         <Text type='tertiary' size='small'>
-          {t(
-            '说明：生成结果是可直接粘贴到渠道密钥里的 JSON（包含 access_token / refresh_token / account_id）。',
-          )}
+          {"说明：生成结果是可直接粘贴到渠道密钥里的 JSON（包含 access_token / refresh_token / account_id）。"}
         </Text>
       </Space>
     </Modal>

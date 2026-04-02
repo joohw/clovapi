@@ -2,10 +2,10 @@ import React from 'react';
 import { Button } from '@douyinfe/semi-ui';
 import { Bell } from 'lucide-react';
 
-const NotificationButton = ({ onNoticeOpen, t }) => {
+const NotificationButton = ({ onNoticeOpen }) => {
   const buttonProps = {
     icon: <Bell size={18} />,
-    'aria-label': t('系统公告'),
+    'aria-label': "系统公告",
     onClick: onNoticeOpen,
     theme: 'borderless',
     type: 'tertiary',

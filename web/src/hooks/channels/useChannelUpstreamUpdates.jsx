@@ -19,7 +19,7 @@ const getManualIgnoredModelCountFromSettings = (settings) => {
   return normalizeModelList(parsed.upstream_model_update_ignored_models).length;
 };
 
-export const useChannelUpstreamUpdates = ({ t, refresh }) => {
+export const useChannelUpstreamUpdates = ({ refresh }) => {
   const [showUpstreamUpdateModal, setShowUpstreamUpdateModal] = useState(false);
   const [upstreamUpdateChannel, setUpstreamUpdateChannel] = useState(null);
   const [upstreamUpdateAddModels, setUpstreamUpdateAddModels] = useState([]);
@@ -51,7 +51,7 @@ export const useChannelUpstreamUpdates = ({ t, refresh }) => {
       !record?.id ||
       (normalizedAddModels.length === 0 && normalizedRemoveModels.length === 0)
     ) {
-      showInfo(t('该渠道暂无可处理的上游模型更新'));
+      showInfo("该渠道暂无可处理的上游模型更新");
       return;
     }
     setUpstreamUpdateChannel(record);
@@ -75,7 +75,7 @@ export const useChannelUpstreamUpdates = ({ t, refresh }) => {
     removeModels: selectedRemoveModels = [],
   } = {}) => {
     if (applyUpstreamUpdatesInFlightRef.current) {
-      showInfo(t('正在处理，请稍候'));
+      showInfo("正在处理，请稍候");
       return;
     }
     if (!upstreamUpdateChannel?.id) {
@@ -106,7 +106,7 @@ export const useChannelUpstreamUpdates = ({ t, refresh }) => {
       );
       const { success, message, data } = res.data || {};
       if (!success) {
-        showError(message || t('操作失败'));
+        showError(message || "操作失败");
         return;
       }
 
@@ -117,21 +117,13 @@ export const useChannelUpstreamUpdates = ({ t, refresh }) => {
       );
       const ignoredCount = normalizeModelList(ignoreModels).length;
       showSuccess(
-        t(
-          '已处理上游模型更新：加入 {{added}} 个，删除 {{removed}} 个，本次忽略 {{ignored}} 个，当前已忽略模型 {{totalIgnored}} 个',
-          {
-            added: addedCount,
-            removed: removedCount,
-            ignored: ignoredCount,
-            totalIgnored: totalIgnoredCount,
-          },
-        ),
+        `已处理上游模型更新：加入 ${addedCount} 个，删除 ${removedCount} 个，本次忽略 ${ignoredCount} 个，当前已忽略模型 ${totalIgnoredCount} 个`,
       );
       closeUpstreamUpdateModal();
       await refresh();
     } catch (error) {
       showError(
-        error?.response?.data?.message || error?.message || t('操作失败'),
+        error?.response?.data?.message || error?.message || "操作失败",
       );
     } finally {
       applyUpstreamUpdatesInFlightRef.current = false;
@@ -141,7 +133,7 @@ export const useChannelUpstreamUpdates = ({ t, refresh }) => {
 
   const applyAllUpstreamUpdates = async () => {
     if (applyAllUpstreamUpdatesInFlightRef.current) {
-      showInfo(t('正在批量处理，请稍候'));
+      showInfo("正在批量处理，请稍候");
       return;
     }
     applyAllUpstreamUpdatesInFlightRef.current = true;
@@ -154,7 +146,7 @@ export const useChannelUpstreamUpdates = ({ t, refresh }) => {
       );
       const { success, message, data } = res.data || {};
       if (!success) {
-        showError(message || t('批量处理失败'));
+        showError(message || "批量处理失败");
         return;
       }
 
@@ -163,20 +155,12 @@ export const useChannelUpstreamUpdates = ({ t, refresh }) => {
       const removedCount = data?.removed_models || 0;
       const failedCount = (data?.failed_channel_ids || []).length;
       showSuccess(
-        t(
-          '已批量处理上游模型更新：渠道 {{channels}} 个，加入 {{added}} 个，删除 {{removed}} 个，失败 {{fails}} 个',
-          {
-            channels: channelCount,
-            added: addedCount,
-            removed: removedCount,
-            fails: failedCount,
-          },
-        ),
+        `已批量处理上游模型更新：渠道 ${channelCount} 个，加入 ${addedCount} 个，删除 ${removedCount} 个，失败 ${failedCount} 个`,
       );
       await refresh();
     } catch (error) {
       showError(
-        error?.response?.data?.message || error?.message || t('批量处理失败'),
+        error?.response?.data?.message || error?.message || "批量处理失败",
       );
     } finally {
       applyAllUpstreamUpdatesInFlightRef.current = false;
@@ -186,7 +170,7 @@ export const useChannelUpstreamUpdates = ({ t, refresh }) => {
 
   const detectChannelUpstreamUpdates = async (channel) => {
     if (detectChannelUpstreamUpdatesInFlightRef.current) {
-      showInfo(t('正在检测，请稍候'));
+      showInfo("正在检测，请稍候");
       return;
     }
     if (!channel?.id) {
@@ -203,22 +187,19 @@ export const useChannelUpstreamUpdates = ({ t, refresh }) => {
       );
       const { success, message, data } = res.data || {};
       if (!success) {
-        showError(message || t('检测失败'));
+        showError(message || "检测失败");
         return;
       }
 
       const addCount = data?.add_models?.length || 0;
       const removeCount = data?.remove_models?.length || 0;
       showSuccess(
-        t('检测完成：新增 {{add}} 个，删除 {{remove}} 个', {
-          add: addCount,
-          remove: removeCount,
-        }),
+        `检测完成：新增 ${addCount} 个，删除 ${removeCount} 个`,
       );
       await refresh();
     } catch (error) {
       showError(
-        error?.response?.data?.message || error?.message || t('检测失败'),
+        error?.response?.data?.message || error?.message || "检测失败",
       );
     } finally {
       detectChannelUpstreamUpdatesInFlightRef.current = false;
@@ -227,7 +208,7 @@ export const useChannelUpstreamUpdates = ({ t, refresh }) => {
 
   const detectAllUpstreamUpdates = async () => {
     if (detectAllUpstreamUpdatesInFlightRef.current) {
-      showInfo(t('正在批量检测，请稍候'));
+      showInfo("正在批量检测，请稍候");
       return;
     }
     detectAllUpstreamUpdatesInFlightRef.current = true;
@@ -240,7 +221,7 @@ export const useChannelUpstreamUpdates = ({ t, refresh }) => {
       );
       const { success, message, data } = res.data || {};
       if (!success) {
-        showError(message || t('批量检测失败'));
+        showError(message || "批量检测失败");
         return;
       }
 
@@ -249,20 +230,12 @@ export const useChannelUpstreamUpdates = ({ t, refresh }) => {
       const removeCount = data?.detected_remove_models || 0;
       const failedCount = (data?.failed_channel_ids || []).length;
       showSuccess(
-        t(
-          '批量检测完成：渠道 {{channels}} 个，新增 {{add}} 个，删除 {{remove}} 个，失败 {{fails}} 个',
-          {
-            channels: channelCount,
-            add: addCount,
-            remove: removeCount,
-            fails: failedCount,
-          },
-        ),
+        `批量检测完成：渠道 ${channelCount} 个，新增 ${addCount} 个，删除 ${removeCount} 个，失败 ${failedCount} 个`,
       );
       await refresh();
     } catch (error) {
       showError(
-        error?.response?.data?.message || error?.message || t('批量检测失败'),
+        error?.response?.data?.message || error?.message || "批量检测失败",
       );
     } finally {
       detectAllUpstreamUpdatesInFlightRef.current = false;

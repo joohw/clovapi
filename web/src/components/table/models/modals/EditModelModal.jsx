@@ -17,7 +17,6 @@ import {
 import { Save, X, FileText } from 'lucide-react';
 import { IconAlertTriangle, IconLink } from '@douyinfe/semi-icons';
 import { API, showError, showSuccess } from '../../../../helpers';
-import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 
 const { Text, Title } = Typography;
@@ -41,7 +40,6 @@ const nameRuleOptions = [
 ];
 
 const EditModelModal = (props) => {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const isMobile = useIsMobile();
   const formApiRef = useRef(null);
@@ -139,7 +137,7 @@ const EditModelModal = (props) => {
         showError(message);
       }
     } catch (error) {
-      showError(t('加载模型信息失败'));
+      showError("加载模型信息失败");
     }
     setLoading(false);
   };
@@ -186,25 +184,25 @@ const EditModelModal = (props) => {
         const res = await API.put('/api/models/', submitData);
         const { success, message } = res.data;
         if (success) {
-          showSuccess(t('模型更新成功！'));
+          showSuccess("模型更新成功！");
           props.refresh();
           props.handleClose();
         } else {
-          showError(t(message));
+          showError(message);
         }
       } else {
         const res = await API.post('/api/models/', submitData);
         const { success, message } = res.data;
         if (success) {
-          showSuccess(t('模型创建成功！'));
+          showSuccess("模型创建成功！");
           props.refresh();
           props.handleClose();
         } else {
-          showError(t(message));
+          showError(message);
         }
       }
     } catch (error) {
-      showError(error.response?.data?.message || t('操作失败'));
+      showError(error.response?.data?.message || "操作失败");
     }
     setLoading(false);
     formApiRef.current?.setValues(getInitValues());
@@ -217,15 +215,15 @@ const EditModelModal = (props) => {
         <Space>
           {isEdit ? (
             <Tag color='blue' shape='circle'>
-              {t('更新')}
+              {"更新"}
             </Tag>
           ) : (
             <Tag color='green' shape='circle'>
-              {t('新建')}
+              {"新建"}
             </Tag>
           )}
           <Title heading={4} className='m-0'>
-            {isEdit ? t('更新模型信息') : t('创建新的模型')}
+            {isEdit ? "更新模型信息" : "创建新的模型"}
           </Title>
         </Space>
       }
@@ -242,7 +240,7 @@ const EditModelModal = (props) => {
               icon={<Save size={16} />}
               loading={loading}
             >
-              {t('提交')}
+              {"提交"}
             </Button>
             <Button
               theme='light'
@@ -251,7 +249,7 @@ const EditModelModal = (props) => {
               onClick={handleCancel}
               icon={<X size={16} />}
             >
-              {t('取消')}
+              {"取消"}
             </Button>
           </Space>
         </div>
@@ -275,9 +273,9 @@ const EditModelModal = (props) => {
                     <FileText size={16} />
                   </Avatar>
                   <div>
-                    <Text className='text-lg font-medium'>{t('基本信息')}</Text>
+                    <Text className='text-lg font-medium'>{"基本信息"}</Text>
                     <div className='text-xs text-gray-600'>
-                      {t('设置模型的基本信息')}
+                      {"设置模型的基本信息"}
                     </div>
                   </div>
                 </div>
@@ -285,9 +283,9 @@ const EditModelModal = (props) => {
                   <Col span={24}>
                     <Form.Input
                       field='model_name'
-                      label={t('模型名称')}
-                      placeholder={t('请输入模型名称，如：gpt-4')}
-                      rules={[{ required: true, message: t('请输入模型名称') }]}
+                      label={"模型名称"}
+                      placeholder={"请输入模型名称，如：gpt-4"}
+                      rules={[{ required: true, message: "请输入模型名称" }]}
                       showClear
                     />
                   </Col>
@@ -295,18 +293,16 @@ const EditModelModal = (props) => {
                   <Col span={24}>
                     <Form.Select
                       field='name_rule'
-                      label={t('名称匹配类型')}
-                      placeholder={t('请选择名称匹配类型')}
+                      label={"名称匹配类型"}
+                      placeholder={"请选择名称匹配类型"}
                       optionList={nameRuleOptions.map((o) => ({
-                        label: t(o.label),
+                        label: o.label,
                         value: o.value,
                       }))}
                       rules={[
-                        { required: true, message: t('请选择名称匹配类型') },
+                        { required: true, message: "请选择名称匹配类型" },
                       ]}
-                      extraText={t(
-                        '根据模型名称和匹配规则查找模型元数据，优先级：精确 > 前缀 > 后缀 > 包含',
-                      )}
+                      extraText={"根据模型名称和匹配规则查找模型元数据，优先级：精确 > 前缀 > 后缀 > 包含"}
                       style={{ width: '100%' }}
                     />
                   </Col>
@@ -314,13 +310,11 @@ const EditModelModal = (props) => {
                   <Col span={24}>
                     <Form.Input
                       field='icon'
-                      label={t('模型图标')}
-                      placeholder={t('请输入图标名称')}
+                      label={"模型图标"}
+                      placeholder={"请输入图标名称"}
                       extraText={
                         <span>
-                          {t(
-                            "图标使用@lobehub/icons库，如：OpenAI、Claude.Color，支持链式参数：OpenAI.Avatar.type={'platform'}、OpenRouter.Avatar.shape={'square'}，查询所有可用图标请 ",
-                          )}
+                          {"图标使用@lobehub/icons库，如：OpenAI、Claude.Color，支持链式参数：OpenAI.Avatar.type={'platform'}、OpenRouter.Avatar.shape={'square'}，查询所有可用图标请 "}
                           <Typography.Text
                             link={{
                               href: 'https://icons.lobehub.com/components/lobe-hub',
@@ -329,7 +323,7 @@ const EditModelModal = (props) => {
                             icon={<IconLink />}
                             underline
                           >
-                            {t('请点击我')}
+                            {"请点击我"}
                           </Typography.Text>
                         </span>
                       }
@@ -340,8 +334,8 @@ const EditModelModal = (props) => {
                   <Col span={24}>
                     <Form.TextArea
                       field='description'
-                      label={t('描述')}
-                      placeholder={t('请输入模型描述')}
+                      label={"描述"}
+                      placeholder={"请输入模型描述"}
                       rows={3}
                       showClear
                     />
@@ -349,8 +343,8 @@ const EditModelModal = (props) => {
                   <Col span={24}>
                     <Form.TagInput
                       field='tags'
-                      label={t('标签')}
-                      placeholder={t('输入标签或使用","分隔多个标签')}
+                      label={"标签"}
+                      placeholder={"输入标签或使用\",\"分隔多个标签"}
                       addOnBlur
                       showClear
                       onChange={(newTags) => {
@@ -407,8 +401,8 @@ const EditModelModal = (props) => {
                   <Col span={24}>
                     <Form.Select
                       field='vendor_id'
-                      label={t('供应商')}
-                      placeholder={t('选择模型供应商')}
+                      label={"供应商"}
+                      placeholder={"选择模型供应商"}
                       optionList={vendors.map((v) => ({
                         label: v.name,
                         value: v.id,
@@ -437,14 +431,12 @@ const EditModelModal = (props) => {
                           style={{ color: 'var(--semi-color-warning)' }}
                         />
                       }
-                      description={t(
-                        '提示：此处配置仅用于控制「模型广场」对用户的展示效果，不会影响模型的实际调用与路由。若需配置真实调用行为，请前往「渠道管理」进行设置。',
-                      )}
+                      description={"提示：此处配置仅用于控制「模型广场」对用户的展示效果，不会影响模型的实际调用与路由。若需配置真实调用行为，请前往「渠道管理」进行设置。"}
                       style={{ marginBottom: 12 }}
                     />
                     <JSONEditor
                       field='endpoints'
-                      label={t('在模型广场向用户展示的端点')}
+                      label={"在模型广场向用户展示的端点"}
                       placeholder={
                         '{\n  "openai": {"path": "/v1/chat/completions", "method": "POST"}\n}'
                       }
@@ -455,8 +447,8 @@ const EditModelModal = (props) => {
                       formApi={formApiRef.current}
                       editorType='object'
                       template={ENDPOINT_TEMPLATE}
-                      templateLabel={t('填入模板')}
-                      extraText={t('留空则使用默认端点；支持 {path, method}')}
+                      templateLabel={"填入模板"}
+                      extraText={"留空则使用默认端点；支持 {path, method}"}
                       extraFooter={
                         endpointGroups.length > 0 && (
                           <Space wrap>
@@ -508,17 +500,15 @@ const EditModelModal = (props) => {
                   <Col span={24}>
                     <Form.Switch
                       field='sync_official'
-                      label={t('参与官方同步')}
-                      extraText={t(
-                        '关闭后，此模型将不会被“同步官方”自动覆盖或创建',
-                      )}
+                      label={"参与官方同步"}
+                      extraText={"关闭后，此模型将不会被“同步官方”自动覆盖或创建"}
                       size='large'
                     />
                   </Col>
                   <Col span={24}>
                     <Form.Switch
                       field='status'
-                      label={t('状态')}
+                      label={"状态"}
                       size='large'
                     />
                   </Col>

@@ -8,11 +8,7 @@ import {
   showWarning,
   verifyJSON,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 export default function RequestRateLimit(props) {
-  const { t } = useTranslation();
-
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState({
     ModelRequestRateLimitEnabled: false,
@@ -26,7 +22,7 @@ export default function RequestRateLimit(props) {
 
   function onSubmit() {
     const updateArray = compareObjects(inputs, inputsRow);
-    if (!updateArray.length) return showWarning(t('你似乎并没有修改什么'));
+    if (!updateArray.length) return showWarning("你似乎并没有修改什么");
     const requestQueue = updateArray.map((item) => {
       let value = '';
       if (typeof inputs[item.key] === 'boolean') {
@@ -46,7 +42,7 @@ export default function RequestRateLimit(props) {
           if (res.includes(undefined)) return;
         } else if (requestQueue.length > 1) {
           if (res.includes(undefined))
-            return showError(t('部分保存失败，请重试'));
+            return showError("部分保存失败，请重试");
         }
 
         for (let i = 0; i < res.length; i++) {
@@ -55,11 +51,11 @@ export default function RequestRateLimit(props) {
           }
         }
 
-        showSuccess(t('保存成功'));
+        showSuccess("保存成功");
         props.refresh();
       })
       .catch(() => {
-        showError(t('保存失败，请重试'));
+        showError("保存失败，请重试");
       })
       .finally(() => {
         setLoading(false);
@@ -86,12 +82,12 @@ export default function RequestRateLimit(props) {
           getFormApi={(formAPI) => (refForm.current = formAPI)}
           style={{ marginBottom: 15 }}
         >
-          <Form.Section text={t('模型请求速率限制')}>
+          <Form.Section text={"模型请求速率限制"}>
             <Row gutter={16}>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Switch
                   field={'ModelRequestRateLimitEnabled'}
-                  label={t('启用用户模型请求速率限制（可能会影响高并发性能）')}
+                  label={"启用用户模型请求速率限制（可能会影响高并发性能）"}
                   size='default'
                   checkedText='｜'
                   uncheckedText='〇'
@@ -107,11 +103,11 @@ export default function RequestRateLimit(props) {
             <Row>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
-                  label={t('限制周期')}
+                  label={"限制周期"}
                   step={1}
                   min={0}
-                  suffix={t('分钟')}
-                  extraText={t('频率限制的周期（分钟）')}
+                  suffix={"分钟"}
+                  extraText={"频率限制的周期（分钟）"}
                   field={'ModelRequestRateLimitDurationMinutes'}
                   onChange={(value) =>
                     setInputs({
@@ -125,12 +121,12 @@ export default function RequestRateLimit(props) {
             <Row>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
-                  label={t('用户每周期最多请求次数')}
+                  label={"用户每周期最多请求次数"}
                   step={1}
                   min={0}
                   max={100000000}
-                  suffix={t('次')}
-                  extraText={t('包括失败请求的次数，0代表不限制')}
+                  suffix={"次"}
+                  extraText={"包括失败请求的次数，0代表不限制"}
                   field={'ModelRequestRateLimitCount'}
                   onChange={(value) =>
                     setInputs({
@@ -142,12 +138,12 @@ export default function RequestRateLimit(props) {
               </Col>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
-                  label={t('用户每周期最多请求完成次数')}
+                  label={"用户每周期最多请求完成次数"}
                   step={1}
                   min={1}
                   max={100000000}
-                  suffix={t('次')}
-                  extraText={t('只包括请求成功的次数')}
+                  suffix={"次"}
+                  extraText={"只包括请求成功的次数"}
                   field={'ModelRequestRateLimitSuccessCount'}
                   onChange={(value) =>
                     setInputs({
@@ -161,10 +157,8 @@ export default function RequestRateLimit(props) {
             <Row>
               <Col xs={24} sm={16}>
                 <Form.TextArea
-                  label={t('分组速率限制')}
-                  placeholder={t(
-                    '{\n  "default": [200, 100],\n  "vip": [0, 1000]\n}',
-                  )}
+                  label={"分组速率限制"}
+                  placeholder={"{\\n  \"default\": [200, 100],\\n  \"vip\": [0, 1000]\\n}"}
                   field={'ModelRequestRateLimitGroup'}
                   autosize={{ minRows: 5, maxRows: 15 }}
                   trigger='blur'
@@ -172,35 +166,27 @@ export default function RequestRateLimit(props) {
                   rules={[
                     {
                       validator: (rule, value) => verifyJSON(value),
-                      message: t('不是合法的 JSON 字符串'),
+                      message: "不是合法的 JSON 字符串",
                     },
                   ]}
                   extraText={
                     <div>
-                      <p>{t('说明：')}</p>
+                      <p>{"说明："}</p>
                       <ul>
                         <li>
-                          {t(
-                            '使用 JSON 对象格式，格式为：{"组名": [最多请求次数, 最多请求完成次数]}',
-                          )}
+                          {"使用 JSON 对象格式，格式为：{\"组名\": [最多请求次数, 最多请求完成次数]}"}
                         </li>
                         <li>
-                          {t(
-                            '示例：{"default": [200, 100], "vip": [0, 1000]}。',
-                          )}
+                          {"示例：{\"default\": [200, 100], \"vip\": [0, 1000]}。"}
                         </li>
                         <li>
-                          {t(
-                            '[最多请求次数]必须大于等于0，[最多请求完成次数]必须大于等于1。',
-                          )}
+                          {"[最多请求次数]必须大于等于0，[最多请求完成次数]必须大于等于1。"}
                         </li>
                         <li>
-                          {t(
-                            '[最多请求次数]和[最多请求完成次数]的最大值为2147483647。',
-                          )}
+                          {"[最多请求次数]和[最多请求完成次数]的最大值为2147483647。"}
                         </li>
-                        <li>{t('分组速率配置优先级高于全局速率限制。')}</li>
-                        <li>{t('限制周期统一使用上方配置的“限制周期”值。')}</li>
+                        <li>{"分组速率配置优先级高于全局速率限制。"}</li>
+                        <li>{"限制周期统一使用上方配置的“限制周期”值。"}</li>
                       </ul>
                     </div>
                   }
@@ -212,7 +198,7 @@ export default function RequestRateLimit(props) {
             </Row>
             <Row>
               <Button size='default' onClick={onSubmit}>
-                {t('保存模型速率限制')}
+                {"保存模型速率限制"}
               </Button>
             </Row>
           </Form.Section>

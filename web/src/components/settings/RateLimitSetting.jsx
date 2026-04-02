@@ -2,11 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Card, Spin } from '@douyinfe/semi-ui';
 
 import { API, showError, toBoolean } from '../../helpers';
-import { useTranslation } from 'react-i18next';
 import RequestRateLimit from '../../pages/Setting/RateLimit/SettingsRequestRateLimit';
 
 const RateLimitSetting = () => {
-  const { t } = useTranslation();
   let [inputs, setInputs] = useState({
     ModelRequestRateLimitEnabled: false,
     ModelRequestRateLimitCount: 0,

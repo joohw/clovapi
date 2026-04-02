@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Card, Divider, Steps, Form } from '@douyinfe/semi-ui';
 import { API, showError, showNotice } from '../../helpers';
-import { useTranslation } from 'react-i18next';
-
 import StepNavigation from './components/StepNavigation';
 import DatabaseStep from './components/steps/DatabaseStep';
 import AdminStep from './components/steps/AdminStep';
@@ -10,7 +8,6 @@ import UsageModeStep from './components/steps/UsageModeStep';
 import CompleteStep from './components/steps/CompleteStep';
 
 const SetupWizard = () => {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [setupStatus, setSetupStatus] = useState({
     status: false,
@@ -37,20 +34,20 @@ const SetupWizard = () => {
   // 定义步骤内容
   const steps = [
     {
-      title: t('数据库检查'),
-      description: t('验证数据库连接状态'),
+      title: "数据库检查",
+      description: "验证数据库连接状态",
     },
     {
-      title: t('管理员账号'),
-      description: t('设置管理员登录信息'),
+      title: "管理员账号",
+      description: "设置管理员登录信息",
     },
     {
-      title: t('使用模式'),
-      description: t('选择系统运行模式'),
+      title: "使用模式",
+      description: "选择系统运行模式",
     },
     {
-      title: t('完成初始化'),
-      description: t('确认设置并完成初始化'),
+      title: "完成初始化",
+      description: "确认设置并完成初始化",
     },
   ];
 
@@ -74,11 +71,11 @@ const SetupWizard = () => {
         // 设置当前步骤 - 默认从数据库检查开始
         setCurrentStep(0);
       } else {
-        showError(t('获取初始化状态失败'));
+        showError("获取初始化状态失败");
       }
     } catch (error) {
       console.error('Failed to fetch setup status:', error);
-      showError(t('获取初始化状态失败'));
+      showError("获取初始化状态失败");
     }
   };
 
@@ -116,21 +113,21 @@ const SetupWizard = () => {
           !formData.password ||
           !formData.confirmPassword
         ) {
-          showError(t('请填写完整的管理员账号信息'));
+          showError("请填写完整的管理员账号信息");
           return false;
         }
         if (formData.password !== formData.confirmPassword) {
-          showError(t('两次输入的密码不一致'));
+          showError("两次输入的密码不一致");
           return false;
         }
         if (formData.password.length < 8) {
-          showError(t('密码长度至少为8个字符'));
+          showError("密码长度至少为8个字符");
           return false;
         }
         return true;
       case 2: // 使用模式步骤
         if (!formData.usageMode) {
-          showError(t('请选择使用模式'));
+          showError("请选择使用模式");
           return false;
         }
         return true;
@@ -147,7 +144,7 @@ const SetupWizard = () => {
   const onSubmit = () => {
     if (!formRef.current) {
       console.error('Form reference is null');
-      showError(t('表单引用错误，请刷新页面重试'));
+      showError("表单引用错误，请刷新页面重试");
       return;
     }
 
@@ -156,17 +153,17 @@ const SetupWizard = () => {
     // For root_init=false, validate admin username and password
     if (!setupStatus.root_init) {
       if (!values.username || !values.username.trim()) {
-        showError(t('请输入管理员用户名'));
+        showError("请输入管理员用户名");
         return;
       }
 
       if (!values.password || values.password.length < 8) {
-        showError(t('密码长度至少为8个字符'));
+        showError("密码长度至少为8个字符");
         return;
       }
 
       if (values.password !== values.confirmPassword) {
-        showError(t('两次输入的密码不一致'));
+        showError("两次输入的密码不一致");
         return;
       }
     }
@@ -189,17 +186,17 @@ const SetupWizard = () => {
         const { success, message } = res.data;
 
         if (success) {
-          showNotice(t('系统初始化成功，正在跳转...'));
+          showNotice("系统初始化成功，正在跳转...");
           setTimeout(() => {
             window.location.reload();
           }, 1500);
         } else {
-          showError(message || t('初始化失败，请重试'));
+          showError(message || "初始化失败，请重试");
         }
       })
       .catch((error) => {
         console.error('API error:', error);
-        showError(t('系统初始化失败，请重试'));
+        showError("系统初始化失败，请重试");
         setLoading(false);
       })
       .finally(() => {
@@ -211,7 +208,7 @@ const SetupWizard = () => {
   const getStepContent = (step) => {
     switch (step) {
       case 0:
-        return <DatabaseStep setupStatus={setupStatus} t={t} />;
+        return <DatabaseStep setupStatus={setupStatus} />;
       case 1:
         return (
           <AdminStep
@@ -219,7 +216,6 @@ const SetupWizard = () => {
             formData={formData}
             setFormData={setFormData}
             formRef={formRef}
-            t={t}
           />
         );
       case 2:
@@ -227,12 +223,11 @@ const SetupWizard = () => {
           <UsageModeStep
             formData={formData}
             handleUsageModeChange={handleUsageModeChange}
-            t={t}
           />
         );
       case 3:
         return (
-          <CompleteStep setupStatus={setupStatus} formData={formData} t={t} />
+          <CompleteStep setupStatus={setupStatus} formData={formData} />
         );
       default:
         return null;
@@ -254,9 +249,9 @@ const SetupWizard = () => {
       <div className='w-full max-w-4xl'>
         <Card className='!rounded-2xl shadow-sm border-0'>
           <div className='mb-4'>
-            <div className='text-xl font-semibold'>{t('系统初始化')}</div>
+            <div className='text-xl font-semibold'>{"系统初始化"}</div>
             <div className='text-xs text-gray-600'>
-              {t('欢迎使用，请完成以下设置以开始使用系统')}
+              {"欢迎使用，请完成以下设置以开始使用系统"}
             </div>
           </div>
 

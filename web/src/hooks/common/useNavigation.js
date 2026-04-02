@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 
-export const useNavigation = (t, headerNavModules) => {
+export const useNavigation = (headerNavModules) => {
   const mainNavLinks = useMemo(() => {
     // 默认配置，如果没有传入配置则显示所有模块
     const defaultModules = {
       home: true,
-      console: true,
+      playground: true,
+      apikeys: true,
       pricing: true,
       about: true,
     };
@@ -15,24 +16,29 @@ export const useNavigation = (t, headerNavModules) => {
 
     const allLinks = [
       {
-        text: t('首页'),
+        text: "首页",
         itemKey: 'home',
         to: '/',
       },
       {
-        text: t('控制台'),
-        itemKey: 'console',
-        to: '/console',
-      },
-      {
-        text: t('模型广场'),
+        text: "模型列表",
         itemKey: 'pricing',
         to: '/pricing',
       },
       {
-        text: t('关于'),
+        text: "教程",
         itemKey: 'about',
         to: '/about',
+      },
+      {
+        text: 'Playground',
+        itemKey: 'playground',
+        to: '/playground',
+      },
+      {
+        text: 'Apikey',
+        itemKey: 'apikeys',
+        to: '/apikeys',
       },
     ];
 
@@ -47,9 +53,15 @@ export const useNavigation = (t, headerNavModules) => {
           ? modules.pricing.enabled
           : modules.pricing;
       }
+      if (link.itemKey === 'playground') {
+        return modules.playground !== false;
+      }
+      if (link.itemKey === 'apikeys') {
+        return true;
+      }
       return modules[link.itemKey] === true;
     });
-  }, [t, headerNavModules]);
+  }, [headerNavModules]);
 
   return {
     mainNavLinks,

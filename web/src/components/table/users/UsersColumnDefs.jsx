@@ -15,30 +15,30 @@ import { renderGroup, renderNumber, renderQuota } from '../../../helpers';
 /**
  * Render user role
  */
-const renderRole = (role, t) => {
+const renderRole = (role) => {
   switch (role) {
     case 1:
       return (
         <Tag color='blue' shape='circle'>
-          {t('普通用户')}
+          {"普通用户"}
         </Tag>
       );
     case 10:
       return (
         <Tag color='yellow' shape='circle'>
-          {t('管理员')}
+          {"管理员"}
         </Tag>
       );
     case 100:
       return (
         <Tag color='orange' shape='circle'>
-          {t('超级管理员')}
+          {"超级管理员"}
         </Tag>
       );
     default:
       return (
         <Tag color='red' shape='circle'>
-          {t('未知身份')}
+          {"未知身份"}
         </Tag>
       );
   }
@@ -76,21 +76,21 @@ const renderUsername = (text, record) => {
 /**
  * Render user statistics
  */
-const renderStatistics = (text, record, showEnableDisableModal, t) => {
+const renderStatistics = (text, record, showEnableDisableModal) => {
   const isDeleted = record.DeletedAt !== null;
 
   // Determine tag text & color like original status column
   let tagColor = 'grey';
-  let tagText = t('未知状态');
+  let tagText = "未知状态";
   if (isDeleted) {
     tagColor = 'red';
-    tagText = t('已注销');
+    tagText = "已注销";
   } else if (record.status === 1) {
     tagColor = 'green';
-    tagText = t('已启用');
+    tagText = "已启用";
   } else if (record.status === 2) {
     tagColor = 'red';
-    tagText = t('已禁用');
+    tagText = "已禁用";
   }
 
   const content = (
@@ -102,7 +102,7 @@ const renderStatistics = (text, record, showEnableDisableModal, t) => {
   const tooltipContent = (
     <div className='text-xs'>
       <div>
-        {t('调用次数')}: {renderNumber(record.request_count)}
+        {"调用次数"}: {renderNumber(record.request_count)}
       </div>
     </div>
   );
@@ -115,7 +115,7 @@ const renderStatistics = (text, record, showEnableDisableModal, t) => {
 };
 
 // Render separate quota usage column
-const renderQuotaUsage = (text, record, t) => {
+const renderQuotaUsage = (text, record) => {
   const { Paragraph } = Typography;
   const used = parseInt(record.used_quota) || 0;
   const remain = parseInt(record.quota) || 0;
@@ -124,13 +124,13 @@ const renderQuotaUsage = (text, record, t) => {
   const popoverContent = (
     <div className='text-xs p-2'>
       <Paragraph copyable={{ content: renderQuota(used) }}>
-        {t('已用额度')}: {renderQuota(used)}
+        {"已用额度"}: {renderQuota(used)}
       </Paragraph>
       <Paragraph copyable={{ content: renderQuota(remain) }}>
-        {t('剩余额度')}: {renderQuota(remain)} ({percent.toFixed(0)}%)
+        {"剩余额度"}: {renderQuota(remain)} ({percent.toFixed(0)}%)
       </Paragraph>
       <Paragraph copyable={{ content: renderQuota(total) }}>
-        {t('总额度')}: {renderQuota(total)}
+        {"总额度"}: {renderQuota(total)}
       </Paragraph>
     </div>
   );
@@ -154,20 +154,20 @@ const renderQuotaUsage = (text, record, t) => {
 /**
  * Render invite information
  */
-const renderInviteInfo = (text, record, t) => {
+const renderInviteInfo = (text, record) => {
   return (
     <div>
       <Space spacing={1}>
         <Tag color='white' shape='circle' className='!text-xs'>
-          {t('邀请')}: {renderNumber(record.aff_count)}
+          {"邀请"}: {renderNumber(record.aff_count)}
         </Tag>
         <Tag color='white' shape='circle' className='!text-xs'>
-          {t('收益')}: {renderQuota(record.aff_history_quota)}
+          {"收益"}: {renderQuota(record.aff_history_quota)}
         </Tag>
         <Tag color='white' shape='circle' className='!text-xs'>
           {record.inviter_id === 0
-            ? t('无邀请人')
-            : `${t('邀请人')}: ${record.inviter_id}`}
+            ? "无邀请人"
+            : `${"邀请人"}: ${record.inviter_id}`}
         </Tag>
       </Space>
     </div>
@@ -190,7 +190,6 @@ const renderOperations = (
     showResetPasskeyModal,
     showResetTwoFAModal,
     showUserSubscriptionsModal,
-    t,
   },
 ) => {
   if (record.DeletedAt !== null) {
@@ -200,7 +199,7 @@ const renderOperations = (
   const moreMenu = [
     {
       node: 'item',
-      name: t('订阅管理'),
+      name: "订阅管理",
       onClick: () => showUserSubscriptionsModal(record),
     },
     {
@@ -208,12 +207,12 @@ const renderOperations = (
     },
     {
       node: 'item',
-      name: t('重置 Passkey'),
+      name: "重置 Passkey",
       onClick: () => showResetPasskeyModal(record),
     },
     {
       node: 'item',
-      name: t('重置 2FA'),
+      name: "重置 2FA",
       onClick: () => showResetTwoFAModal(record),
     },
     {
@@ -221,7 +220,7 @@ const renderOperations = (
     },
     {
       node: 'item',
-      name: t('注销'),
+      name: "注销",
       type: 'danger',
       onClick: () => showDeleteModal(record),
     },
@@ -235,14 +234,14 @@ const renderOperations = (
           size='small'
           onClick={() => showEnableDisableModal(record, 'disable')}
         >
-          {t('禁用')}
+          {"禁用"}
         </Button>
       ) : (
         <Button
           size='small'
           onClick={() => showEnableDisableModal(record, 'enable')}
         >
-          {t('启用')}
+          {"启用"}
         </Button>
       )}
       <Button
@@ -253,21 +252,21 @@ const renderOperations = (
           setShowEditUser(true);
         }}
       >
-        {t('编辑')}
+        {"编辑"}
       </Button>
       <Button
         type='warning'
         size='small'
         onClick={() => showPromoteModal(record)}
       >
-        {t('提升')}
+        {"提升"}
       </Button>
       <Button
         type='secondary'
         size='small'
         onClick={() => showDemoteModal(record)}
       >
-        {t('降级')}
+        {"降级"}
       </Button>
       <Dropdown menu={moreMenu} trigger='click' position='bottomRight'>
         <Button type='tertiary' size='small' icon={<IconMore />} />
@@ -280,7 +279,6 @@ const renderOperations = (
  * Get users table column definitions
  */
 export const getUsersColumns = ({
-  t,
   setEditingUser,
   setShowEditUser,
   showPromoteModal,
@@ -297,39 +295,39 @@ export const getUsersColumns = ({
       dataIndex: 'id',
     },
     {
-      title: t('用户名'),
+      title: "用户名",
       dataIndex: 'username',
       render: (text, record) => renderUsername(text, record),
     },
     {
-      title: t('状态'),
+      title: "状态",
       dataIndex: 'info',
       render: (text, record, index) =>
-        renderStatistics(text, record, showEnableDisableModal, t),
+        renderStatistics(text, record, showEnableDisableModal),
     },
     {
-      title: t('剩余额度/总额度'),
+      title: "剩余额度/总额度",
       key: 'quota_usage',
-      render: (text, record) => renderQuotaUsage(text, record, t),
+      render: (text, record) => renderQuotaUsage(text, record),
     },
     {
-      title: t('分组'),
+      title: "分组",
       dataIndex: 'group',
       render: (text, record, index) => {
         return <div>{renderGroup(text)}</div>;
       },
     },
     {
-      title: t('角色'),
+      title: "角色",
       dataIndex: 'role',
       render: (text, record, index) => {
-        return <div>{renderRole(text, t)}</div>;
+        return <div>{renderRole(text)}</div>;
       },
     },
     {
-      title: t('邀请信息'),
+      title: "邀请信息",
       dataIndex: 'invite',
-      render: (text, record, index) => renderInviteInfo(text, record, t),
+      render: (text, record, index) => renderInviteInfo(text, record),
     },
     {
       title: '',
@@ -347,7 +345,6 @@ export const getUsersColumns = ({
           showResetPasskeyModal,
           showResetTwoFAModal,
           showUserSubscriptionsModal,
-          t,
         }),
     },
   ];

@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   API,
   showError,
@@ -32,7 +31,6 @@ const UserBindingManagementModal = ({
   isMobile,
   formApiRef,
 }) => {
-  const { t } = useTranslation();
   const [bindingLoading, setBindingLoading] = React.useState(false);
   const [showBoundOnly, setShowBoundOnly] = React.useState(true);
   const [statusInfo, setStatusInfo] = React.useState({});
@@ -54,13 +52,13 @@ const UserBindingManagementModal = ({
       if (statusRes.data?.success) {
         setStatusInfo(statusRes.data.data || {});
       } else {
-        showError(statusRes.data?.message || t('操作失败'));
+        showError(statusRes.data?.message || "操作失败");
       }
 
       if (customBindingRes.data?.success) {
         setCustomOAuthBindings(customBindingRes.data.data || []);
       } else {
-        showError(customBindingRes.data?.message || t('操作失败'));
+        showError(customBindingRes.data?.message || "操作失败");
       }
 
       if (userRes.data?.success) {
@@ -75,16 +73,16 @@ const UserBindingManagementModal = ({
           linux_do_id: userData.linux_do_id || '',
         });
       } else {
-        showError(userRes.data?.message || t('操作失败'));
+        showError(userRes.data?.message || "操作失败");
       }
     } catch (error) {
       showError(
-        error.response?.data?.message || error.message || t('操作失败'),
+        error.response?.data?.message || error.message || "操作失败",
       );
     } finally {
       setBindingLoading(false);
     }
-  }, [t, userId]);
+  }, [userId]);
 
   React.useEffect(() => {
     if (!visible) return;
@@ -101,10 +99,10 @@ const UserBindingManagementModal = ({
     if (!userId) return;
 
     Modal.confirm({
-      title: t('确认解绑'),
-      content: t('确定要解绑 {{name}} 吗？', { name: bindingItem.name }),
-      okText: t('确认'),
-      cancelText: t('取消'),
+      title: "确认解绑",
+      content: `确定要解绑 ${bindingItem.name} 吗？`,
+      okText: "确认",
+      cancelText: "取消",
       onOk: async () => {
         const loadingKey = `builtin-${bindingItem.key}`;
         setBindingLoadingState(loadingKey, true);
@@ -113,7 +111,7 @@ const UserBindingManagementModal = ({
             `/api/user/${userId}/bindings/${bindingItem.key}`,
           );
           if (!res.data?.success) {
-            showError(res.data?.message || t('操作失败'));
+            showError(res.data?.message || "操作失败");
             return;
           }
           setBuiltInBindings((prev) => ({
@@ -121,10 +119,10 @@ const UserBindingManagementModal = ({
             [bindingItem.field]: '',
           }));
           formApiRef.current?.setValue(bindingItem.field, '');
-          showSuccess(t('解绑成功'));
+          showSuccess("解绑成功");
         } catch (error) {
           showError(
-            error.response?.data?.message || error.message || t('操作失败'),
+            error.response?.data?.message || error.message || "操作失败",
           );
         } finally {
           setBindingLoadingState(loadingKey, false);
@@ -137,10 +135,10 @@ const UserBindingManagementModal = ({
     if (!userId) return;
 
     Modal.confirm({
-      title: t('确认解绑'),
-      content: t('确定要解绑 {{name}} 吗？', { name: provider.name }),
-      okText: t('确认'),
-      cancelText: t('取消'),
+      title: "确认解绑",
+      content: `确定要解绑 ${provider.name} 吗？`,
+      okText: "确认",
+      cancelText: "取消",
       onOk: async () => {
         const loadingKey = `custom-${provider.id}`;
         setBindingLoadingState(loadingKey, true);
@@ -149,7 +147,7 @@ const UserBindingManagementModal = ({
             `/api/user/${userId}/oauth/bindings/${provider.id}`,
           );
           if (!res.data?.success) {
-            showError(res.data?.message || t('操作失败'));
+            showError(res.data?.message || "操作失败");
             return;
           }
           setCustomOAuthBindings((prev) =>
@@ -157,10 +155,10 @@ const UserBindingManagementModal = ({
               (item) => Number(item.provider_id) !== Number(provider.id),
             ),
           );
-          showSuccess(t('解绑成功'));
+          showSuccess("解绑成功");
         } catch (error) {
           showError(
-            error.response?.data?.message || error.message || t('操作失败'),
+            error.response?.data?.message || error.message || "操作失败",
           );
         } finally {
           setBindingLoadingState(loadingKey, false);
@@ -177,7 +175,7 @@ const UserBindingManagementModal = ({
     {
       key: 'email',
       field: 'email',
-      name: t('邮箱'),
+      name: "邮箱",
       enabled: true,
       value: getBuiltInBindingValue('email'),
       icon: (
@@ -226,7 +224,7 @@ const UserBindingManagementModal = ({
     {
       key: 'wechat',
       field: 'wechat_id',
-      name: t('微信'),
+      name: "微信",
       enabled: Boolean(statusInfo.wechat_login),
       value: getBuiltInBindingValue('wechat_id'),
       icon: (
@@ -316,7 +314,7 @@ const UserBindingManagementModal = ({
       title={
         <div className='flex items-center'>
           <IconLink className='mr-2' />
-          {t('账户绑定管理')}
+          {"账户绑定管理"}
         </div>
       }
     >
@@ -327,16 +325,16 @@ const UserBindingManagementModal = ({
               checked={showBoundOnly}
               onChange={(e) => setShowBoundOnly(Boolean(e.target.checked))}
             >
-              {t('仅显示已绑定')}
+              {"仅显示已绑定"}
             </Checkbox>
             <Text type='tertiary'>
-              {t('已绑定')} {boundCount} / {allBindingItems.length}
+              {"已绑定"} {boundCount} / {allBindingItems.length}
             </Text>
           </div>
 
           {visibleBindingItems.length === 0 ? (
             <Card className='!rounded-xl border-dashed'>
-              <Text type='tertiary'>{t('暂无已绑定项')}</Text>
+              <Text type='tertiary'>{"暂无已绑定项"}</Text>
             </Card>
           ) : (
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
@@ -349,8 +347,8 @@ const UserBindingManagementModal = ({
                 const statusText = isBound
                   ? item.value
                   : item.enabled
-                    ? t('未绑定')
-                    : t('未启用');
+                    ? "未绑定"
+                    : "未启用";
                 const shouldSpanTwoColsOnDesktop =
                   visibleBindingItems.length % 2 === 1 &&
                   index === visibleBindingItems.length - 1;
@@ -370,8 +368,8 @@ const UserBindingManagementModal = ({
                             <span>{item.name}</span>
                             <Tag size='small' color='white'>
                               {item.type === 'builtin'
-                                ? t('内置')
-                                : t('自定义')}
+                                ? "内置"
+                                : "自定义"}
                             </Tag>
                           </div>
                           <div className='text-sm text-gray-500 truncate'>
@@ -397,7 +395,7 @@ const UserBindingManagementModal = ({
                           });
                         }}
                       >
-                        {t('解绑')}
+                        {"解绑"}
                       </Button>
                     </div>
                   </Card>

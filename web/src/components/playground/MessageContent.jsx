@@ -3,8 +3,6 @@ import { Typography, TextArea, Button } from '@douyinfe/semi-ui';
 import MarkdownRenderer from '../common/markdown/MarkdownRenderer';
 import ThinkingContent from './ThinkingContent';
 import { Loader2, Check, X } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-
 const MessageContent = ({
   message,
   className,
@@ -16,7 +14,6 @@ const MessageContent = ({
   editValue,
   onEditValueChange,
 }) => {
-  const { t } = useTranslation();
   const previousContentLengthRef = useRef(0);
   const lastContentRef = useRef('');
 
@@ -38,11 +35,11 @@ const MessageContent = ({
       errorText =
         textContent && textContent.text && typeof textContent.text === 'string'
           ? textContent.text
-          : t('请求发生错误');
+          : "请求发生错误";
     } else if (typeof message.content === 'string') {
       errorText = message.content;
     } else {
-      errorText = t('请求发生错误');
+      errorText = "请求发生错误";
     }
 
     return (
@@ -181,7 +178,7 @@ const MessageContent = ({
               </Typography.Text>
             </div>
             <Typography.Text className='text-amber-700 text-xs sm:text-sm font-medium'>
-              {t('系统消息')}
+              {"系统消息"}
             </Typography.Text>
           </div>
         </div>
@@ -202,7 +199,7 @@ const MessageContent = ({
           <TextArea
             value={editValue}
             onChange={(value) => onEditValueChange(value)}
-            placeholder={t('请输入消息内容...')}
+            placeholder={"请输入消息内容..."}
             autosize={{ minRows: 3, maxRows: 12 }}
             style={{
               resize: 'vertical',
@@ -220,7 +217,7 @@ const MessageContent = ({
               onClick={onEditCancel}
               className='flex-1'
             >
-              {t('取消')}
+              {"取消"}
             </Button>
             <Button
               size='small'
@@ -231,7 +228,7 @@ const MessageContent = ({
               disabled={!editValue || editValue.trim() === ''}
               className='flex-1'
             >
-              {t('保存')}
+              {"保存"}
             </Button>
           </div>
         </div>

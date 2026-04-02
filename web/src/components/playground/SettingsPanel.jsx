@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card, Select, Typography, Button, Switch } from '@douyinfe/semi-ui';
 import { Sparkles, Users, ToggleLeft, X, Settings } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { renderGroupOption, selectFilter } from '../../helpers';
 import ParameterControl from './ParameterControl';
 import ImageUrlInput from './ImageUrlInput';
@@ -27,8 +26,6 @@ const SettingsPanel = ({
   previewPayload,
   messages,
 }) => {
-  const { t } = useTranslation();
-
   const currentConfig = {
     inputs,
     parameterEnabled,
@@ -55,7 +52,7 @@ const SettingsPanel = ({
             <Settings size={20} className='text-white' />
           </div>
           <Typography.Title heading={5} className='mb-0'>
-            {t('模型配置')}
+            {"模型配置"}
           </Typography.Title>
         </div>
 
@@ -99,16 +96,16 @@ const SettingsPanel = ({
           <div className='flex items-center gap-2 mb-2'>
             <Users size={16} className='text-gray-500' />
             <Typography.Text strong className='text-sm'>
-              {t('分组')}
+              {"分组"}
             </Typography.Text>
             {customRequestMode && (
               <Typography.Text className='text-xs text-orange-600'>
-                ({t('已在自定义模式中忽略')})
+                ({"已在自定义模式中忽略"})
               </Typography.Text>
             )}
           </div>
           <Select
-            placeholder={t('请选择分组')}
+            placeholder={"请选择分组"}
             name='group'
             required
             selection
@@ -131,16 +128,16 @@ const SettingsPanel = ({
           <div className='flex items-center gap-2 mb-2'>
             <Sparkles size={16} className='text-gray-500' />
             <Typography.Text strong className='text-sm'>
-              {t('模型')}
+              {"模型"}
             </Typography.Text>
             {customRequestMode && (
               <Typography.Text className='text-xs text-orange-600'>
-                ({t('已在自定义模式中忽略')})
+                ({"已在自定义模式中忽略"})
               </Typography.Text>
             )}
           </div>
           <Select
-            placeholder={t('请选择模型')}
+            placeholder={"请选择模型"}
             name='model'
             required
             selection
@@ -187,19 +184,19 @@ const SettingsPanel = ({
             <div className='flex items-center gap-2'>
               <ToggleLeft size={16} className='text-gray-500' />
               <Typography.Text strong className='text-sm'>
-                {t('流式输出')}
+                {"流式输出"}
               </Typography.Text>
               {customRequestMode && (
                 <Typography.Text className='text-xs text-orange-600'>
-                  ({t('已在自定义模式中忽略')})
+                  ({"已在自定义模式中忽略"})
                 </Typography.Text>
               )}
             </div>
             <Switch
               checked={inputs.stream}
               onChange={(checked) => onInputChange('stream', checked)}
-              checkedText={t('开')}
-              uncheckedText={t('关')}
+              checkedText={"开"}
+              uncheckedText={"关"}
               size='small'
               disabled={customRequestMode}
             />

@@ -7,10 +7,7 @@ import {
   showSuccess,
   showWarning,
 } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
-
 export default function SettingsCheckin(props) {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState({
     'checkin_setting.enabled': false,
@@ -28,7 +25,7 @@ export default function SettingsCheckin(props) {
 
   function onSubmit() {
     const updateArray = compareObjects(inputs, inputsRow);
-    if (!updateArray.length) return showWarning(t('你似乎并没有修改什么'));
+    if (!updateArray.length) return showWarning("你似乎并没有修改什么");
     const requestQueue = updateArray.map((item) => {
       let value = '';
       if (typeof inputs[item.key] === 'boolean') {
@@ -48,13 +45,13 @@ export default function SettingsCheckin(props) {
           if (res.includes(undefined)) return;
         } else if (requestQueue.length > 1) {
           if (res.includes(undefined))
-            return showError(t('部分保存失败，请重试'));
+            return showError("部分保存失败，请重试");
         }
-        showSuccess(t('保存成功'));
+        showSuccess("保存成功");
         props.refresh();
       })
       .catch(() => {
-        showError(t('保存失败，请重试'));
+        showError("保存失败，请重试");
       })
       .finally(() => {
         setLoading(false);
@@ -81,18 +78,18 @@ export default function SettingsCheckin(props) {
           getFormApi={(formAPI) => (refForm.current = formAPI)}
           style={{ marginBottom: 15 }}
         >
-          <Form.Section text={t('签到设置')}>
+          <Form.Section text={"签到设置"}>
             <Typography.Text
               type='tertiary'
               style={{ marginBottom: 16, display: 'block' }}
             >
-              {t('签到功能允许用户每日签到获取随机额度奖励')}
+              {"签到功能允许用户每日签到获取随机额度奖励"}
             </Typography.Text>
             <Row gutter={16}>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.Switch
                   field={'checkin_setting.enabled'}
-                  label={t('启用签到功能')}
+                  label={"启用签到功能"}
                   size='default'
                   checkedText='｜'
                   uncheckedText='〇'
@@ -102,8 +99,8 @@ export default function SettingsCheckin(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
                   field={'checkin_setting.min_quota'}
-                  label={t('签到最小额度')}
-                  placeholder={t('签到奖励的最小额度')}
+                  label={"签到最小额度"}
+                  placeholder={"签到奖励的最小额度"}
                   onChange={handleFieldChange('checkin_setting.min_quota')}
                   min={0}
                   disabled={!inputs['checkin_setting.enabled']}
@@ -112,8 +109,8 @@ export default function SettingsCheckin(props) {
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Form.InputNumber
                   field={'checkin_setting.max_quota'}
-                  label={t('签到最大额度')}
-                  placeholder={t('签到奖励的最大额度')}
+                  label={"签到最大额度"}
+                  placeholder={"签到奖励的最大额度"}
                   onChange={handleFieldChange('checkin_setting.max_quota')}
                   min={0}
                   disabled={!inputs['checkin_setting.enabled']}
@@ -122,7 +119,7 @@ export default function SettingsCheckin(props) {
             </Row>
             <Row>
               <Button size='default' onClick={onSubmit}>
-                {t('保存签到设置')}
+                {"保存签到设置"}
               </Button>
             </Row>
           </Form.Section>

@@ -11,19 +11,19 @@ export const MESSAGE_ROLES = {
   SYSTEM: 'system',
 };
 
-// 默认消息示例 - 使用函数生成以支持 i18n
-export const getDefaultMessages = (t) => [
+// 默认消息示例
+export const getDefaultMessages = () => [
   {
     role: MESSAGE_ROLES.USER,
     id: '2',
     createAt: 1715676751919,
-    content: t('默认用户消息'),
+    content: "默认用户消息",
   },
   {
     role: MESSAGE_ROLES.ASSISTANT,
     id: '3',
     createAt: 1715676751919,
-    content: t('默认助手消息'),
+    content: "默认助手消息",
     reasoningContent: '',
     isReasoningExpanded: false,
   },

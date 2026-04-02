@@ -42,8 +42,8 @@ const ConfirmationDialog = ({
       visible={visible}
       onCancel={handleCancel}
       onOk={handleConfirm}
-      okText={t('确认')}
-      cancelText={t('取消')}
+      okText={"确认"}
+      cancelText={"取消"}
       okButtonProps={{
         disabled: !isConfirmed,
         type: type === 'danger' ? 'danger' : 'primary',
@@ -53,23 +53,23 @@ const ConfirmationDialog = ({
     >
       <div className='space-y-4'>
         <Text type='danger' strong>
-          {t('此操作具有风险，请确认要继续执行')}。
+          {"此操作具有风险，请确认要继续执行"}。
         </Text>
         <Text>
-          {t('请输入部署名称以完成二次确认')}：
+          {"请输入部署名称以完成二次确认"}：
           <Text code className='ml-1'>
-            {requiredText || t('未知部署')}
+            {requiredText || "未知部署"}
           </Text>
         </Text>
         <Input
           value={confirmText}
           onChange={setConfirmText}
-          placeholder={t('再次输入部署名称')}
+          placeholder={"再次输入部署名称"}
           autoFocus
         />
         {!isConfirmed && confirmText && (
           <Text type='danger' size='small'>
-            {t('部署名称不匹配，请检查后重新输入')}
+            {"部署名称不匹配，请检查后重新输入"}
           </Text>
         )}
       </div>

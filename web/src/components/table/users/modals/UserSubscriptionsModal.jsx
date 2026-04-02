@@ -26,7 +26,7 @@ function formatTs(ts) {
   return new Date(ts * 1000).toLocaleString();
 }
 
-function renderStatusTag(sub, t) {
+function renderStatusTag(sub) {
   const now = Date.now() / 1000;
   const end = sub?.end_time || 0;
   const status = sub?.status || '';
@@ -36,25 +36,25 @@ function renderStatusTag(sub, t) {
   if (isActive) {
     return (
       <Tag color='green' shape='circle' size='small'>
-        {t('生效')}
+        {"生效"}
       </Tag>
     );
   }
   if (status === 'cancelled') {
     return (
       <Tag color='grey' shape='circle' size='small'>
-        {t('已作废')}
+        {"已作废"}
       </Tag>
     );
   }
   return (
     <Tag color='grey' shape='circle' size='small'>
-      {t('已过期')}
+      {"已过期"}
     </Tag>
   );
 }
 
-const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
+const UserSubscriptionsModal = ({ visible, onCancel, user, onSuccess }) => {
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -100,10 +100,10 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
       if (res.data?.success) {
         setPlans(res.data.data || []);
       } else {
-        showError(res.data?.message || t('加载失败'));
+        showError(res.data?.message || "加载失败");
       }
     } catch (e) {
-      showError(t('请求失败'));
+      showError("请求失败");
     } finally {
       setPlansLoading(false);
     }
@@ -121,10 +121,10 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
         setSubs(next);
         setCurrentPage(1);
       } else {
-        showError(res.data?.message || t('加载失败'));
+        showError(res.data?.message || "加载失败");
       }
     } catch (e) {
-      showError(t('请求失败'));
+      showError("请求失败");
     } finally {
       setLoading(false);
     }
@@ -144,11 +144,11 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
 
   const createSubscription = async () => {
     if (!user?.id) {
-      showError(t('用户信息缺失'));
+      showError("用户信息缺失");
       return;
     }
     if (!selectedPlanId) {
-      showError(t('请选择订阅套餐'));
+      showError("请选择订阅套餐");
       return;
     }
     setCreating(true);
@@ -161,15 +161,15 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
       );
       if (res.data?.success) {
         const msg = res.data?.data?.message;
-        showSuccess(msg ? msg : t('新增成功'));
+        showSuccess(msg ? msg : "新增成功");
         setSelectedPlanId(null);
         await loadUserSubscriptions();
         onSuccess?.();
       } else {
-        showError(res.data?.message || t('新增失败'));
+        showError(res.data?.message || "新增失败");
       }
     } catch (e) {
-      showError(t('请求失败'));
+      showError("请求失败");
     } finally {
       setCreating(false);
     }
@@ -177,8 +177,8 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
 
   const invalidateSubscription = (subId) => {
     Modal.confirm({
-      title: t('确认作废'),
-      content: t('作废后该订阅将立即失效，历史记录不受影响。是否继续？'),
+      title: "确认作废",
+      content: "作废后该订阅将立即失效，历史记录不受影响。是否继续？",
       centered: true,
       onOk: async () => {
         try {
@@ -187,14 +187,14 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
           );
           if (res.data?.success) {
             const msg = res.data?.data?.message;
-            showSuccess(msg ? msg : t('已作废'));
+            showSuccess(msg ? msg : "已作废");
             await loadUserSubscriptions();
             onSuccess?.();
           } else {
-            showError(res.data?.message || t('操作失败'));
+            showError(res.data?.message || "操作失败");
           }
         } catch (e) {
-          showError(t('请求失败'));
+          showError("请求失败");
         }
       },
     });
@@ -202,8 +202,8 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
 
   const deleteSubscription = (subId) => {
     Modal.confirm({
-      title: t('确认删除'),
-      content: t('删除会彻底移除该订阅记录（含权益明细）。是否继续？'),
+      title: "确认删除",
+      content: "删除会彻底移除该订阅记录（含权益明细）。是否继续？",
       centered: true,
       okType: 'danger',
       onOk: async () => {
@@ -213,14 +213,14 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
           );
           if (res.data?.success) {
             const msg = res.data?.data?.message;
-            showSuccess(msg ? msg : t('已删除'));
+            showSuccess(msg ? msg : "已删除");
             await loadUserSubscriptions();
             onSuccess?.();
           } else {
-            showError(res.data?.message || t('删除失败'));
+            showError(res.data?.message || "删除失败");
           }
         } catch (e) {
-          showError(t('请求失败'));
+          showError("请求失败");
         }
       },
     });
@@ -235,7 +235,7 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
         width: 70,
       },
       {
-        title: t('套餐'),
+        title: "套餐",
         key: 'plan',
         width: 180,
         render: (_, record) => {
@@ -247,20 +247,20 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
             <div className='min-w-0'>
               <div className='font-medium truncate'>{title}</div>
               <div className='text-xs text-gray-500'>
-                {t('来源')}: {sub?.source || '-'}
+                {"来源"}: {sub?.source || '-'}
               </div>
             </div>
           );
         },
       },
       {
-        title: t('状态'),
+        title: "状态",
         key: 'status',
         width: 90,
-        render: (_, record) => renderStatusTag(record?.subscription, t),
+        render: (_, record) => renderStatusTag(record?.subscription),
       },
       {
-        title: t('有效期'),
+        title: "有效期",
         key: 'validity',
         width: 200,
         render: (_, record) => {
@@ -268,17 +268,17 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
           return (
             <div className='text-xs text-gray-600'>
               <div>
-                {t('开始')}: {formatTs(sub?.start_time)}
+                {"开始"}: {formatTs(sub?.start_time)}
               </div>
               <div>
-                {t('结束')}: {formatTs(sub?.end_time)}
+                {"结束"}: {formatTs(sub?.end_time)}
               </div>
             </div>
           );
         },
       },
       {
-        title: t('总额度'),
+        title: "总额度",
         key: 'total',
         width: 120,
         render: (_, record) => {
@@ -287,7 +287,7 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
           const used = Number(sub?.amount_used || 0);
           return (
             <Text type={total > 0 ? 'secondary' : 'tertiary'}>
-              {total > 0 ? `${used}/${total}` : t('不限')}
+              {total > 0 ? `${used}/${total}` : "不限"}
             </Text>
           );
         },
@@ -313,7 +313,7 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
                 disabled={!isActive || isCancelled}
                 onClick={() => invalidateSubscription(sub?.id)}
               >
-                {t('作废')}
+                {"作废"}
               </Button>
               <Button
                 size='small'
@@ -321,14 +321,14 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
                 theme='light'
                 onClick={() => deleteSubscription(sub?.id)}
               >
-                {t('删除')}
+                {"删除"}
               </Button>
             </Space>
           );
         },
       },
     ];
-  }, [t, planTitleMap]);
+  }, [planTitleMap]);
 
   return (
     <SideSheet
@@ -340,10 +340,10 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
       title={
         <Space>
           <Tag color='blue' shape='circle'>
-            {t('管理')}
+            {"管理"}
           </Tag>
           <Typography.Title heading={4} className='m-0'>
-            {t('用户订阅管理')}
+            {"用户订阅管理"}
           </Typography.Title>
           <Text type='tertiary' className='ml-2'>
             {user?.username || '-'} (ID: {user?.id || '-'})
@@ -356,7 +356,7 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
         <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4'>
           <div className='flex gap-2 flex-1'>
             <Select
-              placeholder={t('选择订阅套餐')}
+              placeholder={"选择订阅套餐"}
               optionList={planOptions}
               value={selectedPlanId}
               onChange={setSelectedPlanId}
@@ -371,7 +371,7 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
               loading={creating}
               onClick={createSubscription}
             >
-              {t('新增订阅')}
+              {"新增订阅"}
             </Button>
           </div>
         </div>
@@ -400,7 +400,7 @@ const UserSubscriptionsModal = ({ visible, onCancel, user, t, onSuccess }) => {
               darkModeImage={
                 <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
               }
-              description={t('暂无订阅记录')}
+              description={"暂无订阅记录"}
               style={{ padding: 30 }}
             />
           }

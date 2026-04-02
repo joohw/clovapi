@@ -70,9 +70,9 @@ const ModelsActions = ({
     if (!text) return;
     const ok = await copy(text);
     if (ok) {
-      showSuccess(t('已复制模型名称'));
+      showSuccess("已复制模型名称");
     } else {
-      showError(t('复制失败'));
+      showError("复制失败");
     }
   };
 
@@ -97,7 +97,7 @@ const ModelsActions = ({
           }}
           size='small'
         >
-          {t('添加模型')}
+          {"添加模型"}
         </Button>
 
         <Button
@@ -106,7 +106,7 @@ const ModelsActions = ({
           size='small'
           onClick={() => setShowMissingModal(true)}
         >
-          {t('未配置模型')}
+          {"未配置模型"}
         </Button>
 
         <Popover
@@ -115,9 +115,7 @@ const ModelsActions = ({
           content={
             <div className='p-2 max-w-[360px]'>
               <div className='text-[var(--semi-color-text-2)] text-sm'>
-                {t(
-                  '模型社区需要大家的共同维护，如发现数据有误或想贡献新的模型数据，请访问：',
-                )}
+                {"模型社区需要大家的共同维护，如发现数据有误或想贡献新的模型数据，请访问："}
               </div>
               <a
                 href='https://github.com/basellm/llm-metadata'
@@ -140,7 +138,7 @@ const ModelsActions = ({
               setShowSyncModal(true);
             }}
           >
-            {t('同步')}
+            {"同步"}
           </Button>
         </Popover>
 
@@ -150,19 +148,17 @@ const ModelsActions = ({
           size='small'
           onClick={() => setShowGroupManagement(true)}
         >
-          {t('预填组管理')}
+          {"预填组管理"}
         </Button>
 
         <CompactModeToggle
           compactMode={compactMode}
           setCompactMode={setCompactMode}
-          t={t}
         />
       </div>
 
       <SelectionNotification
         selectedKeys={selectedKeys}
-        t={t}
         onDelete={handleDeleteSelectedModels}
         onAddPrefill={handleAddToPrefill}
         onClear={handleClearSelected}
@@ -170,16 +166,14 @@ const ModelsActions = ({
       />
 
       <Modal
-        title={t('批量删除模型')}
+        title={"批量删除模型"}
         visible={showDeleteModal}
         onCancel={() => setShowDeleteModal(false)}
         onOk={handleConfirmDelete}
         type='warning'
       >
         <div>
-          {t('确定要删除所选的 {{count}} 个模型吗？', {
-            count: selectedKeys.length,
-          })}
+          {`确定要删除所选的 ${selectedKeys.length} 个模型吗？`}
         </div>
       </Modal>
 
@@ -187,7 +181,6 @@ const ModelsActions = ({
         visible={showSyncModal}
         onClose={() => setShowSyncModal(false)}
         loading={syncing || previewing}
-        t={t}
         onConfirm={async ({ option, locale }) => {
           setSyncLocale(locale);
           if (option === 'official') {
@@ -205,7 +198,6 @@ const ModelsActions = ({
           setShowEdit(true);
           setShowMissingModal(false);
         }}
-        t={t}
       />
 
       <PrefillGroupManagement
@@ -230,7 +222,6 @@ const ModelsActions = ({
             locale: syncLocale,
           });
         }}
-        t={t}
         loading={syncing}
       />
     </>

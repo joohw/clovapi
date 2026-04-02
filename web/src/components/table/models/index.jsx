@@ -52,9 +52,6 @@ const ModelsPage = () => {
     editingVendor,
     setEditingVendor,
     loadVendors,
-
-    // Translation
-    t,
   } = modelsData;
 
   const [showMarketplaceDisplayNotice, setShowMarketplaceDisplayNotice] =
@@ -70,12 +67,10 @@ const ModelsPage = () => {
 
   const confirmCloseMarketplaceDisplayNotice = () => {
     Modal.confirm({
-      title: t('确认关闭提示'),
-      content: t(
-        '关闭后将不再显示此提示（仅对当前浏览器生效）。确定要关闭吗？',
-      ),
-      okText: t('关闭提示'),
-      cancelText: t('取消'),
+      title: "确认关闭提示",
+      content: "关闭后将不再显示此提示（仅对当前浏览器生效）。确定要关闭吗？",
+      okText: "关闭提示",
+      cancelText: "取消",
       okButtonProps: {
         type: 'danger',
       },
@@ -122,9 +117,7 @@ const ModelsPage = () => {
                 style={{ color: 'var(--semi-color-warning)' }}
               />
             }
-            description={t(
-              '提示：此处配置仅用于控制「模型广场」对用户的展示效果，不会影响模型的实际调用与路由。若需配置真实调用行为，请前往「渠道管理」进行设置。',
-            )}
+            description={"提示：此处配置仅用于控制「模型广场」对用户的展示效果，不会影响模型的实际调用与路由。若需配置真实调用行为，请前往「渠道管理」进行设置。"}
             style={{ marginBottom: 0 }}
           />
           <Button
@@ -134,7 +127,7 @@ const ModelsPage = () => {
             icon={<IconClose aria-hidden={true} />}
             onClick={confirmCloseMarketplaceDisplayNotice}
             style={{ position: 'absolute', top: 8, right: 8 }}
-            aria-label={t('关闭')}
+            aria-label={"关闭"}
           />
         </div>
       ) : null}
@@ -156,7 +149,6 @@ const ModelsPage = () => {
               applyUpstreamOverwrite={modelsData.applyUpstreamOverwrite}
               compactMode={compactMode}
               setCompactMode={setCompactMode}
-              t={t}
             />
 
             <div className='w-full md:w-full lg:w-auto order-1 md:order-2'>
@@ -166,7 +158,6 @@ const ModelsPage = () => {
                 searchModels={searchModels}
                 loading={loading}
                 searching={searching}
-                t={t}
               />
             </div>
           </div>
@@ -178,9 +169,7 @@ const ModelsPage = () => {
           onPageChange: modelsData.handlePageChange,
           onPageSizeChange: modelsData.handlePageSizeChange,
           isMobile: isMobile,
-          t: modelsData.t,
         })}
-        t={modelsData.t}
       >
         <ModelsTable {...modelsData} />
       </CardPro>

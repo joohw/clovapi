@@ -37,9 +37,6 @@ const RedemptionsPage = () => {
     // UI state
     compactMode,
     setCompactMode,
-
-    // Translation
-    t,
   } = redemptionsData;
 
   return (
@@ -57,7 +54,6 @@ const RedemptionsPage = () => {
           <RedemptionsDescription
             compactMode={compactMode}
             setCompactMode={setCompactMode}
-            t={t}
           />
         }
         actionsArea={
@@ -68,7 +64,6 @@ const RedemptionsPage = () => {
               setShowEdit={setShowEdit}
               batchCopyRedemptions={batchCopyRedemptions}
               batchDeleteRedemptions={batchDeleteRedemptions}
-              t={t}
             />
 
             <div className='w-full md:w-full lg:w-auto order-1 md:order-2'>
@@ -78,7 +73,6 @@ const RedemptionsPage = () => {
                 searchRedemptions={searchRedemptions}
                 loading={loading}
                 searching={searching}
-                t={t}
               />
             </div>
           </div>
@@ -90,9 +84,7 @@ const RedemptionsPage = () => {
           onPageChange: redemptionsData.handlePageChange,
           onPageSizeChange: redemptionsData.handlePageSizeChange,
           isMobile: isMobile,
-          t: redemptionsData.t,
         })}
-        t={redemptionsData.t}
       >
         <RedemptionsTable {...redemptionsData} />
       </CardPro>

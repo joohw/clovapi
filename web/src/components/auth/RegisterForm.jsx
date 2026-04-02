@@ -26,9 +26,6 @@ import Text from '@douyinfe/semi-ui/lib/es/typography/text';
 import {
   IconGithubLogo,
   IconMail,
-  IconUser,
-  IconLock,
-  IconKey,
 } from '@douyinfe/semi-icons';
 import {
   onGitHubOAuthClicked,
@@ -41,12 +38,10 @@ import WeChatIcon from '../common/logo/WeChatIcon';
 import TelegramLoginButton from 'react-telegram-login/src';
 import { UserContext } from '../../context/User';
 import { StatusContext } from '../../context/Status';
-import { useTranslation } from 'react-i18next';
 import { SiDiscord } from 'react-icons/si';
 
 const RegisterForm = () => {
   let navigate = useNavigate();
-  const { t } = useTranslation();
   const githubButtonTextKeyByState = {
     idle: '使用 GitHub 继续',
     redirecting: '正在跳转 GitHub...',
@@ -88,7 +83,7 @@ const RegisterForm = () => {
   const [githubButtonState, setGithubButtonState] = useState('idle');
   const [githubButtonDisabled, setGithubButtonDisabled] = useState(false);
   const githubTimeoutRef = useRef(null);
-  const githubButtonText = t(githubButtonTextKeyByState[githubButtonState]);
+  const githubButtonText = githubButtonTextKeyByState[githubButtonState];
 
   let affCode = new URLSearchParams(window.location.search).get('aff');
   if (affCode) {
@@ -192,6 +187,7 @@ const RegisterForm = () => {
   }
 
   async function handleSubmit(e) {
+    e?.preventDefault?.();
     if (password.length < 8) {
       showInfo('密码长度不得小于 8 位！');
       return;
@@ -374,7 +370,7 @@ const RegisterForm = () => {
           <Card className='border-0 !rounded-2xl overflow-hidden'>
             <div className='flex justify-center pt-6 pb-2'>
               <Title heading={3} className='text-gray-800 dark:text-gray-200'>
-                {t('注 册')}
+                {"注 册"}
               </Title>
             </div>
             <div className='px-2 py-8'>
@@ -390,7 +386,7 @@ const RegisterForm = () => {
                     onClick={onWeChatLoginClicked}
                     loading={wechatLoading}
                   >
-                    <span className='ml-3'>{t('使用 微信 继续')}</span>
+                    <span className='ml-3'>{"使用 微信 继续"}</span>
                   </Button>
                 )}
 
@@ -425,7 +421,7 @@ const RegisterForm = () => {
                     onClick={handleDiscordClick}
                     loading={discordLoading}
                   >
-                    <span className='ml-3'>{t('使用 Discord 继续')}</span>
+                    <span className='ml-3'>{"使用 Discord 继续"}</span>
                   </Button>
                 )}
 
@@ -438,7 +434,7 @@ const RegisterForm = () => {
                     onClick={handleOIDCClick}
                     loading={oidcLoading}
                   >
-                    <span className='ml-3'>{t('使用 OIDC 继续')}</span>
+                    <span className='ml-3'>{"使用 OIDC 继续"}</span>
                   </Button>
                 )}
 
@@ -459,7 +455,7 @@ const RegisterForm = () => {
                     onClick={handleLinuxDOClick}
                     loading={linuxdoLoading}
                   >
-                    <span className='ml-3'>{t('使用 LinuxDO 继续')}</span>
+                    <span className='ml-3'>{"使用 LinuxDO 继续"}</span>
                   </Button>
                 )}
 
@@ -475,7 +471,7 @@ const RegisterForm = () => {
                       loading={customOAuthLoading[provider.slug]}
                     >
                       <span className='ml-3'>
-                        {t('使用 {{name}} 继续', { name: provider.name })}
+                        {`使用 ${provider.name} 继续`}
                       </span>
                     </Button>
                   ))}
@@ -490,7 +486,7 @@ const RegisterForm = () => {
                 )}
 
                 <Divider margin='12px' align='center'>
-                  {t('或')}
+                  {"或"}
                 </Divider>
 
                 <Button
@@ -501,18 +497,18 @@ const RegisterForm = () => {
                   onClick={handleEmailRegisterClick}
                   loading={emailRegisterLoading}
                 >
-                  <span className='ml-3'>{t('使用 用户名 注册')}</span>
+                  <span className='ml-3'>{"使用 用户名 注册"}</span>
                 </Button>
               </div>
 
               <div className='mt-6 text-center text-sm'>
                 <Text>
-                  {t('已有账户？')}{' '}
+                  {"已有账户？"}{' '}
                   <Link
                     to='/login'
                     className='text-blue-600 hover:text-blue-800 font-medium'
                   >
-                    {t('登录')}
+                    {"登录"}
                   </Link>
                 </Text>
               </div>
@@ -530,72 +526,118 @@ const RegisterForm = () => {
           <Card className='border-0 !rounded-2xl overflow-hidden'>
             <div className='flex justify-center pt-6 pb-2'>
               <Title heading={3} className='text-gray-800 dark:text-gray-200'>
-                {t('注 册')}
+                {"注 册"}
               </Title>
             </div>
             <div className='px-2 py-8'>
-              <Form className='space-y-3'>
-                <Form.Input
-                  field='username'
-                  label={t('用户名')}
-                  placeholder={t('请输入用户名')}
-                  name='username'
-                  onChange={(value) => handleChange('username', value)}
-                  prefix={<IconUser />}
-                />
+              <form className='space-y-3 login-clean-form' onSubmit={handleSubmit}>
+                <div>
+                  <label
+                    htmlFor='register-username'
+                    className='block text-sm mb-1 text-semi-color-text-1'
+                  >
+                    {"用户名"}
+                  </label>
+                  <input
+                    id='register-username'
+                    name='username'
+                    type='text'
+                    value={inputs.username}
+                    placeholder='请输入用户名'
+                    autoComplete='username'
+                    onChange={(e) => handleChange('username', e.target.value)}
+                    className='login-clean-native-input'
+                  />
+                </div>
 
-                <Form.Input
-                  field='password'
-                  label={t('密码')}
-                  placeholder={t('输入密码，最短 8 位，最长 20 位')}
-                  name='password'
-                  mode='password'
-                  onChange={(value) => handleChange('password', value)}
-                  prefix={<IconLock />}
-                />
+                <div>
+                  <label
+                    htmlFor='register-password'
+                    className='block text-sm mb-1 text-semi-color-text-1'
+                  >
+                    {"密码"}
+                  </label>
+                  <input
+                    id='register-password'
+                    name='password'
+                    type='password'
+                    value={inputs.password}
+                    placeholder='输入密码，最短 8 位，最长 20 位'
+                    autoComplete='new-password'
+                    onChange={(e) => handleChange('password', e.target.value)}
+                    className='login-clean-native-input'
+                  />
+                </div>
 
-                <Form.Input
-                  field='password2'
-                  label={t('确认密码')}
-                  placeholder={t('确认密码')}
-                  name='password2'
-                  mode='password'
-                  onChange={(value) => handleChange('password2', value)}
-                  prefix={<IconLock />}
-                />
+                <div>
+                  <label
+                    htmlFor='register-password2'
+                    className='block text-sm mb-1 text-semi-color-text-1'
+                  >
+                    {"确认密码"}
+                  </label>
+                  <input
+                    id='register-password2'
+                    name='password2'
+                    type='password'
+                    value={inputs.password2}
+                    placeholder='确认密码'
+                    autoComplete='new-password'
+                    onChange={(e) => handleChange('password2', e.target.value)}
+                    className='login-clean-native-input'
+                  />
+                </div>
 
                 {showEmailVerification && (
                   <>
-                    <Form.Input
-                      field='email'
-                      label={t('邮箱')}
-                      placeholder={t('输入邮箱地址')}
-                      name='email'
-                      type='email'
-                      onChange={(value) => handleChange('email', value)}
-                      prefix={<IconMail />}
-                      suffix={
+                    <div>
+                      <label
+                        htmlFor='register-email'
+                        className='block text-sm mb-1 text-semi-color-text-1'
+                      >
+                        {"邮箱"}
+                      </label>
+                      <div className='flex items-center gap-2'>
+                        <input
+                          id='register-email'
+                          name='email'
+                          type='email'
+                          value={inputs.email}
+                          placeholder='输入邮箱地址'
+                          autoComplete='email'
+                          onChange={(e) => handleChange('email', e.target.value)}
+                          className='login-clean-native-input'
+                        />
                         <Button
                           onClick={sendVerificationCode}
                           loading={verificationCodeLoading}
                           disabled={disableButton || verificationCodeLoading}
                         >
                           {disableButton
-                            ? `${t('重新发送')} (${countdown})`
-                            : t('获取验证码')}
+                            ? `${"重新发送"} (${countdown})`
+                            : "获取验证码"}
                         </Button>
-                      }
-                    />
-                    <Form.Input
-                      field='verification_code'
-                      label={t('验证码')}
-                      placeholder={t('输入验证码')}
-                      name='verification_code'
-                      onChange={(value) =>
-                        handleChange('verification_code', value)
-                      }
-                      prefix={<IconKey />}
-                    />
+                      </div>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor='register-verification-code'
+                        className='block text-sm mb-1 text-semi-color-text-1'
+                      >
+                        {"验证码"}
+                      </label>
+                      <input
+                        id='register-verification-code'
+                        name='verification_code'
+                        type='text'
+                        value={inputs.verification_code}
+                        placeholder='输入验证码'
+                        onChange={(e) =>
+                          handleChange('verification_code', e.target.value)
+                        }
+                        className='login-clean-native-input'
+                      />
+                    </div>
                   </>
                 )}
 
@@ -606,7 +648,7 @@ const RegisterForm = () => {
                       onChange={(e) => setAgreedToTerms(e.target.checked)}
                     >
                       <Text size='small' className='text-gray-600'>
-                        {t('我已阅读并同意')}
+                        {"我已阅读并同意"}
                         {hasUserAgreement && (
                           <>
                             <a
@@ -615,11 +657,11 @@ const RegisterForm = () => {
                               rel='noopener noreferrer'
                               className='text-blue-600 hover:text-blue-800 mx-1'
                             >
-                              {t('用户协议')}
+                              {"用户协议"}
                             </a>
                           </>
                         )}
-                        {hasUserAgreement && hasPrivacyPolicy && t('和')}
+                        {hasUserAgreement && hasPrivacyPolicy && "和"}
                         {hasPrivacyPolicy && (
                           <>
                             <a
@@ -628,7 +670,7 @@ const RegisterForm = () => {
                               rel='noopener noreferrer'
                               className='text-blue-600 hover:text-blue-800 mx-1'
                             >
-                              {t('隐私政策')}
+                              {"隐私政策"}
                             </a>
                           </>
                         )}
@@ -649,15 +691,15 @@ const RegisterForm = () => {
                       (hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms
                     }
                   >
-                    {t('注册')}
+                    {"注册"}
                   </Button>
                 </div>
-              </Form>
+              </form>
 
               {hasOAuthRegisterOptions && (
                 <>
                   <Divider margin='12px' align='center'>
-                    {t('或')}
+                    {"或"}
                   </Divider>
 
                   <div className='mt-4 text-center'>
@@ -668,7 +710,7 @@ const RegisterForm = () => {
                       onClick={handleOtherRegisterOptionsClick}
                       loading={otherRegisterOptionsLoading}
                     >
-                      {t('其他注册选项')}
+                      {"其他注册选项"}
                     </Button>
                   </div>
                 </>
@@ -676,12 +718,12 @@ const RegisterForm = () => {
 
               <div className='mt-6 text-center text-sm'>
                 <Text>
-                  {t('已有账户？')}{' '}
+                  {"已有账户？"}{' '}
                   <Link
                     to='/login'
                     className='text-blue-600 hover:text-blue-800 font-medium'
                   >
-                    {t('登录')}
+                    {"登录"}
                   </Link>
                 </Text>
               </div>
@@ -695,12 +737,12 @@ const RegisterForm = () => {
   const renderWeChatLoginModal = () => {
     return (
       <Modal
-        title={t('微信扫码登录')}
+        title={"微信扫码登录"}
         visible={showWeChatLoginModal}
         maskClosable={true}
         onOk={onSubmitWeChatVerificationCode}
         onCancel={() => setShowWeChatLoginModal(false)}
-        okText={t('登录')}
+        okText={"登录"}
         centered={true}
         okButtonProps={{
           loading: wechatCodeSubmitLoading,
@@ -712,15 +754,15 @@ const RegisterForm = () => {
 
         <div className='text-center mb-4'>
           <p>
-            {t('微信扫码关注公众号，输入「验证码」获取验证码（三分钟内有效）')}
+            {"微信扫码关注公众号，输入「验证码」获取验证码（三分钟内有效）"}
           </p>
         </div>
 
         <Form>
           <Form.Input
             field='wechat_verification_code'
-            placeholder={t('验证码')}
-            label={t('验证码')}
+            placeholder={"验证码"}
+            label={"验证码"}
             value={inputs.wechat_verification_code}
             onChange={(value) =>
               handleChange('wechat_verification_code', value)

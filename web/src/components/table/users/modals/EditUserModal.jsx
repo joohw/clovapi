@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   API,
   showError,
@@ -41,7 +40,6 @@ import UserBindingManagementModal from './UserBindingManagementModal';
 const { Text, Title } = Typography;
 
 const EditUserModal = (props) => {
-  const { t } = useTranslation();
   const userId = props.editingUser.id;
   const [loading, setLoading] = useState(true);
   const [addQuotaModalOpen, setIsModalOpen] = useState(false);
@@ -122,7 +120,7 @@ const EditUserModal = (props) => {
     const res = await API.put(url, payload);
     const { success, message } = res.data;
     if (success) {
-      showSuccess(t('用户信息更新成功！'));
+      showSuccess("用户信息更新成功！");
       props.refresh();
       props.handleClose();
     } else {
@@ -146,10 +144,10 @@ const EditUserModal = (props) => {
         title={
           <Space>
             <Tag color='blue' shape='circle'>
-              {t(isEdit ? '编辑' : '新建')}
+              {isEdit ? '编辑' : '新建'}
             </Tag>
             <Title heading={4} className='m-0'>
-              {isEdit ? t('编辑用户') : t('创建用户')}
+              {isEdit ? "编辑用户" : "创建用户"}
             </Title>
           </Space>
         }
@@ -165,7 +163,7 @@ const EditUserModal = (props) => {
                 icon={<IconSave />}
                 loading={loading}
               >
-                {t('提交')}
+                {"提交"}
               </Button>
               <Button
                 theme='light'
@@ -173,7 +171,7 @@ const EditUserModal = (props) => {
                 onClick={handleCancel}
                 icon={<IconClose />}
               >
-                {t('取消')}
+                {"取消"}
               </Button>
             </Space>
           </div>
@@ -201,10 +199,10 @@ const EditUserModal = (props) => {
                     </Avatar>
                     <div>
                       <Text className='text-lg font-medium'>
-                        {t('基本信息')}
+                        {"基本信息"}
                       </Text>
                       <div className='text-xs text-gray-600'>
-                        {t('用户的基本账户信息')}
+                        {"用户的基本账户信息"}
                       </div>
                     </div>
                   </div>
@@ -213,9 +211,9 @@ const EditUserModal = (props) => {
                     <Col span={24}>
                       <Form.Input
                         field='username'
-                        label={t('用户名')}
-                        placeholder={t('请输入新的用户名')}
-                        rules={[{ required: true, message: t('请输入用户名') }]}
+                        label={"用户名"}
+                        placeholder={"请输入新的用户名"}
+                        rules={[{ required: true, message: "请输入用户名" }]}
                         showClear
                       />
                     </Col>
@@ -223,8 +221,8 @@ const EditUserModal = (props) => {
                     <Col span={24}>
                       <Form.Input
                         field='password'
-                        label={t('密码')}
-                        placeholder={t('请输入新的密码，最短 8 位')}
+                        label={"密码"}
+                        placeholder={"请输入新的密码，最短 8 位"}
                         mode='password'
                         showClear
                       />
@@ -233,8 +231,8 @@ const EditUserModal = (props) => {
                     <Col span={24}>
                       <Form.Input
                         field='display_name'
-                        label={t('显示名称')}
-                        placeholder={t('请输入新的显示名称')}
+                        label={"显示名称"}
+                        placeholder={"请输入新的显示名称"}
                         showClear
                       />
                     </Col>
@@ -242,8 +240,8 @@ const EditUserModal = (props) => {
                     <Col span={24}>
                       <Form.Input
                         field='remark'
-                        label={t('备注')}
-                        placeholder={t('请输入备注（仅管理员可见）')}
+                        label={"备注"}
+                        placeholder={"请输入备注（仅管理员可见）"}
                         showClear
                       />
                     </Col>
@@ -263,10 +261,10 @@ const EditUserModal = (props) => {
                       </Avatar>
                       <div>
                         <Text className='text-lg font-medium'>
-                          {t('权限设置')}
+                          {"权限设置"}
                         </Text>
                         <div className='text-xs text-gray-600'>
-                          {t('用户分组和额度管理')}
+                          {"用户分组和额度管理"}
                         </div>
                       </div>
                     </div>
@@ -275,29 +273,29 @@ const EditUserModal = (props) => {
                       <Col span={24}>
                         <Form.Select
                           field='group'
-                          label={t('分组')}
-                          placeholder={t('请选择分组')}
+                          label={"分组"}
+                          placeholder={"请选择分组"}
                           optionList={groupOptions}
                           allowAdditions
                           search
-                          rules={[{ required: true, message: t('请选择分组') }]}
+                          rules={[{ required: true, message: "请选择分组" }]}
                         />
                       </Col>
 
                       <Col span={10}>
                         <Form.InputNumber
                           field='quota'
-                          label={t('剩余额度')}
-                          placeholder={t('请输入新的剩余额度')}
+                          label={"剩余额度"}
+                          placeholder={"请输入新的剩余额度"}
                           step={500000}
                           extraText={renderQuotaWithPrompt(values.quota || 0)}
-                          rules={[{ required: true, message: t('请输入额度') }]}
+                          rules={[{ required: true, message: "请输入额度" }]}
                           style={{ width: '100%' }}
                         />
                       </Col>
 
                       <Col span={14}>
-                        <Form.Slot label={t('添加额度')}>
+                        <Form.Slot label={"添加额度"}>
                           <Button
                             icon={<IconPlus />}
                             onClick={() => setIsModalOpen(true)}
@@ -322,10 +320,10 @@ const EditUserModal = (props) => {
                         </Avatar>
                         <div className='min-w-0'>
                           <Text className='text-lg font-medium'>
-                            {t('绑定信息')}
+                            {"绑定信息"}
                           </Text>
                           <div className='text-xs text-gray-600'>
-                            {t('管理用户已绑定的第三方账户，支持筛选与解绑')}
+                            {"管理用户已绑定的第三方账户，支持筛选与解绑"}
                           </div>
                         </div>
                       </div>
@@ -334,7 +332,7 @@ const EditUserModal = (props) => {
                         theme='outline'
                         onClick={openBindingModal}
                       >
-                        {t('管理绑定')}
+                        {"管理绑定"}
                       </Button>
                     </div>
                   </Card>
@@ -370,7 +368,7 @@ const EditUserModal = (props) => {
         title={
           <div className='flex items-center'>
             <IconPlus className='mr-2' />
-            {t('添加额度')}
+            {"添加额度"}
           </div>
         }
       >
@@ -379,7 +377,7 @@ const EditUserModal = (props) => {
             const current = formApiRef.current?.getValue('quota') || 0;
             return (
               <Text type='secondary' className='block mb-2'>
-                {`${t('新额度：')}${renderQuota(current)} + ${renderQuota(addQuotaLocal)} = ${renderQuota(current + parseInt(addQuotaLocal || 0))}`}
+                {`${"新额度："}${renderQuota(current)} + ${renderQuota(addQuotaLocal)} = ${renderQuota(current + parseInt(addQuotaLocal || 0))}`}
               </Text>
             );
           })()}
@@ -387,15 +385,15 @@ const EditUserModal = (props) => {
         {getCurrencyConfig().type !== 'TOKENS' && (
           <div className='mb-3'>
             <div className='mb-1'>
-              <Text size='small'>{t('金额')}</Text>
+              <Text size='small'>{"金额"}</Text>
               <Text size='small' type='tertiary'>
                 {' '}
-                ({t('仅用于换算，实际保存的是额度')})
+                ({"仅用于换算，实际保存的是额度"})
               </Text>
             </div>
             <InputNumber
               prefix={getCurrencyConfig().symbol}
-              placeholder={t('输入金额')}
+              placeholder={"输入金额"}
               value={addAmountLocal}
               precision={2}
               onChange={(val) => {
@@ -413,10 +411,10 @@ const EditUserModal = (props) => {
         )}
         <div>
           <div className='mb-1'>
-            <Text size='small'>{t('额度')}</Text>
+            <Text size='small'>{"额度"}</Text>
           </div>
           <InputNumber
-            placeholder={t('输入额度')}
+            placeholder={"输入额度"}
             value={addQuotaLocal}
             onChange={(val) => {
               setAddQuotaLocal(val);

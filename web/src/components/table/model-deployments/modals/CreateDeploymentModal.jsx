@@ -380,10 +380,10 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
           hasProvidedTotal ? providedTotal : fallbackTotal,
         );
       } else {
-        showError(t('获取硬件类型失败: ') + response.data.message);
+        showError("获取硬件类型失败: " + response.data.message);
       }
     } catch (error) {
-      showError(t('获取硬件类型失败: ') + error.message);
+      showError("获取硬件类型失败: " + error.message);
     } finally {
       setLoadingHardware(false);
     }
@@ -469,7 +469,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
           ),
         );
       } else {
-        showError(t('获取可用资源失败: ') + response.data.message);
+        showError("获取可用资源失败: " + response.data.message);
         setLocationTotalAvailable(null);
       }
     } catch (error) {
@@ -506,7 +506,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
       if (response.data.success) {
         setPriceEstimation(response.data.data);
       } else {
-        showError(t('价格计算失败: ') + response.data.message);
+        showError("价格计算失败: " + response.data.message);
         setPriceEstimation(null);
       }
     } catch (error) {
@@ -578,14 +578,14 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
       const response = await API.post('/api/deployments', requestData);
 
       if (response.data.success) {
-        showSuccess(t('容器创建成功'));
+        showSuccess("容器创建成功");
         onSuccess?.(response.data.data);
         onCancel();
       } else {
-        showError(t('容器创建失败: ') + response.data.message);
+        showError("容器创建失败: " + response.data.message);
       }
     } catch (error) {
-      showError(t('容器创建失败: ') + error.message);
+      showError("容器创建失败: " + error.message);
     } finally {
       setSubmitting(false);
     }
@@ -747,34 +747,34 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
   const priceSummaryItems = [
     {
       key: 'hardware',
-      label: t('硬件类型'),
+      label: "硬件类型",
       value: selectedHardwareLabel || '--',
     },
     {
       key: 'locations',
-      label: t('部署位置'),
+      label: "部署位置",
       value: selectedLocationNames.length
         ? selectedLocationNames.join('、')
         : '--',
     },
     {
       key: 'replicas',
-      label: t('副本数量'),
+      label: "副本数量",
       value: (replicaCount ?? 0).toString(),
     },
     {
       key: 'gpus',
-      label: t('最大GPU数量'),
+      label: "最大GPU数量",
       value: (gpusPerContainer ?? 0).toString(),
     },
     {
       key: 'duration',
-      label: t('运行时长（小时）'),
+      label: "运行时长（小时）",
       value: durationHours ? durationHours.toString() : '0',
     },
     {
       key: 'gpu-hours',
-      label: t('总 GPU 小时'),
+      label: "总 GPU 小时",
       value: totalGpuHours > 0 ? totalGpuHours.toLocaleString() : '0',
     },
   ];
@@ -791,14 +791,14 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
         <Space spacing={8} align='center'>
           <Spin size='small' />
           <Text size='small' type='tertiary'>
-            {t('价格计算中...')}
+            {"价格计算中..."}
           </Text>
         </Space>
       ) : (
         <Text size='small' type='tertiary'>
           {isPriceReady
-            ? t('价格暂时不可用，请稍后重试')
-            : t('完成硬件类型、部署位置、副本数量等配置后，将自动计算价格')}
+            ? "价格暂时不可用，请稍后重试"
+            : "完成硬件类型、部署位置、副本数量等配置后，将自动计算价格"}
         </Text>
       )}
     </div>
@@ -816,12 +816,12 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
 
   return (
     <Modal
-      title={t('新建容器部署')}
+      title={"新建容器部署"}
       visible={visible}
       onCancel={onCancel}
       onOk={() => formApi?.submitForm()}
-      okText={t('创建')}
-      cancelText={t('取消')}
+      okText={"创建"}
+      cancelText={"取消"}
       width={800}
       confirmLoading={submitting}
       style={{ top: 20 }}
@@ -845,7 +845,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
             type='tertiary'
             onClick={() => scrollToSection(basicSectionRef)}
           >
-            {t('部署配置')}
+            {"部署配置"}
           </Button>
           <Button
             size='small'
@@ -853,7 +853,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
             type='tertiary'
             onClick={() => scrollToSection(priceSectionRef)}
           >
-            {t('价格预估')}
+            {"价格预估"}
           </Button>
           <Button
             size='small'
@@ -861,23 +861,23 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
             type='tertiary'
             onClick={() => scrollToSection(advancedSectionRef)}
           >
-            {t('高级配置')}
+            {"高级配置"}
           </Button>
         </Space>
 
         <div ref={basicSectionRef}>
           <Card className='mb-4'>
-            <Title heading={6}>{t('部署配置')}</Title>
+            <Title heading={6}>{"部署配置"}</Title>
 
             <Form.Input
               field='resource_private_name'
-              label={t('容器名称')}
-              placeholder={t('请输入容器名称')}
-              rules={[{ required: true, message: t('请输入容器名称') }]}
+              label={"容器名称"}
+              placeholder={"请输入容器名称"}
+              rules={[{ required: true, message: "请输入容器名称" }]}
             />
 
             <div className='mt-2'>
-              <Text strong>{t('镜像选择')}</Text>
+              <Text strong>{"镜像选择"}</Text>
               <div style={{ marginTop: 8 }}>
                 <RadioGroup
                   type='button'
@@ -886,17 +886,17 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                     setImageMode(value?.target?.value ?? value)
                   }
                 >
-                  <Radio value='builtin'>{t('内置 Ollama 镜像')}</Radio>
-                  <Radio value='custom'>{t('自定义镜像')}</Radio>
+                  <Radio value='builtin'>{"内置 Ollama 镜像"}</Radio>
+                  <Radio value='custom'>{"自定义镜像"}</Radio>
                 </RadioGroup>
               </div>
             </div>
 
             <Form.Input
               field='image_url'
-              label={t('镜像地址')}
-              placeholder={t('例如：nginx:latest')}
-              rules={[{ required: true, message: t('请输入镜像地址') }]}
+              label={"镜像地址"}
+              placeholder={"例如：nginx:latest"}
+              rules={[{ required: true, message: "请输入镜像地址" }]}
               disabled={imageMode === 'builtin'}
               onChange={(value) => {
                 if (imageMode === 'custom') {
@@ -908,7 +908,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
             {imageMode === 'builtin' && (
               <Space align='center' spacing={8} className='mt-2'>
                 <Text size='small' type='tertiary'>
-                  {t('系统已为该部署准备 Ollama 镜像与随机 API Key')}
+                  {"系统已为该部署准备 Ollama 镜像与随机 API Key"}
                 </Text>
                 <Input
                   readOnly
@@ -926,13 +926,13 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                     }
                     const copied = await copy(autoOllamaKey);
                     if (copied) {
-                      showSuccess(t('已复制自动生成的 API Key'));
+                      showSuccess("已复制自动生成的 API Key");
                     } else {
-                      showError(t('复制失败，请手动选择文本复制'));
+                      showError("复制失败，请手动选择文本复制");
                     }
                   }}
                 >
-                  {t('复制')}
+                  {"复制"}
                 </Button>
               </Space>
             )}
@@ -941,10 +941,10 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
               <Col xs={24} md={12}>
                 <Form.Select
                   field='hardware_id'
-                  label={t('硬件类型')}
-                  placeholder={t('选择硬件类型')}
+                  label={"硬件类型"}
+                  placeholder={"选择硬件类型"}
                   loading={loadingHardware}
-                  rules={[{ required: true, message: t('请选择硬件类型') }]}
+                  rules={[{ required: true, message: "请选择硬件类型" }]}
                   onChange={(value) => {
                     const nextMaxGpus = getHardwareMaxGpus(value);
                     setSelectedHardwareId(value);
@@ -982,13 +982,13 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                           <Text strong>{displayName}</Text>
                           <div className='flex items-center gap-2 text-xs text-[var(--semi-color-text-2)]'>
                             <span>
-                              {t('最大GPU数量')}: {hardware.max_gpus}
+                              {"最大GPU数量"}: {hardware.max_gpus}
                             </span>
                             <Tag
                               color={hasAvailability ? 'green' : 'red'}
                               size='small'
                             >
-                              {t('可用数量')}: {availableCount}
+                              {"可用数量"}: {availableCount}
                             </Tag>
                           </div>
                         </div>
@@ -1000,7 +1000,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
               <Col xs={24} md={12}>
                 <Form.InputNumber
                   field='gpus_per_container'
-                  label={t('最大GPU数量')}
+                  label={"最大GPU数量"}
                   placeholder={1}
                   min={1}
                   max={getHardwareMaxGpus(selectedHardwareId)}
@@ -1013,7 +1013,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
 
             {typeof hardwareTotalAvailable === 'number' && (
               <Text size='small' type='tertiary'>
-                {t('全部硬件总可用资源')}: {hardwareTotalAvailable}
+                {"全部硬件总可用资源"}: {hardwareTotalAvailable}
               </Text>
             )}
 
@@ -1021,21 +1021,21 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
               field='location_ids'
               label={
                 <Space>
-                  {t('部署位置')}
+                  {"部署位置"}
                   {loadingReplicas && <Spin size='small' />}
                 </Space>
               }
               placeholder={
                 !selectedHardwareId
-                  ? t('请先选择硬件类型')
+                  ? "请先选择硬件类型"
                   : loadingReplicas
-                    ? t('正在加载可用部署位置...')
-                    : t('选择部署位置（可多选）')
+                    ? "正在加载可用部署位置..."
+                    : "选择部署位置（可多选）"
               }
               multiple
               loading={loadingReplicas}
               disabled={!selectedHardwareId || loadingReplicas}
-              rules={[{ required: true, message: t('请选择至少一个部署位置') }]}
+              rules={[{ required: true, message: "请选择至少一个部署位置" }]}
               onChange={(value) => setSelectedLocationIds(value)}
               style={{ width: '100%' }}
               dropdownStyle={{ maxHeight: 360, overflowY: 'auto' }}
@@ -1044,7 +1044,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                 content: !optionNode
                   ? ''
                   : loadingReplicas
-                    ? t('部署位置加载中...')
+                    ? "部署位置加载中..."
                     : locationLabelMap[optionNode?.value] ||
                       optionNode?.label ||
                       optionNode?.value ||
@@ -1081,7 +1081,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                         size='small'
                         type={availableCount > 0 ? 'success' : 'danger'}
                       >
-                        {t('可用数量')}: {availableCount}
+                        {"可用数量"}: {availableCount}
                       </Text>
                     </div>
                   </Option>
@@ -1091,7 +1091,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
 
             {typeof locationTotalAvailable === 'number' && (
               <Text size='small' type='tertiary'>
-                {t('全部地区总可用资源')}: {locationTotalAvailable}
+                {"全部地区总可用资源"}: {locationTotalAvailable}
               </Text>
             )}
 
@@ -1099,28 +1099,28 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
               <Col xs={24} md={8}>
                 <Form.InputNumber
                   field='replica_count'
-                  label={t('副本数量')}
+                  label={"副本数量"}
                   placeholder={1}
                   min={1}
                   max={maxAvailableReplicas || 100}
-                  rules={[{ required: true, message: t('请输入副本数量') }]}
+                  rules={[{ required: true, message: "请输入副本数量" }]}
                   onChange={(value) => setReplicaCount(value)}
                   style={{ width: '100%' }}
                 />
                 {maxAvailableReplicas > 0 && (
                   <Text size='small' type='tertiary'>
-                    {t('最大可用')}: {maxAvailableReplicas}
+                    {"最大可用"}: {maxAvailableReplicas}
                   </Text>
                 )}
               </Col>
               <Col xs={24} md={8}>
                 <Form.InputNumber
                   field='duration_hours'
-                  label={t('运行时长（小时）')}
+                  label={"运行时长（小时）"}
                   placeholder={1}
                   min={1}
                   max={8760} // 1 year
-                  rules={[{ required: true, message: t('请输入运行时长') }]}
+                  rules={[{ required: true, message: "请输入运行时长" }]}
                   onChange={(value) => setDurationHours(value)}
                   style={{ width: '100%' }}
                 />
@@ -1130,8 +1130,8 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                   field='traffic_port'
                   label={
                     <Space>
-                      {t('流量端口')}
-                      <Tooltip content={t('容器对外服务的端口号，可选')}>
+                      {"流量端口"}
+                      <Tooltip content={"容器对外服务的端口号，可选"}>
                         <IconHelpCircle />
                       </Tooltip>
                     </Space>
@@ -1147,23 +1147,23 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
 
             <div ref={advancedSectionRef}>
               <Collapse className='mt-4'>
-                <Collapse.Panel header={t('高级配置')} itemKey='advanced'>
+                <Collapse.Panel header={"高级配置"} itemKey='advanced'>
                   <Card>
-                    <Title heading={6}>{t('镜像仓库配置')}</Title>
+                    <Title heading={6}>{"镜像仓库配置"}</Title>
                     <Row gutter={16}>
                       <Col span={12}>
                         <Form.Input
                           field='registry_username'
-                          label={t('镜像仓库用户名')}
-                          placeholder={t('私有镜像仓库的用户名')}
+                          label={"镜像仓库用户名"}
+                          placeholder={"私有镜像仓库的用户名"}
                         />
                       </Col>
                       <Col span={12}>
                         <Form.Input
                           field='registry_secret'
-                          label={t('镜像仓库密码')}
+                          label={"镜像仓库密码"}
                           type='password'
-                          placeholder={t('私有镜像仓库的密码')}
+                          placeholder={"私有镜像仓库的密码"}
                         />
                       </Col>
                     </Row>
@@ -1172,10 +1172,10 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                   <Divider />
 
                   <Card>
-                    <Title heading={6}>{t('容器启动配置')}</Title>
+                    <Title heading={6}>{"容器启动配置"}</Title>
 
                     <div style={{ marginBottom: 16 }}>
-                      <Text strong>{t('启动命令 (Entrypoint)')}</Text>
+                      <Text strong>{"启动命令 (Entrypoint)"}</Text>
                       {entrypoint.map((cmd, index) => (
                         <div
                           key={index}
@@ -1183,7 +1183,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                         >
                           <Input
                             value={cmd}
-                            placeholder={t('例如：/bin/bash')}
+                            placeholder={"例如：/bin/bash"}
                             onChange={(value) =>
                               handleArrayFieldChange(index, value, 'entrypoint')
                             }
@@ -1203,12 +1203,12 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                         onClick={() => handleAddArrayField('entrypoint')}
                         style={{ marginTop: 8 }}
                       >
-                        {t('添加启动命令')}
+                        {"添加启动命令"}
                       </Button>
                     </div>
 
                     <div style={{ marginBottom: 16 }}>
-                      <Text strong>{t('启动参数 (Args)')}</Text>
+                      <Text strong>{"启动参数 (Args)"}</Text>
                       {args.map((arg, index) => (
                         <div
                           key={index}
@@ -1216,7 +1216,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                         >
                           <Input
                             value={arg}
-                            placeholder={t('例如：-c')}
+                            placeholder={"例如：-c"}
                             onChange={(value) =>
                               handleArrayFieldChange(index, value, 'args')
                             }
@@ -1236,7 +1236,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                         onClick={() => handleAddArrayField('args')}
                         style={{ marginTop: 8 }}
                       >
-                        {t('添加启动参数')}
+                        {"添加启动参数"}
                       </Button>
                     </div>
                   </Card>
@@ -1244,15 +1244,15 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                   <Divider />
 
                   <Card>
-                    <Title heading={6}>{t('环境变量')}</Title>
+                    <Title heading={6}>{"环境变量"}</Title>
 
                     <div style={{ marginBottom: 16 }}>
-                      <Text strong>{t('普通环境变量')}</Text>
+                      <Text strong>{"普通环境变量"}</Text>
                       {envVariables.map((env, index) => (
                         <Row key={index} gutter={8} style={{ marginTop: 8 }}>
                           <Col span={10}>
                             <Input
-                              placeholder={t('变量名')}
+                              placeholder={"变量名"}
                               value={env.key}
                               onChange={(value) =>
                                 handleEnvVariableChange(
@@ -1266,7 +1266,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                           </Col>
                           <Col span={10}>
                             <Input
-                              placeholder={t('变量值')}
+                              placeholder={"变量值"}
                               value={env.value}
                               onChange={(value) =>
                                 handleEnvVariableChange(
@@ -1294,12 +1294,12 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                         onClick={() => handleAddEnvVariable('env')}
                         style={{ marginTop: 8 }}
                       >
-                        {t('添加环境变量')}
+                        {"添加环境变量"}
                       </Button>
                     </div>
 
                     <div>
-                      <Text strong>{t('密钥环境变量')}</Text>
+                      <Text strong>{"密钥环境变量"}</Text>
                       {secretEnvVariables.map((env, index) => {
                         const isAutoSecret =
                           imageMode === 'builtin' &&
@@ -1308,7 +1308,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                           <Row key={index} gutter={8} style={{ marginTop: 8 }}>
                             <Col span={10}>
                               <Input
-                                placeholder={t('变量名')}
+                                placeholder={"变量名"}
                                 value={env.key}
                                 onChange={(value) =>
                                   handleEnvVariableChange(
@@ -1323,7 +1323,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                             </Col>
                             <Col span={10}>
                               <Input
-                                placeholder={t('变量值')}
+                                placeholder={"变量值"}
                                 type='password'
                                 value={env.value}
                                 onChange={(value) =>
@@ -1357,7 +1357,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                         onClick={() => handleAddEnvVariable('secret')}
                         style={{ marginTop: 8 }}
                       >
-                        {t('添加密钥环境变量')}
+                        {"添加密钥环境变量"}
                       </Button>
                     </div>
                   </Card>
@@ -1371,11 +1371,11 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
           <Card className='mb-4'>
             <div className='flex flex-wrap items-center justify-between gap-3'>
               <Title heading={6} style={{ margin: 0 }}>
-                {t('价格预估')}
+                {"价格预估"}
               </Title>
               <Space align='center' spacing={12} className='flex flex-wrap'>
                 <Text type='secondary' size='small'>
-                  {t('计价币种')}
+                  {"计价币种"}
                 </Text>
                 <RadioGroup
                   type='button'
@@ -1402,7 +1402,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                     }}
                   >
                     <Text size='small' type='tertiary'>
-                      {t('预估总费用')}
+                      {"预估总费用"}
                     </Text>
                     <div
                       style={{
@@ -1424,7 +1424,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                     }}
                   >
                     <Text size='small' type='tertiary'>
-                      {t('小时费率')}
+                      {"小时费率"}
                     </Text>
                     <Text strong>
                       {typeof priceEstimation.price_breakdown?.hourly_rate ===
@@ -1441,7 +1441,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
                     }}
                   >
                     <Text size='small' type='tertiary'>
-                      {t('计算成本')}
+                      {"计算成本"}
                     </Text>
                     <Text strong>
                       {typeof priceEstimation.price_breakdown?.compute_cost ===
@@ -1478,7 +1478,7 @@ const CreateDeploymentModal = ({ visible, onCancel, onSuccess, t }) => {
               <Space align='center' spacing={8} style={{ marginTop: 12 }}>
                 <Spin size='small' />
                 <Text size='small' type='tertiary'>
-                  {t('价格重新计算中...')}
+                  {"价格重新计算中..."}
                 </Text>
               </Space>
             )}

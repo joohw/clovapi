@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { Card, Button, Typography, Tag } from '@douyinfe/semi-ui';
 import { copy, showSuccess } from '../../../helpers';
 
@@ -24,7 +23,7 @@ const parseChannelKeys = (keyData, t) => {
           content:
             typeof item === 'string' ? item : JSON.stringify(item, null, 2),
           type: typeof item === 'string' ? 'text' : 'json',
-          label: `${t('密钥')} ${index + 1}`,
+          label: `${"密钥"} ${index + 1}`,
         }));
       }
     } catch (e) {
@@ -40,7 +39,7 @@ const parseChannelKeys = (keyData, t) => {
       id: index,
       content: line.trim(),
       type: 'text',
-      label: `${t('密钥')} ${index + 1}`,
+      label: `${"密钥"} ${index + 1}`,
     }));
   }
 
@@ -50,7 +49,7 @@ const parseChannelKeys = (keyData, t) => {
       id: 0,
       content: trimmed,
       type: trimmed.startsWith('{') ? 'json' : 'text',
-      label: t('密钥'),
+      label: "密钥",
     },
   ];
 };
@@ -71,19 +70,17 @@ const ChannelKeyDisplay = ({
   showWarning = true,
   warningText,
 }) => {
-  const { t } = useTranslation();
-
   const parsedKeys = parseChannelKeys(keyData, t);
   const isMultipleKeys = parsedKeys.length > 1;
 
   const handleCopyAll = () => {
     copy(keyData);
-    showSuccess(t('所有密钥已复制到剪贴板'));
+    showSuccess("所有密钥已复制到剪贴板");
   };
 
   const handleCopyKey = (content) => {
     copy(content);
-    showSuccess(t('密钥已复制到剪贴板'));
+    showSuccess("密钥已复制到剪贴板");
   };
 
   return (
@@ -103,7 +100,7 @@ const ChannelKeyDisplay = ({
             />
           </svg>
           <Typography.Text strong className='text-green-700'>
-            {successText || t('验证成功')}
+            {successText || "验证成功"}
           </Typography.Text>
         </div>
       )}
@@ -112,12 +109,12 @@ const ChannelKeyDisplay = ({
       <div className='space-y-3'>
         <div className='flex items-center justify-between'>
           <Typography.Text strong>
-            {isMultipleKeys ? t('渠道密钥列表') : t('渠道密钥')}
+            {isMultipleKeys ? "渠道密钥列表" : "渠道密钥"}
           </Typography.Text>
           {isMultipleKeys && (
             <div className='flex items-center gap-2'>
               <Typography.Text type='tertiary' size='small'>
-                {t('共 {{count}} 个密钥', { count: parsedKeys.length })}
+                {`共 ${parsedKeys.length} 个密钥`}
               </Typography.Text>
               <Button
                 size='small'
@@ -125,7 +122,7 @@ const ChannelKeyDisplay = ({
                 theme='outline'
                 onClick={handleCopyAll}
               >
-                {t('复制全部')}
+                {"复制全部"}
               </Button>
             </div>
           )}
@@ -149,7 +146,7 @@ const ChannelKeyDisplay = ({
                   <div className='flex items-center gap-2'>
                     {keyItem.type === 'json' && (
                       <Tag size='small' color='blue'>
-                        {t('JSON')}
+                        {"JSON"}
                       </Tag>
                     )}
                     <Button
@@ -168,7 +165,7 @@ const ChannelKeyDisplay = ({
                       }
                       onClick={() => handleCopyKey(keyItem.content)}
                     >
-                      {t('复制')}
+                      {"复制"}
                     </Button>
                   </div>
                 </div>
@@ -188,7 +185,7 @@ const ChannelKeyDisplay = ({
                     size='small'
                     className='block'
                   >
-                    {t('JSON格式密钥，请确保格式正确')}
+                    {"JSON格式密钥，请确保格式正确"}
                   </Typography.Text>
                 )}
               </div>
@@ -214,9 +211,7 @@ const ChannelKeyDisplay = ({
                   clipRule='evenodd'
                 />
               </svg>
-              {t(
-                '检测到多个密钥，您可以单独复制每个密钥，或点击复制全部获取完整内容。',
-              )}
+              {"检测到多个密钥，您可以单独复制每个密钥，或点击复制全部获取完整内容。"}
             </Typography.Text>
           </div>
         )}
@@ -242,13 +237,11 @@ const ChannelKeyDisplay = ({
                 strong
                 className='text-yellow-800 dark:text-yellow-200'
               >
-                {t('安全提醒')}
+                {"安全提醒"}
               </Typography.Text>
               <Typography.Text className='block text-yellow-700 dark:text-yellow-300 text-sm mt-1'>
                 {warningText ||
-                  t(
-                    '请妥善保管密钥信息，不要泄露给他人。如有安全疑虑，请及时更换密钥。',
-                  )}
+                  "请妥善保管密钥信息，不要泄露给他人。如有安全疑虑，请及时更换密钥。"}
               </Typography.Text>
             </div>
           </div>

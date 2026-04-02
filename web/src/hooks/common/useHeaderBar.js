@@ -1,6 +1,5 @@
 import { useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { UserContext } from '../../context/User';
 import { StatusContext } from '../../context/Status';
 import { useActualTheme } from '../../context/Theme';
@@ -10,7 +9,6 @@ import { useSidebarCollapsed } from './useSidebarCollapsed';
 import { useMinimumLoadingTime } from './useMinimumLoadingTime';
 
 export const useHeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
-  const { t } = useTranslation();
   const [userState, userDispatch] = useContext(UserContext);
   const [statusState] = useContext(StatusContext);
   const isMobile = useIsMobile();
@@ -95,11 +93,11 @@ export const useHeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
   // Actions
   const logout = useCallback(async () => {
     await API.get('/api/user/logout');
-    showSuccess(t('注销成功!'));
+    showSuccess("注销成功!");
     userDispatch({ type: 'logout' });
     localStorage.removeItem('user');
     navigate('/login');
-  }, [navigate, t, userDispatch]);
+  }, [navigate, userDispatch]);
 
   const handleMobileMenuToggle = useCallback(() => {
     if (isMobile) {
@@ -133,6 +131,5 @@ export const useHeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
     logout,
     handleMobileMenuToggle,
     navigate,
-    t,
   };
 };

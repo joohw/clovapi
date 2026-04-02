@@ -37,34 +37,34 @@ const ColumnSelectorModal = ({
 
   return (
     <Modal
-      title={t('列设置')}
+      title={"列设置"}
       visible={showColumnSelector}
       onCancel={() => setShowColumnSelector(false)}
       footer={
         <div className='flex justify-end'>
-          <Button onClick={() => initDefaultColumns()}>{t('重置')}</Button>
+          <Button onClick={() => initDefaultColumns()}>{"重置"}</Button>
           <Button onClick={() => setShowColumnSelector(false)}>
-            {t('取消')}
+            {"取消"}
           </Button>
           <Button onClick={() => setShowColumnSelector(false)}>
-            {t('确定')}
+            {"确定"}
           </Button>
         </div>
       }
     >
       <div style={{ marginBottom: 20 }}>
         <div style={{ marginBottom: 16 }}>
-          <div style={{ marginBottom: 8, fontWeight: 600 }}>{t('计费显示模式')}</div>
+          <div style={{ marginBottom: 8, fontWeight: 600 }}>{"计费显示模式"}</div>
           <RadioGroup
             type='button'
             value={billingDisplayMode}
             onChange={handleBillingDisplayModeChange}
           >
             <Radio value='price'>
-              {isTokensDisplay ? t('价格模式') : t('价格模式（默认）')}
+              {isTokensDisplay ? "价格模式" : "价格模式（默认）"}
             </Radio>
             <Radio value='ratio'>
-              {isTokensDisplay ? t('倍率模式（默认）') : t('倍率模式')}
+              {isTokensDisplay ? "倍率模式（默认）" : "倍率模式"}
             </Radio>
           </RadioGroup>
         </div>
@@ -76,7 +76,7 @@ const ColumnSelectorModal = ({
           }
           onChange={(e) => handleSelectAll(e.target.checked)}
         >
-          {t('全选')}
+          {"全选"}
         </Checkbox>
       </div>
       <div

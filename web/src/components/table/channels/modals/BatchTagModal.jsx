@@ -12,7 +12,7 @@ const BatchTagModal = ({
 }) => {
   return (
     <Modal
-      title={t('批量设置标签')}
+      title={"批量设置标签"}
       visible={showBatchSetTag}
       onOk={batchSetChannelTag}
       onCancel={() => setShowBatchSetTag(false)}
@@ -22,16 +22,16 @@ const BatchTagModal = ({
       className='!rounded-lg'
     >
       <div className='mb-5'>
-        <Typography.Text>{t('请输入要设置的标签名称')}</Typography.Text>
+        <Typography.Text>{"请输入要设置的标签名称"}</Typography.Text>
       </div>
       <Input
-        placeholder={t('请输入标签名称')}
+        placeholder={"请输入标签名称"}
         value={batchSetTagValue}
         onChange={(v) => setBatchSetTagValue(v)}
       />
       <div className='mt-4'>
         <Typography.Text type='secondary'>
-          {t('已选择 ${count} 个渠道').replace(
+          {"已选择 ${count} 个渠道".replace(
             '${count}',
             selectedChannels.length,
           )}

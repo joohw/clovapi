@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Modal } from '@douyinfe/semi-ui';
 import {
   API,
@@ -13,8 +12,6 @@ import { ITEMS_PER_PAGE } from '../../constants';
 import { useTableCompactMode } from '../common/useTableCompactMode';
 
 export const useMjLogsData = () => {
-  const { t } = useTranslation();
-
   // Define column keys for selection
   const COLUMN_KEYS = {
     SUBMIT_TIME: 'submit_time',
@@ -240,9 +237,9 @@ export const useMjLogsData = () => {
   // Copy text function
   const copyText = async (text) => {
     if (await copy(text)) {
-      showSuccess(t('已复制：') + text);
+      showSuccess("已复制：" + text);
     } else {
-      Modal.error({ title: t('无法复制到剪贴板，请手动复制'), content: text });
+      Modal.error({ title: "无法复制到剪贴板，请手动复制", content: text });
     }
   };
 
@@ -312,8 +309,5 @@ export const useMjLogsData = () => {
     openImageModal,
     enrichLogs,
     syncPageData,
-
-    // Translation
-    t,
   };
 };

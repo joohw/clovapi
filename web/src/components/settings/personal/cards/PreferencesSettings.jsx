@@ -12,10 +12,10 @@ const PreferencesSettings = ({ t }) => {
 				</Avatar>
 				<div>
 					<Typography.Text className="text-lg font-medium">
-						{t("偏好设置")}
+						{"偏好设置"}
 					</Typography.Text>
 					<div className="text-xs text-gray-600 dark:text-gray-400">
-						{t("界面语言和其他个人偏好")}
+						{"界面语言和其他个人偏好"}
 					</div>
 				</div>
 			</div>
@@ -31,10 +31,10 @@ const PreferencesSettings = ({ t }) => {
 						</div>
 						<div>
 							<Typography.Title heading={6} className="mb-1">
-							{t("界面语言")}
+							{"界面语言"}
 							</Typography.Title>
 							<Typography.Text type="tertiary" className="text-sm">
-							{t("当前版本固定为简体中文")}
+							{"当前版本固定为简体中文"}
 							</Typography.Text>
 						</div>
 					</div>
@@ -47,9 +47,7 @@ const PreferencesSettings = ({ t }) => {
 			{/* Additional info */}
 			<div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
 				<Typography.Text type="tertiary">
-					{t(
-						"提示：当前不支持切换语言，界面统一使用简体中文。",
-					)}
+					{"提示：当前不支持切换语言，界面统一使用简体中文。"}
 				</Typography.Text>
 			</div>
 		</Card>

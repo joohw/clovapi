@@ -9,7 +9,6 @@ const renderYesNoTag = (value) => (
 );
 
 export const getPricingTableColumns = ({
-  t,
   copyText,
   showRatio,
 }) => {
@@ -24,7 +23,7 @@ export const getPricingTableColumns = ({
   };
 
   const modelNameColumn = {
-    title: t('Model'),
+    title: "Model",
     dataIndex: 'model_name',
     render: (text) => {
       return renderModelTag(text, {
@@ -38,25 +37,19 @@ export const getPricingTableColumns = ({
   };
 
   const vendorColumn = {
-    title: t('Provider'),
+    title: "Provider",
     dataIndex: 'vendor_name',
     render: (text) => text || '-',
   };
 
-  const toolCallColumn = {
-    title: t('Tool Call'),
-    dataIndex: 'tool_call',
-    render: (text) => renderBackendValue(text),
-  };
-
   const reasoningColumn = {
-    title: t('Reasoning'),
+    title: "Reasoning",
     dataIndex: 'reasoning',
     render: (text) => renderBackendValue(text),
   };
 
   const inputColumn = {
-    title: t('Input'),
+    title: "Input",
     dataIndex: 'input',
     render: (text) => renderBackendValue(text),
   };
@@ -64,14 +57,13 @@ export const getPricingTableColumns = ({
   const columns = [
     vendorColumn,
     modelNameColumn,
-    toolCallColumn,
     reasoningColumn,
     inputColumn,
   ];
 
   if (showRatio) {
     columns.push({
-      title: t('倍率'),
+      title: "倍率",
       dataIndex: 'ratio',
       render: (text, record) => {
         if (record?.used_group_ratio !== undefined) {

@@ -67,7 +67,6 @@ const NotificationSettings = ({
       enabled: true,
       channel: true,
       models: true,
-      deployment: true,
       subscription: true,
       redemption: true,
       user: true,
@@ -122,7 +121,7 @@ const NotificationSettings = ({
         sidebar_modules: JSON.stringify(sidebarModulesUser),
       });
       if (res.data.success) {
-        showSuccess(t('侧边栏设置保存成功'));
+        showSuccess("侧边栏设置保存成功");
 
         // 刷新useSidebar钩子中的用户配置，实现实时更新
         await refreshUserConfig();
@@ -130,7 +129,7 @@ const NotificationSettings = ({
         showError(res.data.message);
       }
     } catch (error) {
-      showError(t('保存失败'));
+      showError("保存失败");
     }
     setSidebarLoading(false);
   };
@@ -151,7 +150,6 @@ const NotificationSettings = ({
         enabled: true,
         channel: true,
         models: true,
-        deployment: true,
         subscription: true,
         redemption: true,
         user: true,
@@ -227,74 +225,69 @@ const NotificationSettings = ({
   const sectionConfigs = [
     {
       key: 'chat',
-      title: t('聊天区域'),
-      description: t('操练场和聊天功能'),
+      title: "聊天区域",
+      description: "操练场和聊天功能",
       modules: [
         {
           key: 'playground',
-          title: t('操练场'),
-          description: t('AI模型测试环境'),
+          title: "操练场",
+          description: "AI模型测试环境",
         },
-        { key: 'chat', title: t('聊天'), description: t('聊天会话管理') },
+        { key: 'chat', title: "聊天", description: "聊天会话管理" },
       ],
     },
     {
       key: 'console',
-      title: t('控制台区域'),
-      description: t('数据管理和日志查看'),
+      title: "控制台区域",
+      description: "数据管理和日志查看",
       modules: [
-        { key: 'detail', title: t('数据看板'), description: t('系统数据统计') },
-        { key: 'token', title: t('令牌管理'), description: t('API令牌管理') },
-        { key: 'log', title: t('使用日志'), description: t('API使用记录') },
+        { key: 'detail', title: "数据看板", description: "系统数据统计" },
+        { key: 'token', title: 'ApiKeys', description: 'API Keys 管理' },
+        { key: 'log', title: "使用日志", description: "API使用记录" },
         {
           key: 'midjourney',
-          title: t('绘图日志'),
-          description: t('绘图任务记录'),
+          title: "绘图日志",
+          description: "绘图任务记录",
         },
-        { key: 'task', title: t('任务日志'), description: t('系统任务记录') },
+        { key: 'task', title: "任务日志", description: "系统任务记录" },
       ],
     },
     {
       key: 'personal',
-      title: t('个人中心区域'),
-      description: t('用户个人功能'),
+      title: "个人中心区域",
+      description: "用户个人功能",
       modules: [
-        { key: 'topup', title: t('钱包管理'), description: t('余额充值管理') },
+        { key: 'topup', title: "钱包管理", description: "余额充值管理" },
         {
           key: 'personal',
-          title: t('个人设置'),
-          description: t('个人信息设置'),
+          title: "个人设置",
+          description: "个人信息设置",
         },
       ],
     },
     // 管理员区域：根据后端权限控制显示
     {
       key: 'admin',
-      title: t('管理员区域'),
-      description: t('系统管理功能'),
+      title: "管理员区域",
+      description: "系统管理功能",
       modules: [
-        { key: 'channel', title: t('渠道管理'), description: t('API渠道配置') },
-        { key: 'models', title: t('模型管理'), description: t('AI模型配置') },
-        {
-          key: 'deployment',
-          title: t('模型部署'),
-          description: t('模型部署管理'),
-        },
+        { key: 'channel', title: "渠道管理", description: "API渠道配置" },
+        { key: 'models', title: "模型管理", description: "AI模型配置" },
         {
           key: 'subscription',
-          title: t('订阅管理'),
-          description: t('订阅套餐管理'),
+          title: "订阅管理",
+          description: "订阅套餐管理",
         },
         {
           key: 'redemption',
-          title: t('兑换码管理'),
-          description: t('兑换码生成管理'),
+          title: "兑换码管理",
+          description: "兑换码生成管理",
         },
-        { key: 'user', title: t('用户管理'), description: t('用户账户管理') },
+        { key: 'user', title: "用户管理", description: "用户账户管理" },
         {
           key: 'setting',
-          title: t('系统设置'),
-          description: t('系统参数配置'),
+          title: "系统设置",
+          description: "系统参数配置",
         },
       ],
     },
@@ -325,7 +318,7 @@ const NotificationSettings = ({
         })
         .catch((errors) => {
           console.log('表单验证失败:', errors);
-          Toast.error(t('请检查表单填写是否正确'));
+          Toast.error("请检查表单填写是否正确");
         });
     } else {
       saveNotificationSettings();
@@ -345,7 +338,7 @@ const NotificationSettings = ({
                 onClick={resetSidebarModules}
                 className='!rounded-lg'
               >
-                {t('重置为默认')}
+                {"重置为默认"}
               </Button>
               <Button
                 type='primary'
@@ -353,13 +346,13 @@ const NotificationSettings = ({
                 loading={sidebarLoading}
                 className='!rounded-lg'
               >
-                {t('保存设置')}
+                {"保存设置"}
               </Button>
             </>
           ) : (
             // 其他标签页的通用保存按钮
             <Button type='primary' onClick={handleSubmit}>
-              {t('保存设置')}
+              {"保存设置"}
             </Button>
           )}
         </div>
@@ -372,10 +365,10 @@ const NotificationSettings = ({
         </Avatar>
         <div>
           <Typography.Text className='text-lg font-medium'>
-            {t('其他设置')}
+            {"其他设置"}
           </Typography.Text>
           <div className='text-xs text-gray-600'>
-            {t('通知、价格和隐私相关设置')}
+            {"通知、价格和隐私相关设置"}
           </div>
         </div>
       </div>
@@ -396,7 +389,7 @@ const NotificationSettings = ({
               tab={
                 <div className='flex items-center'>
                   <Bell size={16} className='mr-2' />
-                  {t('通知配置')}
+                  {"通知配置"}
                 </div>
               }
               itemKey='notification'
@@ -404,28 +397,28 @@ const NotificationSettings = ({
               <div className='py-4'>
                 <Form.RadioGroup
                   field='warningType'
-                  label={t('通知方式')}
+                  label={"通知方式"}
                   initValue={notificationSettings.warningType}
                   onChange={(value) => handleFormChange('warningType', value)}
-                  rules={[{ required: true, message: t('请选择通知方式') }]}
+                  rules={[{ required: true, message: "请选择通知方式" }]}
                 >
-                  <Radio value='email'>{t('邮件通知')}</Radio>
-                  <Radio value='webhook'>{t('Webhook通知')}</Radio>
-                  <Radio value='bark'>{t('Bark通知')}</Radio>
-                  <Radio value='gotify'>{t('Gotify通知')}</Radio>
+                  <Radio value='email'>{"邮件通知"}</Radio>
+                  <Radio value='webhook'>{"Webhook通知"}</Radio>
+                  <Radio value='bark'>{"Bark通知"}</Radio>
+                  <Radio value='gotify'>{"Gotify通知"}</Radio>
                 </Form.RadioGroup>
 
                 <Form.AutoComplete
                   field='warningThreshold'
                   label={
                     <span>
-                      {t('额度预警阈值')}{' '}
+                      {"额度预警阈值"}{' '}
                       {renderQuotaWithPrompt(
                         notificationSettings.warningThreshold,
                       )}
                     </span>
                   }
-                  placeholder={t('请输入预警额度')}
+                  placeholder={"请输入预警额度"}
                   data={[
                     { value: 100000, label: '0.2$' },
                     { value: 500000, label: '1$' },
@@ -434,17 +427,15 @@ const NotificationSettings = ({
                   ]}
                   onChange={(val) => handleFormChange('warningThreshold', val)}
                   prefix={<IconBell />}
-                  extraText={t(
-                    '当钱包或订阅剩余额度低于此数值时，系统将通过选择的方式发送通知',
-                  )}
+                  extraText={"当钱包或订阅剩余额度低于此数值时，系统将通过选择的方式发送通知"}
                   style={{ width: '100%', maxWidth: '300px' }}
                   rules={[
-                    { required: true, message: t('请输入预警阈值') },
+                    { required: true, message: "请输入预警阈值" },
                     {
                       validator: (rule, value) => {
                         const numValue = Number(value);
                         if (isNaN(numValue) || numValue <= 0) {
-                          return Promise.reject(t('预警阈值必须为正数'));
+                          return Promise.reject("预警阈值必须为正数");
                         }
                         return Promise.resolve();
                       },
@@ -455,15 +446,13 @@ const NotificationSettings = ({
                 {isAdminOrRoot && (
                   <Form.Switch
                     field='upstreamModelUpdateNotifyEnabled'
-                    label={t('接收上游模型更新通知')}
-                    checkedText={t('开')}
-                    uncheckedText={t('关')}
+                    label={"接收上游模型更新通知"}
+                    checkedText={"开"}
+                    uncheckedText={"关"}
                     onChange={(value) =>
                       handleFormChange('upstreamModelUpdateNotifyEnabled', value)
                     }
-                    extraText={t(
-                      '仅管理员可用。开启后，当系统定时检测全部渠道发现上游模型变更或检测异常时，将按你选择的通知方式发送汇总通知；渠道或模型过多时会自动省略部分明细。',
-                    )}
+                    extraText={"仅管理员可用。开启后，当系统定时检测全部渠道发现上游模型变更或检测异常时，将按你选择的通知方式发送汇总通知；渠道或模型过多时会自动省略部分明细。"}
                   />
                 )}
 
@@ -471,15 +460,13 @@ const NotificationSettings = ({
                 {notificationSettings.warningType === 'email' && (
                   <Form.Input
                     field='notificationEmail'
-                    label={t('通知邮箱')}
-                    placeholder={t('留空则使用账号绑定的邮箱')}
+                    label={"通知邮箱"}
+                    placeholder={"留空则使用账号绑定的邮箱"}
                     onChange={(val) =>
                       handleFormChange('notificationEmail', val)
                     }
                     prefix={<IconMail />}
-                    extraText={t(
-                      '设置用于接收额度预警的邮箱地址，不填则使用账号绑定的邮箱',
-                    )}
+                    extraText={"设置用于接收额度预警的邮箱地址，不填则使用账号绑定的邮箱"}
                     showClear
                   />
                 )}
@@ -489,42 +476,36 @@ const NotificationSettings = ({
                   <>
                     <Form.Input
                       field='webhookUrl'
-                      label={t('Webhook地址')}
-                      placeholder={t(
-                        '请输入Webhook地址，例如: https://example.com/webhook',
-                      )}
+                      label={"Webhook地址"}
+                      placeholder={"请输入Webhook地址，例如: https://example.com/webhook"}
                       onChange={(val) => handleFormChange('webhookUrl', val)}
                       prefix={<IconLink />}
-                      extraText={t(
-                        '只支持HTTPS，系统将以POST方式发送通知，请确保地址可以接收POST请求',
-                      )}
+                      extraText={"只支持HTTPS，系统将以POST方式发送通知，请确保地址可以接收POST请求"}
                       showClear
                       rules={[
                         {
                           required:
                             notificationSettings.warningType === 'webhook',
-                          message: t('请输入Webhook地址'),
+                          message: "请输入Webhook地址",
                         },
                         {
                           pattern: /^https:\/\/.+/,
-                          message: t('Webhook地址必须以https://开头'),
+                          message: "Webhook地址必须以https://开头",
                         },
                       ]}
                     />
 
                     <Form.Input
                       field='webhookSecret'
-                      label={t('接口凭证')}
-                      placeholder={t('请输入密钥')}
+                      label={"接口凭证"}
+                      placeholder={"请输入密钥"}
                       onChange={(val) => handleFormChange('webhookSecret', val)}
                       prefix={<IconKey />}
-                      extraText={t(
-                        '密钥将以Bearer方式添加到请求头中，用于验证webhook请求的合法性',
-                      )}
+                      extraText={"密钥将以Bearer方式添加到请求头中，用于验证webhook请求的合法性"}
                       showClear
                     />
 
-                    <Form.Slot label={t('Webhook请求结构说明')}>
+                    <Form.Slot label={"Webhook请求结构说明"}>
                       <div>
                         <div style={{ height: '200px', marginBottom: '12px' }}>
                           <CodeViewer
@@ -543,21 +524,21 @@ const NotificationSettings = ({
                         <div className='text-xs text-gray-500 leading-relaxed'>
                           <div>
                             <strong>type:</strong>{' '}
-                            {t('通知类型 (quota_exceed: 额度预警)')}{' '}
+                            {"通知类型 (quota_exceed: 额度预警)"}{' '}
                           </div>
                           <div>
-                            <strong>title:</strong> {t('通知标题')}
+                            <strong>title:</strong> {"通知标题"}
                           </div>
                           <div>
                             <strong>content:</strong>{' '}
-                            {t('通知内容，支持 {{value}} 变量占位符')}
+                            {"通知内容，支持 {{value}} 变量占位符"}
                           </div>
                           <div>
                             <strong>values:</strong>{' '}
-                            {t('按顺序替换content中的变量占位符')}
+                            {"按顺序替换content中的变量占位符"}
                           </div>
                           <div>
-                            <strong>timestamp:</strong> {t('Unix时间戳')}
+                            <strong>timestamp:</strong> {"Unix时间戳"}
                           </div>
                         </div>
                       </div>
@@ -570,31 +551,27 @@ const NotificationSettings = ({
                   <>
                     <Form.Input
                       field='barkUrl'
-                      label={t('Bark推送URL')}
-                      placeholder={t(
-                        '请输入Bark推送URL，例如: https://api.day.app/yourkey/{{title}}/{{content}}',
-                      )}
+                      label={"Bark推送URL"}
+                      placeholder={"请输入Bark推送URL，例如: https://api.day.app/yourkey/{{title}}/{{content}}"}
                       onChange={(val) => handleFormChange('barkUrl', val)}
                       prefix={<IconLink />}
-                      extraText={t(
-                        '支持HTTP和HTTPS，模板变量: {{title}} (通知标题), {{content}} (通知内容)',
-                      )}
+                      extraText={"支持HTTP和HTTPS，模板变量: {{title}} (通知标题), {{content}} (通知内容)"}
                       showClear
                       rules={[
                         {
                           required: notificationSettings.warningType === 'bark',
-                          message: t('请输入Bark推送URL'),
+                          message: "请输入Bark推送URL",
                         },
                         {
                           pattern: /^https?:\/\/.+/,
-                          message: t('Bark推送URL必须以http://或https://开头'),
+                          message: "Bark推送URL必须以http://或https://开头",
                         },
                       ]}
                     />
 
                     <div className='mt-3 p-4 bg-gray-50/50 rounded-xl'>
                       <div className='text-sm text-gray-700 mb-3'>
-                        <strong>{t('模板示例')}</strong>
+                        <strong>{"模板示例"}</strong>
                       </div>
                       <div className='text-xs text-gray-600 font-mono bg-white p-3 rounded-lg shadow-sm mb-4'>
                         https://api.day.app/yourkey/{'{{title}}'}/
@@ -602,14 +579,14 @@ const NotificationSettings = ({
                       </div>
                       <div className='text-xs text-gray-500 space-y-2'>
                         <div>
-                          • <strong>{'title'}:</strong> {t('通知标题')}
+                          • <strong>{'title'}:</strong> {"通知标题"}
                         </div>
                         <div>
-                          • <strong>{'content'}:</strong> {t('通知内容')}
+                          • <strong>{'content'}:</strong> {"通知内容"}
                         </div>
                         <div className='mt-3 pt-3 border-t border-gray-200'>
                           <span className='text-gray-400'>
-                            {t('更多参数请参考')}
+                            {"更多参数请参考"}
                           </span>{' '}
                           <a
                             href='https://github.com/Finb/Bark'
@@ -617,7 +594,7 @@ const NotificationSettings = ({
                             rel='noopener noreferrer'
                             className='text-blue-500 hover:text-blue-600 font-medium'
                           >
-                            Bark {t('官方文档')}
+                            Bark {"官方文档"}
                           </a>
                         </div>
                       </div>
@@ -630,87 +607,77 @@ const NotificationSettings = ({
                   <>
                     <Form.Input
                       field='gotifyUrl'
-                      label={t('Gotify服务器地址')}
-                      placeholder={t(
-                        '请输入Gotify服务器地址，例如: https://gotify.example.com',
-                      )}
+                      label={"Gotify服务器地址"}
+                      placeholder={"请输入Gotify服务器地址，例如: https://gotify.example.com"}
                       onChange={(val) => handleFormChange('gotifyUrl', val)}
                       prefix={<IconLink />}
-                      extraText={t(
-                        '支持HTTP和HTTPS，填写Gotify服务器的完整URL地址',
-                      )}
+                      extraText={"支持HTTP和HTTPS，填写Gotify服务器的完整URL地址"}
                       showClear
                       rules={[
                         {
                           required:
                             notificationSettings.warningType === 'gotify',
-                          message: t('请输入Gotify服务器地址'),
+                          message: "请输入Gotify服务器地址",
                         },
                         {
                           pattern: /^https?:\/\/.+/,
-                          message: t(
-                            'Gotify服务器地址必须以http://或https://开头',
-                          ),
+                          message: "Gotify服务器地址必须以http://或https://开头",
                         },
                       ]}
                     />
 
                     <Form.Input
                       field='gotifyToken'
-                      label={t('Gotify应用令牌')}
-                      placeholder={t('请输入Gotify应用令牌')}
+                      label={"Gotify应用令牌"}
+                      placeholder={"请输入Gotify应用令牌"}
                       onChange={(val) => handleFormChange('gotifyToken', val)}
                       prefix={<IconKey />}
-                      extraText={t(
-                        '在Gotify服务器创建应用后获得的令牌，用于发送通知',
-                      )}
+                      extraText={"在Gotify服务器创建应用后获得的令牌，用于发送通知"}
                       showClear
                       rules={[
                         {
                           required:
                             notificationSettings.warningType === 'gotify',
-                          message: t('请输入Gotify应用令牌'),
+                          message: "请输入Gotify应用令牌",
                         },
                       ]}
                     />
 
                     <Form.AutoComplete
                       field='gotifyPriority'
-                      label={t('消息优先级')}
-                      placeholder={t('请选择消息优先级')}
+                      label={"消息优先级"}
+                      placeholder={"请选择消息优先级"}
                       data={[
-                        { value: 0, label: t('0 - 最低') },
-                        { value: 2, label: t('2 - 低') },
-                        { value: 5, label: t('5 - 正常（默认）') },
-                        { value: 8, label: t('8 - 高') },
-                        { value: 10, label: t('10 - 最高') },
+                        { value: 0, label: "0 - 最低" },
+                        { value: 2, label: "2 - 低" },
+                        { value: 5, label: "5 - 正常（默认）" },
+                        { value: 8, label: "8 - 高" },
+                        { value: 10, label: "10 - 最高" },
                       ]}
                       onChange={(val) =>
                         handleFormChange('gotifyPriority', val)
                       }
                       prefix={<IconBell />}
-                      extraText={t('消息优先级，范围0-10，默认为5')}
+                      extraText={"消息优先级，范围0-10，默认为5"}
                       style={{ width: '100%', maxWidth: '300px' }}
                     />
 
                     <div className='mt-3 p-4 bg-gray-50/50 rounded-xl'>
                       <div className='text-sm text-gray-700 mb-3'>
-                        <strong>{t('配置说明')}</strong>
+                        <strong>{"配置说明"}</strong>
                       </div>
                       <div className='text-xs text-gray-500 space-y-2'>
                         <div>
-                          1. {t('在Gotify服务器的应用管理中创建新应用')}
+                          1. {"在Gotify服务器的应用管理中创建新应用"}
                         </div>
                         <div>
                           2.{' '}
-                          {t(
-                            '复制应用的令牌（Token）并填写到上方的应用令牌字段',
-                          )}
+                          {"复制应用的令牌（Token）并填写到上方的应用令牌字段"}
                         </div>
-                        <div>3. {t('填写Gotify服务器的完整URL地址')}</div>
+                        <div>3. {"填写Gotify服务器的完整URL地址"}</div>
                         <div className='mt-3 pt-3 border-t border-gray-200'>
                           <span className='text-gray-400'>
-                            {t('更多信息请参考')}
+                            {"更多信息请参考"}
                           </span>{' '}
                           <a
                             href='https://gotify.net/'
@@ -718,7 +685,7 @@ const NotificationSettings = ({
                             rel='noopener noreferrer'
                             className='text-blue-500 hover:text-blue-600 font-medium'
                           >
-                            Gotify {t('官方文档')}
+                            Gotify {"官方文档"}
                           </a>
                         </div>
                       </div>
@@ -733,7 +700,7 @@ const NotificationSettings = ({
               tab={
                 <div className='flex items-center'>
                   <DollarSign size={16} className='mr-2' />
-                  {t('价格设置')}
+                  {"价格设置"}
                 </div>
               }
               itemKey='pricing'
@@ -741,15 +708,13 @@ const NotificationSettings = ({
               <div className='py-4'>
                 <Form.Switch
                   field='acceptUnsetModelRatioModel'
-                  label={t('接受未设置价格模型')}
-                  checkedText={t('开')}
-                  uncheckedText={t('关')}
+                  label={"接受未设置价格模型"}
+                  checkedText={"开"}
+                  uncheckedText={"关"}
                   onChange={(value) =>
                     handleFormChange('acceptUnsetModelRatioModel', value)
                   }
-                  extraText={t(
-                    '当模型没有设置价格时仍接受调用，仅当您信任该网站时使用，可能会产生高额费用',
-                  )}
+                  extraText={"当模型没有设置价格时仍接受调用，仅当您信任该网站时使用，可能会产生高额费用"}
                 />
               </div>
             </TabPane>
@@ -759,7 +724,7 @@ const NotificationSettings = ({
               tab={
                 <div className='flex items-center'>
                   <ShieldCheck size={16} className='mr-2' />
-                  {t('隐私设置')}
+                  {"隐私设置"}
                 </div>
               }
               itemKey='privacy'
@@ -767,13 +732,11 @@ const NotificationSettings = ({
               <div className='py-4'>
                 <Form.Switch
                   field='recordIpLog'
-                  label={t('记录请求与错误日志IP')}
-                  checkedText={t('开')}
-                  uncheckedText={t('关')}
+                  label={"记录请求与错误日志IP"}
+                  checkedText={"开"}
+                  uncheckedText={"关"}
                   onChange={(value) => handleFormChange('recordIpLog', value)}
-                  extraText={t(
-                    '开启后，仅"消费"和"错误"日志将记录您的客户端IP地址',
-                  )}
+                  extraText={"开启后，仅\"消费\"和\"错误\"日志将记录您的客户端IP地址"}
                 />
               </div>
             </TabPane>
@@ -784,7 +747,7 @@ const NotificationSettings = ({
                 tab={
                   <div className='flex items-center'>
                     <Settings size={16} className='mr-2' />
-                    {t('边栏设置')}
+                    {"边栏设置"}
                   </div>
                 }
                 itemKey='sidebar'
@@ -800,7 +763,7 @@ const NotificationSettings = ({
                         color: 'var(--semi-color-text-2)',
                       }}
                     >
-                      {t('您可以个性化设置侧边栏的要显示功能')}
+                      {"您可以个性化设置侧边栏的要显示功能"}
                     </Typography.Text>
                   </div>
                   {/* 边栏设置功能区域容器 */}

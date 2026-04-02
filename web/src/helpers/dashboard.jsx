@@ -131,7 +131,7 @@ export const createFormField = (Component, props, FORM_FIELD_PROPS) => (
 // ========== 操作处理函数 ==========
 export const handleCopyUrl = async (url, t) => {
   if (await copy(url)) {
-    showSuccess(t('复制成功'));
+    showSuccess("复制成功");
   }
 };
 
@@ -146,7 +146,7 @@ export const getUptimeStatusColor = (status, uptimeStatusMap) =>
   uptimeStatusMap[status]?.color || '#8b9aa7';
 
 export const getUptimeStatusText = (status, uptimeStatusMap, t) =>
-  uptimeStatusMap[status]?.text || t('未知');
+  uptimeStatusMap[status]?.text || "未知";
 
 // ========== 监控列表渲染函数 ==========
 export const renderMonitorList = (
@@ -163,7 +163,7 @@ export const renderMonitorList = (
           darkModeImage={
             <IllustrationConstructionDark style={ILLUSTRATION_SIZE} />
           }
-          title={t('暂无监控数据')}
+          title={"暂无监控数据"}
         />
       </div>
     );

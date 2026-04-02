@@ -58,11 +58,11 @@ function buildChannelAffinityTooltip(affinity, t) {
   const keyText = `${keySource}:${keyPath}${keyFp}`;
 
   const lines = [
-    t('渠道亲和性'),
-    `${t('规则')}：${affinity.rule_name || '-'}`,
-    `${t('分组')}：${affinity.selected_group || '-'}`,
-    `${t('Key')}：${keyText}`,
-    ...(keyHint ? [`${t('Key 摘要')}：${keyHint}`] : []),
+    "渠道亲和性",
+    `${"规则"}：${affinity.rule_name || '-'}`,
+    `${"分组"}：${affinity.selected_group || '-'}`,
+    `${"Key"}：${keyText}`,
+    ...(keyHint ? [`${"Key 摘要"}：${keyHint}`] : []),
   ];
 
   return (
@@ -80,43 +80,43 @@ function renderType(type, t) {
     case 1:
       return (
         <Tag color='cyan' shape='circle'>
-          {t('充值')}
+          {"充值"}
         </Tag>
       );
     case 2:
       return (
         <Tag color='lime' shape='circle'>
-          {t('消费')}
+          {"消费"}
         </Tag>
       );
     case 3:
       return (
         <Tag color='orange' shape='circle'>
-          {t('管理')}
+          {"管理"}
         </Tag>
       );
     case 4:
       return (
         <Tag color='purple' shape='circle'>
-          {t('系统')}
+          {"系统"}
         </Tag>
       );
     case 5:
       return (
         <Tag color='red' shape='circle'>
-          {t('错误')}
+          {"错误"}
         </Tag>
       );
     case 6:
       return (
         <Tag color='teal' shape='circle'>
-          {t('退款')}
+          {"退款"}
         </Tag>
       );
     default:
       return (
         <Tag color='grey' shape='circle'>
-          {t('未知')}
+          {"未知"}
         </Tag>
       );
   }
@@ -126,13 +126,13 @@ function renderIsStream(bool, t) {
   if (bool) {
     return (
       <Tag color='blue' shape='circle'>
-        {t('流')}
+        {"流"}
       </Tag>
     );
   } else {
     return (
       <Tag color='purple' shape='circle'>
-        {t('非流')}
+        {"非流"}
       </Tag>
     );
   }
@@ -196,7 +196,7 @@ function renderBillingTag(record, t) {
   if (other?.billing_source === 'subscription') {
     return (
       <Tag color='green' shape='circle'>
-        {t('订阅抵扣')}
+        {"订阅抵扣"}
       </Tag>
     );
   }
@@ -225,7 +225,7 @@ function renderModelName(record, copyText, t) {
                 <Space vertical align={'start'}>
                   <div className='flex items-center'>
                     <Typography.Text strong style={{ marginRight: 8 }}>
-                      {t('请求并计费模型')}:
+                      {"请求并计费模型"}:
                     </Typography.Text>
                     {renderModelTag(record.model_name, {
                       onClick: (event) => {
@@ -235,7 +235,7 @@ function renderModelName(record, copyText, t) {
                   </div>
                   <div className='flex items-center'>
                     <Typography.Text strong style={{ marginRight: 8 }}>
-                      {t('实际模型')}:
+                      {"实际模型"}:
                     </Typography.Text>
                     {renderModelTag(other.upstream_model_name, {
                       onClick: (event) => {
@@ -318,7 +318,7 @@ function getUsageLogGroupSummary(groupRatio, userGroupRatio, t) {
   if (ratio === undefined || ratio === null || ratio === '') {
     return '';
   }
-  return `${useUserGroupRatio ? t('专属倍率') : t('分组')} ${formatRatio(ratio)}x`;
+  return `${useUserGroupRatio ? "专属倍率" : "分组"} ${formatRatio(ratio)}x`;
 }
 
 function renderCompactDetailSummary(summarySegments) {
@@ -363,7 +363,7 @@ function getUsageLogDetailSummary(record, text, billingDisplayMode, t) {
 
   if (record.type === 6) {
     return {
-      segments: [{ text: t('异步任务退款'), tone: 'primary' }],
+      segments: [{ text: "异步任务退款", tone: 'primary' }],
     };
   }
 
@@ -385,12 +385,12 @@ function getUsageLogDetailSummary(record, text, billingDisplayMode, t) {
     return {
       segments: [
         groupText ? { text: groupText, tone: 'primary' } : null,
-        { text: t('违规扣费'), tone: 'primary' },
+        { text: "违规扣费", tone: 'primary' },
         {
-          text: `${t('扣费')}：${renderQuota(feeQuota, 6)}`,
+          text: `${"扣费"}：${renderQuota(feeQuota, 6)}`,
           tone: 'secondary',
         },
-        text ? { text: `${t('详情')}：${text}`, tone: 'secondary' } : null,
+        text ? { text: `${"详情"}：${text}`, tone: 'secondary' } : null,
       ].filter(Boolean),
     };
   }
@@ -452,17 +452,17 @@ export const getLogsColumns = ({
   return [
     {
       key: COLUMN_KEYS.TIME,
-      title: t('时间'),
+      title: "时间",
       dataIndex: 'timestamp2string',
     },
     {
       key: COLUMN_KEYS.CHANNEL,
-      title: t('渠道'),
+      title: "渠道",
       dataIndex: 'channel',
       render: (text, record, index) => {
         let isMultiKey = false;
         let multiKeyIndex = -1;
-        let content = t('渠道') + `：${record.channel}`;
+        let content = "渠道" + `：${record.channel}`;
         let affinity = null;
         let showMarker = false;
         let other = getLogOther(record.other);
@@ -476,7 +476,7 @@ export const getLogsColumns = ({
             Array.isArray(adminInfo.use_channel) &&
             adminInfo.use_channel.length > 0
           ) {
-            content = t('渠道') + `：${adminInfo.use_channel.join('->')}`;
+            content = "渠道" + `：${adminInfo.use_channel.join('->')}`;
           }
           if (adminInfo.channel_affinity) {
             affinity = adminInfo.channel_affinity;
@@ -491,7 +491,7 @@ export const getLogsColumns = ({
             record.type === 6) ? (
           <Space>
             <span style={{ position: 'relative', display: 'inline-block' }}>
-              <Tooltip content={record.channel_name || t('未知渠道')}>
+              <Tooltip content={record.channel_name || "未知渠道"}>
                 <span>
                   <Tag
                     color={colors[parseInt(text) % colors.length]}
@@ -551,7 +551,7 @@ export const getLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.USERNAME,
-      title: t('用户'),
+      title: "用户",
       dataIndex: 'username',
       render: (text, record, index) => {
         return isAdminUser ? (
@@ -576,7 +576,7 @@ export const getLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.TOKEN,
-      title: t('令牌'),
+      title: "令牌",
       dataIndex: 'token_name',
       render: (text, record, index) => {
         return record.type === 0 ||
@@ -592,7 +592,7 @@ export const getLogsColumns = ({
               }}
             >
               {' '}
-              {t(text)}{' '}
+              {text}{' '}
             </Tag>
           </div>
         ) : (
@@ -602,7 +602,7 @@ export const getLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.GROUP,
-      title: t('分组'),
+      title: "分组",
       dataIndex: 'group',
       render: (text, record, index) => {
         if (
@@ -639,7 +639,7 @@ export const getLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.TYPE,
-      title: t('类型'),
+      title: "类型",
       dataIndex: 'type',
       render: (text, record, index) => {
         return <>{renderType(text, t)}</>;
@@ -647,7 +647,7 @@ export const getLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.MODEL,
-      title: t('模型'),
+      title: "模型",
       dataIndex: 'model_name',
       render: (text, record, index) => {
         return record.type === 0 ||
@@ -662,7 +662,7 @@ export const getLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.USE_TIME,
-      title: t('用时/首字'),
+      title: "用时/首字",
       dataIndex: 'use_time',
       render: (text, record, index) => {
         if (!(record.type === 2 || record.type === 5)) {
@@ -695,11 +695,9 @@ export const getLogsColumns = ({
       key: COLUMN_KEYS.PROMPT,
       title: (
         <div className='flex items-center gap-1'>
-          {t('输入')}
+          {"输入"}
           <Tooltip
-            content={t(
-              '根据 Anthropic 协定，/v1/messages 的输入 tokens 仅统计非缓存输入，不包含缓存读取与缓存写入 tokens。',
-            )}
+            content={"根据 Anthropic 协定，/v1/messages 的输入 tokens 仅统计非缓存输入，不包含缓存读取与缓存写入 tokens。"}
           >
             <IconHelpCircle className='text-gray-400 cursor-help' />
           </Tooltip>
@@ -713,11 +711,11 @@ export const getLogsColumns = ({
         const hasCacheWrite = (cacheSummary?.cacheWriteTokens || 0) > 0;
         let cacheText = '';
         if (hasCacheRead && hasCacheWrite) {
-          cacheText = `${t('缓存读')} ${formatTokenCount(cacheSummary.cacheReadTokens)} · ${t('写')} ${formatTokenCount(cacheSummary.cacheWriteTokens)}`;
+          cacheText = `${"缓存读"} ${formatTokenCount(cacheSummary.cacheReadTokens)} · ${"写"} ${formatTokenCount(cacheSummary.cacheWriteTokens)}`;
         } else if (hasCacheRead) {
-          cacheText = `${t('缓存读')} ${formatTokenCount(cacheSummary.cacheReadTokens)}`;
+          cacheText = `${"缓存读"} ${formatTokenCount(cacheSummary.cacheReadTokens)}`;
         } else if (hasCacheWrite) {
-          cacheText = `${t('缓存写')} ${formatTokenCount(cacheSummary.cacheWriteTokens)}`;
+          cacheText = `${"缓存写"} ${formatTokenCount(cacheSummary.cacheWriteTokens)}`;
         }
 
         return record.type === 0 ||
@@ -753,7 +751,7 @@ export const getLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.COMPLETION,
-      title: t('输出'),
+      title: "输出",
       dataIndex: 'completion_tokens',
       render: (text, record, index) => {
         return parseInt(text) > 0 &&
@@ -769,7 +767,7 @@ export const getLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.COST,
-      title: t('花费'),
+      title: "花费",
       dataIndex: 'quota',
       render: (text, record, index) => {
         if (
@@ -787,7 +785,7 @@ export const getLogsColumns = ({
         if (isSubscription) {
           // Subscription billed: show only tag (no $0), but keep tooltip for equivalent cost.
           return (
-            <Tooltip content={`${t('由订阅抵扣')}：${renderQuota(text, 6)}`}>
+            <Tooltip content={`${"由订阅抵扣"}：${renderQuota(text, 6)}`}>
               <span>{renderBillingTag(record, t)}</span>
             </Tooltip>
           );
@@ -799,11 +797,9 @@ export const getLogsColumns = ({
       key: COLUMN_KEYS.IP,
       title: (
         <div className='flex items-center gap-1'>
-          {t('IP')}
+          {"IP"}
           <Tooltip
-            content={t(
-              '只有当用户设置开启IP记录时，才会进行请求和错误类型日志的IP记录',
-            )}
+            content={"只有当用户设置开启IP记录时，才会进行请求和错误类型日志的IP记录"}
           >
             <IconHelpCircle className='text-gray-400 cursor-help' />
           </Tooltip>
@@ -832,13 +828,13 @@ export const getLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.RETRY,
-      title: t('重试'),
+      title: "重试",
       dataIndex: 'retry',
       render: (text, record, index) => {
         if (!(record.type === 2 || record.type === 5)) {
           return <></>;
         }
-        let content = t('渠道') + `：${record.channel}`;
+        let content = "渠道" + `：${record.channel}`;
         if (record.other !== '') {
           let other = JSON.parse(record.other);
           if (other === null) {
@@ -852,7 +848,7 @@ export const getLogsColumns = ({
             ) {
               let useChannel = other.admin_info.use_channel;
               let useChannelStr = useChannel.join('->');
-              content = t('渠道') + `：${useChannelStr}`;
+              content = "渠道" + `：${useChannelStr}`;
             }
           }
         }
@@ -861,7 +857,7 @@ export const getLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.DETAILS,
-      title: t('详情'),
+      title: "详情",
       dataIndex: 'content',
       fixed: 'right',
       width: 200,

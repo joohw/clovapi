@@ -7,8 +7,6 @@ import {
   Banner,
 } from '@douyinfe/semi-ui';
 import { Code, Edit, Check, X, AlertTriangle } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-
 const CustomRequestEditor = ({
   customRequestMode,
   customRequestBody,
@@ -16,7 +14,6 @@ const CustomRequestEditor = ({
   onCustomRequestBodyChange,
   defaultPayload,
 }) => {
-  const { t } = useTranslation();
   const [isValid, setIsValid] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [localValue, setLocalValue] = useState(customRequestBody || '');
@@ -63,7 +60,7 @@ const CustomRequestEditor = ({
       return true;
     } catch (error) {
       setIsValid(false);
-      setErrorMessage(`${t('JSON格式错误')}: ${error.message}`);
+      setErrorMessage(`${"JSON格式错误"}: ${error.message}`);
       return false;
     }
   };
@@ -104,14 +101,14 @@ const CustomRequestEditor = ({
         <div className='flex items-center gap-2'>
           <Code size={16} className='text-gray-500' />
           <Typography.Text strong className='text-sm'>
-            {t('自定义请求体模式')}
+            {"自定义请求体模式"}
           </Typography.Text>
         </div>
         <Switch
           checked={customRequestMode}
           onChange={handleModeToggle}
-          checkedText={t('开')}
-          uncheckedText={t('关')}
+          checkedText={"开"}
+          uncheckedText={"关"}
           size='small'
         />
       </div>
@@ -121,9 +118,7 @@ const CustomRequestEditor = ({
           {/* 提示信息 */}
           <Banner
             type='warning'
-            description={t(
-              '启用此模式后，将使用您自定义的请求体发送API请求，模型配置面板的参数设置将被忽略。',
-            )}
+            description={"启用此模式后，将使用您自定义的请求体发送API请求，模型配置面板的参数设置将被忽略。"}
             icon={<AlertTriangle size={16} />}
             className='!rounded-lg'
             closeIcon={null}
@@ -133,21 +128,21 @@ const CustomRequestEditor = ({
           <div>
             <div className='flex items-center justify-between mb-2'>
               <Typography.Text strong className='text-sm'>
-                {t('请求体 JSON')}
+                {"请求体 JSON"}
               </Typography.Text>
               <div className='flex items-center gap-2'>
                 {isValid ? (
                   <div className='flex items-center gap-1 text-green-600'>
                     <Check size={14} />
                     <Typography.Text className='text-xs'>
-                      {t('格式正确')}
+                      {"格式正确"}
                     </Typography.Text>
                   </div>
                 ) : (
                   <div className='flex items-center gap-1 text-red-600'>
                     <X size={14} />
                     <Typography.Text className='text-xs'>
-                      {t('格式错误')}
+                      {"格式错误"}
                     </Typography.Text>
                   </div>
                 )}
@@ -160,7 +155,7 @@ const CustomRequestEditor = ({
                   disabled={!isValid}
                   className='!rounded-lg'
                 >
-                  {t('格式化')}
+                  {"格式化"}
                 </Button>
               </div>
             </div>
@@ -184,9 +179,7 @@ const CustomRequestEditor = ({
             )}
 
             <Typography.Text className='text-xs text-gray-500 mt-2 block'>
-              {t(
-                '请输入有效的JSON格式的请求体。您可以参考预览面板中的默认请求体格式。',
-              )}
+              {"请输入有效的JSON格式的请求体。您可以参考预览面板中的默认请求体格式。"}
             </Typography.Text>
           </div>
         </>

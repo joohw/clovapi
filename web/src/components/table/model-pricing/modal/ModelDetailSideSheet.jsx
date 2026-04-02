@@ -24,7 +24,6 @@ const ModelDetailSideSheet = ({
   vendorsMap,
   endpointMap,
   autoGroups,
-  t,
 }) => {
   const isMobile = useIsMobile();
 
@@ -32,7 +31,7 @@ const ModelDetailSideSheet = ({
     <SideSheet
       placement='right'
       title={
-        <ModelHeader modelData={modelData} vendorsMap={vendorsMap} t={t} />
+        <ModelHeader modelData={modelData} vendorsMap={vendorsMap} />
       }
       bodyStyle={{
         padding: '0',
@@ -45,7 +44,8 @@ const ModelDetailSideSheet = ({
       closeIcon={
         <Button
           className='semi-button-tertiary semi-button-size-small semi-button-borderless'
-          type='button'
+          type='tertiary'
+          htmlType='button'
           icon={<IconClose />}
           onClick={onClose}
         />
@@ -55,7 +55,7 @@ const ModelDetailSideSheet = ({
       <div className='p-2'>
         {!modelData && (
           <div className='flex justify-center items-center py-10'>
-            <Text type='secondary'>{t('加载中...')}</Text>
+            <Text type='secondary'>{"加载中..."}</Text>
           </div>
         )}
         {modelData && (
@@ -63,12 +63,10 @@ const ModelDetailSideSheet = ({
             <ModelBasicInfo
               modelData={modelData}
               vendorsMap={vendorsMap}
-              t={t}
             />
             <ModelEndpoints
               modelData={modelData}
               endpointMap={endpointMap}
-              t={t}
             />
             <ModelPricingTable
               modelData={modelData}
@@ -80,7 +78,6 @@ const ModelDetailSideSheet = ({
               showRatio={showRatio}
               usableGroup={usableGroup}
               autoGroups={autoGroups}
-              t={t}
             />
           </>
         )}

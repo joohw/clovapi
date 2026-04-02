@@ -49,9 +49,6 @@ const DeploymentsPage = () => {
     // Description state
     compactMode,
     setCompactMode,
-
-    // Translation
-    t,
   } = deploymentsData;
 
   return (
@@ -68,7 +65,6 @@ const DeploymentsPage = () => {
         visible={showCreateModal}
         onCancel={() => setShowCreateModal(false)}
         onSuccess={refresh}
-        t={t}
       />
 
       <ColumnSelectorModal
@@ -77,7 +73,6 @@ const DeploymentsPage = () => {
         visibleColumns={visibleColumns}
         onVisibleColumnsChange={setVisibleColumns}
         columnKeys={COLUMN_KEYS}
-        t={t}
       />
 
       {/* Main Content */}
@@ -97,7 +92,6 @@ const DeploymentsPage = () => {
               showCreateModal={showCreateModal}
               setShowCreateModal={setShowCreateModal}
               setShowColumnSelector={setShowColumnSelector}
-              t={t}
             />
             <DeploymentsFilters
               formInitValues={formInitValues}
@@ -106,7 +100,6 @@ const DeploymentsPage = () => {
               loading={loading}
               searching={searching}
               setShowColumnSelector={setShowColumnSelector}
-              t={t}
             />
           </div>
         }
@@ -117,9 +110,7 @@ const DeploymentsPage = () => {
           onPageChange: deploymentsData.handlePageChange,
           onPageSizeChange: deploymentsData.handlePageSizeChange,
           isMobile: isMobile,
-          t: deploymentsData.t,
         })}
-        t={deploymentsData.t}
       >
         <DeploymentsTable
           {...deploymentsData}

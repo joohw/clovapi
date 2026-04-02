@@ -33,12 +33,12 @@ const MjLogsFilters = ({
               field='dateRange'
               className='w-full'
               type='dateTimeRange'
-              placeholder={[t('开始时间'), t('结束时间')]}
+              placeholder={["开始时间", "结束时间"]}
               showClear
               pure
               size='small'
               presets={DATE_RANGE_PRESETS.map((preset) => ({
-                text: t(preset.text),
+                text: preset.text,
                 start: preset.start(),
                 end: preset.end(),
               }))}
@@ -49,7 +49,7 @@ const MjLogsFilters = ({
           <Form.Input
             field='mj_id'
             prefix={<IconSearch />}
-            placeholder={t('任务 ID')}
+            placeholder={"任务 ID"}
             showClear
             pure
             size='small'
@@ -60,7 +60,7 @@ const MjLogsFilters = ({
             <Form.Input
               field='channel_id'
               prefix={<IconSearch />}
-              placeholder={t('渠道 ID')}
+              placeholder={"渠道 ID"}
               showClear
               pure
               size='small'
@@ -78,7 +78,7 @@ const MjLogsFilters = ({
               loading={loading}
               size='small'
             >
-              {t('查询')}
+              {"查询"}
             </Button>
             <Button
               type='tertiary'
@@ -92,14 +92,14 @@ const MjLogsFilters = ({
               }}
               size='small'
             >
-              {t('重置')}
+              {"重置"}
             </Button>
             <Button
               type='tertiary'
               onClick={() => setShowColumnSelector(true)}
               size='small'
             >
-              {t('列设置')}
+              {"列设置"}
             </Button>
           </div>
         </div>

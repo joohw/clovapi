@@ -171,7 +171,7 @@ const DeploymentsTable = (deploymentsData) => {
             darkModeImage={
               <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
             }
-            description={t('搜索无结果')}
+            description={"搜索无结果"}
             style={{ padding: 30 }}
           />
         }
@@ -185,7 +185,6 @@ const DeploymentsTable = (deploymentsData) => {
         visible={showLogsModal}
         onCancel={() => setShowLogsModal(false)}
         deployment={selectedDeployment}
-        t={t}
       />
 
       <ExtendDurationModal
@@ -193,14 +192,12 @@ const DeploymentsTable = (deploymentsData) => {
         onCancel={() => setShowExtendModal(false)}
         deployment={selectedDeployment}
         onSuccess={handleModalSuccess}
-        t={t}
       />
 
       <ViewDetailsModal
         visible={showDetailsModal}
         onCancel={() => setShowDetailsModal(false)}
         deployment={selectedDeployment}
-        t={t}
       />
 
       <UpdateConfigModal
@@ -208,18 +205,16 @@ const DeploymentsTable = (deploymentsData) => {
         onCancel={() => setShowConfigModal(false)}
         deployment={selectedDeployment}
         onSuccess={handleModalSuccess}
-        t={t}
       />
 
       <ConfirmationDialog
         visible={showConfirmDialog}
         onCancel={() => setShowConfirmDialog(false)}
         onConfirm={handleConfirmAction}
-        title={t('确认操作')}
+        title={"确认操作"}
         type='danger'
         deployment={selectedDeployment}
         operation={confirmOperation}
-        t={t}
       />
     </>
   );

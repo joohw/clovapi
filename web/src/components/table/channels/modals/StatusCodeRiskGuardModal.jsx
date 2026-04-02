@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import RiskAcknowledgementModal from '../../../common/modals/RiskAcknowledgementModal';
 import {
-  STATUS_CODE_RISK_I18N_KEYS,
-  STATUS_CODE_RISK_CHECKLIST_KEYS,
+  STATUS_CODE_RISK_TEXTS,
+  STATUS_CODE_RISK_CHECKLIST,
 } from './statusCodeRiskGuard';
 
 const StatusCodeRiskGuardModal = React.memo(function StatusCodeRiskGuardModal({
@@ -12,26 +11,25 @@ const StatusCodeRiskGuardModal = React.memo(function StatusCodeRiskGuardModal({
   onCancel,
   onConfirm,
 }) {
-  const { t, i18n } = useTranslation();
   const checklist = useMemo(
-    () => STATUS_CODE_RISK_CHECKLIST_KEYS.map((item) => t(item)),
-    [t, i18n.language],
+    () => STATUS_CODE_RISK_CHECKLIST.map((item) => item),
+    [],
   );
 
   return (
     <RiskAcknowledgementModal
       visible={visible}
-      title={t(STATUS_CODE_RISK_I18N_KEYS.title)}
-      markdownContent={t(STATUS_CODE_RISK_I18N_KEYS.markdown)}
-      detailTitle={t(STATUS_CODE_RISK_I18N_KEYS.detailTitle)}
+      title={STATUS_CODE_RISK_TEXTS.title}
+      markdownContent={STATUS_CODE_RISK_TEXTS.markdown}
+      detailTitle={STATUS_CODE_RISK_TEXTS.detailTitle}
       detailItems={detailItems}
       checklist={checklist}
-      inputPrompt={t(STATUS_CODE_RISK_I18N_KEYS.inputPrompt)}
-      requiredText={t(STATUS_CODE_RISK_I18N_KEYS.confirmText)}
-      inputPlaceholder={t(STATUS_CODE_RISK_I18N_KEYS.inputPlaceholder)}
-      mismatchText={t(STATUS_CODE_RISK_I18N_KEYS.mismatchText)}
-      cancelText={t('取消')}
-      confirmText={t(STATUS_CODE_RISK_I18N_KEYS.confirmButton)}
+      inputPrompt={STATUS_CODE_RISK_TEXTS.inputPrompt}
+      requiredText={STATUS_CODE_RISK_TEXTS.confirmText}
+      inputPlaceholder={STATUS_CODE_RISK_TEXTS.inputPlaceholder}
+      mismatchText={STATUS_CODE_RISK_TEXTS.mismatchText}
+      cancelText={"取消"}
+      confirmText={STATUS_CODE_RISK_TEXTS.confirmButton}
       onCancel={onCancel}
       onConfirm={onConfirm}
     />

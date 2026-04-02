@@ -8,7 +8,6 @@ const DashboardHeader = ({
   showSearchModal,
   refresh,
   loading,
-  t,
 }) => {
   const ICON_BUTTON_CLASS = 'text-white hover:bg-opacity-80 !rounded-full';
 

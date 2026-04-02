@@ -52,7 +52,6 @@ const PricingCardView = ({
   tokenUnit,
   displayPrice,
   showRatio,
-  t,
   selectedRowKeys = [],
   setSelectedRowKeys,
   openModelDetail,
@@ -143,13 +142,13 @@ const PricingCardView = ({
     if (record.quota_type === 1) {
       billingTag = (
         <Tag key='billing' shape='circle' color='teal' size='small'>
-          {t('按次计费')}
+          {"按次计费"}
         </Tag>
       );
     } else if (record.quota_type === 0) {
       billingTag = (
         <Tag key='billing' shape='circle' color='violet' size='small'>
-          {t('按量计费')}
+          {"按量计费"}
         </Tag>
       );
     }
@@ -208,7 +207,7 @@ const PricingCardView = ({
           darkModeImage={
             <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
           }
-          description={t('搜索无结果')}
+          description={"搜索无结果"}
         />
       </div>
     );
@@ -248,7 +247,7 @@ const PricingCardView = ({
                         {model.model_name}
                       </h3>
                       <div className='flex flex-col gap-1 text-xs mt-1'>
-                        {formatPriceInfo(priceData, t, siteDisplayType)}
+                        {formatPriceInfo(priceData, siteDisplayType)}
                       </div>
                     </div>
                   </div>
@@ -299,10 +298,10 @@ const PricingCardView = ({
                     <div className='pt-3'>
                       <div className='flex items-center space-x-1 mb-2'>
                         <span className='text-xs font-medium text-gray-700'>
-                          {t('倍率信息')}
+                          {"倍率信息"}
                         </span>
                         <Tooltip
-                          content={t('倍率是为了方便换算不同价格的模型')}
+                          content={"倍率是为了方便换算不同价格的模型"}
                         >
                           <IconHelpCircle
                             className='text-blue-500 cursor-pointer'
@@ -317,17 +316,17 @@ const PricingCardView = ({
                       </div>
                       <div className='grid grid-cols-3 gap-2 text-xs text-gray-600'>
                         <div>
-                          {t('模型')}:{' '}
-                          {model.quota_type === 0 ? model.model_ratio : t('无')}
+                          {"模型"}:{' '}
+                          {model.quota_type === 0 ? model.model_ratio : "无"}
                         </div>
                         <div>
-                          {t('补全')}:{' '}
+                          {"补全"}:{' '}
                           {model.quota_type === 0
                             ? parseFloat(model.completion_ratio.toFixed(3))
-                            : t('无')}
+                            : "无"}
                         </div>
                         <div>
-                          {t('分组')}: {priceData?.usedGroupRatio ?? '-'}
+                          {"分组"}: {priceData?.usedGroupRatio ?? '-'}
                         </div>
                       </div>
                     </div>

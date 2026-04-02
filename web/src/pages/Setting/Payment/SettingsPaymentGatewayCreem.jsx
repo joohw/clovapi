@@ -15,11 +15,9 @@ import {
 } from '@douyinfe/semi-ui';
 const { Text } = Typography;
 import { API, showError, showSuccess } from '../../../helpers';
-import { useTranslation } from 'react-i18next';
 import { Plus, Trash2 } from 'lucide-react';
 
 export default function SettingsPaymentGatewayCreem(props) {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState({
     CreemApiKey: '',
@@ -108,13 +106,13 @@ export default function SettingsPaymentGatewayCreem(props) {
           showError(res.data.message);
         });
       } else {
-        showSuccess(t('更新成功'));
+        showSuccess("更新成功");
         // 更新本地存储的原始值
         setOriginInputs({ ...inputs });
         props.refresh?.();
       }
     } catch (error) {
-      showError(t('更新失败'));
+      showError("更新失败");
     }
     setLoading(false);
   };
@@ -156,7 +154,7 @@ export default function SettingsPaymentGatewayCreem(props) {
       productForm.quota <= 0 ||
       !productForm.currency
     ) {
-      showError(t('请填写完整的产品信息'));
+      showError("请填写完整的产品信息");
       return;
     }
 
@@ -172,7 +170,7 @@ export default function SettingsPaymentGatewayCreem(props) {
     } else {
       // 添加新产品
       if (newProducts.find((p) => p.productId === productForm.productId)) {
-        showError(t('产品ID已存在'));
+        showError("产品ID已存在");
         return;
       }
       newProducts.push({ ...productForm });
@@ -189,29 +187,29 @@ export default function SettingsPaymentGatewayCreem(props) {
 
   const columns = [
     {
-      title: t('产品名称'),
+      title: "产品名称",
       dataIndex: 'name',
       key: 'name',
     },
     {
-      title: t('产品ID'),
+      title: "产品ID",
       dataIndex: 'productId',
       key: 'productId',
     },
     {
-      title: t('展示价格'),
+      title: "展示价格",
       dataIndex: 'price',
       key: 'price',
       render: (price, record) =>
         `${record.currency === 'EUR' ? '€' : '$'}${price}`,
     },
     {
-      title: t('充值额度'),
+      title: "充值额度",
       dataIndex: 'quota',
       key: 'quota',
     },
     {
-      title: t('操作'),
+      title: "操作",
       key: 'action',
       render: (_, record) => (
         <div className='flex gap-2'>
@@ -220,7 +218,7 @@ export default function SettingsPaymentGatewayCreem(props) {
             size='small'
             onClick={() => openProductModal(record)}
           >
-            {t('编辑')}
+            {"编辑"}
           </Button>
           <Button
             type='danger'
@@ -241,53 +239,51 @@ export default function SettingsPaymentGatewayCreem(props) {
         onValueChange={handleFormChange}
         getFormApi={(api) => (formApiRef.current = api)}
       >
-        <Form.Section text={t('Creem 设置')}>
+        <Form.Section text={"Creem 设置"}>
           <Text>
-            {t('Creem 介绍')}
+            {"Creem 介绍"}
             <a href='https://creem.io' target='_blank' rel='noreferrer'>
               Creem Official Site
             </a>
             <br />
           </Text>
-          <Banner type='info' description={t('Creem Setting Tips')} />
+          <Banner type='info' description={"Creem Setting Tips"} />
 
           <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.Input
                 field='CreemApiKey'
-                label={t('API 密钥')}
-                placeholder={t('Creem API 密钥，敏感信息不显示')}
+                label={"API 密钥"}
+                placeholder={"Creem API 密钥，敏感信息不显示"}
                 type='password'
               />
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.Input
                 field='CreemWebhookSecret'
-                label={t('Webhook 密钥')}
-                placeholder={t(
-                  '用于验证回调 new-api 的 webhook 请求的密钥，敏感信息不显示',
-                )}
+                label={"Webhook 密钥"}
+                placeholder={"用于验证回调 new-api 的 webhook 请求的密钥，敏感信息不显示"}
                 type='password'
               />
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.Switch
                 field='CreemTestMode'
-                label={t('测试模式')}
-                extraText={t('启用后将使用 Creem Test Mode')}
+                label={"测试模式"}
+                extraText={"启用后将使用 Creem Test Mode"}
               />
             </Col>
           </Row>
 
           <div style={{ marginTop: 24 }}>
             <div className='flex justify-between items-center mb-4'>
-              <Text strong>{t('产品配置')}</Text>
+              <Text strong>{"产品配置"}</Text>
               <Button
                 type='primary'
                 icon={<Plus size={16} />}
                 onClick={() => openProductModal()}
               >
-                {t('添加产品')}
+                {"添加产品"}
               </Button>
             </div>
 
@@ -297,21 +293,21 @@ export default function SettingsPaymentGatewayCreem(props) {
               pagination={false}
               empty={
                 <div className='text-center py-8'>
-                  <Text type='tertiary'>{t('暂无产品配置')}</Text>
+                  <Text type='tertiary'>{"暂无产品配置"}</Text>
                 </div>
               }
             />
           </div>
 
           <Button onClick={submitCreemSetting} style={{ marginTop: 16 }}>
-            {t('更新 Creem 设置')}
+            {"更新 Creem 设置"}
           </Button>
         </Form.Section>
       </Form>
 
       {/* 产品配置模态框 */}
       <Modal
-        title={editingProduct ? t('编辑产品') : t('添加产品')}
+        title={editingProduct ? "编辑产品" : "添加产品"}
         visible={showProductModal}
         onOk={saveProduct}
         onCancel={closeProductModal}
@@ -322,34 +318,34 @@ export default function SettingsPaymentGatewayCreem(props) {
         <div className='space-y-4'>
           <div>
             <Text strong className='block mb-2'>
-              {t('产品名称')}
+              {"产品名称"}
             </Text>
             <Input
               value={productForm.name}
               onChange={(value) =>
                 setProductForm({ ...productForm, name: value })
               }
-              placeholder={t('例如：基础套餐')}
+              placeholder={"例如：基础套餐"}
               size='large'
             />
           </div>
           <div>
             <Text strong className='block mb-2'>
-              {t('产品ID')}
+              {"产品ID"}
             </Text>
             <Input
               value={productForm.productId}
               onChange={(value) =>
                 setProductForm({ ...productForm, productId: value })
               }
-              placeholder={t('例如：prod_6I8rBerHpPxyoiU9WK4kot')}
+              placeholder={"例如：prod_6I8rBerHpPxyoiU9WK4kot"}
               size='large'
               disabled={!!editingProduct}
             />
           </div>
           <div>
             <Text strong className='block mb-2'>
-              {t('货币')}
+              {"货币"}
             </Text>
             <Select
               value={productForm.currency}
@@ -359,21 +355,21 @@ export default function SettingsPaymentGatewayCreem(props) {
               size='large'
               className='w-full'
             >
-              <Select.Option value='USD'>{t('USD (美元)')}</Select.Option>
-              <Select.Option value='EUR'>{t('EUR (欧元)')}</Select.Option>
+              <Select.Option value='USD'>{"USD (美元)"}</Select.Option>
+              <Select.Option value='EUR'>{"EUR (欧元)"}</Select.Option>
             </Select>
           </div>
           <div>
             <Text strong className='block mb-2'>
-              {t('价格')} (
-              {productForm.currency === 'EUR' ? t('欧元') : t('美元')})
+              {"价格"} (
+              {productForm.currency === 'EUR' ? "欧元" : "美元"})
             </Text>
             <InputNumber
               value={productForm.price}
               onChange={(value) =>
                 setProductForm({ ...productForm, price: value })
               }
-              placeholder={t('例如：4.99')}
+              placeholder={"例如：4.99"}
               min={0.01}
               precision={2}
               size='large'
@@ -383,14 +379,14 @@ export default function SettingsPaymentGatewayCreem(props) {
           </div>
           <div>
             <Text strong className='block mb-2'>
-              {t('充值额度')}
+              {"充值额度"}
             </Text>
             <InputNumber
               value={productForm.quota}
               onChange={(value) =>
                 setProductForm({ ...productForm, quota: value })
               }
-              placeholder={t('例如：100000')}
+              placeholder={"例如：100000"}
               min={1}
               precision={0}
               size='large'

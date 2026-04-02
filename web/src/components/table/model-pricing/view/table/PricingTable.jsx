@@ -20,11 +20,9 @@ const PricingTable = ({
   showRatio,
   compactMode = false,
   openModelDetail,
-  t,
 }) => {
   const columns = useMemo(() => {
     return getPricingTableColumns({
-      t,
       selectedGroup,
       groupRatio,
       copyText,
@@ -35,7 +33,6 @@ const PricingTable = ({
       showRatio,
     });
   }, [
-    t,
     selectedGroup,
     groupRatio,
     copyText,
@@ -67,7 +64,7 @@ const PricingTable = ({
 
   const ModelTable = useMemo(
     () => (
-      <Card className='!rounded-xl overflow-hidden' bordered={false}>
+      <Card className='!rounded-2xl overflow-hidden border-0 !bg-transparent'>
         <Table
           columns={processedColumns}
           dataSource={filteredModels}
@@ -85,7 +82,7 @@ const PricingTable = ({
               darkModeImage={
                 <IllustrationNoResultDark style={{ width: 150, height: 150 }} />
               }
-              description={t('搜索无结果')}
+              description={"搜索无结果"}
               style={{ padding: 30 }}
             />
           }
@@ -99,7 +96,6 @@ const PricingTable = ({
       loading,
       processedColumns,
       openModelDetail,
-      t,
       compactMode,
     ],
   );

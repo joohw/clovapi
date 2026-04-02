@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   Modal,
   Button,
@@ -148,7 +147,6 @@ const OllamaModelModal = ({
   onModelsUpdate,
   onApplyModels,
 }) => {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [models, setModels] = useState([]);
   const [filteredModels, setFilteredModels] = useState([]);
@@ -227,7 +225,7 @@ const OllamaModelModal = ({
           }
         }
       } else if (shouldTryLiveFetch && !resolvedBaseUrl && !channelId) {
-        lastError = t('请先填写 Ollama API 地址');
+        lastError = "请先填写 Ollama API 地址";
       }
 
       if ((!liveFetchSucceeded || nextModels.length === 0) && channelId) {
@@ -252,7 +250,7 @@ const OllamaModelModal = ({
       }
 
       if (!liveFetchSucceeded && !fallbackSucceeded && lastError) {
-        showError(`${t('获取模型列表失败')}: ${lastError}`);
+        showError(`${"获取模型列表失败"}: ${lastError}`);
       }
 
       const normalized = nextModels;
@@ -280,7 +278,7 @@ const OllamaModelModal = ({
   // 拉取模型 (流式，支持进度)
   const pullModel = async () => {
     if (!pullModelName.trim()) {
-      showError(t('请输入模型名称'));
+      showError("请输入模型名称");
       return;
     }
 
@@ -408,7 +406,7 @@ const OllamaModelModal = ({
             return;
           }
           console.error('Stream processing error:', error);
-          showError(t('数据传输中断'));
+          showError("数据传输中断");
           setPullProgress(null);
           setPullLoading(false);
           setEventSource(null);
@@ -419,7 +417,7 @@ const OllamaModelModal = ({
       await processStream();
     } catch (error) {
       if (error?.name !== 'AbortError') {
-        showError(t('模型拉取失败: {{error}}', { error: error.message }));
+        showError(`模型拉取失败: ${error.message}`);
       }
       setPullLoading(false);
       setPullProgress(null);
@@ -439,16 +437,16 @@ const OllamaModelModal = ({
       });
 
       if (res.data.success) {
-        showSuccess(t('模型删除成功'));
+        showSuccess("模型删除成功");
         await fetchModels(); // 重新获取模型列表
         if (onModelsUpdate) {
           onModelsUpdate({ silent: true }); // 通知父组件更新
         }
       } else {
-        showError(res.data.message || t('模型删除失败'));
+        showError(res.data.message || "模型删除失败");
       }
     } catch (error) {
-      showError(t('模型删除失败: {{error}}', { error: error.message }));
+      showError(`模型删除失败: ${error.message}`);
     }
   };
 
@@ -510,14 +508,14 @@ const OllamaModelModal = ({
 
   return (
     <Modal
-      title={t('Ollama 模型管理')}
+      title={"Ollama 模型管理"}
       visible={visible}
       onCancel={onCancel}
       width={720}
       style={{ maxWidth: '95vw' }}
       footer={
         <Button theme='solid' type='primary' onClick={onCancel}>
-          {t('关闭')}
+          {"关闭"}
         </Button>
       }
     >
@@ -525,20 +523,20 @@ const OllamaModelModal = ({
         <div>
           <Text type='tertiary' size='small'>
             {channelInfo?.name ? `${channelInfo.name} - ` : ''}
-            {t('管理 Ollama 模型的拉取和删除')}
+            {"管理 Ollama 模型的拉取和删除"}
           </Text>
         </div>
 
         {/* 拉取新模型 */}
         <Card>
           <Title heading={6} className='m-0 mb-3'>
-            {t('拉取新模型')}
+            {"拉取新模型"}
           </Title>
 
           <Row gutter={12} align='middle'>
             <Col span={16}>
               <Input
-                placeholder={t('请输入模型名称，例如: llama3.2, qwen2.5:7b')}
+                placeholder={"请输入模型名称，例如: llama3.2, qwen2.5:7b"}
                 value={pullModelName}
                 onChange={(value) => setPullModelName(value)}
                 onEnterPress={pullModel}
@@ -556,7 +554,7 @@ const OllamaModelModal = ({
                 icon={<IconDownload />}
                 block
               >
-                {pullLoading ? t('拉取中...') : t('拉取模型')}
+                {pullLoading ? "拉取中..." : "拉取模型"}
               </Button>
             </Col>
           </Row>
@@ -579,12 +577,12 @@ const OllamaModelModal = ({
               const percentText =
                 hasTotal && safePercent !== null
                   ? `${safePercent.toFixed(0)}%`
-                  : pullProgress.status || t('处理中');
+                  : pullProgress.status || "处理中";
 
               return (
                 <div style={{ marginTop: 12 }}>
                   <div className='flex items-center justify-between mb-2'>
-                    <Text strong>{t('拉取进度')}</Text>
+                    <Text strong>{"拉取进度"}</Text>
                     <Text type='tertiary' size='small'>
                       {percentText}
                     </Text>
@@ -611,7 +609,7 @@ const OllamaModelModal = ({
                   ) : (
                     <div className='flex items-center gap-2 text-xs text-[var(--semi-color-text-2)]'>
                       <Spin size='small' />
-                      <span>{t('准备中...')}</span>
+                      <span>{"准备中..."}</span>
                     </div>
                   )}
                 </div>
@@ -619,9 +617,7 @@ const OllamaModelModal = ({
             })()}
 
           <Text type='tertiary' size='small' className='mt-2 block'>
-            {t(
-              '支持拉取 Ollama 官方模型库中的所有模型，拉取过程可能需要几分钟时间',
-            )}
+            {"支持拉取 Ollama 官方模型库中的所有模型，拉取过程可能需要几分钟时间"}
           </Text>
         </Card>
 
@@ -630,7 +626,7 @@ const OllamaModelModal = ({
           <div className='flex items-center justify-between mb-3'>
             <div className='flex items-center gap-2'>
               <Title heading={6} className='m-0'>
-                {t('已有模型')}
+                {"已有模型"}
               </Title>
               {models.length > 0 ? (
                 <Tag color='blue'>{models.length}</Tag>
@@ -639,7 +635,7 @@ const OllamaModelModal = ({
             <Space wrap>
               <Input
                 prefix={<IconSearch />}
-                placeholder={t('搜索模型...')}
+                placeholder={"搜索模型..."}
                 value={searchValue}
                 onChange={(value) => setSearchValue(value)}
                 style={{ width: 200 }}
@@ -651,7 +647,7 @@ const OllamaModelModal = ({
                 onClick={handleSelectAll}
                 disabled={models.length === 0}
               >
-                {t('全选')}
+                {"全选"}
               </Button>
               <Button
                 size='small'
@@ -659,7 +655,7 @@ const OllamaModelModal = ({
                 onClick={handleClearSelection}
                 disabled={selectedModelIds.length === 0}
               >
-                {t('清空')}
+                {"清空"}
               </Button>
               <Button
                 theme='solid'
@@ -669,7 +665,7 @@ const OllamaModelModal = ({
                 disabled={selectedModelIds.length === 0}
                 size='small'
               >
-                {t('加入渠道')}
+                {"加入渠道"}
               </Button>
               <Button
                 theme='light'
@@ -679,7 +675,7 @@ const OllamaModelModal = ({
                 icon={<IconRefresh />}
                 size='small'
               >
-                {t('刷新')}
+                {"刷新"}
               </Button>
             </Space>
           </div>
@@ -687,11 +683,11 @@ const OllamaModelModal = ({
           <Spin spinning={loading}>
             {filteredModels.length === 0 ? (
               <Empty
-                title={searchValue ? t('未找到匹配的模型') : t('暂无模型')}
+                title={searchValue ? "未找到匹配的模型" : "暂无模型"}
                 description={
                   searchValue
-                    ? t('请尝试其他搜索关键词')
-                    : t('您可以在上方拉取需要的模型')
+                    ? "请尝试其他搜索关键词"
+                    : "您可以在上方拉取需要的模型"
                 }
                 style={{ padding: '40px 0' }}
               />
@@ -727,14 +723,11 @@ const OllamaModelModal = ({
                       </div>
                       <div className='flex items-center space-x-2 ml-4'>
                         <Popconfirm
-                          title={t('确认删除模型')}
-                          content={t(
-                            '删除后无法恢复，确定要删除模型 "{{name}}" 吗？',
-                            { name: model.id },
-                          )}
+                          title={"确认删除模型"}
+                          content={`删除后无法恢复，确定要删除模型 "${model.id}" 吗？`}
                           onConfirm={() => deleteModel(model.id)}
-                          okText={t('确认')}
-                          cancelText={t('取消')}
+                          okText={"确认"}
+                          cancelText={"取消"}
                         >
                           <Button
                             theme='borderless'

@@ -1,43 +1,22 @@
-/*
-Copyright (C) 2025 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
-
 import { useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UserContext } from '../../context/User';
 import { StatusContext } from '../../context/Status';
-import { useSetTheme, useTheme, useActualTheme } from '../../context/Theme';
+import { useActualTheme } from '../../context/Theme';
 import { getLogo, getSystemName, API, showSuccess } from '../../helpers';
-import { normalizeLanguage } from '../../i18n/language';
 import { useIsMobile } from './useIsMobile';
 import { useSidebarCollapsed } from './useSidebarCollapsed';
 import { useMinimumLoadingTime } from './useMinimumLoadingTime';
 
 export const useHeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [userState, userDispatch] = useContext(UserContext);
   const [statusState] = useContext(StatusContext);
   const isMobile = useIsMobile();
   const [collapsed, toggleCollapsed] = useSidebarCollapsed();
   const [logoLoaded, setLogoLoaded] = useState(false);
   const navigate = useNavigate();
-  const [currentLang, setCurrentLang] = useState(normalizeLanguage(i18n.language));
   const location = useLocation();
 
   const loading = statusState?.status === undefined;
@@ -49,7 +28,6 @@ export const useHeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
   const isNewYear = currentDate.getMonth() === 0 && currentDate.getDate() === 1;
 
   const isSelfUseMode = statusState?.status?.self_use_mode_enabled || false;
-  const docsLink = statusState?.status?.docs_link || '';
   const isDemoSiteMode = statusState?.status?.demo_site_enabled || false;
 
   // 获取顶栏模块配置
@@ -89,10 +67,8 @@ export const useHeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
   }, [headerNavModules]);
 
   const isConsoleRoute = location.pathname.startsWith('/console');
-
-  const theme = useTheme();
+  const isHomeRoute = location.pathname === '/';
   const actualTheme = useActualTheme();
-  const setTheme = useSetTheme();
 
   // Logo loading effect
   useEffect(() => {
@@ -116,28 +92,6 @@ export const useHeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
     }
   }, [actualTheme]);
 
-  // Language change effect
-  useEffect(() => {
-    const handleLanguageChanged = (lng) => {
-      const normalizedLang = normalizeLanguage(lng);
-      setCurrentLang(normalizedLang);
-      try {
-        const iframe = document.querySelector('iframe');
-        const cw = iframe && iframe.contentWindow;
-        if (cw) {
-          cw.postMessage({ lang: normalizedLang }, '*');
-        }
-      } catch (e) {
-        // Silently ignore cross-origin or access errors
-      }
-    };
-
-    i18n.on('languageChanged', handleLanguageChanged);
-    return () => {
-      i18n.off('languageChanged', handleLanguageChanged);
-    };
-  }, [i18n]);
-
   // Actions
   const logout = useCallback(async () => {
     await API.get('/api/user/logout');
@@ -146,68 +100,6 @@ export const useHeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
     localStorage.removeItem('user');
     navigate('/login');
   }, [navigate, t, userDispatch]);
-
-  const handleLanguageChange = useCallback(
-    async (lang) => {
-      // Change language immediately for responsive UX
-      const previousLang = normalizeLanguage(i18n.language);
-      i18n.changeLanguage(lang);
-      localStorage.setItem('i18nextLng', lang);
-
-      // If user is logged in, save preference to backend
-      if (userState?.user?.id) {
-        try {
-          const res = await API.put('/api/user/self', {
-            language: lang,
-          });
-          if (res.data.success) {
-            // Keep user preference and local cache in sync so route changes
-            // don't reapply an older remembered language.
-            let settings = {};
-            if (userState?.user?.setting) {
-              try {
-                settings = JSON.parse(userState.user.setting) || {};
-              } catch (e) {
-                settings = {};
-              }
-            }
-
-            settings.language = lang;
-            const nextUser = {
-              ...userState.user,
-              setting: JSON.stringify(settings),
-            };
-
-            userDispatch({
-              type: 'login',
-              payload: nextUser,
-            });
-            localStorage.setItem('user', JSON.stringify(nextUser));
-          }
-        } catch (error) {
-          if (previousLang) {
-            i18n.changeLanguage(previousLang);
-            localStorage.setItem('i18nextLng', previousLang);
-          }
-          console.error('Failed to save language preference:', error);
-        }
-      }
-    },
-    [i18n, userState, userDispatch],
-  );
-
-  const handleThemeToggle = useCallback(
-    (newTheme) => {
-      if (
-        !newTheme ||
-        (newTheme !== 'light' && newTheme !== 'dark' && newTheme !== 'auto')
-      ) {
-        return;
-      }
-      setTheme(newTheme);
-    },
-    [setTheme],
-  );
 
   const handleMobileMenuToggle = useCallback(() => {
     if (isMobile) {
@@ -224,25 +116,21 @@ export const useHeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
     isMobile,
     collapsed,
     logoLoaded,
-    currentLang,
     location,
     isLoading,
     systemName,
     logo,
     isNewYear,
     isSelfUseMode,
-    docsLink,
     isDemoSiteMode,
     isConsoleRoute,
-    theme,
+    isHomeRoute,
     drawerOpen,
     headerNavModules,
     pricingRequireAuth,
 
     // Actions
     logout,
-    handleLanguageChange,
-    handleThemeToggle,
     handleMobileMenuToggle,
     navigate,
     t,

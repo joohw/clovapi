@@ -6,8 +6,6 @@ import (
 	//"strconv"
 	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 var StartTime = time.Now().Unix() // unit: second
@@ -32,8 +30,10 @@ var DefaultCollapseSidebar = false // default value of collapse sidebar
 
 // Any options with "Secret", "Token" in its key won't be return by GetOptions
 
-var SessionSecret = uuid.New().String()
-var CryptoSecret = uuid.New().String()
+// Fixed secrets to keep session/cookie signature stable across restarts
+// when no environment variables are provided.
+var SessionSecret = "newapi-fixed-session-secret-9b4d6f2a1c8e3f7d5a0b4c9e2f1a6d8"
+var CryptoSecret = "newapi-fixed-crypto-secret-3d7a1f9b5c2e8a4d6f0b1c9e7a3d5f2"
 
 var OptionMap map[string]string
 var OptionMapRWMutex sync.RWMutex

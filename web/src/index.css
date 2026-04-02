@@ -884,15 +884,6 @@ html.dark .with-pastel-balls::before {
   margin-top: 60px;
 }
 
-.pricing-sidebar {
-  width: clamp(280px, 24vw, 520px) !important;
-  min-width: clamp(280px, 24vw, 520px) !important;
-  max-width: clamp(280px, 24vw, 520px) !important;
-  height: calc(100vh - 60px);
-  background-color: var(--semi-color-bg-0);
-  overflow: auto;
-}
-
 .pricing-content {
   height: calc(100vh - 60px);
   background-color: var(--semi-color-bg-0);

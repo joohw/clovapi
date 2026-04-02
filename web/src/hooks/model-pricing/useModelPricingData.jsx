@@ -1,22 +1,3 @@
-/*
-Copyright (C) 2025 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
-
 import { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API, copy, showError, showInfo, showSuccess } from '../../helpers';
@@ -28,7 +9,6 @@ export const useModelPricingData = () => {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState('');
   const compositionRef = useRef({ isComposition: false });
-  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [modalImageUrl, setModalImageUrl] = useState('');
   const [isModalOpenurl, setIsModalOpenurl] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState('all');
@@ -39,8 +19,6 @@ export const useModelPricingData = () => {
   const [filterEndpointType, setFilterEndpointType] = useState('all'); // 端点类型筛选: 'all' | string
   const [filterVendor, setFilterVendor] = useState('all'); // 供应商筛选: 'all' | 'unknown' | string
   const [filterTag, setFilterTag] = useState('all'); // 模型标签筛选: 'all' | string
-  const [pageSize, setPageSize] = useState(20);
-  const [currentPage, setCurrentPage] = useState(1);
   const [currency, setCurrency] = useState('USD');
   const [showWithRecharge, setShowWithRecharge] = useState(false);
   const [tokenUnit, setTokenUnit] = useState('M');
@@ -167,16 +145,6 @@ export const useModelPricingData = () => {
     filterVendor,
     filterTag,
   ]);
-
-  const rowSelection = useMemo(
-    () => ({
-      selectedRowKeys,
-      onChange: (keys) => {
-        setSelectedRowKeys(keys);
-      },
-    }),
-    [selectedRowKeys],
-  );
 
   const displayPrice = (usdPrice) => {
     let priceInUSD = usdPrice;
@@ -319,24 +287,10 @@ export const useModelPricingData = () => {
     refresh().then();
   }, []);
 
-  // 当筛选条件变化时重置到第一页
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [
-    filterGroup,
-    filterQuotaType,
-    filterEndpointType,
-    filterVendor,
-    filterTag,
-    searchValue,
-  ]);
-
   return {
     // 状态
     searchValue,
     setSearchValue,
-    selectedRowKeys,
-    setSelectedRowKeys,
     modalImageUrl,
     setModalImageUrl,
     isModalOpenurl,
@@ -357,10 +311,6 @@ export const useModelPricingData = () => {
     setFilterVendor,
     filterTag,
     setFilterTag,
-    pageSize,
-    setPageSize,
-    currentPage,
-    setCurrentPage,
     currency,
     setCurrency,
     siteDisplayType,
@@ -379,8 +329,6 @@ export const useModelPricingData = () => {
     priceRate,
     usdExchangeRate,
     filteredModels,
-    rowSelection,
-
     // 供应商
     vendorsMap,
 

@@ -32,6 +32,7 @@ type Pricing struct {
 	AudioCompletionRatio   *float64                `json:"audio_completion_ratio,omitempty"`
 	EnableGroup            []string                `json:"enable_groups"`
 	SupportedEndpointTypes []constant.EndpointType `json:"supported_endpoint_types"`
+	ToolCall               bool                    `json:"tool_call"`
 	PricingVersion         string                  `json:"pricing_version,omitempty"`
 }
 
@@ -275,10 +276,12 @@ func updatePricing() {
 
 	pricingMap = make([]Pricing, 0)
 	for model, groups := range modelGroupsMap {
+		supportedEndpointTypes := modelSupportEndpointTypes[model]
 		pricing := Pricing{
 			ModelName:              model,
 			EnableGroup:            groups.Items(),
-			SupportedEndpointTypes: modelSupportEndpointTypes[model],
+			SupportedEndpointTypes: supportedEndpointTypes,
+			ToolCall:               supportsToolCallEndpoints(supportedEndpointTypes),
 		}
 
 		// 补充模型元数据（描述、标签、供应商、状态）
@@ -338,6 +341,21 @@ func updatePricing() {
 	modelEnableGroupsLock.Unlock()
 
 	lastGetPricingTime = time.Now()
+}
+
+func supportsToolCallEndpoints(endpoints []constant.EndpointType) bool {
+	for _, endpoint := range endpoints {
+		normalized := strings.ToLower(string(endpoint))
+		if strings.Contains(normalized, "chat/completions") ||
+			strings.Contains(normalized, "chat") ||
+			strings.Contains(normalized, "responses") ||
+			strings.Contains(normalized, "assistants") ||
+			strings.Contains(normalized, "completions") ||
+			strings.Contains(normalized, "realtime") {
+			return true
+		}
+	}
+	return false
 }
 
 // GetSupportedEndpointMap 返回全局端点到路径的映射

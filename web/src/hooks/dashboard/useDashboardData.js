@@ -1,22 +1,3 @@
-/*
-Copyright (C) 2025 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
-
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -76,24 +57,9 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
     tpm: [],
   });
 
-  // ========== Uptime 数据 ==========
-  const [uptimeData, setUptimeData] = useState([]);
-  const [uptimeLoading, setUptimeLoading] = useState(false);
-  const [activeUptimeTab, setActiveUptimeTab] = useState('');
-
   // ========== 常量 ==========
   const now = new Date();
   const isAdminUser = isAdmin();
-
-  // ========== Panel enable flags ==========
-  const apiInfoEnabled = statusState?.status?.api_info_enabled ?? true;
-  const announcementsEnabled =
-    statusState?.status?.announcements_enabled ?? true;
-  const faqEnabled = statusState?.status?.faq_enabled ?? true;
-  const uptimeEnabled = statusState?.status?.uptime_kuma_enabled ?? true;
-
-  const hasApiInfoPanel = apiInfoEnabled;
-  const hasInfoPanels = announcementsEnabled || faqEnabled || uptimeEnabled;
 
   // ========== Memoized Values ==========
   const timeOptions = useMemo(
@@ -193,26 +159,6 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
     }
   }, [inputs, dataExportDefaultTime, isAdminUser, now]);
 
-  const loadUptimeData = useCallback(async () => {
-    setUptimeLoading(true);
-    try {
-      const res = await API.get('/api/uptime/status');
-      const { success, message, data } = res.data;
-      if (success) {
-        setUptimeData(data || []);
-        if (data && data.length > 0 && !activeUptimeTab) {
-          setActiveUptimeTab(data[0].categoryName);
-        }
-      } else {
-        showError(message);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setUptimeLoading(false);
-    }
-  }, [activeUptimeTab]);
-
   const getUserData = useCallback(async () => {
     let res = await API.get(`/api/user/self`);
     const { success, message, data } = res.data;
@@ -225,9 +171,8 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
 
   const refresh = useCallback(async () => {
     const data = await loadQuotaData();
-    await loadUptimeData();
     return data;
-  }, [loadQuotaData, loadUptimeData]);
+  }, [loadQuotaData]);
 
   const handleSearchConfirm = useCallback(
     async (updateChartDataCallback) => {
@@ -288,30 +233,17 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
     trendData,
     setTrendData,
 
-    // Uptime 数据
-    uptimeData,
-    uptimeLoading,
-    activeUptimeTab,
-    setActiveUptimeTab,
-
     // 计算值
     timeOptions,
     performanceMetrics,
     getGreeting,
     isAdminUser,
-    hasApiInfoPanel,
-    hasInfoPanels,
-    apiInfoEnabled,
-    announcementsEnabled,
-    faqEnabled,
-    uptimeEnabled,
 
     // 函数
     handleInputChange,
     showSearchModal,
     handleCloseModal,
     loadQuotaData,
-    loadUptimeData,
     getUserData,
     refresh,
     handleSearchConfirm,

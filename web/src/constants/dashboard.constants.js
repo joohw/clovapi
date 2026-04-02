@@ -1,22 +1,3 @@
-/*
-Copyright (C) 2025 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
-
 // ========== UI 配置常量 ==========
 export const CHART_CONFIG = { mode: 'desktop-browser' };
 
@@ -116,15 +97,6 @@ export const DEFAULT_CHART_SPECS = {
     },
   },
 };
-
-// ========== 公告图例数据 ==========
-export const ANNOUNCEMENT_LEGEND_DATA = [
-  { color: 'grey', label: '默认', type: 'default' },
-  { color: 'blue', label: '进行中', type: 'ongoing' },
-  { color: 'green', label: '成功', type: 'success' },
-  { color: 'orange', label: '警告', type: 'warning' },
-  { color: 'red', label: '异常', type: 'error' },
-];
 
 // ========== Uptime 状态映射 ==========
 export const UPTIME_STATUS_MAP = {

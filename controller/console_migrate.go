@@ -39,9 +39,8 @@ func MigrateConsoleSetting(c *gin.Context) {
 		}
 		model.UpdateOption("ApiInfo", "")
 	}
-	// Announcements 直接搬
+	// Announcements 废弃，直接清空旧键
 	if v := valMap["Announcements"]; v != "" {
-		model.UpdateOption("console_setting.announcements", v)
 		model.UpdateOption("Announcements", "")
 	}
 	// FAQ 转换

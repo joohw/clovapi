@@ -311,7 +311,7 @@ function TokensPage() {
             setShowEdit(true);
           }}
         >
-          {"添加令牌"}
+          {"创建密钥"}
         </Button>
       </div>
       <TokensTable {...tokensData} />

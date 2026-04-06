@@ -36,7 +36,9 @@ const StatsCards = ({
                       {item.icon}
                     </Avatar>
                     <div>
-                      <div className='text-xs text-gray-500'>{item.title}</div>
+                      {item.title ? (
+                        <div className='text-xs text-gray-500'>{item.title}</div>
+                      ) : null}
                       <div className='text-lg font-semibold'>
                         <Skeleton
                           loading={loading}
@@ -58,7 +60,7 @@ const StatsCards = ({
                       </div>
                     </div>
                   </div>
-                  {item.title === "当前余额" ? (
+                  {item.showTopup ? (
                     <Tag
                       color='white'
                       shape='circle'

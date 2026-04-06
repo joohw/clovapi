@@ -29,7 +29,8 @@ export const useDashboardStats = (
         color: 'bg-blue-50',
         items: [
           {
-            title: "当前余额",
+            title: "",
+            showTopup: true,
             value: renderQuota(userState?.user?.quota),
             icon: <IconMoneyExchangeStroked />,
             avatarColor: 'blue',

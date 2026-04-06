@@ -36,7 +36,7 @@ export const useNavigation = (headerNavModules) => {
         to: '/playground',
       },
       {
-        text: 'Apikey',
+        text: 'API 密钥',
         itemKey: 'apikeys',
         to: '/apikeys',
       },

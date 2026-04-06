@@ -8,8 +8,50 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// minGroupRatioAmongEnable 与前端模型定价页一致：在模型可用分组中取当前用户分组倍率的最小值（最便宜），找不到则 1。
+func minGroupRatioAmongEnable(enableGroups []string, groupRatio map[string]float64) float64 {
+	if len(enableGroups) == 0 {
+		return 1
+	}
+	min := -1.0
+	for _, g := range enableGroups {
+		if r, ok := groupRatio[g]; ok {
+			if min < 0 || r < min {
+				min = r
+			}
+		}
+	}
+	if min < 0 {
+		return 1
+	}
+	return min
+}
+
+// fillPricingInputOutputUSD 按 ratio_sync / 前端约定：input USD/1M = model_ratio * 2 * group_ratio；output = input * completion_ratio；按次为 model_price * group_ratio。
+func fillPricingInputOutputUSD(pricing []model.Pricing, groupRatio map[string]float64) []model.Pricing {
+	out := make([]model.Pricing, len(pricing))
+	for i := range pricing {
+		p := pricing[i]
+		gr := minGroupRatioAmongEnable(p.EnableGroup, groupRatio)
+		switch p.QuotaType {
+		case 0:
+			// 与 web helpers calculateModelPrice 中 inputRatioPriceUSD = model_ratio * 2 * usedGroupRatio 一致
+			p.InputPrice = p.ModelRatio * 2 * gr
+			p.OutputPrice = p.InputPrice * p.CompletionRatio
+		case 1:
+			p.InputPrice = p.ModelPrice * gr
+			p.OutputPrice = p.ModelPrice * gr
+		default:
+			p.InputPrice = 0
+			p.OutputPrice = 0
+		}
+		out[i] = p
+	}
+	return out
+}
+
 func GetPricing(c *gin.Context) {
-	pricing := model.GetPricing()
+	pricingRaw := model.GetPricing()
 	userId, exists := c.Get("id")
 	usableGroup := map[string]string{}
 	groupRatio := map[string]float64{}
@@ -37,6 +79,8 @@ func GetPricing(c *gin.Context) {
 			delete(groupRatio, group)
 		}
 	}
+
+	pricing := fillPricingInputOutputUSD(pricingRaw, groupRatio)
 
 	c.JSON(200, gin.H{
 		"success":            true,

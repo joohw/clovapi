@@ -34,6 +34,9 @@ type Pricing struct {
 	SupportedEndpointTypes []constant.EndpointType `json:"supported_endpoint_types"`
 	ToolCall               bool                    `json:"tool_call"`
 	PricingVersion         string                  `json:"pricing_version,omitempty"`
+	// InputPrice / OutputPrice 为按当前用户分组倍率折算后的美元标价（按量：每百万 token；按次：每次调用），由 GetPricing 控制器填充
+	InputPrice  float64 `json:"input_price"`
+	OutputPrice float64 `json:"output_price"`
 }
 
 type PricingVendor struct {

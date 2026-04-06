@@ -9,7 +9,7 @@ const TokensDescription = ({ setEditingToken, setShowEdit }) => {
     <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-2 w-full'>
       <div className='flex items-center text-blue-500'>
         <Key size={16} className='mr-2' />
-        <Text>{'ApiKeys'}</Text>
+        <Text>{"API 密钥"}</Text>
       </div>
 
       <Button
@@ -20,7 +20,7 @@ const TokensDescription = ({ setEditingToken, setShowEdit }) => {
           setShowEdit(true);
         }}
       >
-        {"添加令牌"}
+        {"创建密钥"}
       </Button>
     </div>
   );

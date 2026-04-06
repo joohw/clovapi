@@ -1,11 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import {
-  API,
-  showError,
-  showSuccess,
-  timestamp2string,
-  renderQuotaWithPrompt,
-} from '../../../../helpers';
+import { API, showError, showSuccess } from '../../../../helpers';
+import { quotaToUsdInputString, usdToQuota } from '../../../../helpers/quota';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 import {
   Button,
@@ -14,6 +9,13 @@ import {
   Form,
 } from '@douyinfe/semi-ui';
 import { IconSave } from '@douyinfe/semi-icons';
+
+const EXPIRATION_OPTIONS = [
+  { value: 'never', label: '永不过期' },
+  { value: '1h', label: '1 小时' },
+  { value: '1d', label: '1 天' },
+  { value: '1m', label: '1 个月' },
+];
 
 const EditTokenModal = (props) => {
   const [loading, setLoading] = useState(false);
@@ -50,7 +52,9 @@ const EditTokenModal = (props) => {
       const normalizedData = {
         ...data,
         expired_time: getExpirationOptionByTimestamp(data.expired_time),
-        remain_quota: data.unlimited_quota ? '' : data.remain_quota,
+        remain_quota: data.unlimited_quota
+          ? ''
+          : quotaToUsdInputString(data.remain_quota),
       };
       if (formApiRef.current) {
         formApiRef.current.setValues({ ...getInitValues(), ...normalizedData });
@@ -87,12 +91,22 @@ const EditTokenModal = (props) => {
       name: values.name,
     };
 
-    if (values.remain_quota === '' || values.remain_quota === null) {
+    if (
+      values.remain_quota === '' ||
+      values.remain_quota === null ||
+      values.remain_quota === undefined
+    ) {
       localInputs.unlimited_quota = true;
       localInputs.remain_quota = 0;
     } else {
+      const usd = parseFloat(values.remain_quota);
+      if (!Number.isFinite(usd) || usd < 0) {
+        showError("金额无效");
+        setLoading(false);
+        return;
+      }
       localInputs.unlimited_quota = false;
-      localInputs.remain_quota = parseInt(values.remain_quota, 10) || 0;
+      localInputs.remain_quota = usdToQuota(usd);
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -118,7 +132,7 @@ const EditTokenModal = (props) => {
       });
       const { success, message } = res.data;
       if (success) {
-        showSuccess("ApiKey 更新成功！");
+        showSuccess("密钥更新成功！");
         props.refresh();
         props.handleClose();
       } else {
@@ -128,7 +142,7 @@ const EditTokenModal = (props) => {
       let res = await API.post(`/api/token/`, localInputs);
       const { success, message } = res.data;
       if (success) {
-        showSuccess("ApiKey 创建成功，请在列表点击复制获取密钥！");
+        showSuccess("密钥创建成功，请在列表中点击复制以获取完整密钥！");
         props.refresh();
         props.handleClose();
       } else {
@@ -142,7 +156,7 @@ const EditTokenModal = (props) => {
   return (
     <Modal
       centered
-      title={isEdit ? 'Edit ApiKey' : 'Create ApiKey'}
+      title={isEdit ? '编辑密钥' : '创建密钥'}
       visible={props.visiable}
       width={isMobile ? '100%' : 520}
       footer={
@@ -158,7 +172,7 @@ const EditTokenModal = (props) => {
             icon={<IconSave />}
             loading={loading}
           >
-            {isEdit ? 'Save' : 'Create'}
+            {isEdit ? '保存' : '创建'}
           </Button>
         </div>
       }
@@ -182,31 +196,28 @@ const EditTokenModal = (props) => {
             <div>
               <Form.Input
                 field='name'
-                label={"Name"}
-                placeholder={'e.g. "Chatbot Key"'}
+                label={"名称"}
+                placeholder={"请输入密钥名称，例如「聊天机器人」"}
                 rules={[{ required: true, message: "请输入名称" }]}
                 showClear
               />
               <Form.InputNumber
                 field='remain_quota'
-                label={"Credit limit (optional)"}
-                placeholder={"Leave blank for unlimited"}
+                label={"额度上限（美元，可选）"}
+                placeholder={"留空表示不限制"}
                 min={0}
+                precision={2}
+                step={0.01}
                 hideButtons
                 style={{ width: '100%' }}
-                extraText={renderQuotaWithPrompt(
-                  formApiRef.current?.getValue('remain_quota') || 0,
-                )}
               />
               <Form.Select
                 field='expired_time'
-                label={"Expiration"}
-                optionList={[
-                  { label: 'No expiration', value: 'never' },
-                  { label: '1 hour', value: '1h' },
-                  { label: '1 day', value: '1d' },
-                  { label: '1 month', value: '1m' },
-                ]}
+                label={"过期时间"}
+                placeholder={"请选择过期时间"}
+                style={{ width: '100%' }}
+                emptyContent={"暂无数据"}
+                optionList={EXPIRATION_OPTIONS}
               />
             </div>
           )}

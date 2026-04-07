@@ -33,10 +33,10 @@ import (
 	_ "net/http/pprof"
 )
 
-//go:embed web/dist
+//go:embed web-svelte/build
 var buildFS embed.FS
 
-//go:embed web/dist/index.html
+//go:embed web-svelte/build/index.html
 var indexPage []byte
 
 func main() {

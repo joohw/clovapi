@@ -61,8 +61,8 @@
           "to": "bin/new-api"
         },
         {
-          "from": "../web/dist",
-          "to": "web/dist"
+          "from": "../web-svelte/build",
+          "to": "web-svelte/build"
         }
       ]
     },

@@ -7,7 +7,7 @@ This is an AI API gateway/proxy built with Go. It aggregates 40+ upstream AI pro
 ## Tech Stack
 
 - **Backend**: Go 1.22+, Gin web framework, GORM v2 ORM
-- **Frontend**: React 18, Vite, Semi Design UI (@douyinfe/semi-ui)
+- **Frontend**: Svelte 5, SvelteKit, Vite, Tailwind CSS (`web-svelte/`; static build embedded by the Go binary)
 - **Databases**: SQLite, MySQL, PostgreSQL (all three must be supported)
 - **Cache**: Redis (go-redis) + in-memory cache
 - **Auth**: JWT, WebAuthn/Passkeys, OAuth (GitHub, Discord, OIDC, etc.)
@@ -33,8 +33,9 @@ types/         — Type definitions (relay formats, file sources, errors)
 i18n/          — Backend internationalization (go-i18n, en/zh)
 oauth/         — OAuth provider implementations
 pkg/           — Internal packages (cachex, ionet)
-web/           — React frontend
-  web/src/i18n/  — Frontend internationalization (i18next, zh/en/fr/ru/ja/vi)
+web-svelte/    — SvelteKit dashboard (embedded `build/` output)
+web/           — Legacy React frontend (not embedded in default release; optional reference)
+  web/src/i18n/  — i18next locales used by the React bundle (`bun run i18n:*` in `web/`)
 ```
 
 ## Internationalization (i18n)
@@ -43,13 +44,15 @@ web/           — React frontend
 - Library: `nicksnyder/go-i18n/v2`
 - Languages: en, zh
 
-### Frontend (`web/src/i18n/`)
+### Frontend — React bundle (`web/src/i18n/`, optional)
 - Library: `i18next` + `react-i18next` + `i18next-browser-languagedetector`
 - Languages: zh (fallback), en, fr, ru, ja, vi
 - Translation files: `web/src/i18n/locales/{lang}.json` — flat JSON, keys are Chinese source strings
 - Usage: `useTranslation()` hook, call `t('中文key')` in components
 - Semi UI locale synced via `SemiLocaleWrapper`
-- CLI tools: `bun run i18n:extract`, `bun run i18n:sync`, `bun run i18n:lint`
+- CLI tools (from `web/`): `bun run i18n:extract`, `bun run i18n:sync`, `bun run i18n:lint`
+
+The shipped UI is `web-svelte/`; add or adjust strings there when changing the default dashboard.
 
 ## Rules
 
@@ -93,11 +96,11 @@ All database code MUST be fully compatible with all three databases simultaneous
 
 ### Rule 3: Frontend — Prefer Bun
 
-Use `bun` as the preferred package manager and script runner for the frontend (`web/` directory):
+Use `bun` as the preferred package manager and script runner for the default frontend (`web-svelte/` directory):
 - `bun install` for dependency installation
-- `bun run dev` for development server
-- `bun run build` for production build
-- `bun run i18n:*` for i18n tooling
+- `bun run dev` for development server (proxies API to the Go backend)
+- `bun run build` for production build (outputs `web-svelte/build/` for Go embed)
+- For the legacy React app in `web/`, `bun run i18n:*` applies i18n tooling there only
 
 ### Rule 4: New Channel StreamOptions Support
 

@@ -24,6 +24,7 @@ func GetAllModelsMeta(c *gin.Context) {
 	}
 	// 批量填充附加字段，提升列表接口性能
 	enrichModels(modelsMeta)
+	stripModelSpecFromList(modelsMeta)
 	var total int64
 	model.DB.Model(&model.Model{}).Count(&total)
 
@@ -55,6 +56,7 @@ func SearchModelsMeta(c *gin.Context) {
 	}
 	// 批量填充附加字段，提升列表接口性能
 	enrichModels(modelsMeta)
+	stripModelSpecFromList(modelsMeta)
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(modelsMeta)
 	common.ApiSuccess(c, pageInfo)
@@ -158,6 +160,16 @@ func DeleteModelMeta(c *gin.Context) {
 	}
 	model.RefreshPricing()
 	common.ApiSuccess(c, nil)
+}
+
+// stripModelSpecFromList removes models.dev-aligned JSON from paginated list responses (not shown in model list UI).
+func stripModelSpecFromList(models []*model.Model) {
+	for _, m := range models {
+		if m == nil {
+			continue
+		}
+		m.ModelSpec = nil
+	}
 }
 
 // enrichModels 批量填充附加信息：端点、渠道、分组、计费类型，避免 N+1 查询

@@ -37,7 +37,9 @@ func LogTaskConsumption(c *gin.Context, info *relaycommon.RelayInfo) {
 	}
 	other := make(map[string]interface{})
 	other["request_path"] = c.Request.URL.Path
-	other["model_price"] = info.PriceData.ModelPrice
+	other["per_call_usd"] = info.PriceData.PerCallUSD
+	other["input_usd_per_m"] = info.PriceData.InputUSDPerM
+	other["output_usd_per_m"] = info.PriceData.OutputUSDPerM
 	other["group_ratio"] = info.PriceData.GroupRatioInfo.GroupRatio
 	if info.PriceData.GroupRatioInfo.HasSpecialRatio {
 		other["user_group_ratio"] = info.PriceData.GroupRatioInfo.GroupSpecialRatio
@@ -116,7 +118,9 @@ func taskAdjustTokenQuota(ctx context.Context, task *model.Task, delta int) {
 func taskBillingOther(task *model.Task) map[string]interface{} {
 	other := make(map[string]interface{})
 	if bc := task.PrivateData.BillingContext; bc != nil {
-		other["model_price"] = bc.ModelPrice
+		other["per_call_usd"] = bc.PerCallUSD
+		other["input_usd_per_m"] = bc.InputUSDPerM
+		other["output_usd_per_m"] = bc.OutputUSDPerM
 		other["group_ratio"] = bc.GroupRatio
 		if len(bc.OtherRatios) > 0 {
 			for k, v := range bc.OtherRatios {
@@ -239,8 +243,6 @@ func RecalculateTaskQuota(ctx context.Context, task *model.Task, actualQuota int
 }
 
 // RecalculateTaskQuotaByTokens 根据实际 token 消耗重新计费（异步差额结算）。
-// 当任务成功且返回了 totalTokens 时，根据模型倍率和分组倍率重新计算实际扣费额度，
-// 与预扣费的差额进行补扣或退还。支持钱包和订阅计费来源。
 func RecalculateTaskQuotaByTokens(ctx context.Context, task *model.Task, totalTokens int) {
 	if totalTokens <= 0 {
 		return
@@ -248,14 +250,11 @@ func RecalculateTaskQuotaByTokens(ctx context.Context, task *model.Task, totalTo
 
 	modelName := taskModelName(task)
 
-	// 获取模型价格和倍率
-	modelRatio, hasRatioSetting, _ := ratio_setting.GetModelRatio(modelName)
-	// 只有配置了倍率(非固定价格)时才按 token 重新计费
-	if !hasRatioSetting || modelRatio <= 0 {
+	in, _, _, ok := ratio_setting.GetModelTokenUSDPrices(modelName)
+	if !ok || in <= 0 {
 		return
 	}
 
-	// 获取用户和组的倍率信息
 	group := task.Group
 	if group == "" {
 		user, err := model.GetUserById(task.UserId, false)
@@ -277,9 +276,10 @@ func RecalculateTaskQuotaByTokens(ctx context.Context, task *model.Task, totalTo
 		finalGroupRatio = groupRatio
 	}
 
-	// 计算实际应扣费额度: totalTokens * modelRatio * groupRatio
-	actualQuota := int(float64(totalTokens) * modelRatio * finalGroupRatio)
+	prem := ratio_setting.GetModelPremiumRatio(modelName)
+	usd := float64(totalTokens) * in / 1e6
+	actualQuota := int(usd * common.QuotaPerUnit * finalGroupRatio * prem)
 
-	reason := fmt.Sprintf("token重算：tokens=%d, modelRatio=%.2f, groupRatio=%.2f", totalTokens, modelRatio, finalGroupRatio)
+	reason := fmt.Sprintf("token重算：tokens=%d, inputUSD/M=%.4g, groupRatio=%.2f, premium=%.3f", totalTokens, in, finalGroupRatio, prem)
 	RecalculateTaskQuota(ctx, task, actualQuota, reason)
 }

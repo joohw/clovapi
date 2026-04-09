@@ -1,4 +1,4 @@
-FRONTEND_DIR = ./web-svelte
+FRONTEND_DIR = ./web
 BACKEND_DIR = .
 
 .PHONY: all build-frontend start-backend

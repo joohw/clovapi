@@ -33,13 +33,13 @@ import (
 	_ "net/http/pprof"
 )
 
-// SvelteKit outputs hashed JS/CSS under web-svelte/build/_app/ — the directory name starts with "_".
+// SvelteKit outputs hashed JS/CSS under web/build/_app/ — the directory name starts with "_".
 // go:embed skips "_" and "." names by default; "all:" includes the full build tree (see go doc embed).
 //
-//go:embed all:web-svelte/build
+//go:embed all:web/build
 var buildFS embed.FS
 
-//go:embed all:web-svelte/build/index.html
+//go:embed all:web/build/index.html
 var indexPage []byte
 
 func main() {

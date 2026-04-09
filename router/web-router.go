@@ -21,7 +21,7 @@ func SetWebRouter(router *gin.Engine, buildFS embed.FS, indexPage []byte) {
 
 	// Register explicit routes for SvelteKit output dirs. Relying only on gin-contrib/static middleware
 	// + NoRoute can miss hashed chunks in some cases; Gin's StaticFS matches /_app/* before NoRoute.
-	buildRoot, err := fs.Sub(buildFS, "web-svelte/build")
+	buildRoot, err := fs.Sub(buildFS, "web/build")
 	if err != nil {
 		panic(err)
 	}
@@ -32,7 +32,7 @@ func SetWebRouter(router *gin.Engine, buildFS embed.FS, indexPage []byte) {
 		router.StaticFS("/user", http.FS(sub))
 	}
 
-	router.Use(static.Serve("/", common.EmbedFolder(buildFS, "web-svelte/build")))
+	router.Use(static.Serve("/", common.EmbedFolder(buildFS, "web/build")))
 	router.NoRoute(func(c *gin.Context) {
 		c.Set(middleware.RouteTagKey, "web")
 		if strings.HasPrefix(c.Request.RequestURI, "/v1") || strings.HasPrefix(c.Request.RequestURI, "/api") || strings.HasPrefix(c.Request.RequestURI, "/assets") {

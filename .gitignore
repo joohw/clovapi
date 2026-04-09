@@ -9,7 +9,7 @@ build
 *.db-journal
 logs
 web/dist
-web-svelte/build
+web/build
 .env
 one-api
 new-api

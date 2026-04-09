@@ -268,7 +268,7 @@ func (info *RelayInfo) ToString() string {
 	}
 
 	// Price data (non-sensitive)
-	if info.PriceData.UsePrice {
+	if info.PriceData.UsePerCall || info.PriceData.InputUSDPerM > 0 {
 		fmt.Fprintf(b, "PriceData{ %s }, ", info.PriceData.ToSetting())
 	}
 

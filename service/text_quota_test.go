@@ -30,13 +30,11 @@ func TestCalculateTextQuotaSummaryUnifiedForClaudeSemantic(t *testing.T) {
 		ClaudeCacheCreation1hTokens: 20,
 	}
 
+	// USD/M: completion priced 2× input; cache read 0.1× input (per million tokens).
 	priceData := types.PriceData{
-		ModelRatio:           1,
-		CompletionRatio:      2,
-		CacheRatio:           0.1,
-		CacheCreationRatio:   1.25,
-		CacheCreation5mRatio: 1.25,
-		CacheCreation1hRatio: 2,
+		InputUSDPerM:     1,
+		OutputUSDPerM:    2,
+		CacheReadUSDPerM: 0.1,
 		GroupRatioInfo: types.GroupRatioInfo{
 			GroupRatio: 1,
 		},
@@ -64,10 +62,12 @@ func TestCalculateTextQuotaSummaryUnifiedForClaudeSemantic(t *testing.T) {
 	require.Equal(t, messageSummary.CacheCreationTokens5m, chatSummary.CacheCreationTokens5m)
 	require.Equal(t, messageSummary.CacheCreationTokens1h, chatSummary.CacheCreationTokens1h)
 	require.True(t, chatSummary.IsClaudeUsageSemantic)
-	require.Equal(t, 1488, chatSummary.Quota)
+	// (1000 + 50) input @ $1/M + 100 cache read @ $0.1/M + 200 output @ $2/M → 730 quota @ QuotaPerUnit
+	require.Equal(t, 730, chatSummary.Quota)
 }
 
-func TestCalculateTextQuotaSummaryUsesSplitClaudeCacheCreationRatios(t *testing.T) {
+// Split 5m/1h counts still sum to total cache-write tokens; USD uses InputUSDPerM for all parts.
+func TestCalculateTextQuotaSummaryClaudeSemanticSplitCacheCreationTotals(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
@@ -77,12 +77,8 @@ func TestCalculateTextQuotaSummaryUsesSplitClaudeCacheCreationRatios(t *testing.
 		FinalRequestRelayFormat: types.RelayFormatClaude,
 		OriginModelName:         "claude-3-7-sonnet",
 		PriceData: types.PriceData{
-			ModelRatio:           1,
-			CompletionRatio:      1,
-			CacheRatio:           0,
-			CacheCreationRatio:   1,
-			CacheCreation5mRatio: 2,
-			CacheCreation1hRatio: 3,
+			InputUSDPerM:  1,
+			OutputUSDPerM: 1,
 			GroupRatioInfo: types.GroupRatioInfo{
 				GroupRatio: 1,
 			},
@@ -102,8 +98,8 @@ func TestCalculateTextQuotaSummaryUsesSplitClaudeCacheCreationRatios(t *testing.
 
 	summary := calculateTextQuotaSummary(ctx, relayInfo, usage)
 
-	// 100 + remaining(5)*1 + 2*2 + 3*3 = 118
-	require.Equal(t, 118, summary.Quota)
+	// 100 prompt + 10 cache-write @ input $1/M → 55 quota
+	require.Equal(t, 55, summary.Quota)
 }
 
 func TestCalculateTextQuotaSummaryUsesAnthropicUsageSemanticFromUpstreamUsage(t *testing.T) {
@@ -115,12 +111,9 @@ func TestCalculateTextQuotaSummaryUsesAnthropicUsageSemanticFromUpstreamUsage(t 
 		RelayFormat:     types.RelayFormatOpenAI,
 		OriginModelName: "claude-3-7-sonnet",
 		PriceData: types.PriceData{
-			ModelRatio:           1,
-			CompletionRatio:      2,
-			CacheRatio:           0.1,
-			CacheCreationRatio:   1.25,
-			CacheCreation5mRatio: 1.25,
-			CacheCreation1hRatio: 2,
+			InputUSDPerM:     1,
+			OutputUSDPerM:    2,
+			CacheReadUSDPerM: 0.1,
 			GroupRatioInfo: types.GroupRatioInfo{
 				GroupRatio: 1,
 			},
@@ -144,7 +137,7 @@ func TestCalculateTextQuotaSummaryUsesAnthropicUsageSemanticFromUpstreamUsage(t 
 
 	require.True(t, summary.IsClaudeUsageSemantic)
 	require.Equal(t, "anthropic", summary.UsageSemantic)
-	require.Equal(t, 1488, summary.Quota)
+	require.Equal(t, 730, summary.Quota)
 }
 
 func TestCacheWriteTokensTotal(t *testing.T) {
@@ -180,13 +173,10 @@ func TestCalculateTextQuotaSummaryHandlesLegacyClaudeDerivedOpenAIUsage(t *testi
 		RelayFormat:     types.RelayFormatOpenAI,
 		OriginModelName: "claude-3-7-sonnet",
 		PriceData: types.PriceData{
-			ModelRatio:           1,
-			CompletionRatio:      5,
-			CacheRatio:           0.1,
-			CacheCreationRatio:   1.25,
-			CacheCreation5mRatio: 1.25,
-			CacheCreation1hRatio: 2,
-			GroupRatioInfo:       types.GroupRatioInfo{GroupRatio: 1},
+			InputUSDPerM:     1,
+			OutputUSDPerM:    5,
+			CacheReadUSDPerM: 0.1,
+			GroupRatioInfo:   types.GroupRatioInfo{GroupRatio: 1},
 		},
 		StartTime: time.Now(),
 	}
@@ -202,8 +192,8 @@ func TestCalculateTextQuotaSummaryHandlesLegacyClaudeDerivedOpenAIUsage(t *testi
 
 	summary := calculateTextQuotaSummary(ctx, relayInfo, usage)
 
-	// 62 + 3544*0.1 + 586*1.25 + 95*5 = 1624.9 => 1624
-	require.Equal(t, 1624, summary.Quota)
+	// Legacy OpenAI-shaped usage with Claude split fields: USD = 62 in + 3544 cache read + 586 cache write (input) + 95 out
+	require.Equal(t, 739, summary.Quota)
 }
 
 func TestCalculateTextQuotaSummarySeparatesOpenRouterCacheReadFromPromptBilling(t *testing.T) {
@@ -217,11 +207,10 @@ func TestCalculateTextQuotaSummarySeparatesOpenRouterCacheReadFromPromptBilling(
 			ChannelType: constant.ChannelTypeOpenRouter,
 		},
 		PriceData: types.PriceData{
-			ModelRatio:         1,
-			CompletionRatio:    1,
-			CacheRatio:         0.1,
-			CacheCreationRatio: 1.25,
-			GroupRatioInfo:     types.GroupRatioInfo{GroupRatio: 1},
+			InputUSDPerM:     1,
+			OutputUSDPerM:    1,
+			CacheReadUSDPerM: 0.1,
+			GroupRatioInfo:   types.GroupRatioInfo{GroupRatio: 1},
 		},
 		StartTime: time.Now(),
 	}
@@ -236,11 +225,8 @@ func TestCalculateTextQuotaSummarySeparatesOpenRouterCacheReadFromPromptBilling(
 
 	summary := calculateTextQuotaSummary(ctx, relayInfo, usage)
 
-	// OpenRouter OpenAI-format display keeps prompt_tokens as total input,
-	// but billing still separates normal input from cache read tokens.
-	// quota = (2604 - 2432) + 2432*0.1 + 383 = 798.2 => 798
 	require.Equal(t, 2604, summary.PromptTokens)
-	require.Equal(t, 798, summary.Quota)
+	require.Equal(t, 399, summary.Quota)
 }
 
 func TestCalculateTextQuotaSummarySeparatesOpenRouterCacheCreationFromPromptBilling(t *testing.T) {
@@ -254,10 +240,9 @@ func TestCalculateTextQuotaSummarySeparatesOpenRouterCacheCreationFromPromptBill
 			ChannelType: constant.ChannelTypeOpenRouter,
 		},
 		PriceData: types.PriceData{
-			ModelRatio:         1,
-			CompletionRatio:    1,
-			CacheCreationRatio: 1.25,
-			GroupRatioInfo:     types.GroupRatioInfo{GroupRatio: 1},
+			InputUSDPerM:   1,
+			OutputUSDPerM:  1,
+			GroupRatioInfo: types.GroupRatioInfo{GroupRatio: 1},
 		},
 		StartTime: time.Now(),
 	}
@@ -272,10 +257,8 @@ func TestCalculateTextQuotaSummarySeparatesOpenRouterCacheCreationFromPromptBill
 
 	summary := calculateTextQuotaSummary(ctx, relayInfo, usage)
 
-	// prompt_tokens is still logged as total input, but cache creation is billed separately.
-	// quota = (2604 - 100) + 100*1.25 + 383 = 3012
 	require.Equal(t, 2604, summary.PromptTokens)
-	require.Equal(t, 3012, summary.Quota)
+	require.Equal(t, 1494, summary.Quota)
 }
 
 func TestCalculateTextQuotaSummaryKeepsPrePRClaudeOpenRouterBilling(t *testing.T) {
@@ -290,11 +273,10 @@ func TestCalculateTextQuotaSummaryKeepsPrePRClaudeOpenRouterBilling(t *testing.T
 			ChannelType: constant.ChannelTypeOpenRouter,
 		},
 		PriceData: types.PriceData{
-			ModelRatio:         1,
-			CompletionRatio:    1,
-			CacheRatio:         0.1,
-			CacheCreationRatio: 1.25,
-			GroupRatioInfo:     types.GroupRatioInfo{GroupRatio: 1},
+			InputUSDPerM:     1,
+			OutputUSDPerM:    1,
+			CacheReadUSDPerM: 0.1,
+			GroupRatioInfo:   types.GroupRatioInfo{GroupRatio: 1},
 		},
 		StartTime: time.Now(),
 	}
@@ -309,10 +291,7 @@ func TestCalculateTextQuotaSummaryKeepsPrePRClaudeOpenRouterBilling(t *testing.T
 
 	summary := calculateTextQuotaSummary(ctx, relayInfo, usage)
 
-	// Pre-PR PostClaudeConsumeQuota behavior for OpenRouter:
-	// prompt = 2604 - 2432 = 172
-	// quota = 172 + 2432*0.1 + 383 = 798.2 => 798
 	require.True(t, summary.IsClaudeUsageSemantic)
 	require.Equal(t, 172, summary.PromptTokens)
-	require.Equal(t, 798, summary.Quota)
+	require.Equal(t, 399, summary.Quota)
 }

@@ -21,22 +21,22 @@ type Pricing struct {
 	Tags                   string                  `json:"tags,omitempty"`
 	VendorID               int                     `json:"vendor_id,omitempty"`
 	QuotaType              int                     `json:"quota_type"`
-	ModelRatio             float64                 `json:"model_ratio"`
-	ModelPrice             float64                 `json:"model_price"`
 	OwnerBy                string                  `json:"owner_by"`
-	CompletionRatio        float64                 `json:"completion_ratio"`
-	CacheRatio             *float64                `json:"cache_ratio,omitempty"`
-	CreateCacheRatio       *float64                `json:"create_cache_ratio,omitempty"`
-	ImageRatio             *float64                `json:"image_ratio,omitempty"`
-	AudioRatio             *float64                `json:"audio_ratio,omitempty"`
-	AudioCompletionRatio   *float64                `json:"audio_completion_ratio,omitempty"`
 	EnableGroup            []string                `json:"enable_groups"`
 	SupportedEndpointTypes []constant.EndpointType `json:"supported_endpoint_types"`
 	ToolCall               bool                    `json:"tool_call"`
 	PricingVersion         string                  `json:"pricing_version,omitempty"`
-	// InputPrice / OutputPrice 为按当前用户分组倍率折算后的美元标价（按量：每百万 token；按次：每次调用），由 GetPricing 控制器填充
-	InputPrice  float64 `json:"input_price"`
-	OutputPrice float64 `json:"output_price"`
+	// 基准价（不含分组倍率与模型溢价），单位：USD / 1M tokens；按次为 USD/次
+	InputUSDPerM     float64 `json:"input_usd_per_m"`
+	OutputUSDPerM    float64 `json:"output_usd_per_m"`
+	CacheReadUSDPerM float64 `json:"cache_read_usd_per_m"`
+	PerCallUSD       float64 `json:"per_call_usd"`
+	// PremiumRatio 模型溢价倍率（默认 1），与分组倍率相乘用于展示与扣费
+	PremiumRatio float64 `json:"premium_ratio"`
+	// InputPrice / OutputPrice / CacheReadPrice 为按当前用户分组倍率折算后的展示价（与列表一致）
+	InputPrice     float64 `json:"input_price"`
+	OutputPrice    float64 `json:"output_price"`
+	CacheReadPrice float64 `json:"cache_read_price"`
 }
 
 type PricingVendor struct {
@@ -298,33 +298,19 @@ func updatePricing() {
 			pricing.Tags = meta.Tags
 			pricing.VendorID = meta.VendorID
 		}
-		modelPrice, findPrice := ratio_setting.GetModelPrice(model, false)
-		if findPrice {
-			pricing.ModelPrice = modelPrice
+		if pc, ok := ratio_setting.GetModelPerCallUSD(model); ok && pc > 0 {
+			pricing.PerCallUSD = pc
 			pricing.QuotaType = 1
+		} else if in, out, cr, ok := ratio_setting.GetModelTokenUSDPrices(model); ok {
+			pricing.InputUSDPerM = in
+			pricing.OutputUSDPerM = out
+			pricing.CacheReadUSDPerM = cr
+			pricing.QuotaType = 0
 		} else {
-			modelRatio, _, _ := ratio_setting.GetModelRatio(model)
-			pricing.ModelRatio = modelRatio
-			pricing.CompletionRatio = ratio_setting.GetCompletionRatio(model)
+			// 无美元配置仍返回，便于前台/后台展示与补价；实际扣费仍以 ModelHasPricing 为准
 			pricing.QuotaType = 0
 		}
-		if cacheRatio, ok := ratio_setting.GetCacheRatio(model); ok {
-			pricing.CacheRatio = &cacheRatio
-		}
-		if createCacheRatio, ok := ratio_setting.GetCreateCacheRatio(model); ok {
-			pricing.CreateCacheRatio = &createCacheRatio
-		}
-		if imageRatio, ok := ratio_setting.GetImageRatio(model); ok {
-			pricing.ImageRatio = &imageRatio
-		}
-		if ratio_setting.ContainsAudioRatio(model) {
-			audioRatio := ratio_setting.GetAudioRatio(model)
-			pricing.AudioRatio = &audioRatio
-		}
-		if ratio_setting.ContainsAudioCompletionRatio(model) {
-			audioCompletionRatio := ratio_setting.GetAudioCompletionRatio(model)
-			pricing.AudioCompletionRatio = &audioCompletionRatio
-		}
+		pricing.PremiumRatio = ratio_setting.GetModelPremiumRatio(model)
 		pricingMap = append(pricingMap, pricing)
 	}
 

@@ -469,20 +469,22 @@ func testChannel(channel *model.Channel, testModel string, endpointType string, 
 	info.SetEstimatePromptTokens(usage.PromptTokens)
 
 	quota := 0
-	if !priceData.UsePrice {
-		quota = usage.PromptTokens + int(math.Round(float64(usage.CompletionTokens)*priceData.CompletionRatio))
-		quota = int(math.Round(float64(quota) * priceData.ModelRatio))
-		if priceData.ModelRatio != 0 && quota <= 0 {
+	gr := priceData.GroupRatioInfo.GroupRatio
+	if !priceData.UsePerCall {
+		in := priceData.InputUSDPerM / 1e6
+		out := priceData.OutputUSDPerM / 1e6
+		usd := float64(usage.PromptTokens)*in + float64(usage.CompletionTokens)*out
+		quota = int(usd * common.QuotaPerUnit * gr)
+		if quota <= 0 && (usage.PromptTokens+usage.CompletionTokens) > 0 {
 			quota = 1
 		}
 	} else {
-		quota = int(priceData.ModelPrice * common.QuotaPerUnit)
+		quota = int(priceData.PerCallUSD * common.QuotaPerUnit * gr)
 	}
 	tok := time.Now()
 	milliseconds := tok.Sub(tik).Milliseconds()
 	consumedTime := float64(milliseconds) / 1000.0
-	other := service.GenerateTextOtherInfo(c, info, priceData.ModelRatio, priceData.GroupRatioInfo.GroupRatio, priceData.CompletionRatio,
-		usage.PromptTokensDetails.CachedTokens, priceData.CacheRatio, priceData.ModelPrice, priceData.GroupRatioInfo.GroupSpecialRatio)
+	other := service.GenerateTextOtherInfo(c, info, priceData, usage.PromptTokensDetails.CachedTokens)
 	model.RecordConsumeLog(c, 1, model.RecordConsumeLogParams{
 		ChannelId:        channel.Id,
 		PromptTokens:     usage.PromptTokens,

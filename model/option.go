@@ -128,17 +128,14 @@ func InitOptionMap() {
 	common.OptionMap["ModelRequestRateLimitDurationMinutes"] = strconv.Itoa(setting.ModelRequestRateLimitDurationMinutes)
 	common.OptionMap["ModelRequestRateLimitSuccessCount"] = strconv.Itoa(setting.ModelRequestRateLimitSuccessCount)
 	common.OptionMap["ModelRequestRateLimitGroup"] = setting.ModelRequestRateLimitGroup2JSONString()
-	common.OptionMap["ModelRatio"] = ratio_setting.ModelRatio2JSONString()
-	common.OptionMap["ModelPrice"] = ratio_setting.ModelPrice2JSONString()
-	common.OptionMap["CacheRatio"] = ratio_setting.CacheRatio2JSONString()
-	common.OptionMap["CreateCacheRatio"] = ratio_setting.CreateCacheRatio2JSONString()
+	common.OptionMap["ModelInputUSDPerM"] = ratio_setting.ModelInputUSDPerM2JSONString()
+	common.OptionMap["ModelOutputUSDPerM"] = ratio_setting.ModelOutputUSDPerM2JSONString()
+	common.OptionMap["ModelCacheReadUSDPerM"] = ratio_setting.ModelCacheReadUSDPerM2JSONString()
+	common.OptionMap["ModelPerCallUSD"] = ratio_setting.ModelPerCallUSD2JSONString()
+	common.OptionMap["ModelPremiumRatio"] = ratio_setting.ModelPremiumRatio2JSONString()
 	common.OptionMap["GroupRatio"] = ratio_setting.GroupRatio2JSONString()
 	common.OptionMap["GroupGroupRatio"] = ratio_setting.GroupGroupRatio2JSONString()
 	common.OptionMap["UserUsableGroups"] = setting.UserUsableGroups2JSONString()
-	common.OptionMap["CompletionRatio"] = ratio_setting.CompletionRatio2JSONString()
-	common.OptionMap["ImageRatio"] = ratio_setting.ImageRatio2JSONString()
-	common.OptionMap["AudioRatio"] = ratio_setting.AudioRatio2JSONString()
-	common.OptionMap["AudioCompletionRatio"] = ratio_setting.AudioCompletionRatio2JSONString()
 	common.OptionMap["TopUpLink"] = common.TopUpLink
 	//common.OptionMap["ChatLink"] = common.ChatLink
 	//common.OptionMap["ChatLink2"] = common.ChatLink2
@@ -460,28 +457,22 @@ func updateOptionMap(key string, value string) (err error) {
 		common.DataExportInterval, _ = strconv.Atoi(value)
 	case "DataExportDefaultTime":
 		common.DataExportDefaultTime = value
-	case "ModelRatio":
-		err = ratio_setting.UpdateModelRatioByJSONString(value)
+	case "ModelInputUSDPerM":
+		err = ratio_setting.UpdateModelInputUSDPerMByJSONString(value)
+	case "ModelOutputUSDPerM":
+		err = ratio_setting.UpdateModelOutputUSDPerMByJSONString(value)
+	case "ModelCacheReadUSDPerM":
+		err = ratio_setting.UpdateModelCacheReadUSDPerMByJSONString(value)
+	case "ModelPerCallUSD":
+		err = ratio_setting.UpdateModelPerCallUSDByJSONString(value)
+	case "ModelPremiumRatio":
+		err = ratio_setting.UpdateModelPremiumRatioByJSONString(value)
 	case "GroupRatio":
 		err = ratio_setting.UpdateGroupRatioByJSONString(value)
 	case "GroupGroupRatio":
 		err = ratio_setting.UpdateGroupGroupRatioByJSONString(value)
 	case "UserUsableGroups":
 		err = setting.UpdateUserUsableGroupsByJSONString(value)
-	case "CompletionRatio":
-		err = ratio_setting.UpdateCompletionRatioByJSONString(value)
-	case "ModelPrice":
-		err = ratio_setting.UpdateModelPriceByJSONString(value)
-	case "CacheRatio":
-		err = ratio_setting.UpdateCacheRatioByJSONString(value)
-	case "CreateCacheRatio":
-		err = ratio_setting.UpdateCreateCacheRatioByJSONString(value)
-	case "ImageRatio":
-		err = ratio_setting.UpdateImageRatioByJSONString(value)
-	case "AudioRatio":
-		err = ratio_setting.UpdateAudioRatioByJSONString(value)
-	case "AudioCompletionRatio":
-		err = ratio_setting.UpdateAudioCompletionRatioByJSONString(value)
 	case "TopUpLink":
 		common.TopUpLink = value
 	//case "ChatLink":
@@ -509,7 +500,22 @@ func updateOptionMap(key string, value string) (err error) {
 		// The value is already stored in OptionMap at the top of this function (line: common.OptionMap[key] = value).
 		// No additional in-memory variable to update.
 	}
+	if err == nil && optionKeyRefreshesPricingCache(key) {
+		RefreshPricing()
+	}
 	return err
+}
+
+// optionKeyRefreshesPricingCache 与 model.updatePricing / GetPricing 用到的 ratio 配置一致，保存后应立即重建定价缓存（否则最多延迟约 1 分钟）。
+func optionKeyRefreshesPricingCache(key string) bool {
+	switch key {
+	case "ModelInputUSDPerM", "ModelOutputUSDPerM", "ModelCacheReadUSDPerM", "ModelPerCallUSD",
+		"ModelPremiumRatio",
+		"GroupRatio", "GroupGroupRatio":
+		return true
+	default:
+		return false
+	}
 }
 
 // handleConfigUpdate 处理分层配置更新，返回是否已处理

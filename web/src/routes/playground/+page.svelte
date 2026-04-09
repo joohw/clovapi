@@ -1,0 +1,295 @@
+<svelte:options runes={false} />
+
+<script>
+  import { onMount } from 'svelte';
+  import { apiGet, getUserIdFromLocalStorage, apiUrl } from '$lib/api';
+  import { Button } from '$lib/components/ui/button';
+  import { Textarea } from '$lib/components/ui/textarea';
+  import { ScrollArea } from '$lib/components/ui/scroll-area';
+  import * as Select from '$lib/components/ui/select';
+
+  let loadingModels = true;
+  let sending = false;
+  let errorMsg = '';
+  /** @type {string[]} */
+  let models = [];
+  /** @type {{ value: string; label: string }[]} */
+  let groupOptions = [];
+  let model = '';
+  let group = '';
+  let stream = true;
+
+  let prompt = '';
+  /** @type {{ role: string; content: string }[]} */
+  let messages = [];
+
+  /**
+   * @param {Record<string, { desc?: string }>} data
+   * @param {string | undefined} userGroup
+   */
+  function processGroups(data, userGroup) {
+    const entries = Object.entries(data || {}).map(([g, info]) => ({
+      value: g,
+      label:
+        info?.desc && info.desc.length > 20 ? info.desc.slice(0, 20) + '...' : info?.desc || g
+    }));
+    if (entries.length === 0) {
+      return [{ value: '', label: '用户分组' }];
+    }
+    if (userGroup) {
+      const i = entries.findIndex((x) => x.value === userGroup);
+      if (i > 0) {
+        const [pick] = entries.splice(i, 1);
+        entries.unshift(pick);
+      }
+    }
+    return entries;
+  }
+
+  /**
+   * @param {{ role: string; content: string }[]} chatMessages
+   */
+  function buildPayload(chatMessages) {
+    /** @type {{ role: string; content: string }[]} */
+    const out = [];
+    for (const m of chatMessages) {
+      if (m.role && m.content != null && String(m.content).trim() !== '') {
+        out.push({ role: m.role, content: String(m.content).trim() });
+      }
+    }
+
+    return {
+      model,
+      group: group ?? '',
+      messages: out,
+      stream
+    };
+  }
+
+  async function loadModels() {
+    loadingModels = true;
+    errorMsg = '';
+    try {
+      const res = await apiGet('/api/user/models');
+      if (res?.success) {
+        models = Array.isArray(res.data) ? res.data : [];
+        if (!model && models.length > 0) {
+          model = models[0];
+        }
+      } else {
+        errorMsg = res?.message || '加载模型失败';
+      }
+    } catch (err) {
+      errorMsg = '加载模型失败';
+    } finally {
+      loadingModels = false;
+    }
+  }
+
+  async function loadGroups() {
+    try {
+      const res = await apiGet('/api/user/self/groups');
+      if (res?.success && res.data && typeof res.data === 'object') {
+        let userGroup;
+        try {
+          const raw = localStorage.getItem('user');
+          if (raw) userGroup = JSON.parse(raw)?.group;
+        } catch (_) {}
+        groupOptions = processGroups(/** @type {Record<string, { desc?: string }>} */ (res.data), userGroup);
+        const has = groupOptions.some((g) => g.value === group);
+        if (!has) {
+          group = groupOptions[0]?.value ?? '';
+        }
+      }
+    } catch (_) {
+      groupOptions = [{ value: '', label: '用户分组' }];
+    }
+  }
+
+  /**
+   * @param {string} url
+   * @param {Record<string, string>} headers
+   * @param {Record<string, unknown>} body
+   * @param {(s: string) => void} onDelta
+   */
+  async function readSseChat(url, headers, body, onDelta) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      let text = '';
+      try {
+        text = await res.text();
+      } catch (_) {}
+      throw new Error(text || `请求失败 (${res.status})`);
+    }
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error('无法读取流式响应');
+    const dec = new TextDecoder();
+    let carry = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      carry += dec.decode(value, { stream: true });
+      const lines = carry.split('\n');
+      carry = lines.pop() ?? '';
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t.startsWith('data:')) continue;
+        const data = t.slice(5).trim();
+        if (!data || data === '[DONE]') continue;
+        try {
+          const j = JSON.parse(data);
+          const delta =
+            j.choices?.[0]?.delta?.content ??
+            j.choices?.[0]?.message?.content ??
+            '';
+          if (delta) onDelta(delta);
+        } catch (_) {}
+      }
+    }
+    const last = carry.trim();
+    if (last.startsWith('data:')) {
+      const data = last.slice(5).trim();
+      if (data && data !== '[DONE]') {
+        try {
+          const j = JSON.parse(data);
+          const delta = j.choices?.[0]?.delta?.content ?? '';
+          if (delta) onDelta(delta);
+        } catch (_) {}
+      }
+    }
+  }
+
+  /**
+   * @param {SubmitEvent} event
+   */
+  async function sendMessage(event) {
+    event.preventDefault();
+    if (!prompt.trim() || !model) return;
+
+    const userMsg = { role: 'user', content: prompt.trim() };
+    const requestMessages = [...messages, userMsg];
+    const currentPrompt = prompt.trim();
+    sending = true;
+    errorMsg = '';
+
+    const payload = buildPayload(requestMessages);
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+      'New-Api-User': getUserIdFromLocalStorage()
+    };
+
+    try {
+      if (stream) {
+        let acc = '';
+        messages = [...requestMessages, { role: 'assistant', content: '' }];
+        await readSseChat(apiUrl('/pg/chat/completions'), headers, payload, (chunk) => {
+          acc += chunk;
+          messages = [...requestMessages, { role: 'assistant', content: acc }];
+        });
+        if (!acc.trim()) {
+          messages = [...requestMessages, { role: 'assistant', content: '无返回内容' }];
+        }
+      } else {
+        messages = [...requestMessages, { role: 'assistant', content: '...' }];
+        const res = await fetch(apiUrl('/pg/chat/completions'), {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const errText = data?.error?.message || data?.message || JSON.stringify(data);
+          throw new Error(errText || `请求失败 (${res.status})`);
+        }
+        const assistant = data?.choices?.[0]?.message?.content || '无返回内容';
+        messages = [...requestMessages, { role: 'assistant', content: assistant }];
+      }
+      prompt = '';
+    } catch (err) {
+      errorMsg = err instanceof Error ? err.message : '发送失败，请重试';
+      messages = [...requestMessages, { role: 'assistant', content: '请求失败' }];
+      prompt = currentPrompt;
+    } finally {
+      sending = false;
+    }
+  }
+
+  function clearMessages() {
+    messages = [];
+    errorMsg = '';
+  }
+
+  onMount(() => {
+    loadModels();
+    loadGroups();
+  });
+</script>
+
+<div class="playground-page page-wrap flex min-h-0 flex-1 flex-col overflow-hidden">
+  <section class="panel flex min-h-0 flex-1 flex-col overflow-hidden !bg-white p-0 dark:!bg-card">
+    <ScrollArea class="h-0 min-h-0 flex-1" orientation="vertical">
+      <div class="w-full space-y-3 px-3 py-3">
+        {#if messages.length === 0}
+          <div class="text-sm text-muted-foreground">发送第一条消息开始对话。</div>
+        {:else}
+          {#each messages as msg}
+            <div>
+              <div class="mb-0.5 text-xs text-muted-foreground">{msg.role === 'user' ? '你' : '助手'}</div>
+              <pre class="whitespace-pre-wrap break-words text-sm font-sans">{msg.content}</pre>
+            </div>
+          {/each}
+        {/if}
+        {#if errorMsg}
+          <p class="text-sm text-destructive">{errorMsg}</p>
+        {/if}
+      </div>
+    </ScrollArea>
+
+    <form
+      class="shrink-0 border-t border-gray-200 bg-transparent px-3 py-3 dark:border-border"
+      onsubmit={sendMessage}
+    >
+      <div class="w-full space-y-1.5">
+        <Textarea
+          bind:value={prompt}
+          placeholder="输入消息..."
+          class="min-h-14 resize-none border-0 bg-transparent px-0 py-1.5 shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
+        />
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="min-w-0 flex-1 basis-[min(100%,12rem)] sm:max-w-2xl">
+            <Select.Root type="single" bind:value={model} disabled={loadingModels || models.length === 0}>
+              <Select.Trigger
+                id="pg-model-select"
+                aria-label="模型"
+                class="!h-8 min-h-8 min-w-0 w-full max-w-full !bg-background hover:!bg-muted dark:!bg-background dark:hover:!bg-muted"
+              >
+                <span class="truncate text-left"
+                  >{model || (models.length === 0 ? '暂无模型' : '选择模型')}</span
+                >
+              </Select.Trigger>
+              <Select.Content>
+                {#each models as m}
+                  <Select.Item value={m} label={m}>{m}</Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
+          </div>
+          <div class="flex shrink-0 gap-2">
+            <Button variant="outline" type="button" onclick={clearMessages}>
+              清空对话
+            </Button>
+            <Button type="submit" disabled={sending || !model}>
+              {sending ? '发送中...' : '发送'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </section>
+</div>

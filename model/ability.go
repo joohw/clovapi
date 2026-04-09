@@ -35,14 +35,10 @@ type EnabledModelInfo struct {
 	Status                 int                     `json:"status"`
 	BillingType            string                  `json:"billing_type"`
 	QuotaType              int                     `json:"quota_type"`
-	ModelRatio             *float64                `json:"model_ratio,omitempty"`
-	ModelPrice             *float64                `json:"model_price,omitempty"`
-	CompletionRatio        *float64                `json:"completion_ratio,omitempty"`
-	CacheRatio             *float64                `json:"cache_ratio,omitempty"`
-	CreateCacheRatio       *float64                `json:"create_cache_ratio,omitempty"`
-	ImageRatio             *float64                `json:"image_ratio,omitempty"`
-	AudioRatio             *float64                `json:"audio_ratio,omitempty"`
-	AudioCompletionRatio   *float64                `json:"audio_completion_ratio,omitempty"`
+	InputUSDPerM           *float64                `json:"input_usd_per_m,omitempty"`
+	OutputUSDPerM          *float64                `json:"output_usd_per_m,omitempty"`
+	CacheReadUSDPerM       *float64                `json:"cache_read_usd_per_m,omitempty"`
+	PerCallUSD             *float64                `json:"per_call_usd,omitempty"`
 	ToolCall               bool                    `json:"tool_call"`
 	EnableGroups           []string                `json:"enable_groups,omitempty"`
 	SupportedEndpointTypes []constant.EndpointType `json:"supported_endpoint_types,omitempty"`
@@ -125,17 +121,13 @@ func GetEnabledModelInfos() ([]EnabledModelInfo, error) {
 
 			if pricing.QuotaType == 1 {
 				info.BillingType = "per-request"
-				info.ModelPrice = float64Ptr(pricing.ModelPrice)
+				info.PerCallUSD = float64Ptr(pricing.PerCallUSD)
 			} else {
 				info.BillingType = "per-token"
-				info.ModelRatio = float64Ptr(pricing.ModelRatio)
-				info.CompletionRatio = float64Ptr(pricing.CompletionRatio)
+				info.InputUSDPerM = float64Ptr(pricing.InputUSDPerM)
+				info.OutputUSDPerM = float64Ptr(pricing.OutputUSDPerM)
+				info.CacheReadUSDPerM = float64Ptr(pricing.CacheReadUSDPerM)
 			}
-			info.CacheRatio = pricing.CacheRatio
-			info.CreateCacheRatio = pricing.CreateCacheRatio
-			info.ImageRatio = pricing.ImageRatio
-			info.AudioRatio = pricing.AudioRatio
-			info.AudioCompletionRatio = pricing.AudioCompletionRatio
 		}
 
 		if meta, ok := metaByModel[modelName]; ok {

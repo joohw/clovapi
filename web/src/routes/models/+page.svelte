@@ -14,6 +14,7 @@
     TableHead,
     TableCell
   } from '$lib/components/ui/table';
+  import { resolveVendorIcon } from '$lib/vendorIcon.js';
 
   let loading = true;
   let errorMsg = '';
@@ -85,52 +86,6 @@
   function formatPremium(value) {
     if (typeof value !== 'number' || Number.isNaN(value)) return '-';
     return value.toFixed(3);
-  }
-
-  /**
-   * 兼容后端返回的 vendor_icon：
-   * - URL（http/https/data:image）直接使用
-   * - 图标名（如 OpenAI.Color）映射到简单图标 CDN
-   * @param {string} vendorIcon
-   * @param {string} vendorName
-   */
-  function resolveVendorIcon(vendorIcon, vendorName = '') {
-    const raw = String(vendorIcon || '').trim();
-    if (!raw && !vendorName) return '';
-
-    if (
-      raw.startsWith('http://') ||
-      raw.startsWith('https://') ||
-      raw.startsWith('data:image/')
-    ) {
-      return raw;
-    }
-
-    const key = (raw || vendorName).split('.')[0].toLowerCase();
-    /** @type {Record<string, string>} */
-    const iconMap = {
-      openai: 'openai',
-      claude: 'anthropic',
-      anthropic: 'anthropic',
-      gemini: 'googlegemini',
-      google: 'google',
-      xai: 'x',
-      grok: 'x',
-      cohere: 'cohere',
-      qwen: 'alibabacloud',
-      alibaba: 'alibabacloud',
-      azure: 'microsoftazure',
-      microsoftazure: 'microsoftazure',
-      deepseek: 'deepseek',
-      zhipu: 'zhipu',
-      doubao: 'bytedance',
-      volcengine: 'bytedance',
-      mistral: 'mistralai',
-      siliconcloud: 'icloud'
-    };
-
-    const slug = iconMap[key] || '';
-    return slug ? `https://cdn.simpleicons.org/${slug}/000000` : '';
   }
 
   $: filteredModels = models.filter((m) => {

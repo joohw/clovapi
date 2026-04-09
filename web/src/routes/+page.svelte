@@ -177,7 +177,7 @@
             一站聚合，极速中转
           </h1>
           <p class="mx-auto mt-4 max-w-xl text-sm text-muted-foreground">
-            聚合多家上游，成本与线路更可预期，只需把 Base URL 设为
+            一键聚合多家上游供应商，成本更可预期，只需把 Base URL 设为
           </p>
           <button
             type="button"

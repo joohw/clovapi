@@ -19,6 +19,7 @@
     MODEL_OPTION_KEYS,
     parseNumberMap,
   } from '$lib/admin/modelPricingOptions.js';
+  import { resolveVendorIcon } from '$lib/vendorIcon.js';
 
   /** 为 true 时加载（由父级 tab 控制） */
   export let active = false;
@@ -41,46 +42,6 @@
   function pickOptionValue(rows, key) {
     const row = rows.find((r) => r && r.key === key);
     return row?.value != null ? String(row.value) : '';
-  }
-
-  /**
-   * @param {string} vendorIcon
-   * @param {string} vendorName
-   */
-  function resolveVendorIcon(vendorIcon, vendorName = '') {
-    const raw = String(vendorIcon || '').trim();
-    if (!raw && !vendorName) return '';
-    if (
-      raw.startsWith('http://') ||
-      raw.startsWith('https://') ||
-      raw.startsWith('data:image/')
-    ) {
-      return raw;
-    }
-    const key = (raw || vendorName).split('.')[0].toLowerCase();
-    /** @type {Record<string, string>} */
-    const iconMap = {
-      openai: 'openai',
-      claude: 'anthropic',
-      anthropic: 'anthropic',
-      gemini: 'googlegemini',
-      google: 'google',
-      xai: 'x',
-      grok: 'x',
-      cohere: 'cohere',
-      qwen: 'alibabacloud',
-      alibaba: 'alibabacloud',
-      azure: 'microsoftazure',
-      microsoftazure: 'microsoftazure',
-      deepseek: 'deepseek',
-      zhipu: 'zhipu',
-      doubao: 'bytedance',
-      volcengine: 'bytedance',
-      mistral: 'mistralai',
-      siliconcloud: 'icloud',
-    };
-    const slug = iconMap[key] || '';
-    return slug ? `https://cdn.simpleicons.org/${slug}/000000` : '';
   }
 
   /**

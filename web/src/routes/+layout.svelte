@@ -227,7 +227,7 @@
     }
 
     body {
-      @apply h-full min-h-0 overflow-hidden bg-gray-100 text-gray-900 dark:bg-background dark:text-foreground;
+      @apply h-full min-h-0 overflow-hidden bg-neutral-50 text-gray-900 dark:bg-zinc-950 dark:text-foreground;
     }
 
     * {
@@ -245,25 +245,26 @@
       @apply relative flex h-full min-h-0 w-full flex-col;
     }
 
+    /* 与文档 / 模型等页内卡片铺色一致：neutral-50 · zinc-950 */
     .app-shell::before {
       content: '';
       position: fixed;
       inset: 0;
       z-index: 0;
       pointer-events: none;
-      background-color: #f4f4f4;
+      background-color: #fafafa;
       background-image:
-        linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+        linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
       background-size: 40px 40px;
       background-position: 0 0;
     }
 
     html.dark .app-shell::before {
-      background-color: #000;
+      background-color: #09090b;
       background-image:
-        linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
     }
 
     .app-main-body {

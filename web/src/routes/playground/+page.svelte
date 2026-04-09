@@ -3,6 +3,72 @@
 <script>
   import { onMount } from 'svelte';
   import { apiGet, getUserIdFromLocalStorage, apiUrl } from '$lib/api';
+
+  const PG_SESSION_VER = 1;
+  /** 同标签页内临时保存，关闭标签即清除；按用户区分避免串数据 */
+  function playgroundStorageKey() {
+    return `newapi_playground_v${PG_SESSION_VER}_${getUserIdFromLocalStorage()}`;
+  }
+
+  /** @param {unknown} v */
+  function isMessageList(v) {
+    if (!Array.isArray(v)) return false;
+    return v.every(
+      (m) =>
+        m &&
+        typeof m === 'object' &&
+        typeof /** @type {{ role?: unknown; content?: unknown }} */ (m).role === 'string' &&
+        typeof /** @type {{ role?: unknown; content?: unknown }} */ (m).content === 'string'
+    );
+  }
+
+  function loadPlaygroundSession() {
+    if (typeof sessionStorage === 'undefined') return;
+    try {
+      const raw = sessionStorage.getItem(playgroundStorageKey());
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (!data || data.v !== PG_SESSION_VER) return;
+      if (isMessageList(data.messages)) {
+        messages = /** @type {{ role: string; content: string }[]} */ (data.messages);
+      }
+      if (typeof data.prompt === 'string') prompt = data.prompt;
+      if (typeof data.stream === 'boolean') stream = data.stream;
+      if (typeof data.model === 'string' && models.includes(data.model)) {
+        model = data.model;
+      }
+      if (
+        typeof data.group === 'string' &&
+        groupOptions.some((g) => g.value === data.group)
+      ) {
+        group = data.group;
+      }
+    } catch (_) {
+      // ignore corrupt storage
+    }
+  }
+
+  function savePlaygroundSession() {
+    if (typeof sessionStorage === 'undefined' || !persistReady) return;
+    try {
+      sessionStorage.setItem(
+        playgroundStorageKey(),
+        JSON.stringify({
+          v: PG_SESSION_VER,
+          messages,
+          prompt,
+          model,
+          group,
+          stream
+        })
+      );
+    } catch (_) {
+      // quota / private mode
+    }
+  }
+
+  /** 恢复完成后再写入，避免把空状态盖掉已保存内容 */
+  let persistReady = false;
   import { Button } from '$lib/components/ui/button';
   import { Textarea } from '$lib/components/ui/textarea';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
@@ -225,15 +291,30 @@
     errorMsg = '';
   }
 
-  onMount(() => {
-    loadModels();
-    loadGroups();
+  $: if (persistReady) {
+    void messages;
+    void prompt;
+    void model;
+    void group;
+    void stream;
+    savePlaygroundSession();
+  }
+
+  onMount(async () => {
+    await Promise.all([loadModels(), loadGroups()]);
+    loadPlaygroundSession();
+    persistReady = true;
   });
 </script>
 
 <div class="playground-page page-wrap flex min-h-0 flex-1 flex-col overflow-hidden">
-  <section class="panel flex min-h-0 flex-1 flex-col overflow-hidden !bg-white p-0 dark:!bg-card">
-    <ScrollArea class="h-0 min-h-0 flex-1" orientation="vertical">
+  <div
+    class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-card shadow-sm dark:border-zinc-700"
+  >
+    <ScrollArea
+      class="h-0 min-h-0 flex-1 bg-neutral-50 dark:bg-zinc-950/70"
+      orientation="vertical"
+    >
       <div class="w-full space-y-3 px-3 py-3">
         {#if messages.length === 0}
           <div class="text-sm text-muted-foreground">发送第一条消息开始对话。</div>
@@ -252,14 +333,14 @@
     </ScrollArea>
 
     <form
-      class="shrink-0 border-t border-gray-200 bg-transparent px-3 py-3 dark:border-border"
+      class="shrink-0 border-t border-gray-200 bg-card px-3 py-3 dark:border-zinc-700"
       onsubmit={sendMessage}
     >
       <div class="w-full space-y-1.5">
         <Textarea
           bind:value={prompt}
           placeholder="输入消息..."
-          class="min-h-14 resize-none border-0 bg-transparent px-0 py-1.5 shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
+          class="max-h-48 min-h-14 resize-none overflow-y-auto border-0 bg-transparent px-0 py-1.5 shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
         />
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="min-w-0 flex-1 basis-[min(100%,12rem)] sm:max-w-2xl">
@@ -291,5 +372,5 @@
         </div>
       </div>
     </form>
-  </section>
+  </div>
 </div>

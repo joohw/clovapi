@@ -1,0 +1,130 @@
+import React, { useEffect, useState, useRef } from 'react';
+import { Button, Col, Form, Row, Spin, Typography } from '@douyinfe/semi-ui';
+import {
+  compareObjects,
+  API,
+  showError,
+  showSuccess,
+  showWarning,
+} from '../../../helpers';
+export default function SettingsCheckin(props) {
+  const [loading, setLoading] = useState(false);
+  const [inputs, setInputs] = useState({
+    'checkin_setting.enabled': false,
+    'checkin_setting.min_quota': 1000,
+    'checkin_setting.max_quota': 10000,
+  });
+  const refForm = useRef();
+  const [inputsRow, setInputsRow] = useState(inputs);
+
+  function handleFieldChange(fieldName) {
+    return (value) => {
+      setInputs((inputs) => ({ ...inputs, [fieldName]: value }));
+    };
+  }
+
+  function onSubmit() {
+    const updateArray = compareObjects(inputs, inputsRow);
+    if (!updateArray.length) return showWarning("你似乎并没有修改什么");
+    const requestQueue = updateArray.map((item) => {
+      let value = '';
+      if (typeof inputs[item.key] === 'boolean') {
+        value = String(inputs[item.key]);
+      } else {
+        value = String(inputs[item.key]);
+      }
+      return API.put('/api/option/', {
+        key: item.key,
+        value,
+      });
+    });
+    setLoading(true);
+    Promise.all(requestQueue)
+      .then((res) => {
+        if (requestQueue.length === 1) {
+          if (res.includes(undefined)) return;
+        } else if (requestQueue.length > 1) {
+          if (res.includes(undefined))
+            return showError("部分保存失败，请重试");
+        }
+        showSuccess("保存成功");
+        props.refresh();
+      })
+      .catch(() => {
+        showError("保存失败，请重试");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }
+
+  useEffect(() => {
+    const currentInputs = {};
+    for (let key in props.options) {
+      if (Object.keys(inputs).includes(key)) {
+        currentInputs[key] = props.options[key];
+      }
+    }
+    setInputs(currentInputs);
+    setInputsRow(structuredClone(currentInputs));
+    refForm.current.setValues(currentInputs);
+  }, [props.options]);
+
+  return (
+    <>
+      <Spin spinning={loading}>
+        <Form
+          values={inputs}
+          getFormApi={(formAPI) => (refForm.current = formAPI)}
+          style={{ marginBottom: 15 }}
+        >
+          <Form.Section text={"签到设置"}>
+            <Typography.Text
+              type='tertiary'
+              style={{ marginBottom: 16, display: 'block' }}
+            >
+              {"签到功能允许用户每日签到获取随机额度奖励"}
+            </Typography.Text>
+            <Row gutter={16}>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.Switch
+                  field={'checkin_setting.enabled'}
+                  label={"启用签到功能"}
+                  size='default'
+                  checkedText='｜'
+                  uncheckedText='〇'
+                  onChange={handleFieldChange('checkin_setting.enabled')}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.InputNumber
+                  field={'checkin_setting.min_quota'}
+                  label={"签到最小额度"}
+                  placeholder={"签到奖励的最小额度"}
+                  onChange={handleFieldChange('checkin_setting.min_quota')}
+                  min={0}
+                  disabled={!inputs['checkin_setting.enabled']}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.InputNumber
+                  field={'checkin_setting.max_quota'}
+                  label={"签到最大额度"}
+                  placeholder={"签到奖励的最大额度"}
+                  onChange={handleFieldChange('checkin_setting.max_quota')}
+                  min={0}
+                  disabled={!inputs['checkin_setting.enabled']}
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Button size='default' onClick={onSubmit}>
+                {"保存签到设置"}
+              </Button>
+            </Row>
+          </Form.Section>
+        </Form>
+      </Spin>
+    </>
+  );
+}

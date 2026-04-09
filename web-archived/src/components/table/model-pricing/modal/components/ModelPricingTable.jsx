@@ -1,0 +1,168 @@
+import React from 'react';
+import { Card, Avatar, Typography, Table, Tag } from '@douyinfe/semi-ui';
+import { IconCoinMoneyStroked } from '@douyinfe/semi-icons';
+import { calculateModelPrice, getModelPriceItems } from '../../../../../helpers';
+
+const { Text } = Typography;
+
+const ModelPricingTable = ({
+  modelData,
+  groupRatio,
+  currency,
+  siteDisplayType,
+  tokenUnit,
+  displayPrice,
+  showRatio,
+  usableGroup,
+  autoGroups = [],
+}) => {
+  const modelEnableGroups = Array.isArray(modelData?.enable_groups)
+    ? modelData.enable_groups
+    : [];
+  const autoChain = autoGroups.filter((g) => modelEnableGroups.includes(g));
+  const renderGroupPriceTable = () => {
+    // 仅展示模型可用的分组：模型 enable_groups 与用户可用分组的交集
+
+    const availableGroups = Object.keys(usableGroup || {})
+      .filter((g) => g !== '')
+      .filter((g) => g !== 'auto')
+      .filter((g) => modelEnableGroups.includes(g));
+
+    // 准备表格数据
+    const tableData = availableGroups.map((group) => {
+      const priceData = modelData
+        ? calculateModelPrice({
+            record: modelData,
+            selectedGroup: group,
+            groupRatio,
+            tokenUnit,
+            displayPrice,
+            currency,
+            quotaDisplayType: siteDisplayType,
+          })
+        : { inputPrice: '-', outputPrice: '-', price: '-' };
+
+      // 获取分组倍率
+      const groupRatioValue =
+        groupRatio && groupRatio[group] ? groupRatio[group] : 1;
+
+      return {
+        key: group,
+        group: group,
+        ratio: groupRatioValue,
+        billingType:
+          modelData?.quota_type === 0
+            ? "按量计费"
+            : modelData?.quota_type === 1
+              ? "按次计费"
+              : '-',
+        priceItems: getModelPriceItems(priceData, siteDisplayType),
+      };
+    });
+
+    // 定义表格列
+    const columns = [
+      {
+        title: "分组",
+        dataIndex: 'group',
+        render: (text) => (
+          <Tag color='white' size='small' shape='circle'>
+            {text}
+            {"分组"}
+          </Tag>
+        ),
+      },
+    ];
+
+    // 如果显示倍率，添加倍率列
+    if (showRatio) {
+      columns.push({
+        title: "倍率",
+        dataIndex: 'ratio',
+        render: (text) => (
+          <Tag color='white' size='small' shape='circle'>
+            {text}x
+          </Tag>
+        ),
+      });
+    }
+
+    // 添加计费类型列
+    columns.push({
+      title: "计费类型",
+      dataIndex: 'billingType',
+      render: (text) => {
+        let color = 'white';
+        if (text === "按量计费") color = 'violet';
+        else if (text === "按次计费") color = 'teal';
+        return (
+          <Tag color={color} size='small' shape='circle'>
+            {text || '-'}
+          </Tag>
+        );
+      },
+    });
+
+    columns.push({
+      title: siteDisplayType === 'TOKENS' ? "计费摘要" : "价格摘要",
+      dataIndex: 'priceItems',
+      render: (items) => (
+        <div className='space-y-1'>
+          {items.map((item) => (
+            <div key={item.key}>
+              <div className='font-semibold text-orange-600'>
+                {item.label} {item.value}
+              </div>
+              <div className='text-xs text-gray-500'>{item.suffix}</div>
+            </div>
+          ))}
+        </div>
+      ),
+    });
+
+    return (
+      <Table
+        dataSource={tableData}
+        columns={columns}
+        pagination={false}
+        size='small'
+        bordered={false}
+        className='!rounded-lg'
+      />
+    );
+  };
+
+  return (
+    <Card className='!rounded-2xl shadow-sm border-0'>
+      <div className='flex items-center mb-4'>
+        <Avatar size='small' color='orange' className='mr-2 shadow-md'>
+          <IconCoinMoneyStroked size={16} />
+        </Avatar>
+        <div>
+          <Text className='text-lg font-medium'>{"分组价格"}</Text>
+          <div className='text-xs text-gray-600'>
+            {"不同用户分组的价格信息"}
+          </div>
+        </div>
+      </div>
+      {autoChain.length > 0 && (
+        <div className='flex flex-wrap items-center gap-1 mb-4'>
+          <span className='text-sm text-gray-600'>{"auto分组调用链路"}</span>
+          <span className='text-sm'>→</span>
+          {autoChain.map((g, idx) => (
+            <React.Fragment key={g}>
+              <Tag color='white' size='small' shape='circle'>
+                {g}
+                {"分组"}
+              </Tag>
+              {idx < autoChain.length - 1 && <span className='text-sm'>→</span>}
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+      {renderGroupPriceTable()}
+    </Card>
+  );
+};
+
+export default ModelPricingTable;

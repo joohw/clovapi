@@ -60,6 +60,8 @@ export const CHANNEL_TYPE_LABEL = {
   55: 'Sora',
   56: 'Replicate',
   57: 'Codex',
+  58: 'Tavily',
+  59: 'Brave',
 };
 
 /** @type {Record<number, string>} */

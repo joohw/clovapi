@@ -188,7 +188,7 @@
             一站聚合，极速中转
           </h1>
           <p class="mx-auto mt-4 max-w-xl text-sm text-muted-foreground">
-            一键聚合多家上游供应商，成本更可预期，只需把 Base URL 设为
+            文本、语音、图像、视频、搜索、嵌入只需要把 Base URL 设为
           </p>
           <button
             type="button"

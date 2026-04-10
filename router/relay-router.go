@@ -137,6 +137,9 @@ func SetRelayRouter(router *gin.Engine) {
 		httpRouter.POST("/rerank", func(c *gin.Context) {
 			controller.Relay(c, types.RelayFormatRerank)
 		})
+		httpRouter.POST("/search", func(c *gin.Context) {
+			controller.Relay(c, types.RelayFormatSearch)
+		})
 
 		// gemini relay routes
 		httpRouter.POST("/engines/:model/embeddings", func(c *gin.Context) {

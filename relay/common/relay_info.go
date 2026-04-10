@@ -538,6 +538,12 @@ func GenRelayInfo(c *gin.Context, relayFormat types.RelayFormat, request dto.Req
 			break
 		}
 		err = errors.New("request is not a RerankRequest")
+	case types.RelayFormatSearch:
+		if request, ok := request.(*dto.SearchRequest); ok {
+			info = GenRelayInfoSearch(c, request)
+			break
+		}
+		err = errors.New("request is not a SearchRequest")
 	case types.RelayFormatGemini:
 		info = GenRelayInfoGemini(c, request)
 	case types.RelayFormatEmbedding:
@@ -572,6 +578,18 @@ func GenRelayInfo(c *gin.Context, relayFormat types.RelayFormat, request dto.Req
 
 	info.InitRequestConversionChain()
 	return info, nil
+}
+
+func GenRelayInfoSearch(c *gin.Context, request *dto.SearchRequest) *RelayInfo {
+	info := genBaseRelayInfo(c, request)
+	info.RelayFormat = types.RelayFormatSearch
+	if info.RelayMode == relayconstant.RelayModeUnknown {
+		info.RelayMode = relayconstant.RelayModeSearch
+	}
+	info.IsStream = false
+	info.OriginModelName = request.Model
+	info.UpstreamModelName = request.Model
+	return info
 }
 
 func (info *RelayInfo) InitRequestConversionChain() {

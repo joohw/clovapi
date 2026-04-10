@@ -55,6 +55,8 @@ const (
 	ChannelTypeSora           = 55
 	ChannelTypeReplicate      = 56
 	ChannelTypeCodex          = 57
+	ChannelTypeTavily         = 58
+	ChannelTypeBrave          = 59
 	ChannelTypeDummy          // this one is only for count, do not add any channel after this
 
 )
@@ -118,6 +120,8 @@ var ChannelBaseURLs = []string{
 	"https://api.openai.com",                    //55
 	"https://api.replicate.com",                 //56
 	"https://chatgpt.com",                       //57
+	"https://api.tavily.com",                    //58
+	"https://api.search.brave.com",              //59
 }
 
 var ChannelTypeNames = map[int]string{
@@ -175,6 +179,8 @@ var ChannelTypeNames = map[int]string{
 	ChannelTypeSora:           "Sora",
 	ChannelTypeReplicate:      "Replicate",
 	ChannelTypeCodex:          "Codex",
+	ChannelTypeTavily:         "Tavily",
+	ChannelTypeBrave:          "Brave",
 }
 
 func GetChannelTypeName(channelType int) string {

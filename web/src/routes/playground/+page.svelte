@@ -73,21 +73,74 @@
   import { Textarea } from '$lib/components/ui/textarea';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import * as Select from '$lib/components/ui/select';
+  import * as Switch from '$lib/components/ui/switch';
 
   let loadingModels = true;
   let sending = false;
   let errorMsg = '';
   /** @type {string[]} */
   let models = [];
+  /** @type {Record<string, any>} */
+  let modelSpecById = {};
   /** @type {{ value: string; label: string }[]} */
   let groupOptions = [];
   let model = '';
   let group = '';
   let stream = true;
+  let selectedModelSpec = null;
+  let modelStreamSupported = true;
 
   let prompt = '';
   /** @type {{ role: string; content: string }[]} */
   let messages = [];
+
+  /**
+   * @param {Record<string, any>} index
+   * @param {any} apiIndex
+   * @param {boolean} overwrite
+   */
+  function mergeModelSpecIndex(index, apiIndex, overwrite = false) {
+    if (!apiIndex || typeof apiIndex !== 'object') return index;
+    for (const provider of Object.values(apiIndex)) {
+      const modelsMap = provider?.models;
+      if (!modelsMap || typeof modelsMap !== 'object') continue;
+      for (const [modelKey, modelSpec] of Object.entries(modelsMap)) {
+        const id = String(modelSpec?.id || modelKey || '').trim();
+        if (!id) continue;
+        if (!overwrite && index[id]) continue;
+        index[id] = modelSpec;
+      }
+    }
+    return index;
+  }
+
+  /**
+   * @param {string} modelName
+   * @param {Record<string, any>} specIndex
+   */
+  function findModelSpec(modelName, specIndex) {
+    const key = String(modelName || '').trim();
+    if (!key) return null;
+    if (specIndex[key]) return specIndex[key];
+    const slashIdx = key.indexOf('/');
+    if (slashIdx > 0) {
+      const shortKey = key.slice(slashIdx + 1);
+      if (specIndex[shortKey]) return specIndex[shortKey];
+    }
+    return null;
+  }
+
+  /**
+   * @param {any} spec
+   */
+  function isModelStreamSupported(spec) {
+    if (!spec || typeof spec !== 'object') return true;
+    // Trust explicit flags only; unknown means keep enabled.
+    if (typeof spec.stream === 'boolean') return spec.stream;
+    if (typeof spec.streaming === 'boolean') return spec.streaming;
+    if (typeof spec.sse === 'boolean') return spec.sse;
+    return true;
+  }
 
   /**
    * @param {Record<string, { desc?: string }>} data
@@ -136,8 +189,27 @@
     loadingModels = true;
     errorMsg = '';
     try {
-      const res = await apiGet('/api/user/models');
+      const [res, apiSpecPayload, apiExSpecPayload] = await Promise.all([
+        apiGet('/api/user/models'),
+        fetch(apiUrl('/api.json'), {
+          method: 'GET',
+          headers: { 'Cache-Control': 'no-store' }
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+        fetch(apiUrl('/api.ex.json'), {
+          method: 'GET',
+          headers: { 'Cache-Control': 'no-store' }
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null)
+      ]);
       if (res?.success) {
+        /** @type {Record<string, any>} */
+        const index = {};
+        mergeModelSpecIndex(index, apiExSpecPayload, false);
+        mergeModelSpecIndex(index, apiSpecPayload, true);
+        modelSpecById = index;
         models = Array.isArray(res.data) ? res.data : [];
         if (!model && models.length > 0) {
           model = models[0];
@@ -234,11 +306,13 @@
    */
   async function sendMessage(event) {
     event.preventDefault();
-    if (!prompt.trim() || !model) return;
+    const trimmedPrompt = prompt.trim();
+    if (!trimmedPrompt || !model) return;
 
-    const userMsg = { role: 'user', content: prompt.trim() };
+    const userMsg = { role: 'user', content: trimmedPrompt };
     const requestMessages = [...messages, userMsg];
-    const currentPrompt = prompt.trim();
+    // Clear input immediately after submit.
+    prompt = '';
     sending = true;
     errorMsg = '';
 
@@ -280,7 +354,6 @@
     } catch (err) {
       errorMsg = err instanceof Error ? err.message : '发送失败，请重试';
       messages = [...requestMessages, { role: 'assistant', content: '请求失败' }];
-      prompt = currentPrompt;
     } finally {
       sending = false;
     }
@@ -298,6 +371,12 @@
     void group;
     void stream;
     savePlaygroundSession();
+  }
+
+  $: selectedModelSpec = findModelSpec(model, modelSpecById);
+  $: modelStreamSupported = isModelStreamSupported(selectedModelSpec);
+  $: if (!modelStreamSupported && stream) {
+    stream = false;
   }
 
   onMount(async () => {
@@ -319,16 +398,26 @@
         {#if messages.length === 0}
           <div class="text-sm text-muted-foreground">发送第一条消息开始对话。</div>
         {:else}
-          {#each messages as msg}
+          {#each messages as msg, idx}
             <div>
               <div class="mb-0.5 text-xs text-muted-foreground">{msg.role === 'user' ? '你' : '助手'}</div>
-              <pre class="whitespace-pre-wrap break-words text-sm font-sans">{msg.content}</pre>
+              {#if msg.role === 'assistant' && sending && idx === messages.length - 1}
+                <pre class="whitespace-pre-wrap break-words text-sm font-sans"
+                  >{msg.content}<span
+                    class="mr-1 inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-current align-middle"
+                    aria-hidden="true"
+                  ></span></pre
+                >
+              {:else}
+                <pre class="whitespace-pre-wrap break-words text-sm font-sans">{msg.content}</pre>
+              {/if}
             </div>
           {/each}
         {/if}
         {#if errorMsg}
           <p class="text-sm text-destructive">{errorMsg}</p>
         {/if}
+        <div class="h-20" aria-hidden="true"></div>
       </div>
     </ScrollArea>
 
@@ -343,7 +432,8 @@
           class="max-h-48 min-h-14 resize-none overflow-y-auto border-0 bg-transparent px-0 py-1.5 shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
         />
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <div class="min-w-0 flex-1 basis-[min(100%,12rem)] sm:max-w-2xl">
+          <div class="flex min-w-0 flex-1 items-center gap-3">
+            <div class="min-w-0 w-full max-w-sm">
             <Select.Root type="single" bind:value={model} disabled={loadingModels || models.length === 0}>
               <Select.Trigger
                 id="pg-model-select"
@@ -360,6 +450,14 @@
                 {/each}
               </Select.Content>
             </Select.Root>
+            </div>
+            <div class="inline-flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+              <Switch.Root bind:checked={stream} disabled={!modelStreamSupported || sending} />
+              <span>流式输出</span>
+              {#if !modelStreamSupported}
+                <span>（当前模型不支持）</span>
+              {/if}
+            </div>
           </div>
           <div class="flex shrink-0 gap-2">
             <Button variant="outline" type="button" onclick={clearMessages}>

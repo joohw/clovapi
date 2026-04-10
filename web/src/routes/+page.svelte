@@ -16,9 +16,9 @@
    */
   const API_EXAMPLES = [
     { label: '对话补全', suffix: '/chat/completions' },
-    { label: 'Responses API', suffix: '/responses' },
+    { label: '响应生成', suffix: '/responses' },
     { label: 'Claude Messages', suffix: '/messages' },
-    { label: '模型列表', fromRoot: '/v1beta/models' },
+    { label: '在线搜索', suffix: '/search' },
     { label: '文本嵌入', suffix: '/embeddings' },
     { label: '重排序', suffix: '/rerank' },
     { label: '图像生成', suffix: '/images/generations' },

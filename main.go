@@ -247,6 +247,9 @@ func InitResources() error {
 
 	// Initialize model settings
 	ratio_setting.InitRatioSettings()
+	if err = ratio_setting.InitModelsDevBaselinePricing(); err != nil {
+		common.SysError("failed to initialize models.dev baseline pricing: " + err.Error())
+	}
 
 	service.InitHttpClient()
 

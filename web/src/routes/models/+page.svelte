@@ -21,6 +21,22 @@
   let search = '';
   /** @type {any[]} */
   let models = [];
+  /** @type {'model_name'|'vendor_name'|'premium_ratio'|'input_price'|'output_price'|'cache_read_price'|'per_call_price'|null} */
+  let sortKey = null;
+  /** @type {'asc'|'desc'|null} */
+  let sortDirection = null;
+
+  /**
+   * @param {string} modelName
+   * @returns {string}
+   */
+  function inferVendorNameFromModelName(modelName) {
+    const raw = String(modelName || '').trim();
+    if (!raw) return '';
+    const idx = raw.indexOf('/');
+    if (idx <= 0) return '';
+    return raw.slice(0, idx);
+  }
 
   async function loadPricing() {
     loading = true;
@@ -38,9 +54,10 @@
         const sourceModels = Array.isArray(res.data) ? res.data : [];
         models = sourceModels.map((model) => {
           const vendor = model.vendor_id ? vendorMap[model.vendor_id] : null;
+          const inferredVendorName = inferVendorNameFromModelName(model.model_name);
           return {
             ...model,
-            vendor_name: model.vendor_name || vendor?.name || '',
+            vendor_name: model.vendor_name || vendor?.name || inferredVendorName || '',
             vendor_icon: model.vendor_icon || vendor?.icon || ''
           };
         });
@@ -88,6 +105,59 @@
     return value.toFixed(3);
   }
 
+  /**
+   * @param {typeof sortKey} key
+   */
+  function toggleSort(key) {
+    if (sortKey !== key) {
+      sortKey = key;
+      sortDirection = 'asc';
+      return;
+    }
+    if (sortDirection === 'asc') {
+      sortDirection = 'desc';
+      return;
+    }
+    sortKey = null;
+    sortDirection = null;
+  }
+
+  /**
+   * @param {typeof sortKey} key
+   */
+  function sortIndicator(key) {
+    if (sortKey !== key || !sortDirection) return '↕';
+    return sortDirection === 'asc' ? '↑' : '↓';
+  }
+
+  /**
+   * @param {any} model
+   * @param {typeof sortKey} key
+   */
+  function getSortValue(model, key) {
+    if (!key) return null;
+    switch (key) {
+      case 'model_name':
+        return (model?.model_name || '').toLowerCase();
+      case 'vendor_name':
+        return (model?.vendor_name || '').toLowerCase();
+      case 'premium_ratio':
+        return typeof model?.premium_ratio === 'number' ? model.premium_ratio : null;
+      case 'input_price':
+        return typeof model?.input_price === 'number' ? model.input_price : null;
+      case 'output_price':
+        return typeof model?.output_price === 'number' ? model.output_price : null;
+      case 'cache_read_price':
+        if (model?.quota_type !== 0) return null;
+        return typeof model?.cache_read_price === 'number' ? model.cache_read_price : null;
+      case 'per_call_price':
+        if (model?.quota_type !== 1) return null;
+        return typeof model?.input_price === 'number' ? model.input_price : null;
+      default:
+        return null;
+    }
+  }
+
   $: filteredModels = models.filter((m) => {
     if (!search.trim()) return true;
     const keyword = search.toLowerCase();
@@ -98,6 +168,24 @@
       (m.vendor_name || '').toLowerCase().includes(keyword)
     );
   });
+
+  $: sortedModels = (() => {
+    if (!sortKey || !sortDirection) return filteredModels;
+    const factor = sortDirection === 'asc' ? 1 : -1;
+    return [...filteredModels].sort((a, b) => {
+      const av = getSortValue(a, sortKey);
+      const bv = getSortValue(b, sortKey);
+      const aNil = av === null || av === undefined || av === '';
+      const bNil = bv === null || bv === undefined || bv === '';
+      if (aNil && bNil) return 0;
+      if (aNil) return 1;
+      if (bNil) return -1;
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return (av - bv) * factor;
+      }
+      return String(av).localeCompare(String(bv), 'zh-Hans-CN') * factor;
+    });
+  })();
 
   onMount(loadPricing);
 
@@ -110,6 +198,19 @@
     const ok = await copy(text);
     if (ok) showSuccess('已复制到剪贴板');
     else showError('复制失败');
+  }
+
+  /**
+   * 图标加载失败时，回退到基于供应商/模型名推导的本地图标。
+   * @param {Event} event
+   * @param {any} model
+   */
+  function onVendorIconError(event, model) {
+    const img = /** @type {HTMLImageElement} */ (event.currentTarget);
+    if (!img) return;
+    const fallback = resolveVendorIcon('', model?.vendor_name, model?.model_name);
+    if (!fallback || img.src.endsWith(fallback)) return;
+    img.src = fallback;
   }
 </script>
 
@@ -132,20 +233,57 @@
         class="min-h-0 flex-1 overflow-auto bg-neutral-50 dark:bg-zinc-950/70"
       >
         <Table>
-          <TableHeader class="[&_th]:bg-neutral-100/95 dark:[&_th]:bg-zinc-900/90">
+          <TableHeader
+            class="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-neutral-100/95 dark:[&_th]:bg-zinc-900/90"
+          >
             <TableRow class="border-gray-200 hover:bg-transparent dark:border-zinc-700 dark:hover:bg-transparent">
-              <TableHead>模型</TableHead>
-              <TableHead>供应商</TableHead>
+              <TableHead>
+                <button type="button" class="flex items-center gap-1" onclick={() => toggleSort('model_name')}>
+                  模型
+                  <span class="text-xs opacity-70">{sortIndicator('model_name')}</span>
+                </button>
+              </TableHead>
+              <TableHead>
+                <button type="button" class="flex items-center gap-1" onclick={() => toggleSort('vendor_name')}>
+                  供应商
+                  <span class="text-xs opacity-70">{sortIndicator('vendor_name')}</span>
+                </button>
+              </TableHead>
               <TableHead>类型</TableHead>
-              <TableHead title="在成本与分组倍率之上的模型溢价，默认 1">溢价</TableHead>
-              <TableHead>输入价格</TableHead>
-              <TableHead>输出价格</TableHead>
-              <TableHead>缓存命中</TableHead>
-              <TableHead>单次价格</TableHead>
+              <TableHead title="在成本与分组倍率之上的模型溢价，默认 1">
+                <button type="button" class="flex items-center gap-1" onclick={() => toggleSort('premium_ratio')}>
+                  溢价
+                  <span class="text-xs opacity-70">{sortIndicator('premium_ratio')}</span>
+                </button>
+              </TableHead>
+              <TableHead>
+                <button type="button" class="flex items-center gap-1" onclick={() => toggleSort('input_price')}>
+                  输入价格
+                  <span class="text-xs opacity-70">{sortIndicator('input_price')}</span>
+                </button>
+              </TableHead>
+              <TableHead>
+                <button type="button" class="flex items-center gap-1" onclick={() => toggleSort('output_price')}>
+                  输出价格
+                  <span class="text-xs opacity-70">{sortIndicator('output_price')}</span>
+                </button>
+              </TableHead>
+              <TableHead>
+                <button type="button" class="flex items-center gap-1" onclick={() => toggleSort('cache_read_price')}>
+                  缓存命中
+                  <span class="text-xs opacity-70">{sortIndicator('cache_read_price')}</span>
+                </button>
+              </TableHead>
+              <TableHead>
+                <button type="button" class="flex items-center gap-1" onclick={() => toggleSort('per_call_price')}>
+                  单次价格
+                  <span class="text-xs opacity-70">{sortIndicator('per_call_price')}</span>
+                </button>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {#each filteredModels as model}
+            {#each sortedModels as model}
               <TableRow>
                 <TableCell>
                   {#if model.model_name}
@@ -164,11 +302,12 @@
                 <TableCell>
                   {#if model.vendor_name}
                     <div class="flex items-center gap-2">
-                      {#if resolveVendorIcon(model.vendor_icon, model.vendor_name)}
+                      {#if resolveVendorIcon(model.vendor_icon, model.vendor_name, model.model_name)}
                         <img
-                          src={resolveVendorIcon(model.vendor_icon, model.vendor_name)}
+                          src={resolveVendorIcon(model.vendor_icon, model.vendor_name, model.model_name)}
                           alt={model.vendor_name}
                           class="h-4 w-4 rounded-sm dark:invert"
+                          onerror={(event) => onVendorIconError(event, model)}
                         />
                       {/if}
                       <span>{model.vendor_name}</span>
@@ -191,3 +330,9 @@
     {/if}
   </div>
 </div>
+
+<style>
+  .models-page :global([data-slot='table-container']) {
+    overflow: visible;
+  }
+</style>

@@ -25,6 +25,7 @@
   let loadSeq = 0;
   let loading = false;
   let submitting = false;
+  let fetchingModels = false;
   /** @type {Record<string, any> | null} */
   let loaded = null;
 
@@ -300,6 +301,27 @@
       submitting = false;
     }
   }
+
+  async function fetchUpstreamModelsForEdit() {
+    if (!isEdit() || !loaded?.id || fetchingModels || loading || submitting) return;
+    fetchingModels = true;
+    try {
+      const res = await apiGet(`/api/channel/fetch_models/${loaded.id}`);
+      if (res?.success && Array.isArray(res?.data)) {
+        const nextModels = res.data
+          .map((/** @type {string} */ s) => String(s || '').trim())
+          .filter(Boolean);
+        models = nextModels.join('\n');
+        showSuccess(`已获取 ${nextModels.length} 个模型`);
+      } else {
+        showError(res?.message || '获取模型失败');
+      }
+    } catch (_) {
+      showError('获取模型失败');
+    } finally {
+      fetchingModels = false;
+    }
+  }
 </script>
 
 <Dialog.Root bind:open>
@@ -420,7 +442,20 @@
           </div>
         </div>
         <div class="flex min-h-[min(42vh,420px)] min-w-0 flex-1 flex-col gap-1.5 border-t border-border pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-6">
-          <label class="auth-label shrink-0" for="ch-models">模型列表（可选）</label>
+          <div class="flex items-center justify-between gap-2">
+            <label class="auth-label mb-0 shrink-0" for="ch-models">模型列表（可选）</label>
+            {#if isEdit()}
+              <Button
+                type="button"
+                variant="outline"
+                class="h-8 px-3 text-xs"
+                disabled={fetchingModels || loading || submitting}
+                onclick={fetchUpstreamModelsForEdit}
+              >
+                {fetchingModels ? '获取中…' : '自动获取模型'}
+              </Button>
+            {/if}
+          </div>
           <textarea
             id="ch-models"
             class="auth-input min-h-[12rem] w-full flex-1 resize-none font-mono text-xs leading-relaxed md:min-h-0"

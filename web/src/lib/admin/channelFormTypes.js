@@ -2,24 +2,21 @@
  * Options for channel type Select in simplified admin dialogs (add/edit).
  * IDs mirror `constant/channel.go`.
  */
-export const CHANNEL_TYPE_OPTIONS = [
-  { v: 1, label: 'OpenAI' },
-  { v: 24, label: 'Gemini' },
-  { v: 41, label: 'VertexAI' },
-  { v: 14, label: 'Anthropic (Claude)' },
-  { v: 43, label: 'DeepSeek' },
-  { v: 56, label: 'Replicate' },
-  { v: 38, label: 'Jina' },
-  { v: 58, label: 'Tavily' },
-  { v: 59, label: 'Brave' },
-  { v: 33, label: 'AWS Bedrock' },
-  { v: 40, label: 'SiliconFlow' },
-  { v: 4, label: 'Ollama' },
-  { v: 20, label: 'OpenRouter' },
-  { v: 27, label: 'Perplexity' },
-  { v: 8, label: 'Custom' },
-  { v: 3, label: 'Azure OpenAI' },
-];
+import { CHANNEL_TYPE_LABEL } from '$lib/admin/channelLabels.js';
+
+const CHANNEL_TYPE_LABEL_OVERRIDES = {
+  3: 'Azure OpenAI',
+  14: 'Anthropic (Claude)',
+  33: 'AWS Bedrock',
+};
+
+export const CHANNEL_TYPE_OPTIONS = Object.entries(CHANNEL_TYPE_LABEL)
+  .map(([k, label]) => {
+    const v = Number(k);
+    return { v, label: CHANNEL_TYPE_LABEL_OVERRIDES[v] ?? label };
+  })
+  .filter((item) => Number.isFinite(item.v) && item.v > 0)
+  .sort((a, b) => a.label.localeCompare(b.label, 'en', { sensitivity: 'base' }));
 
 /** Status values: `common/constants.go` ChannelStatus* */
 export const CHANNEL_STATUS_OPTIONS = [

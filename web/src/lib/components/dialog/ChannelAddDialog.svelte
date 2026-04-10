@@ -62,6 +62,13 @@
     return t?.label ?? (v ? `状态 ${v}` : '—');
   }
 
+  /** @param {{ v: number; label: string }[]} list */
+  function sortTypeOptions(list) {
+    return [...list].sort((a, b) =>
+      a.label.localeCompare(b.label, 'en', { sensitivity: 'base' })
+    );
+  }
+
   function resetAddForm() {
     loaded = null;
     name = '';
@@ -75,7 +82,7 @@
     priorityStr = '';
     vertexRegion = 'global';
     vertexKeyType = 'api_key';
-    typeOptions = CHANNEL_TYPE_OPTIONS;
+    typeOptions = sortTypeOptions(CHANNEL_TYPE_OPTIONS);
   }
 
   $: isVertexType = Number(typeStr) === 41;
@@ -164,7 +171,7 @@
       if (!opts.some((o) => o.v === tv)) {
         opts.push({ v: tv, label: channelTypeParts(tv).name });
       }
-      typeOptions = opts.sort((a, b) => a.v - b.v);
+      typeOptions = sortTypeOptions(opts);
     } catch (_) {
       if (seq === loadSeq) showError('网络错误');
       close();

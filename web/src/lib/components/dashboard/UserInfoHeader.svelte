@@ -1,9 +1,9 @@
 <svelte:options runes={false} />
 
 <script>
-  import { Coins, ChartBar, Users, Wallet, Copy, Gift, Lightning } from 'phosphor-svelte';
+  import { Coins, ChartBar, Users, Copy, Gift } from 'phosphor-svelte';
   import { apiGet, apiPost } from '$lib/api';
-  import { renderQuota, copy, getQuotaPerUnit } from '$lib/dashboard/helpers.js';
+  import { renderQuota, copy } from '$lib/dashboard/helpers.js';
   import { showError, showSuccess } from '$lib/dashboard/notify.js';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
@@ -19,15 +19,18 @@
   let showRedeemDialog = false;
   let redemptionCode = '';
   let redeemSubmitting = false;
+  let showPayDialog = false;
+  let paySubmitting = false;
+  let topupCount = 1;
+  let minTopup = 1;
+  /** @type {Array<{name: string, type: string, min_topup?: number}>} */
+  let payMethods = [];
+  let selectedPayMethod = '';
 
   let affLink = '';
   let affLoading = false;
   /** @type {string | number | null} */
   let affFetchedForUser = null;
-
-  let showTransferDialog = false;
-  let transferAmount = 0;
-  let transferSubmitting = false;
 
   $: topUpLink = status?.top_up_link || '';
 
@@ -81,11 +84,78 @@
   }
 
   function openTopUpExternal() {
-    if (!topUpLink) {
-      showError('管理员未设置充值链接');
+    void openOnlineTopupDialog();
+  }
+
+  async function openOnlineTopupDialog() {
+    try {
+      const res = await apiGet('/api/user/topup/info');
+      if (!res?.success || !res.data) {
+        showError(res?.message || '加载充值配置失败');
+        return;
+      }
+      if (!res.data.enable_online_topup) {
+        showError('管理员未开启在线充值');
+        return;
+      }
+      let methods = Array.isArray(res.data.pay_methods) ? res.data.pay_methods : [];
+      methods = methods.filter((m) => m?.name && m?.type);
+      payMethods = methods;
+      minTopup = Number(res.data.min_topup) > 0 ? Number(res.data.min_topup) : 1;
+      topupCount = minTopup;
+      selectedPayMethod = methods[0]?.type || 'alipay';
+      showPayDialog = true;
+    } catch (_) {
+      showError('加载充值配置失败');
+    }
+  }
+
+  async function submitPay() {
+    const amount = Number(topupCount);
+    if (!Number.isFinite(amount) || amount < minTopup) {
+      showError(`充值数量不能小于 ${minTopup}`);
       return;
     }
-    window.open(topUpLink, '_blank', 'noopener,noreferrer');
+    if (!selectedPayMethod) {
+      showError('请选择支付方式');
+      return;
+    }
+    paySubmitting = true;
+    try {
+      const res = await apiPost('/api/user/pay', {
+        amount: Math.floor(amount),
+        payment_method: selectedPayMethod,
+      });
+      if (res?.message !== 'success') {
+        showError(res?.data || res?.message || '拉起支付失败');
+        return;
+      }
+      const params = res?.data;
+      const url = res?.url;
+      if (!url || !params || typeof params !== 'object') {
+        showError('支付参数无效');
+        return;
+      }
+      const form = document.createElement('form');
+      form.action = url;
+      form.method = 'POST';
+      form.target = '_blank';
+      for (const key of Object.keys(params)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = String(params[key] ?? '');
+        form.appendChild(input);
+      }
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+      showPayDialog = false;
+    } catch (_) {
+      showError('支付请求失败');
+    } finally {
+      paySubmitting = false;
+    }
   }
 
   async function copyAffLink() {
@@ -98,42 +168,6 @@
     else showError('复制失败');
   }
 
-  function openTransferDialog() {
-    transferAmount = getQuotaPerUnit();
-    showTransferDialog = true;
-  }
-
-  async function submitTransfer() {
-    const q = Number(transferAmount);
-    const minQ = getQuotaPerUnit();
-    const maxQ = userState?.user?.aff_quota ?? 0;
-    if (!Number.isFinite(q) || q < minQ) {
-      showError(`划转额度最低为 ${renderQuota(minQ)}`);
-      return;
-    }
-    if (q > maxQ) {
-      showError('划转额度不能超过可用邀请额度');
-      return;
-    }
-    transferSubmitting = true;
-    try {
-      const res = await apiPost('/api/user/aff_transfer', { quota: Math.floor(q) });
-      if (res?.success) {
-        showSuccess(res?.message || '划转成功');
-        showTransferDialog = false;
-        await onRefreshUser();
-      } else {
-        showError(res?.message || '划转失败');
-      }
-    } catch (_) {
-      showError('划转失败');
-    } finally {
-      transferSubmitting = false;
-    }
-  }
-
-  $: affQuota = userState?.user?.aff_quota ?? 0;
-  $: canTransfer = affQuota > 0;
 </script>
 
 <div class="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-neutral-50 shadow-sm dark:border-zinc-700 dark:bg-zinc-950/70">
@@ -185,7 +219,7 @@
         </div>
         <div>
           <div class="text-sm font-medium">邀请奖励</div>
-          <div class="text-xs text-muted-foreground">邀请好友注册，对方充值后您可获得奖励</div>
+          <div class="text-xs text-muted-foreground">邀请好友注册，对方充值后奖励将直接到账户余额</div>
         </div>
       </div>
 
@@ -200,14 +234,10 @@
             <Copy size={16} />
             复制链接
           </Button>
-          <Button variant="secondary" class="h-8 gap-1.5" disabled={!canTransfer} onclick={openTransferDialog}>
-            <Lightning size={16} />
-            划转到余额
-          </Button>
         </div>
       </div>
 
-      <div class="mt-3 grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
+      <div class="mt-3 grid grid-cols-2 gap-3 text-xs">
         <div class="rounded-lg border border-border/60 bg-background/80 px-3 py-2">
           <div class="mb-0.5 flex items-center gap-1 text-muted-foreground">
             <Users size={14} />
@@ -216,13 +246,6 @@
           <div class="font-semibold tabular-nums">{userState?.user?.aff_count ?? 0}</div>
         </div>
         <div class="rounded-lg border border-border/60 bg-background/80 px-3 py-2">
-          <div class="mb-0.5 flex items-center gap-1 text-muted-foreground">
-            <Wallet size={14} />
-            待使用收益
-          </div>
-          <div class="font-semibold tabular-nums">{renderQuota(affQuota)}</div>
-        </div>
-        <div class="col-span-2 rounded-lg border border-border/60 bg-background/80 px-3 py-2 sm:col-span-1">
           <div class="mb-0.5 flex items-center gap-1 text-muted-foreground">
             <ChartBar size={14} />
             累计收益
@@ -290,35 +313,53 @@
   </Dialog.Content>
 </Dialog.Root>
 
-<!-- 划转邀请额度 -->
-<Dialog.Root bind:open={showTransferDialog}>
+<!-- 在线充值 -->
+<Dialog.Root bind:open={showPayDialog}>
   <Dialog.Content class="max-w-md">
     <Dialog.Header>
-      <Dialog.Title>划转邀请额度</Dialog.Title>
+      <Dialog.Title>在线充值</Dialog.Title>
       <Dialog.Description class="text-sm text-muted-foreground">
-        将待使用收益转入账户余额，最低 {renderQuota(getQuotaPerUnit())}。
+        请输入充值金额（USD）并选择支付方式。
       </Dialog.Description>
     </Dialog.Header>
     <div class="space-y-3 py-2">
       <div>
-        <label class="auth-label" for="aff-available">可用邀请额度</label>
-        <Input id="aff-available" readonly class="font-mono text-sm" value={renderQuota(affQuota)} />
+        <label class="auth-label" for="topup-count">充值金额（USD）</label>
+        <Input
+          id="topup-count"
+          type="number"
+          bind:value={topupCount}
+          min={minTopup}
+          step={1}
+          placeholder={`最小 ${minTopup} USD`}
+          class="font-mono [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        <p class="mt-1 text-xs text-muted-foreground">按美元金额填写（USD）。</p>
       </div>
       <div>
-        <label class="auth-label" for="transfer-amt">划转额度</label>
-        <Input
-          id="transfer-amt"
-          type="number"
-          bind:value={transferAmount}
-          min={getQuotaPerUnit()}
-          max={affQuota}
-        />
+        <div class="auth-label">支付方式</div>
+        <div class="flex flex-wrap gap-2">
+          {#if payMethods.length > 0}
+            {#each payMethods as m}
+              <Button
+                type="button"
+                size="sm"
+                variant={selectedPayMethod === m.type ? 'default' : 'outline'}
+                onclick={() => (selectedPayMethod = m.type)}
+              >
+                {m.name}
+              </Button>
+            {/each}
+          {:else}
+            <span class="text-xs text-muted-foreground">暂无可用支付方式</span>
+          {/if}
+        </div>
       </div>
     </div>
     <Dialog.Footer class="gap-2">
-      <Button variant="outline" onclick={() => (showTransferDialog = false)}>取消</Button>
-      <Button disabled={transferSubmitting} onclick={submitTransfer}>
-        {transferSubmitting ? '提交中…' : '确认划转'}
+      <Button variant="outline" onclick={() => (showPayDialog = false)}>取消</Button>
+      <Button disabled={paySubmitting || payMethods.length === 0} onclick={submitPay}>
+        {paySubmitting ? '拉起中…' : '确认支付'}
       </Button>
     </Dialog.Footer>
   </Dialog.Content>

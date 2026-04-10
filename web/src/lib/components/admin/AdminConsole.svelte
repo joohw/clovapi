@@ -9,6 +9,7 @@
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import ChannelAddDialog from '$lib/components/dialog/ChannelAddDialog.svelte';
   import ModelPricingPanel from '$lib/components/admin/ModelPricingPanel.svelte';
+  import TopupSettingsPanel from '$lib/components/admin/TopupSettingsPanel.svelte';
   import LogDetailDialog from '$lib/components/dialog/LogDetailDialog.svelte';
   import {
     channelTypeParts,
@@ -25,6 +26,7 @@
   const TAB_DEF = [
     { id: 'channel', label: '渠道管理' },
     { id: 'model_pricing', label: '模型定价', rootOnly: true },
+    { id: 'topup_setting', label: '充值设置', rootOnly: true },
     { id: 'subscription', label: '订阅管理' },
     { id: 'redemption', label: '兑换码管理' },
     { id: 'user', label: '用户管理' },
@@ -68,6 +70,70 @@
     if (s == null || s === '') return '—';
     const str = String(s);
     return str.length > n ? str.slice(0, n) + '…' : str;
+  }
+
+  /**
+   * 仅将对象/数组类型的 JSON 视为复合配置并展开。
+   * @param {any} raw
+   * @returns {any[] | null}
+   */
+  function expandCompositeJson(raw) {
+    if (raw == null) return null;
+    const text = String(raw).trim();
+    if (!text) return null;
+    if (!(text.startsWith('{') || text.startsWith('['))) return null;
+    try {
+      const parsed = JSON.parse(text);
+      if (!parsed || typeof parsed !== 'object') return null;
+      /** @type {{ path: string; value: string }[]} */
+      const entries = [];
+      flattenComposite(parsed, '', entries);
+      return entries.length ? entries : [{ path: '(root)', value: '空对象' }];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * @param {any} value
+   * @param {string} base
+   * @param {{ path: string; value: string }[]} out
+   */
+  function flattenComposite(value, base, out) {
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        out.push({ path: base || '(root)', value: '[]' });
+        return;
+      }
+      value.forEach((item, idx) => {
+        const next = base ? `${base}[${idx}]` : `[${idx}]`;
+        flattenComposite(item, next, out);
+      });
+      return;
+    }
+    if (value && typeof value === 'object') {
+      const keys = Object.keys(value);
+      if (keys.length === 0) {
+        out.push({ path: base || '(root)', value: '{}' });
+        return;
+      }
+      keys.forEach((k) => {
+        const next = base ? `${base}.${k}` : k;
+        flattenComposite(value[k], next, out);
+      });
+      return;
+    }
+    out.push({
+      path: base || '(root)',
+      value:
+        value == null
+          ? 'null'
+          : typeof value === 'string'
+            ? value
+            : typeof value === 'number' || typeof value === 'boolean'
+              ? String(value)
+              : JSON.stringify(value),
+    });
   }
 
   async function refreshStatus() {
@@ -361,6 +427,10 @@
         <div class="admin-console-tab-panel">
           <ModelPricingPanel active={adminTab === 'model_pricing'} />
         </div>
+      {:else if adminTab === 'topup_setting'}
+        <div class="admin-console-tab-panel">
+          <TopupSettingsPanel active={adminTab === 'topup_setting'} />
+        </div>
       {:else if adminTab === 'subscription'}
         <div class="admin-console-tab-panel">
         <p class="mb-3 shrink-0 text-xs text-muted-foreground">共 {tableTotal} 个套餐</p>
@@ -470,9 +540,28 @@
             </thead>
             <tbody>
               {#each tableRows as row}
+                {@const expanded = expandCompositeJson(row.value)}
                 <tr>
                   <td class="font-mono text-xs whitespace-nowrap">{row.key}</td>
-                  <td class="max-w-md break-all text-xs" title={row.value}>{trunc(row.value, 200)}</td>
+                  <td class="max-w-md break-all text-xs" title={row.value}>
+                    {#if expanded}
+                      <div class="space-y-1">
+                        {#each expanded.slice(0, 20) as item}
+                          <div class="grid grid-cols-[minmax(9rem,1fr)_minmax(0,2fr)] gap-2">
+                            <span class="font-mono text-[11px] text-muted-foreground">{item.path}</span>
+                            <span class="break-all">{trunc(item.value, 120)}</span>
+                          </div>
+                        {/each}
+                        {#if expanded.length > 20}
+                          <div class="text-[11px] text-muted-foreground">
+                            …其余 {expanded.length - 20} 项已折叠
+                          </div>
+                        {/if}
+                      </div>
+                    {:else}
+                      {trunc(row.value, 200)}
+                    {/if}
+                  </td>
                 </tr>
               {:else}
                 <tr><td colspan="2" class="text-muted-foreground">暂无数据</td></tr>

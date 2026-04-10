@@ -162,6 +162,10 @@
 
 <div class="app-shell">
   <header class="app-header">
+    <a href="/" class="header-brand" aria-label="返回首页">
+      <img src={favicon} alt="CLOVAPI" class="header-brand-icon" />
+      <span class="header-brand-text">CLOVAPI</span>
+    </a>
     <nav class="header-nav">
       {#each headerLinks as link}
         <a href={link.to} class="header-nav-link" aria-current={isNavActive(pathname, link.to) ? 'page' : undefined}>
@@ -332,11 +336,55 @@
       width: var(--app-content-slot-width);
       transform: translateX(-50%);
       box-sizing: border-box;
-      @apply flex h-14 items-center rounded-2xl border border-gray-200/80 bg-white/75 px-4 shadow-md shadow-black/[0.06] backdrop-blur-xl backdrop-saturate-150 md:px-6 dark:border-white/[0.12] dark:bg-black/35 dark:shadow-black/20 dark:backdrop-blur-xl dark:backdrop-saturate-150;
+      @apply grid h-14 items-center rounded-2xl border border-gray-200/80 bg-white/75 px-4 shadow-md shadow-black/[0.06] backdrop-blur-xl backdrop-saturate-150 md:px-6 dark:border-white/[0.12] dark:bg-black/35 dark:shadow-black/20 dark:backdrop-blur-xl dark:backdrop-saturate-150;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     }
 
     .header-nav {
-      @apply h-full flex flex-1 items-center gap-0.5 md:gap-1 overflow-x-auto whitespace-nowrap min-w-0;
+      grid-column: 2;
+      @apply flex h-full min-w-0 items-center justify-center gap-0.5 overflow-x-auto whitespace-nowrap md:gap-1;
+    }
+
+    .header-brand {
+      grid-column: 1;
+      justify-self: start;
+      @apply inline-flex min-w-0 shrink-0 items-center gap-2 no-underline;
+    }
+
+    .header-brand-icon {
+      width: 1.35rem;
+      height: 1.35rem;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .header-brand-text {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono Variable', monospace;
+      font-size: 0.86rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      line-height: 1.1;
+      text-align: center;
+      color: var(--foreground);
+      text-transform: uppercase;
+      text-shadow:
+        1px 0 0 currentColor,
+        0 1px 0 currentColor;
+      transform: none;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 640px) {
+      .header-brand {
+        margin-right: 0.5rem;
+      }
+      .header-brand-text {
+        font-size: 0.75rem;
+        letter-spacing: 0.06em;
+      }
     }
 
     .header-nav-link {
@@ -348,6 +396,8 @@
     }
 
     .header-user-area {
+      grid-column: 3;
+      justify-self: end;
       @apply relative shrink-0;
     }
 

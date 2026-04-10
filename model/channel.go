@@ -197,7 +197,11 @@ func (channel *Channel) GetModels() []string {
 	if channel.Models == "" {
 		return []string{}
 	}
-	return strings.Split(strings.Trim(channel.Models, ","), ",")
+	models := strings.Split(strings.Trim(channel.Models, ","), ",")
+	for i, model := range models {
+		models[i] = strings.TrimSpace(model)
+	}
+	return models
 }
 
 func (channel *Channel) GetGroups() []string {

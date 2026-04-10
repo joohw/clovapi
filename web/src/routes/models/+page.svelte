@@ -2,7 +2,7 @@
 
 <script>
   import { onMount } from 'svelte';
-  import { apiGet } from '$lib/api';
+  import { apiGet, apiUrl } from '$lib/api';
   import { copy } from '$lib/dashboard/helpers.js';
   import { showError, showSuccess } from '$lib/dashboard/notify.js';
   import { Input } from '$lib/components/ui/input';
@@ -38,13 +38,69 @@
     return raw.slice(0, idx);
   }
 
+  /**
+   * @param {string} modelName
+   * @param {Record<string, any>} specIndex
+   */
+  function findModelSpec(modelName, specIndex) {
+    const key = String(modelName || '').trim();
+    if (!key) return null;
+    if (specIndex[key]) return specIndex[key];
+    const slashIdx = key.indexOf('/');
+    if (slashIdx > 0) {
+      const shortKey = key.slice(slashIdx + 1);
+      if (specIndex[shortKey]) return specIndex[shortKey];
+    }
+    return null;
+  }
+
+  /**
+   * 从模型索引（api.json / api.ex.json）合并 spec。
+   * @param {Record<string, any>} index
+   * @param {any} apiIndex
+   * @param {boolean} overwrite
+   */
+  function mergeModelSpecIndex(index, apiIndex, overwrite = false) {
+    if (!apiIndex || typeof apiIndex !== 'object') return index;
+    for (const provider of Object.values(apiIndex)) {
+      const modelsMap = provider?.models;
+      if (!modelsMap || typeof modelsMap !== 'object') continue;
+      for (const [modelKey, modelSpec] of Object.entries(modelsMap)) {
+        const id = String(modelSpec?.id || modelKey || '').trim();
+        if (!id) continue;
+        if (!overwrite && index[id]) continue;
+        index[id] = modelSpec;
+      }
+    }
+    return index;
+  }
+
   async function loadPricing() {
     loading = true;
     errorMsg = '';
     try {
-      const res = await apiGet('/api/pricing');
+      const [res, apiSpecPayload, apiExSpecPayload] = await Promise.all([
+        apiGet('/api/pricing'),
+        fetch(apiUrl('/api.json'), {
+          method: 'GET',
+          headers: { 'Cache-Control': 'no-store' }
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+        fetch(apiUrl('/api.ex.json'), {
+          method: 'GET',
+          headers: { 'Cache-Control': 'no-store' }
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null)
+      ]);
       if (res?.success) {
         const vendorMap = {};
+        /** @type {Record<string, any>} */
+        const modelSpecIndex = {};
+        // api.ex.json is manually maintained with lower priority.
+        mergeModelSpecIndex(modelSpecIndex, apiExSpecPayload, false);
+        mergeModelSpecIndex(modelSpecIndex, apiSpecPayload, true);
         if (Array.isArray(res.vendors)) {
           for (const vendor of res.vendors) {
             vendorMap[vendor.id] = vendor;
@@ -55,10 +111,13 @@
         models = sourceModels.map((model) => {
           const vendor = model.vendor_id ? vendorMap[model.vendor_id] : null;
           const inferredVendorName = inferVendorNameFromModelName(model.model_name);
+          const modelSpec = findModelSpec(model.model_name, modelSpecIndex);
           return {
             ...model,
             vendor_name: model.vendor_name || vendor?.name || inferredVendorName || '',
-            vendor_icon: model.vendor_icon || vendor?.icon || ''
+            vendor_icon: model.vendor_icon || vendor?.icon || '',
+            spec: model.spec || modelSpec || null,
+            modalities: model.modalities || modelSpec?.modalities || null
           };
         });
       } else {
@@ -103,6 +162,23 @@
   function formatPremium(value) {
     if (typeof value !== 'number' || Number.isNaN(value)) return '-';
     return value.toFixed(3);
+  }
+
+  /**
+   * 从 spec 提取推理能力（是否支持 reasoning）。
+   * @param {any} model
+   * @returns {{ label: string; supported: boolean | null }}
+   */
+  function getReasoningCapability(model) {
+    const reasoning = model?.spec?.reasoning;
+    if (typeof reasoning === 'boolean') {
+      return { label: reasoning ? '支持' : '', supported: reasoning };
+    }
+    if (reasoning && typeof reasoning === 'object') {
+      // object form is considered supported (e.g. has levels/modes)
+      return { label: '支持', supported: true };
+    }
+    return { label: '', supported: null };
   }
 
   /**
@@ -165,7 +241,8 @@
       (m.model_name || '').toLowerCase().includes(keyword) ||
       (m.description || '').toLowerCase().includes(keyword) ||
       (m.tags || '').toLowerCase().includes(keyword) ||
-      (m.vendor_name || '').toLowerCase().includes(keyword)
+      (m.vendor_name || '').toLowerCase().includes(keyword) ||
+      getReasoningCapability(m).label.toLowerCase().includes(keyword)
     );
   });
 
@@ -249,7 +326,7 @@
                   <span class="text-xs opacity-70">{sortIndicator('vendor_name')}</span>
                 </button>
               </TableHead>
-              <TableHead>类型</TableHead>
+              <TableHead>推理能力</TableHead>
               <TableHead title="在成本与分组倍率之上的模型溢价，默认 1">
                 <button type="button" class="flex items-center gap-1" onclick={() => toggleSort('premium_ratio')}>
                   溢价
@@ -316,7 +393,11 @@
                     -
                   {/if}
                 </TableCell>
-                <TableCell>{model.quota_type === 0 ? '按量' : model.quota_type === 1 ? '按次' : '-'}</TableCell>
+                <TableCell>
+                  {#if getReasoningCapability(model).supported === true}
+                    <span class="rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">支持</span>
+                  {/if}
+                </TableCell>
                 <TableCell>{formatPremium(model.premium_ratio)}</TableCell>
                 <TableCell>{formatUsdPrice(model.input_price)}</TableCell>
                 <TableCell>{formatUsdPrice(model.output_price)}</TableCell>

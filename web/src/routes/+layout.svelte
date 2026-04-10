@@ -21,7 +21,7 @@
   const SITE_URL = 'https://clovapi.com';
   const SITE_NAME = 'CLOVAPI';
   const DEFAULT_DESCRIPTION =
-    'CLOVAPI 是新一代 AI 模型聚合网关，提供统一 API 接入、模型中转、计费与管理控制台。';
+    'CLOVAPI 是高性能的 AI 模型聚合网关，提供统一 API 接入、模型中转、计费与管理控制台。';
 
   /**
    * @param {string} path
@@ -34,7 +34,7 @@
   $: canonicalPath = seoPath(pathname);
   $: canonicalUrl = `${SITE_URL}${canonicalPath === '/' ? '' : canonicalPath}`;
   $: pageTitle = (() => {
-    if (pathname === '/') return `${SITE_NAME} - 新一代 AI 模型网关`;
+    if (pathname === '/') return `${SITE_NAME} - 高性能的API网关`;
     if (pathname.startsWith('/models')) return `模型广场 - ${SITE_NAME}`;
     if (pathname.startsWith('/docs')) return `文档中心 - ${SITE_NAME}`;
     if (pathname.startsWith('/playground')) return `在线试用 - ${SITE_NAME}`;

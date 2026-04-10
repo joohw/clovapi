@@ -51,15 +51,6 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 		includeUsage = request.StreamOptions.IncludeUsage
 	}
 
-	// Playground compatibility:
-	// if channel/model route does not support stream options, force non-stream
-	// to avoid sending unsupported streaming parameters upstream.
-	if info.IsPlayground && lo.FromPtrOr(request.Stream, false) && !info.SupportStreamOptions {
-		request.Stream = lo.ToPtr(false)
-		request.StreamOptions = nil
-		info.IsStream = false
-	}
-
 	// 如果不支持StreamOptions，将StreamOptions设置为nil
 	if !info.SupportStreamOptions || !lo.FromPtrOr(request.Stream, false) {
 		request.StreamOptions = nil

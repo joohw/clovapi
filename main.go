@@ -23,6 +23,7 @@ import (
 	"github.com/QuantumNous/new-api/service"
 	_ "github.com/QuantumNous/new-api/setting/performance_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
+	"github.com/QuantumNous/new-api/setting/system_setting"
 
 	"github.com/bytedance/gopkg/util/gopool"
 	"github.com/gin-contrib/sessions"
@@ -262,6 +263,7 @@ func InitResources() error {
 
 	// Initialize options, should after model.InitDB()
 	model.InitOptionMap()
+	applyServerAddressFromEnv()
 
 	// 清理旧的磁盘缓存文件
 	common.CleanupOldCacheFiles()
@@ -303,4 +305,21 @@ func InitResources() error {
 	}
 
 	return nil
+}
+
+func applyServerAddressFromEnv() {
+	serverAddress := strings.TrimSpace(os.Getenv("SERVER_ADDRESS"))
+	if serverAddress == "" {
+		// 兼容已有部署：若未配置 SERVER_ADDRESS，可回退 FRONTEND_BASE_URL。
+		serverAddress = strings.TrimSpace(os.Getenv("FRONTEND_BASE_URL"))
+	}
+	if serverAddress == "" {
+		return
+	}
+	serverAddress = strings.TrimRight(serverAddress, "/")
+	system_setting.ServerAddress = serverAddress
+	common.OptionMapRWMutex.Lock()
+	common.OptionMap["ServerAddress"] = serverAddress
+	common.OptionMapRWMutex.Unlock()
+	common.SysLog("ServerAddress loaded from environment variables")
 }

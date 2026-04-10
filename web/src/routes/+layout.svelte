@@ -49,6 +49,34 @@
   const headerLinksAuthExtras = [{ text: '试用', to: '/playground' }];
 
   const headerLinksRest = [...headerLinksPublic, ...headerLinksAuthExtras];
+  const PIXEL_GLYPHS = {
+    C: ['01110', '10001', '10000', '10000', '10000', '10001', '01110'],
+    L: ['10000', '10000', '10000', '10000', '10000', '10000', '11111'],
+    O: ['01110', '10001', '10001', '10001', '10001', '10001', '01110'],
+    V: ['10001', '10001', '10001', '10001', '10001', '01010', '00100'],
+    A: ['01110', '10001', '10001', '11111', '10001', '10001', '10001'],
+    P: ['11110', '10001', '10001', '11110', '10000', '10000', '10000'],
+    I: ['11111', '00100', '00100', '00100', '00100', '00100', '11111']
+  };
+
+  /**
+   * Build 5x7 pixel text rows.
+   * @param {string} text
+   */
+  function buildPixelRows(text) {
+    const rows = Array.from({ length: 7 }, () => '');
+    const chars = text.toUpperCase().split('');
+    chars.forEach((ch, idx) => {
+      const glyph = PIXEL_GLYPHS[ch] || PIXEL_GLYPHS.I;
+      for (let r = 0; r < 7; r++) {
+        rows[r] += glyph[r];
+        if (idx < chars.length - 1) rows[r] += '0';
+      }
+    });
+    return rows;
+  }
+
+  const BRAND_PIXEL_ROWS = buildPixelRows('CLOVAPI');
   let sessionRefreshKey = 0;
 
   /** 随路由刷新，登录写入 localStorage 后显示「控制台」等入口 */
@@ -164,7 +192,16 @@
   <header class="app-header">
     <a href="/" class="header-brand" aria-label="返回首页">
       <img src={favicon} alt="CLOVAPI" class="header-brand-icon" />
-      <span class="header-brand-text">CLOVAPI</span>
+      <span class="sr-only">CLOVAPI</span>
+      <span class="header-brand-pixel" aria-hidden="true">
+        {#each BRAND_PIXEL_ROWS as row}
+          <span class="header-brand-pixel-row">
+            {#each row.split('') as bit}
+              <span class={`header-brand-pixel-dot ${bit === '1' ? 'is-on' : ''}`}></span>
+            {/each}
+          </span>
+        {/each}
+      </span>
     </a>
     <nav class="header-nav">
       {#each headerLinks as link}
@@ -358,32 +395,42 @@
       image-rendering: crisp-edges;
     }
 
-    .header-brand-text {
+    .header-brand-pixel {
+      --dot: 2px;
+      --gap: 1px;
       display: inline-flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-family: 'JetBrains Mono Variable', monospace;
-      font-size: 0.86rem;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      line-height: 1.1;
-      text-align: center;
-      color: var(--foreground);
-      text-transform: uppercase;
-      text-shadow:
-        1px 0 0 currentColor,
-        0 1px 0 currentColor;
-      transform: none;
-      white-space: nowrap;
+      gap: var(--gap);
+      line-height: 0;
+    }
+
+    .header-brand-pixel-row {
+      display: inline-flex;
+      gap: var(--gap);
+      line-height: 0;
+    }
+
+    .header-brand-pixel-dot {
+      width: var(--dot);
+      height: var(--dot);
+      background: transparent;
+      border-radius: 0;
+      display: inline-block;
+    }
+
+    .header-brand-pixel-dot.is-on {
+      background: currentColor;
     }
 
     @media (max-width: 640px) {
       .header-brand {
         margin-right: 0.5rem;
       }
-      .header-brand-text {
-        font-size: 0.75rem;
-        letter-spacing: 0.06em;
+      .header-brand-pixel {
+        --dot: 1.5px;
+        --gap: 1px;
       }
     }
 

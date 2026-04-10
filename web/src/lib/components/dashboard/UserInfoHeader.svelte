@@ -136,7 +136,7 @@
   $: canTransfer = affQuota > 0;
 </script>
 
-<div class="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-card shadow-sm dark:border-zinc-700">
+<div class="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-neutral-50 shadow-sm dark:border-zinc-700 dark:bg-zinc-950/70">
   <div class="p-4 md:p-6">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
       <div class="min-w-0 flex-1">

@@ -2,12 +2,20 @@
 
 <script>
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import { apiPost } from '$lib/api';
 
   let username = '';
   let password = '';
   let loading = false;
   let errorMsg = '';
+  $: redirectTarget = (() => {
+    const raw = String($page.url.searchParams.get('redirect') || '');
+    if (!raw || !raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/login')) {
+      return '/dashboard';
+    }
+    return raw;
+  })();
 
   /**
    * @param {SubmitEvent} event
@@ -26,7 +34,7 @@
       const res = await apiPost('/api/user/login', { username, password });
       if (res?.success) {
         localStorage.setItem('user', JSON.stringify(res.data));
-        goto('/playground');
+        goto(redirectTarget, { replaceState: true });
       } else {
         errorMsg = res?.message || '登录失败';
       }
@@ -72,7 +80,11 @@
           {/if}
 
           <div class="auth-actions">
-            <button class="w-full rounded-none bg-black text-white h-10 disabled:opacity-60" type="submit" disabled={loading}>
+            <button
+              class="w-full rounded-none border border-gray-300 bg-white text-black h-10 hover:bg-gray-100 disabled:opacity-60"
+              type="submit"
+              disabled={loading}
+            >
               {loading ? '登录中...' : '继续'}
             </button>
           </div>

@@ -2,14 +2,29 @@
 
 <script>
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import { apiPost } from '$lib/api';
 
   let username = '';
   let password = '';
   let password2 = '';
   let email = '';
+  let affCode = '';
+  let affCodeFromQuery = false;
   let loading = false;
   let errorMsg = '';
+
+  $: {
+    const queryAff =
+      $page.url.searchParams.get('aff') ||
+      $page.url.searchParams.get('aff_code') ||
+      $page.url.searchParams.get('invite_code') ||
+      '';
+    if (queryAff && !affCode) {
+      affCode = queryAff;
+      affCodeFromQuery = true;
+    }
+  }
 
   /**
    * @param {SubmitEvent} event
@@ -37,6 +52,9 @@
       const payload = { username, password, password2 };
       if (email) {
         payload.email = email;
+      }
+      if (affCode) {
+        payload.aff_code = affCode.trim();
       }
       const res = await apiPost('/api/user/register', payload);
       if (res?.success) {
@@ -67,6 +85,18 @@
             <input id="register-email" class="auth-input" type="email" bind:value={email} autocomplete="email" placeholder="请输入邮箱地址" />
           </div>
           <div>
+            <label class="auth-label" for="register-aff-code">邀请码（可选）</label>
+            <input
+              id="register-aff-code"
+              class="auth-input"
+              type="text"
+              bind:value={affCode}
+              autocomplete="off"
+              disabled={affCodeFromQuery}
+              placeholder="请输入邀请码"
+            />
+          </div>
+          <div>
             <label class="auth-label" for="register-password">密码</label>
             <input id="register-password" class="auth-input" type="password" bind:value={password} autocomplete="new-password" placeholder="输入密码，最短 8 位" />
           </div>
@@ -80,7 +110,11 @@
           {/if}
 
           <div class="auth-actions">
-            <button class="w-full rounded-none bg-black text-white h-10 disabled:opacity-60" type="submit" disabled={loading}>
+            <button
+              class="w-full rounded-none border border-gray-300 bg-white text-black h-10 hover:bg-gray-100 disabled:opacity-60"
+              type="submit"
+              disabled={loading}
+            >
               {loading ? '注册中...' : '注册'}
             </button>
           </div>

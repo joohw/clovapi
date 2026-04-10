@@ -1,6 +1,8 @@
 const API_BASE =
   (typeof import.meta !== 'undefined' && import.meta.env.VITE_REACT_APP_SERVER_URL) || '';
 
+const AUTH_EXPIRED_HINTS = ['未登录', 'access token', 'Unauthorized', 'unauthorized'];
+
 function getUserIdFromLocalStorage() {
   try {
     const raw = localStorage.getItem('user');
@@ -17,6 +19,29 @@ function baseHeaders() {
     'Cache-Control': 'no-store',
     'New-Api-User': getUserIdFromLocalStorage()
   };
+}
+
+/**
+ * @param {Response} res
+ * @param {any} payload
+ */
+function handleAuthExpired(res, payload) {
+  if (typeof window === 'undefined') return;
+  const hasSession = !!localStorage.getItem('user');
+  if (!hasSession) return;
+
+  const message = String(payload?.message || '');
+  const unauthorizedByStatus = res?.status === 401;
+  const unauthorizedByMessage = AUTH_EXPIRED_HINTS.some((hint) => message.includes(hint));
+  if (!unauthorizedByStatus && !unauthorizedByMessage) return;
+
+  localStorage.removeItem('user');
+
+  const currentPath = window.location.pathname;
+  if (currentPath !== '/login' && currentPath !== '/register' && currentPath !== '/reset') {
+    const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.assign(`/login?redirect=${redirect}`);
+  }
 }
 
 /**
@@ -40,7 +65,9 @@ export async function apiGet(path) {
     method: 'GET',
     headers: baseHeaders()
   });
-  return res.json();
+  const payload = await res.json();
+  handleAuthExpired(res, payload);
+  return payload;
 }
 
 /**
@@ -56,7 +83,9 @@ export async function apiPost(path, body) {
     },
     body: JSON.stringify(body ?? {})
   });
-  return res.json();
+  const payload = await res.json();
+  handleAuthExpired(res, payload);
+  return payload;
 }
 
 /**
@@ -72,7 +101,9 @@ export async function apiPut(path, body) {
     },
     body: JSON.stringify(body ?? {})
   });
-  return res.json();
+  const payload = await res.json();
+  handleAuthExpired(res, payload);
+  return payload;
 }
 
 /**
@@ -83,7 +114,9 @@ export async function apiDelete(path) {
     method: 'DELETE',
     headers: baseHeaders()
   });
-  return res.json();
+  const payload = await res.json();
+  handleAuthExpired(res, payload);
+  return payload;
 }
 
 export { getUserIdFromLocalStorage };

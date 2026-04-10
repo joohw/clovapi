@@ -5,6 +5,7 @@
 export const CHANNEL_TYPE_OPTIONS = [
   { v: 1, label: 'OpenAI' },
   { v: 24, label: 'Gemini' },
+  { v: 41, label: 'VertexAI' },
   { v: 14, label: 'Anthropic (Claude)' },
   { v: 43, label: 'DeepSeek' },
   { v: 33, label: 'AWS Bedrock' },

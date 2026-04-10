@@ -286,7 +286,7 @@
 <div
   class="w-full min-w-0 overflow-hidden {embedded
     ? ''
-    : 'rounded-2xl border border-gray-200 bg-card shadow-sm dark:border-zinc-700'}"
+    : 'rounded-2xl border border-gray-200 bg-neutral-50 shadow-sm dark:border-zinc-700 dark:bg-zinc-950/70'}"
 >
   {#if !embedded}
     <div class="flex flex-col gap-4 border-b border-border p-4 md:p-6">

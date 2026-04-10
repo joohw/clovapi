@@ -115,7 +115,7 @@
 
 <div class="models-page page-wrap flex min-h-0 flex-1 flex-col overflow-hidden">
   <div
-    class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-card shadow-sm dark:border-zinc-700"
+    class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-neutral-50 shadow-sm dark:border-zinc-700 dark:bg-zinc-950/70"
   >
     <div class="shrink-0 border-b border-gray-200 p-3 dark:border-zinc-700">
       <Input type="text" bind:value={search} placeholder="搜索模型/描述/标签" />

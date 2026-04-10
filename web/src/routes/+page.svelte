@@ -48,6 +48,7 @@
   let noticeContent = '';
   let copiedBase = false;
   let copyResetTimer;
+  let hasSession = false;
 
   $: serverAddress = status?.server_address || window.location.origin;
   $: isDemoSiteMode = Boolean(status?.demo_site_enabled);
@@ -61,6 +62,8 @@
 
   /** 站点根（去掉末尾 /v1），用于 /v1beta 等路径 */
   $: siteRoot = String(serverAddress || '').replace(/\/+$/, '').replace(/\/v1$/, '');
+
+  $: hasSession = typeof window !== 'undefined' && !!localStorage.getItem('user');
 
   /**
    * @param {{ suffix?: string; fromRoot?: string }} item
@@ -144,6 +147,14 @@
     }, 2000);
   }
 
+  function goGetKey() {
+    if (hasSession) {
+      goto('/dashboard');
+      return;
+    }
+    goto('/login');
+  }
+
   onMount(async () => {
     await Promise.all([loadStatus(), loadHomePageContent(), loadNotice()]);
   });
@@ -170,7 +181,7 @@
     <div class="w-full min-w-0">
       <div class="home-landing flex w-full min-w-0 flex-col">
         <section
-          class="home-landing__panel w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-card p-5 text-center shadow-sm md:p-8 dark:border-zinc-700"
+          class="home-landing__panel w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-neutral-50 p-5 text-center shadow-sm md:p-8 dark:border-zinc-700 dark:bg-zinc-950/70"
         >
           <p class="text-xs font-semibold tracking-wide text-muted-foreground">领先的AI模型兼容接口</p>
           <h1 class="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
@@ -205,7 +216,7 @@
           <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
             <Button
               class="h-11 min-h-11 px-8 text-sm font-medium sm:h-12 sm:min-h-12 sm:px-10 sm:text-base"
-              onclick={() => goto('/dashboard')}
+              onclick={goGetKey}
             >
               获取密钥
             </Button>

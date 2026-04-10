@@ -326,7 +326,7 @@
 
   <div class="mt-4 w-full min-w-0 md:mt-6">
     <div
-      class="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-card shadow-sm dark:border-zinc-700"
+      class="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-neutral-50 shadow-sm dark:border-zinc-700 dark:bg-zinc-950/70"
     >
       <div class="border-b border-border p-4 md:p-6 md:pb-0">
         <div class="flex flex-wrap gap-1 border-b border-border pb-px">

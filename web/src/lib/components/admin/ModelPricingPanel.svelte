@@ -199,7 +199,7 @@
   </div>
 
   <div
-    class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+    class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-neutral-50 shadow-sm dark:bg-zinc-950/70"
   >
     <div class="shrink-0 border-b border-border p-3">
       <Input type="text" bind:value={search} placeholder="搜索模型/描述/标签/供应商" />

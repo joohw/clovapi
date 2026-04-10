@@ -174,7 +174,7 @@
 </script>
 
 {#if status?.checkin_enabled}
-  <div class="w-full min-w-0 rounded-2xl border border-gray-200 bg-card p-4 shadow-sm dark:border-zinc-700 md:p-6">
+  <div class="w-full min-w-0 rounded-2xl border border-gray-200 bg-neutral-50 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-950/70 md:p-6">
     <Dialog.Root bind:open={turnstileModalVisible}>
       <Dialog.Content class="max-w-md">
         <Dialog.Header>

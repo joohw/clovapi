@@ -166,7 +166,7 @@
   onMount(fetchStatus);
 </script>
 
-<div class="rounded-xl border border-gray-200 bg-card p-4 dark:border-zinc-700">
+<div class="rounded-xl border border-gray-200 bg-neutral-50 p-4 dark:border-zinc-700 dark:bg-zinc-950/70">
   <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div class="flex gap-4">
       <div

@@ -39,6 +39,9 @@
   let models = '';
   let group = 'default';
   let priorityStr = '';
+  let vertexRegion = 'global';
+  /** @type {'api_key' | 'json'} */
+  let vertexKeyType = 'api_key';
 
   /** @type {typeof CHANNEL_TYPE_OPTIONS} */
   let typeOptions = CHANNEL_TYPE_OPTIONS;
@@ -69,8 +72,12 @@
     models = '';
     group = 'default';
     priorityStr = '';
+    vertexRegion = 'global';
+    vertexKeyType = 'api_key';
     typeOptions = CHANNEL_TYPE_OPTIONS;
   }
+
+  $: isVertexType = Number(typeStr) === 41;
 
   function close() {
     open = false;
@@ -123,6 +130,33 @@
       group = ch.group ?? 'default';
       priorityStr =
         ch.priority != null && ch.priority !== '' ? String(ch.priority) : '';
+      vertexRegion = 'global';
+      const rawOther = String(ch.other ?? '').trim();
+      if (rawOther) {
+        if (rawOther.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(rawOther);
+            if (parsed?.default) {
+              vertexRegion = String(parsed.default);
+            }
+          } catch (_) {
+            vertexRegion = 'global';
+          }
+        } else {
+          vertexRegion = rawOther;
+        }
+      }
+      vertexKeyType = 'api_key';
+      const rawSettings = ch.settings;
+      if (rawSettings) {
+        try {
+          const parsedSettings =
+            typeof rawSettings === 'string' ? JSON.parse(rawSettings) : rawSettings;
+          if (parsedSettings?.vertex_key_type === 'json') {
+            vertexKeyType = 'json';
+          }
+        } catch (_) {}
+      }
 
       const tv = Number(ch.type);
       const opts = [...CHANNEL_TYPE_OPTIONS];
@@ -180,6 +214,10 @@
     if (priorityStr.trim() !== '') {
       const p = parseInt(priorityStr.trim(), 10);
       if (Number.isFinite(p)) channel.priority = p;
+    }
+    if (typeNum === 41) {
+      channel.other = JSON.stringify({ default: vertexRegion.trim() || 'global' });
+      channel.settings = JSON.stringify({ vertex_key_type: vertexKeyType });
     }
     submitting = true;
     try {
@@ -241,6 +279,10 @@
     if (kn) {
       payload.key = kn;
     }
+    if (typeNum === 41) {
+      payload.other = JSON.stringify({ default: vertexRegion.trim() || 'global' });
+      payload.settings = JSON.stringify({ vertex_key_type: vertexKeyType });
+    }
 
     submitting = true;
     try {
@@ -266,9 +308,9 @@
       <Dialog.Title>{isEdit() ? '编辑渠道' : '添加渠道'}</Dialog.Title>
       <Dialog.Description class="text-sm text-muted-foreground">
         {#if isEdit()}
-          修改名称、类型、状态、模型与分组等。新 API Key 留空则不修改。复杂渠道请在完整控制台操作。
+          修改名称、类型、状态、模型与分组等。新 API Key 留空则不修改。
         {:else}
-          使用单 Key 模式添加。Vertex / Codex 等特殊类型请在完整控制台配置。
+          使用单 Key 模式添加。Vertex 支持 API Key/JSON 两种模式（需填写部署地区）。
         {/if}
       </Dialog.Description>
     </Dialog.Header>
@@ -317,14 +359,44 @@
               <Input
                 id="ch-key"
                 bind:value={keyNew}
-                placeholder="留空则不修改密钥"
+                placeholder={isVertexType && vertexKeyType === 'json'
+                  ? '留空则不修改（Service Account JSON）'
+                  : '留空则不修改密钥'}
                 class="font-mono"
                 autocomplete="off"
               />
             {:else}
-              <Input id="ch-key" bind:value={key} placeholder="sk-..." class="font-mono" autocomplete="off" />
+              <Input
+                id="ch-key"
+                bind:value={key}
+                placeholder={isVertexType && vertexKeyType === 'json' ? '{"type":"service_account",...}' : 'sk-...'}
+                class="font-mono"
+                autocomplete="off"
+              />
             {/if}
           </div>
+          {#if isVertexType}
+            <div>
+              <label class="auth-label" for="ch-vertex-key-type">Vertex Key 模式</label>
+              <Select.Root type="single" bind:value={vertexKeyType}>
+                <Select.Trigger id="ch-vertex-key-type" class="w-full min-w-0 max-w-full">
+                  <span class="truncate text-left"
+                    >{vertexKeyType === 'api_key' ? 'API Key' : 'Service Account JSON'}</span
+                  >
+                </Select.Trigger>
+                <Select.Content>
+                  <Select.Item value="api_key" label="API Key">API Key</Select.Item>
+                  <Select.Item value="json" label="Service Account JSON"
+                    >Service Account JSON</Select.Item
+                  >
+                </Select.Content>
+              </Select.Root>
+            </div>
+            <div>
+              <label class="auth-label" for="ch-vertex-region">部署地区</label>
+              <Input id="ch-vertex-region" bind:value={vertexRegion} placeholder="global / us-central1" />
+            </div>
+          {/if}
           <div>
             <label class="auth-label" for="ch-base">Base URL（可选）</label>
             <Input

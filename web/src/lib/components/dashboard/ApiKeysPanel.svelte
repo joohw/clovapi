@@ -228,7 +228,7 @@
 </script>
 
 <div
-  class="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-card shadow-sm dark:border-zinc-700"
+  class="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-neutral-50 shadow-sm dark:border-zinc-700 dark:bg-zinc-950/70"
 >
   <div class="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between md:p-6 md:pb-4">
     <h2 class="text-lg font-semibold tracking-tight">API 密钥</h2>

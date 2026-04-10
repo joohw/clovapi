@@ -1,6 +1,5 @@
 /**
  * 解析供应商图标 URL（模型列表等）。
- * Simple Icons 无「智谱」条目，zhipu slug 会 404，故使用本地 /vendors/zhipu.svg。
  * @param {string} vendorIcon
  * @param {string} [vendorName]
  * @returns {string}
@@ -34,9 +33,6 @@ export function resolveVendorIcon(vendorIcon, vendorName = '') {
     azure: 'microsoftazure',
     microsoftazure: 'microsoftazure',
     deepseek: 'deepseek',
-    // Simple Icons 无 zhipu；本地 SVG（亦用于中文名「智谱」）
-    zhipu: '/vendors/zhipu.svg',
-    智谱: '/vendors/zhipu.svg',
     doubao: 'bytedance',
     volcengine: 'bytedance',
     mistral: 'mistralai',

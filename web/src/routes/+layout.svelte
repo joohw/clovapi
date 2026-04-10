@@ -49,10 +49,14 @@
   const headerLinksAuthExtras = [{ text: '试用', to: '/playground' }];
 
   const headerLinksRest = [...headerLinksPublic, ...headerLinksAuthExtras];
+  let sessionRefreshKey = 0;
 
   /** 随路由刷新，登录写入 localStorage 后显示「控制台」等入口 */
-  $: hasSession =
-    typeof window !== 'undefined' && pathname !== undefined && !!localStorage.getItem('user');
+  $: hasSession = (() => {
+    void pathname;
+    void sessionRefreshKey;
+    return typeof window !== 'undefined' && !!localStorage.getItem('user');
+  })();
 
   /** pathname 变化时重新读取 localStorage 中的 role，避免「管理」不显示 */
   $: headerLinks = (() => {
@@ -69,6 +73,9 @@
   })();
 
   let username = 'U';
+  let setupChecked = false;
+  let setupCompleted = true;
+  let setupChecking = false;
 
   function refreshAvatarLetter() {
     const raw = localStorage.getItem('user');
@@ -85,12 +92,47 @@
     }
   }
 
-  onMount(refreshAvatarLetter);
+  async function ensureSetupGate() {
+    if (setupChecking) return;
+    setupChecking = true;
+    try {
+      const res = await apiGet('/api/setup');
+      if (res?.success) {
+        setupCompleted = Boolean(res?.data?.status);
+      } else {
+        setupCompleted = true;
+      }
+    } catch (_) {
+      // If setup status cannot be fetched, avoid blocking navigation.
+      setupCompleted = true;
+    } finally {
+      setupChecked = true;
+      setupChecking = false;
+    }
+
+    const currentPath = normalizePath(pathname);
+    if (!setupCompleted && currentPath !== '/setup') {
+      goto('/setup', { replaceState: true });
+      return;
+    }
+    if (setupCompleted && currentPath === '/setup') {
+      goto(hasSession ? '/dashboard' : '/', { replaceState: true });
+    }
+  }
+
+  onMount(async () => {
+    refreshAvatarLetter();
+    await ensureSetupGate();
+  });
 
   /** 登录后从 /login 等页返回时同步头像首字母 */
   $: if (typeof window !== 'undefined' && hasSession) {
     void pathname;
     refreshAvatarLetter();
+  }
+
+  $: if (typeof window !== 'undefined' && pathname && setupChecked) {
+    void ensureSetupGate();
   }
 
   let showLogoutConfirm = false;
@@ -103,12 +145,19 @@
       // ignore network/logout response errors
     }
     localStorage.removeItem('user');
-    goto('/');
+    username = 'U';
+    sessionRefreshKey += 1;
+    const currentPath = normalizePath(pathname);
+    if (currentPath === '/') {
+      window.location.reload();
+      return;
+    }
+    goto('/', { replaceState: true, invalidateAll: true });
   }
 </script>
 
 <svelte:head>
-  <link rel="icon" href={`${favicon}?v=clov-bw`} />
+  <link rel="icon" href={`${favicon}?v=clov-bw2`} />
 </svelte:head>
 
 <div class="app-shell">
@@ -129,12 +178,16 @@
             <span class="avatar-btn">{username}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onclick={() => (showLogoutConfirm = true)}>退出登录</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => (showLogoutConfirm = true)}>退出登录</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       {:else}
         <a href="/login" class="inline-flex">
-          <Button variant="default" size="sm" class="h-9 min-h-9 px-3.5 text-sm rounded-none">
+          <Button
+            variant="outline"
+            size="sm"
+            class="h-9 min-h-9 px-3.5 text-sm rounded-none bg-white text-black border-gray-300 hover:bg-gray-100 dark:bg-white dark:text-black dark:border-white"
+          >
             登录
           </Button>
         </a>
@@ -337,7 +390,7 @@
     }
 
     .admin-console-card {
-      @apply flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-card shadow-sm dark:border-zinc-700;
+      @apply flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-neutral-50 shadow-sm dark:border-zinc-700 dark:bg-zinc-950/70;
     }
 
     .admin-console-body {

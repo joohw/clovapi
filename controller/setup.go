@@ -6,6 +6,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/gin-gonic/gin"
 )
@@ -126,6 +127,39 @@ func PostSetup(c *gin.Context) {
 				"message": "创建管理员账号失败: " + err.Error(),
 			})
 			return
+		}
+
+		// Create default token for root user if enabled.
+		if constant.GenerateDefaultToken {
+			key, err := common.GenerateKey()
+			if err != nil {
+				c.JSON(200, gin.H{
+					"success": false,
+					"message": "生成管理员默认令牌失败: " + err.Error(),
+				})
+				return
+			}
+			token := model.Token{
+				UserId:             rootUser.Id,
+				Name:               rootUser.Username + "的初始令牌",
+				Key:                key,
+				CreatedTime:        common.GetTimestamp(),
+				AccessedTime:       common.GetTimestamp(),
+				ExpiredTime:        -1,
+				RemainQuota:        500000,
+				UnlimitedQuota:     true,
+				ModelLimitsEnabled: false,
+			}
+			if setting.DefaultUseAutoGroup {
+				token.Group = "auto"
+			}
+			if err = token.Insert(); err != nil {
+				c.JSON(200, gin.H{
+					"success": false,
+					"message": "创建管理员默认令牌失败: " + err.Error(),
+				})
+				return
+			}
 		}
 	}
 

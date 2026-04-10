@@ -108,7 +108,7 @@
 </script>
 
 <svelte:head>
-  <link rel="icon" href={favicon} />
+  <link rel="icon" href={`${favicon}?v=clov-bw`} />
 </svelte:head>
 
 <div class="app-shell">

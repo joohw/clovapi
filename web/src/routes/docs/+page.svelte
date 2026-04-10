@@ -17,7 +17,7 @@
   /** @type {{ value: string; label: string }[]} */
   const PLATFORM_OPTIONS = [
     { value: 'unix', label: 'macOS / Linux / Git Bash' },
-    { value: 'windows', label: 'Windows（PowerShell）' }
+    { value: 'windows', label: 'Windows（CMD / PowerShell）' }
   ];
 
   let aboutLoading = true;
@@ -69,16 +69,28 @@
 
   $: hasUserSession = typeof window !== 'undefined' && !!localStorage.getItem('user');
 
-  /** shell 单引号包裹 URL */
+  /** bash：单引号包裹 URL */
   /** @param {string} s */
   function shSingleQuote(s) {
     return `'${String(s).replace(/'/g, `'\\''`)}'`;
   }
 
+  /**
+   * Windows CMD / PowerShell：URL 用双引号。
+   * cmd.exe 不把单引号当作引号，会把 `'` 传给 curl 导致 URL 非法（常见 curl error 3）。
+   */
+  /** @param {string} s */
+  function winCmdDoubleQuote(s) {
+    return `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+  }
+
   /** 与「操作系统」选择一致；兑换内容仍为 bash 脚本，需本机有 bash */
   $: oneTimeCommandBlock = (() => {
     if (!oneTimeRedeemUrl) return '';
-    const q = shSingleQuote(oneTimeRedeemUrl);
+    const q =
+      selectedPlatform === 'windows'
+        ? winCmdDoubleQuote(oneTimeRedeemUrl)
+        : shSingleQuote(oneTimeRedeemUrl);
     const curlBin = selectedPlatform === 'windows' ? 'curl.exe' : 'curl';
     return `${curlBin} -fsSL ${q} | bash`;
   })();

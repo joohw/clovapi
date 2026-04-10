@@ -8,10 +8,9 @@
     displayAmountToQuota,
     getQuotaThresholdUnitLabel,
   } from '$lib/dashboard/helpers.js';
-  import { mergeAdminConfig, DEFAULT_ADMIN_CONFIG } from '$lib/dashboard/sidebar-config.js';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
-  import { Bell, CurrencyDollar, ShieldCheck, GearSix } from 'phosphor-svelte';
+  import { Bell, CurrencyDollar, ShieldCheck } from 'phosphor-svelte';
 
   /** @type {Record<string, any>} */
   export let notificationSettings = {};
@@ -24,153 +23,21 @@
   export let embedded = false;
 
   /** 嵌入时由父级指定当前面板；非嵌入时由内层 Tab 切换 */
-  /** @type {'notification' | 'pricing' | 'privacy' | 'sidebar'} */
+  /** @type {'notification' | 'pricing' | 'privacy'} */
   export let panel = 'notification';
 
   let activeTab = 'notification';
   $: currentView = embedded ? panel : activeTab;
-  let sidebarLoading = false;
   /** @type {Record<string, any> | null} */
   let permissions = null;
-  /** @type {Record<string, any>} */
-  let sidebarModulesUser = {
-    chat: { enabled: true, playground: true, chat: true },
-    console: {
-      enabled: true,
-      detail: true,
-      token: true,
-      log: true,
-      midjourney: true,
-      task: true,
-    },
-    personal: { enabled: true, topup: true, personal: true },
-    admin: {
-      enabled: true,
-      channel: true,
-      models: true,
-      subscription: true,
-      redemption: true,
-      user: true,
-      setting: true,
-    },
-  };
-  /** @type {Record<string, any> | null} */
-  let adminConfig = null;
 
   const isAdminOrRoot = () => (permissions?.user?.role ?? 0) >= 10;
-  let prevSidebarAdmin = '';
 
   /** @type {string} */
   let thresholdUnitLabel = '美元';
   $: {
     void status;
     thresholdUnitLabel = getQuotaThresholdUnitLabel();
-  }
-
-  function hasSidebarSettingsPermission() {
-    return permissions?.sidebar_settings === true;
-  }
-
-  function isSidebarSectionAllowed(sectionKey) {
-    if (!permissions?.sidebar_modules) return true;
-    return permissions.sidebar_modules[sectionKey] !== false;
-  }
-
-  function isSidebarModuleAllowed(sectionKey, moduleKey) {
-    if (!permissions?.sidebar_modules) return true;
-    const sectionPerms = permissions.sidebar_modules[sectionKey];
-    if (sectionPerms === false) return false;
-    if (sectionPerms && sectionPerms[moduleKey] === false) return false;
-    return true;
-  }
-
-  function isAllowedByAdmin(sectionKey, moduleKey = null) {
-    if (!adminConfig) return true;
-    if (moduleKey) {
-      return adminConfig[sectionKey]?.enabled && adminConfig[sectionKey]?.[moduleKey];
-    }
-    return adminConfig[sectionKey]?.enabled;
-  }
-
-  const sectionConfigsBase = [
-    {
-      key: 'chat',
-      title: '聊天区域',
-      description: '操练场和聊天功能',
-      modules: [
-        { key: 'playground', title: '操练场', description: 'AI模型测试环境' },
-        { key: 'chat', title: '聊天', description: '聊天会话管理' },
-      ],
-    },
-    {
-      key: 'console',
-      title: '控制台区域',
-      description: '数据管理和日志查看',
-      modules: [
-        { key: 'detail', title: '数据看板', description: '系统数据统计' },
-        { key: 'token', title: 'ApiKeys', description: 'API Keys 管理' },
-        { key: 'log', title: '使用日志', description: 'API使用记录' },
-        { key: 'midjourney', title: '绘图日志', description: '绘图任务记录' },
-        { key: 'task', title: '任务日志', description: '系统任务记录' },
-      ],
-    },
-    {
-      key: 'personal',
-      title: '个人中心区域',
-      description: '用户个人功能',
-      modules: [
-        { key: 'topup', title: '钱包管理', description: '余额充值管理' },
-        { key: 'personal', title: '个人设置', description: '个人信息设置' },
-      ],
-    },
-    {
-      key: 'admin',
-      title: '管理员区域',
-      description: '系统管理功能',
-      modules: [
-        { key: 'channel', title: '渠道管理', description: 'API渠道配置' },
-        { key: 'models', title: '模型管理', description: 'AI模型配置' },
-        { key: 'subscription', title: '订阅管理', description: '订阅套餐管理' },
-        { key: 'redemption', title: '兑换码管理', description: '兑换码生成管理' },
-        { key: 'user', title: '用户管理', description: '用户账户管理' },
-        { key: 'setting', title: '系统设置', description: '系统参数配置' },
-      ],
-    },
-  ];
-
-  $: sectionConfigs = sectionConfigsBase
-    .filter((section) => isSidebarSectionAllowed(section.key))
-    .map((section) => ({
-      ...section,
-      modules: section.modules.filter((module) => isSidebarModuleAllowed(section.key, module.key)),
-    }))
-    .filter((section) => section.modules.length > 0 && isAllowedByAdmin(section.key));
-
-  async function loadSidebarConfigs() {
-    try {
-      if (status?.SidebarModulesAdmin) {
-        try {
-          const adminConf = JSON.parse(status.SidebarModulesAdmin);
-          adminConfig = mergeAdminConfig(adminConf);
-        } catch (_) {
-          adminConfig = mergeAdminConfig(null);
-        }
-      } else {
-        adminConfig = mergeAdminConfig(null);
-      }
-      const userRes = await apiGet('/api/user/self');
-      if (userRes?.success && userRes.data?.sidebar_modules) {
-        let userConf;
-        if (typeof userRes.data.sidebar_modules === 'string') {
-          userConf = JSON.parse(userRes.data.sidebar_modules);
-        } else {
-          userConf = userRes.data.sidebar_modules;
-        }
-        sidebarModulesUser = userConf;
-      }
-    } catch (e) {
-      console.error('加载边栏配置失败:', e);
-    }
   }
 
   async function loadPermissions() {
@@ -182,66 +49,7 @@
 
   onMount(() => {
     loadPermissions();
-    loadSidebarConfigs();
   });
-
-  $: {
-    const k = status?.SidebarModulesAdmin ?? '';
-    if (k !== prevSidebarAdmin) {
-      prevSidebarAdmin = k;
-      loadSidebarConfigs();
-    }
-  }
-
-  function handleSectionChange(sectionKey) {
-    return (e) => {
-      const checked = e.target.checked;
-      sidebarModulesUser = {
-        ...sidebarModulesUser,
-        [sectionKey]: {
-          ...sidebarModulesUser[sectionKey],
-          enabled: checked,
-        },
-      };
-    };
-  }
-
-  function handleModuleChange(sectionKey, moduleKey) {
-    return (e) => {
-      const checked = e.target.checked;
-      sidebarModulesUser = {
-        ...sidebarModulesUser,
-        [sectionKey]: {
-          ...sidebarModulesUser[sectionKey],
-          [moduleKey]: checked,
-        },
-      };
-    };
-  }
-
-  async function saveSidebarSettings() {
-    sidebarLoading = true;
-    try {
-      const res = await apiPut('/api/user/self', {
-        sidebar_modules: JSON.stringify(sidebarModulesUser),
-      });
-      if (res?.success) {
-        showSuccess('侧边栏设置保存成功');
-        await loadSidebarConfigs();
-        await loadPermissions();
-      } else {
-        showError(res?.message || '保存失败');
-      }
-    } catch (_) {
-      showError('保存失败');
-    } finally {
-      sidebarLoading = false;
-    }
-  }
-
-  function resetSidebarModules() {
-    sidebarModulesUser = JSON.parse(JSON.stringify(DEFAULT_ADMIN_CONFIG));
-  }
 
   function validateAndSave() {
     const w = notificationSettings.warningType;
@@ -327,17 +135,6 @@
         >
           <span class="inline-flex items-center gap-1"><ShieldCheck size={14} /> 隐私设置</span>
         </button>
-        {#if hasSidebarSettingsPermission()}
-          <button
-            type="button"
-            class="rounded-none px-3 py-1.5 text-sm {activeTab === 'sidebar'
-              ? 'border-b-2 border-primary font-medium'
-              : 'text-muted-foreground'}"
-            on:click={() => (activeTab = 'sidebar')}
-          >
-            <span class="inline-flex items-center gap-1"><GearSix size={14} /> 边栏设置</span>
-          </button>
-        {/if}
       </div>
     </div>
   {/if}
@@ -485,58 +282,10 @@
           </span>
         </span>
       </label>
-    {:else if currentView === 'sidebar' && hasSidebarSettingsPermission()}
-      <p class="mb-4 text-xs text-muted-foreground">您可以个性化设置侧边栏的要显示功能</p>
-      <div class="rounded-xl border border-border p-4">
-        {#each sectionConfigs as section}
-          <div class="mb-6 last:mb-0">
-            <div class="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/50 p-2">
-              <div>
-                <div class="font-semibold">{section.title}</div>
-                <div class="text-xs text-muted-foreground">{section.description}</div>
-              </div>
-              <input
-                type="checkbox"
-                checked={sidebarModulesUser[section.key]?.enabled !== false}
-                on:change={handleSectionChange(section.key)}
-              />
-            </div>
-            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {#each section.modules.filter((m) => isAllowedByAdmin(section.key, m.key)) as module}
-                <div
-                  class="flex items-center justify-between rounded-lg border border-border p-3 {sidebarModulesUser[
-                    section.key
-                  ]?.enabled === false
-                    ? 'opacity-50'
-                    : ''}"
-                >
-                  <div>
-                    <div class="text-sm font-medium">{module.title}</div>
-                    <div class="text-xs text-muted-foreground">{module.description}</div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={sidebarModulesUser[section.key]?.[module.key] !== false}
-                    disabled={sidebarModulesUser[section.key]?.enabled === false}
-                    on:change={handleModuleChange(section.key, module.key)}
-                  />
-                </div>
-              {/each}
-            </div>
-          </div>
-        {/each}
-      </div>
     {/if}
   </div>
 
   <div class="flex justify-end gap-2 border-t border-border border-dashed px-4 py-3 md:px-6">
-    {#if currentView === 'sidebar'}
-      <Button variant="outline" onclick={resetSidebarModules}>重置为默认</Button>
-      <Button disabled={sidebarLoading} onclick={saveSidebarSettings}>
-        {sidebarLoading ? '保存中...' : '保存设置'}
-      </Button>
-    {:else}
-      <Button onclick={validateAndSave}>保存设置</Button>
-    {/if}
+    <Button onclick={validateAndSave}>保存设置</Button>
   </div>
 </div>

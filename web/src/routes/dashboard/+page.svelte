@@ -51,13 +51,8 @@
   let passkeyDeleteLoading = false;
   let passkeySupported = false;
 
-  /** @type {'security' | 'notification' | 'pricing' | 'privacy' | 'sidebar'} */
+  /** @type {'security' | 'notification' | 'pricing' | 'privacy'} */
   let dashboardTab = 'security';
-
-  $: showSidebarSettingsTab = userState?.user?.permissions?.sidebar_settings === true;
-  $: if (dashboardTab === 'sidebar' && !showSidebarSettingsTab) {
-    dashboardTab = 'notification';
-  }
 
   let notificationSettings = {
     warningType: 'email',
@@ -366,17 +361,6 @@
           >
             隐私设置
           </button>
-          {#if showSidebarSettingsTab}
-            <button
-              type="button"
-              class="rounded-none px-3 py-1.5 text-sm {dashboardTab === 'sidebar'
-                ? 'border-b-2 border-primary font-medium'
-                : 'text-muted-foreground'}"
-              onclick={() => (dashboardTab = 'sidebar')}
-            >
-              边栏设置
-            </button>
-          {/if}
         </div>
       </div>
       <div class="p-4 pt-4 md:p-6">

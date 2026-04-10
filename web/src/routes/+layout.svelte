@@ -18,6 +18,33 @@
   import ToastHost from '$lib/components/dashboard/ToastHost.svelte';
 
   $: pathname = $page.url.pathname;
+  const SITE_URL = 'https://clovapi.com';
+  const SITE_NAME = 'CLOVAPI';
+  const DEFAULT_DESCRIPTION =
+    'CLOVAPI 是新一代 AI 模型聚合网关，提供统一 API 接入、模型中转、计费与管理控制台。';
+
+  /**
+   * @param {string} path
+   */
+  function seoPath(path) {
+    const normalized = normalizePath(path || '/');
+    return normalized === '/' ? '/' : `${normalized}/`;
+  }
+
+  $: canonicalPath = seoPath(pathname);
+  $: canonicalUrl = `${SITE_URL}${canonicalPath === '/' ? '' : canonicalPath}`;
+  $: pageTitle = (() => {
+    if (pathname === '/') return `${SITE_NAME} - 新一代 AI 模型网关`;
+    if (pathname.startsWith('/models')) return `模型广场 - ${SITE_NAME}`;
+    if (pathname.startsWith('/docs')) return `文档中心 - ${SITE_NAME}`;
+    if (pathname.startsWith('/playground')) return `在线试用 - ${SITE_NAME}`;
+    if (pathname.startsWith('/dashboard')) return `用户控制台 - ${SITE_NAME}`;
+    if (pathname.startsWith('/admin')) return `管理后台 - ${SITE_NAME}`;
+    if (pathname.startsWith('/login')) return `登录 - ${SITE_NAME}`;
+    if (pathname.startsWith('/register')) return `注册 - ${SITE_NAME}`;
+    return `${SITE_NAME}`;
+  })();
+  $: ogType = pathname === '/' ? 'website' : 'article';
 
   /**
    * @param {string} path
@@ -185,7 +212,24 @@
 </script>
 
 <svelte:head>
+  <title>{pageTitle}</title>
   <link rel="icon" href={`${favicon}?v=clov-bw2`} />
+  <link rel="canonical" href={canonicalUrl} />
+  <meta name="description" content={DEFAULT_DESCRIPTION} />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+
+  <meta property="og:site_name" content={SITE_NAME} />
+  <meta property="og:type" content={ogType} />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={DEFAULT_DESCRIPTION} />
+  <meta property="og:url" content={canonicalUrl} />
+  <meta property="og:image" content={`${SITE_URL}/favicon.ico`} />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={pageTitle} />
+  <meta name="twitter:description" content={DEFAULT_DESCRIPTION} />
+  <meta name="twitter:image" content={`${SITE_URL}/favicon.ico`} />
+  <meta name="twitter:url" content={canonicalUrl} />
 </svelte:head>
 
 <div class="app-shell">

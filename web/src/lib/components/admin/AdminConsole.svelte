@@ -327,8 +327,8 @@
 
 <div class="admin-console-root w-full">
   <div class="admin-console-card w-full min-w-0">
-    <div class="shrink-0 border-b border-border p-4 md:p-6 md:pb-0">
-      <div class="flex flex-wrap gap-1 border-b border-border pb-px">
+    <div class="shrink-0 px-4 pt-4 md:px-6 md:pt-6">
+      <div class="flex flex-wrap gap-1 border-b border-border">
         {#each visibleTabs as t}
           <button
             type="button"

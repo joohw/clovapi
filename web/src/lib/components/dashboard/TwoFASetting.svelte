@@ -166,13 +166,11 @@
   onMount(fetchStatus);
 </script>
 
-<div class="rounded-xl border border-gray-200 bg-neutral-50 p-4 dark:border-zinc-700 dark:bg-zinc-950/70">
+<div class="rounded-xl border border-border p-4">
   <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div class="flex gap-4">
-      <div
-        class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
-      >
-        <Shield size={26} weight="duotone" />
+      <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted">
+        <Shield size={24} weight="duotone" />
       </div>
       <div>
         <div class="mb-1 flex flex-wrap items-center gap-2">
@@ -261,7 +259,7 @@
           </button>
         </div>
       {:else if currentStep === 1}
-        <div class="space-y-3 rounded-xl border p-3">
+        <div class="space-y-3 rounded-xl border border-border p-3">
           <div class="font-semibold">备用恢复代码</div>
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {#each setupData.backup_codes || [] as code, index}
@@ -361,7 +359,7 @@
       </Dialog.Footer>
     {:else}
       <p class="mb-2 text-sm text-muted-foreground">旧的备用码已失效，请保存新的备用码</p>
-      <div class="space-y-2 rounded-xl border p-3">
+      <div class="space-y-2 rounded-xl border border-border p-3">
         {#each backupCodes as code, index}
           <div class="flex justify-between font-mono text-sm">
             <span>{code}</span>

@@ -386,7 +386,8 @@
   });
 </script>
 
-<div class="playground-page page-wrap flex min-h-0 flex-1 flex-col overflow-hidden">
+<div class="playground-page page-wrap flex min-h-0 flex-1 flex-col overflow-hidden" aria-labelledby="playground-page-title">
+  <h1 id="playground-page-title" class="sr-only">在线试用</h1>
   <div
     class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-card shadow-sm dark:border-zinc-700"
   >
@@ -394,28 +395,35 @@
       class="h-0 min-h-0 flex-1 bg-neutral-50 dark:bg-zinc-950/70"
       orientation="vertical"
     >
-      <div class="w-full space-y-3 px-3 py-3">
+      <div
+        class="w-full space-y-4 px-3 py-4 md:px-4"
+        role="region"
+        aria-label="对话内容"
+      >
         {#if messages.length === 0}
-          <div class="text-sm text-muted-foreground">发送第一条消息开始对话。</div>
+          <p class="text-base leading-relaxed text-muted-foreground">发送第一条消息开始对话。</p>
         {:else}
           {#each messages as msg, idx}
-            <div>
-              <div class="mb-0.5 text-xs text-muted-foreground">{msg.role === 'user' ? '你' : '助手'}</div>
+            <article class="select-text" aria-label={msg.role === 'user' ? '用户消息' : '助手回复'}>
+              <header>
+                <p class="mb-1 text-sm font-medium text-foreground/80">{msg.role === 'user' ? '你' : '助手'}</p>
+              </header>
               {#if msg.role === 'assistant' && sending && idx === messages.length - 1}
-                <pre class="whitespace-pre-wrap break-words text-sm font-sans"
+                <pre
+                  class="whitespace-pre-wrap break-words font-sans text-base leading-relaxed text-foreground"
                   >{msg.content}<span
                     class="mr-1 inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-current align-middle"
                     aria-hidden="true"
                   ></span></pre
                 >
               {:else}
-                <pre class="whitespace-pre-wrap break-words text-sm font-sans">{msg.content}</pre>
+                <pre class="whitespace-pre-wrap break-words font-sans text-base leading-relaxed text-foreground">{msg.content}</pre>
               {/if}
-            </div>
+            </article>
           {/each}
         {/if}
         {#if errorMsg}
-          <p class="text-sm text-destructive">{errorMsg}</p>
+          <p class="text-base leading-snug text-destructive">{errorMsg}</p>
         {/if}
         <div class="h-20" aria-hidden="true"></div>
       </div>
@@ -423,13 +431,14 @@
 
     <form
       class="shrink-0 border-t border-gray-200 bg-card px-3 py-3 dark:border-zinc-700"
+      aria-label="发送消息"
       onsubmit={sendMessage}
     >
       <div class="w-full space-y-1.5">
         <Textarea
           bind:value={prompt}
           placeholder="输入消息..."
-          class="max-h-48 min-h-14 resize-none overflow-y-auto border-0 bg-transparent px-0 py-1.5 shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
+          class="max-h-48 min-h-14 resize-none overflow-y-auto border-0 bg-transparent px-0 py-1.5 text-base leading-relaxed shadow-none ring-0 placeholder:text-muted-foreground/80 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
         />
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex min-w-0 flex-1 items-center gap-3">
@@ -440,18 +449,18 @@
                 aria-label="模型"
                 class="!h-8 min-h-8 min-w-0 w-full max-w-full !bg-background hover:!bg-muted dark:!bg-background dark:hover:!bg-muted"
               >
-                <span class="truncate text-left"
+                <span class="min-w-0 flex-1 truncate text-left"
                   >{model || (models.length === 0 ? '暂无模型' : '选择模型')}</span
                 >
               </Select.Trigger>
-              <Select.Content>
+              <Select.Content class="text-left">
                 {#each models as m}
-                  <Select.Item value={m} label={m}>{m}</Select.Item>
+                  <Select.Item value={m} label={m} class="justify-start text-left">{m}</Select.Item>
                 {/each}
               </Select.Content>
             </Select.Root>
             </div>
-            <div class="inline-flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+            <div class="inline-flex shrink-0 items-center gap-2 text-sm text-foreground/75">
               <Switch.Root bind:checked={stream} disabled={!modelStreamSupported || sending} />
               <span>流式输出</span>
               {#if !modelStreamSupported}

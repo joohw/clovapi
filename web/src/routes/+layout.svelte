@@ -16,12 +16,50 @@
   } from '$lib/components/ui/dropdown-menu';
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import ToastHost from '$lib/components/dashboard/ToastHost.svelte';
+  import { getPublicSiteUrl } from '$lib/publicSiteUrl.js';
 
   $: pathname = $page.url.pathname;
-  const SITE_URL = 'https://clovapi.com';
+  /** 对外站点根（canonical / OG），见 web/.env.example */
+  $: siteUrl = getPublicSiteUrl($page.url);
   const SITE_NAME = 'CLOVAPI';
   const DEFAULT_DESCRIPTION =
     'CLOVAPI 是高性能的 AI 模型聚合网关，提供统一 API 接入、模型中转、计费与管理控制台。';
+
+  /** GEO / 生成式检索：Organization + WebSite + SoftwareApplication */
+  $: jsonLdScript =
+    '<script type="application/ld+json">' +
+    JSON.stringify({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'Organization',
+          '@id': siteUrl + '/#organization',
+          name: SITE_NAME,
+          url: siteUrl,
+          description: DEFAULT_DESCRIPTION,
+          logo: siteUrl + '/favicon.ico'
+        },
+        {
+          '@type': 'WebSite',
+          '@id': siteUrl + '/#website',
+          url: siteUrl,
+          name: SITE_NAME,
+          description: DEFAULT_DESCRIPTION,
+          publisher: { '@id': siteUrl + '/#organization' },
+          inLanguage: ['zh-CN', 'en']
+        },
+        {
+          '@type': 'SoftwareApplication',
+          name: SITE_NAME,
+          applicationCategory: 'DeveloperApplication',
+          operatingSystem: 'Any',
+          description: DEFAULT_DESCRIPTION,
+          url: siteUrl
+        }
+      ]
+    }).replace(/</g, '\\u003c') +
+    '</' +
+    'script>';
 
   /**
    * @param {string} path
@@ -32,7 +70,7 @@
   }
 
   $: canonicalPath = seoPath(pathname);
-  $: canonicalUrl = `${SITE_URL}${canonicalPath === '/' ? '' : canonicalPath}`;
+  $: canonicalUrl = `${siteUrl}${canonicalPath === '/' ? '' : canonicalPath}`;
   $: pageTitle = (() => {
     if (pathname === '/') return `${SITE_NAME} - 高性能的API网关`;
     if (pathname.startsWith('/models')) return `模型广场 - ${SITE_NAME}`;
@@ -66,6 +104,20 @@
     if (t === '/dashboard') return p === '/dashboard';
     if (t === '/admin') return p === '/admin' || p.startsWith('/admin/');
     return p === t || p.startsWith(t + '/');
+  }
+
+  /**
+   * @param {string} currentPath
+   * @param {string} href
+   */
+  function headerNavButtonClass(currentPath, href) {
+    const active = isNavActive(currentPath, href);
+    return (
+      'header-nav-btn ' +
+      (active
+        ? '!bg-transparent font-semibold text-foreground shadow-none hover:!bg-transparent hover:!text-foreground'
+        : 'text-muted-foreground hover:!bg-transparent hover:!text-muted-foreground')
+    );
   }
 
   const headerLinksPublic = [
@@ -215,20 +267,23 @@
   <title>{pageTitle}</title>
   <link rel="icon" href={`${favicon}?v=clov-bw2`} />
   <link rel="canonical" href={canonicalUrl} />
+  <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM / Agent 可读站点摘要" />
   <meta name="description" content={DEFAULT_DESCRIPTION} />
   <meta name="robots" content="index,follow,max-image-preview:large" />
+
+  {@html jsonLdScript}
 
   <meta property="og:site_name" content={SITE_NAME} />
   <meta property="og:type" content={ogType} />
   <meta property="og:title" content={pageTitle} />
   <meta property="og:description" content={DEFAULT_DESCRIPTION} />
   <meta property="og:url" content={canonicalUrl} />
-  <meta property="og:image" content={`${SITE_URL}/favicon.ico`} />
+  <meta property="og:image" content={`${siteUrl}/favicon.ico`} />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content={pageTitle} />
   <meta name="twitter:description" content={DEFAULT_DESCRIPTION} />
-  <meta name="twitter:image" content={`${SITE_URL}/favicon.ico`} />
+  <meta name="twitter:image" content={`${siteUrl}/favicon.ico`} />
   <meta name="twitter:url" content={canonicalUrl} />
 </svelte:head>
 
@@ -250,13 +305,13 @@
     <nav class="header-nav">
       {#each headerLinks as link}
         <a href={link.to} class="header-nav-link" aria-current={isNavActive(pathname, link.to) ? 'page' : undefined}>
-          <Button variant={isNavActive(pathname, link.to) ? 'secondary' : 'ghost'} size="sm" class="header-nav-btn">
+          <Button variant="ghost" size="sm" class={headerNavButtonClass(pathname, link.to)}>
             {link.text}
           </Button>
         </a>
       {/each}
     </nav>
-    <div class="header-user-area">
+    <div class="header-user-area" aria-label="账户与登录">
       {#if hasSession}
         <DropdownMenu>
           <DropdownMenuTrigger>
@@ -351,7 +406,7 @@
       --sidebar-border: oklch(0.922 0 0);
       --sidebar-ring: oklch(0.708 0 0);
       --app-header-height: 3.5rem;
-      --app-header-float-top: 0.5rem;
+      --app-header-float-top: 1.25rem;
       --app-header-float-gap: 0.5rem;
       --app-main-padding-top: calc(
         var(--app-header-float-top) + var(--app-header-height) + var(--app-header-float-gap)
@@ -362,6 +417,14 @@
         calc(100vw - 2 * var(--app-page-pad-x)),
         calc(var(--app-layout-max-width) - 2 * var(--app-page-pad-x))
       );
+    }
+
+    @media (max-width: 639px) {
+      :root {
+        --app-page-pad-x: 1rem;
+        --app-header-float-top: 0.625rem;
+        --app-header-float-gap: 0.375rem;
+      }
     }
 
     body {
@@ -417,7 +480,7 @@
       width: var(--app-content-slot-width);
       transform: translateX(-50%);
       box-sizing: border-box;
-      @apply grid h-14 items-center rounded-2xl border border-gray-200/80 bg-white/75 px-4 shadow-md shadow-black/[0.06] backdrop-blur-xl backdrop-saturate-150 md:px-6 dark:border-white/[0.12] dark:bg-black/35 dark:shadow-black/20 dark:backdrop-blur-xl dark:backdrop-saturate-150;
+      @apply grid h-14 items-center rounded-2xl border border-gray-200 bg-white/75 px-3 shadow-md shadow-black/[0.06] backdrop-blur-xl backdrop-saturate-150 sm:px-4 md:px-6 dark:border-zinc-700 dark:bg-black/35 dark:shadow-black/20 dark:backdrop-blur-xl dark:backdrop-saturate-150;
       grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     }
 
@@ -473,10 +536,18 @@
       background: currentColor;
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 639px) {
       .header-brand {
-        margin-right: 0.5rem;
+        margin-right: 0.25rem;
+        gap: 0;
       }
+
+      .header-brand-pixel {
+        display: none;
+      }
+    }
+
+    @media (min-width: 640px) and (max-width: 767px) {
       .header-brand-pixel {
         --dot-size: 2.5px;
         --gap: 0.5px;
@@ -484,7 +555,7 @@
     }
 
     .header-nav-link {
-      @apply inline-flex shrink-0 hover:text-blue-600 transition-colors;
+      @apply inline-flex shrink-0;
     }
 
     .header-nav-btn {
@@ -528,11 +599,11 @@
     }
 
     .page-wrap {
-      @apply p-8;
+      @apply p-4 md:p-8;
     }
 
     .admin-console-root {
-      @apply flex min-h-0 min-w-0 flex-1 flex-col p-8;
+      @apply flex min-h-0 min-w-0 flex-1 flex-col p-4 md:p-8;
     }
 
     .admin-console-card {
@@ -540,7 +611,7 @@
     }
 
     .admin-console-body {
-      @apply flex min-h-0 flex-1 flex-col overflow-hidden p-4 pt-4 md:p-6;
+      @apply flex min-h-0 flex-1 flex-col overflow-hidden p-4 md:p-6;
     }
 
     .admin-console-tab-panel {

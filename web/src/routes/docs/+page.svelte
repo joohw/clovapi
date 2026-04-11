@@ -101,7 +101,8 @@
   });
 </script>
 
-<div class="docs-page page-wrap flex min-h-0 flex-1 flex-col overflow-hidden">
+<div class="docs-page page-wrap flex min-h-0 flex-1 flex-col overflow-hidden" aria-labelledby="docs-page-title">
+  <h1 id="docs-page-title" class="sr-only">文档中心</h1>
   <div
     class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-card shadow-sm dark:border-zinc-700"
   >
@@ -111,48 +112,59 @@
       <div
         class="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row lg:items-stretch"
       >
-        <section
+        <aside
           class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-b border-gray-200 p-4 md:p-6 lg:border-b-0 lg:border-r lg:pr-6 dark:border-zinc-700"
+          aria-labelledby="docs-editor-setup-heading"
         >
           <h2
+            id="docs-editor-setup-heading"
             class="mb-4 flex items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground md:text-xl"
           >
             <TerminalWindow class="h-5 w-5 shrink-0 opacity-85 md:h-6 md:w-6" weight="duotone" />
             配置 OpenClaw / Claude Code
           </h2>
-          <div class="mb-4 rounded-lg border border-border bg-background/60 p-3 text-sm text-muted-foreground">
+          <div class="mb-4 rounded-lg border border-border bg-background/60 p-3 text-base leading-relaxed text-foreground/90">
             当前页面仅保留通用 API 接入文档。OpenClaw / Claude Code 一键配置待开放。
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
             {#if aboutLoading}
-              <div class="text-sm opacity-70">加载中...</div>
+              <div class="text-base text-muted-foreground">加载中...</div>
             {:else if errorMsg}
-              <div class="text-sm text-red-500">{errorMsg}</div>
+              <div class="text-base text-destructive">{errorMsg}</div>
             {:else if iframeUrl}
               <div
                 class="h-full min-h-0 w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700"
               >
                 <iframe title="文档" src={iframeUrl} class="block h-full min-h-0 w-full border-0"></iframe>
               </div>
+            {:else if htmlContent}
               <div
-                class="docs-dynamic prose prose-neutral max-w-none dark:prose-invert md:prose-sm"
+                class="docs-dynamic prose prose-neutral max-w-none dark:prose-invert prose-base prose-headings:font-semibold prose-headings:tracking-tight prose-p:leading-relaxed prose-li:leading-relaxed prose-pre:rounded-lg prose-pre:border prose-pre:border-border prose-pre:bg-muted/60 prose-pre:leading-relaxed prose-code:rounded prose-code:border prose-code:border-border/80 prose-code:bg-muted/50 prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.9em] prose-code:before:content-none prose-code:after:content-none prose-a:font-medium prose-a:text-primary"
               >
                 {@html htmlContent}
               </div>
+            {:else}
+              <div class="text-base leading-relaxed text-muted-foreground">暂无文档内容。</div>
             {/if}
           </div>
-        </section>
+        </aside>
 
-        <section class="flex min-h-0 min-w-0 flex-1 flex-col p-4 md:p-6 lg:pl-6">
+        <section
+          class="flex min-h-0 min-w-0 flex-1 flex-col p-4 md:p-6 lg:pl-6"
+          aria-labelledby="docs-api-dev-heading"
+        >
           <h2
+            id="docs-api-dev-heading"
             class="mb-4 flex items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground md:text-xl"
           >
             <Code class="h-5 w-5 shrink-0 opacity-85 md:h-6 md:w-6" weight="duotone" />
             使用 API 开发应用
           </h2>
-          <p class="mb-4 text-sm text-muted-foreground">
+          <p class="mb-4 text-base leading-relaxed text-foreground/90">
             在自有服务、脚本或移动端中调用本站；请求格式与 OpenAI 兼容 API 一致，使用控制台中的令牌作为
-            <code class="rounded bg-muted px-1 py-0.5 text-xs">Authorization: Bearer</code>。
+            <code class="rounded border border-border/80 bg-muted/60 px-1.5 py-0.5 font-mono text-[0.875em] text-foreground"
+              >Authorization: Bearer</code
+            >。
           </p>
           {#if apiBaseUrl}
             <button
@@ -162,7 +174,7 @@
               onclick={copyApiBase}
             >
               <div class="flex min-w-0 flex-1 items-center px-3 py-2 text-left sm:px-4">
-                <code class="block w-full break-all font-mono text-sm leading-snug text-foreground">{apiBaseUrl}</code>
+                <code class="block w-full break-all font-mono text-base leading-snug text-foreground">{apiBaseUrl}</code>
               </div>
               <div
                 class="flex shrink-0 items-center gap-2 border-l border-border bg-muted/25 px-3 py-2 text-sm font-medium text-muted-foreground group-hover:bg-muted/40 sm:px-4"
@@ -177,8 +189,8 @@
               </div>
             </button>
           {/if}
-          <ul class="mt-4 list-inside list-disc space-y-1.5 text-sm text-muted-foreground">
-            <li>将 Base URL 设为上述地址（通常以 <code class="text-xs">/v1</code> 结尾）。</li>
+          <ul class="mt-4 list-inside list-disc space-y-2 text-base leading-relaxed text-foreground/90">
+            <li>将 Base URL 设为上述地址（通常以 <code class="font-mono text-[0.9em] text-foreground">/v1</code> 结尾）。</li>
             <li>对话、嵌入、图像等路径与常见 OpenAI 兼容网关一致，可按控制台内模型名调用。</li>
           </ul>
         </section>
@@ -191,5 +203,10 @@
   :global(.docs-dynamic pre) {
     max-width: 100%;
     overflow-x: auto;
+  }
+
+  :global(.docs-dynamic pre code) {
+    font-size: 0.9em;
+    line-height: 1.6;
   }
 </style>

@@ -291,7 +291,8 @@
   }
 </script>
 
-<div class="models-page page-wrap flex min-h-0 flex-1 flex-col overflow-hidden">
+<div class="models-page page-wrap flex min-h-0 flex-1 flex-col overflow-hidden" aria-labelledby="models-page-title">
+  <h1 id="models-page-title" class="sr-only">模型广场</h1>
   <div
     class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-neutral-50 shadow-sm dark:border-zinc-700 dark:bg-zinc-950/70"
   >

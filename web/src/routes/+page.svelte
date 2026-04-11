@@ -1,13 +1,17 @@
 <svelte:options runes={false} />
 
 <script>
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
+  import { page } from '$app/stores';
   import { marked } from 'marked';
   import { goto } from '$app/navigation';
   import { apiGet } from '$lib/api';
+  import { copy } from '$lib/dashboard/helpers.js';
+  import { showSuccess, showError } from '$lib/dashboard/notify.js';
   import { Button } from '$lib/components/ui/button';
   import * as Dialog from '$lib/components/ui/dialog';
-  import { Copy, CheckCircle } from 'phosphor-svelte';
+  import { Copy } from 'phosphor-svelte';
+  import { getPublicSiteUrl } from '$lib/publicSiteUrl.js';
 
   /**
    * 首页展示的接口示例：功能说明 + 路径。
@@ -41,16 +45,31 @@
     { id: 'openrouter', alt: 'OpenRouter' },
   ];
 
-  let status = {};
+  /** 与 loadStatus 一致：首屏即读缓存，避免 Base URL 先 origin 再跳成 server_address 的闪烁 */
+  function readStatusFromStorage() {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = localStorage.getItem('status');
+      if (raw) return JSON.parse(raw);
+    } catch (_) {
+      // ignore
+    }
+    return {};
+  }
+
+  let status = readStatusFromStorage();
   let homePageContentLoaded = false;
   let homePageContent = '';
   let noticeVisible = false;
   let noticeContent = '';
-  let copiedBase = false;
-  let copyResetTimer;
+  let copyBaseBusy = false;
   let hasSession = false;
 
-  $: serverAddress = status?.server_address || window.location.origin;
+  /** 配置的公开地址优先；否则用当前页 origin（SSR/首屏与 URL 栏一致，不依赖 window） */
+  $: serverAddress =
+    (typeof status?.server_address === 'string' && status.server_address.trim() !== ''
+      ? status.server_address.trim().replace(/\/+$/, '')
+      : '') || $page.url.origin;
   $: isDemoSiteMode = Boolean(status?.demo_site_enabled);
 
   /** 展示与复制用：始终以 /v1 结尾，不重复拼接 */
@@ -64,6 +83,9 @@
   $: siteRoot = String(serverAddress || '').replace(/\/+$/, '').replace(/\/v1$/, '');
 
   $: hasSession = typeof window !== 'undefined' && !!localStorage.getItem('user');
+
+  /** 页脚品牌链接等：与 canonical同源策略一致 */
+  $: publicSiteUrl = getPublicSiteUrl($page.url);
 
   /**
    * @param {{ suffix?: string; fromRoot?: string }} item
@@ -139,12 +161,15 @@
   }
 
   async function copyBaseUrl() {
-    await navigator.clipboard.writeText(apiBaseUrl);
-    copiedBase = true;
-    if (copyResetTimer) clearTimeout(copyResetTimer);
-    copyResetTimer = setTimeout(() => {
-      copiedBase = false;
-    }, 2000);
+    if (copyBaseBusy) return;
+    copyBaseBusy = true;
+    try {
+      const ok = await copy(apiBaseUrl);
+      if (ok) showSuccess('Base URL 已复制到剪贴板');
+      else showError('复制失败');
+    } finally {
+      copyBaseBusy = false;
+    }
   }
 
   function goGetKey() {
@@ -159,9 +184,6 @@
     await Promise.all([loadStatus(), loadHomePageContent(), loadNotice()]);
   });
 
-  onDestroy(() => {
-    if (copyResetTimer) clearTimeout(copyResetTimer);
-  });
 </script>
 
 <div class="page-wrap w-full min-w-0">
@@ -181,35 +203,33 @@
     <div class="w-full min-w-0">
       <div class="home-landing flex w-full min-w-0 flex-col">
         <section
-          class="home-landing__panel w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-neutral-50 p-5 text-center shadow-sm md:p-8 dark:border-zinc-700 dark:bg-zinc-950/70"
+          class="home-landing__panel w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-neutral-50 p-4 text-center shadow-sm sm:p-5 md:p-8 dark:border-zinc-700 dark:bg-zinc-950/70"
+          aria-labelledby="home-hero-title"
         >
-          <p class="text-xs font-semibold tracking-wide text-muted-foreground">领先的AI模型兼容接口</p>
-          <h1 class="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            一站聚合，极速中转
-          </h1>
-          <p class="mx-auto mt-4 max-w-xl text-sm text-muted-foreground">
-            文本、语音、图像、视频、搜索、嵌入只需要把 Base URL 设为
-          </p>
-          <button
+          <header>
+            <p class="text-xs font-semibold tracking-wide text-muted-foreground">领先的AI模型兼容接口</p>
+            <h1 id="home-hero-title" class="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
+              一站聚合，极速中转
+            </h1>
+            <p class="mx-auto mt-4 max-w-xl text-base leading-relaxed text-foreground/85">
+              文本、语音、图像、视频、搜索、嵌入只需要把 Base URL 设为
+            </p>
+          </header>
+                   <button
             type="button"
             class="home-landing__url-copy group mt-10 flex w-full min-w-0 items-stretch overflow-hidden rounded-lg border border-border bg-muted/30 text-left transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:hover:bg-muted/25"
-            aria-label={copiedBase ? '基址已复制到剪贴板' : '点击复制 Base URL'}
+            aria-label="点击复制 Base URL"
             onclick={copyBaseUrl}
           >
             <div class="min-w-0 flex-1 px-4 py-4 text-left sm:px-5 sm:py-4">
-              <span class="mb-1.5 block text-xs font-medium text-muted-foreground">Base URL</span>
-              <code class="block break-all font-mono text-sm text-foreground sm:text-base">{apiBaseUrl}</code>
+              <span class="mb-1.5 block text-sm font-medium text-foreground/75">Base URL</span>
+              <code class="block break-all font-mono text-base leading-snug text-foreground sm:text-lg">{apiBaseUrl}</code>
             </div>
             <div
               class="flex shrink-0 items-center gap-2 border-l border-border bg-muted/25 px-4 py-3 text-sm font-medium text-muted-foreground group-hover:bg-muted/40 sm:px-5"
             >
-              {#if copiedBase}
-                <CheckCircle class="size-4 shrink-0 text-emerald-500" weight="fill" aria-hidden="true" />
-                <span class="whitespace-nowrap text-emerald-600 dark:text-emerald-400">已复制</span>
-              {:else}
-                <Copy class="size-4 shrink-0 opacity-70" aria-hidden="true" />
-                <span class="whitespace-nowrap">复制</span>
-              {/if}
+              <Copy class="size-4 shrink-0 opacity-70" aria-hidden="true" />
+              <span class="whitespace-nowrap">复制</span>
             </div>
           </button>
 
@@ -234,24 +254,29 @@
             {/if}
           </div>
 
-          <div class="mt-10">
-            <p class="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <section class="mt-10" aria-labelledby="home-api-examples-heading">
+            <h2
+              id="home-api-examples-heading"
+              class="mb-4 text-center text-sm font-semibold uppercase tracking-wider text-foreground/70"
+            >
               常用接口示例（完整 URL）
-            </p>
+            </h2>
             <ul class="m-0 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2">
               {#each API_EXAMPLES as item}
                 <li class="m-0 min-w-0 rounded-lg border border-border bg-muted/30 p-4 text-left">
-                  <span class="mb-1 block text-xs font-medium text-muted-foreground">{item.label}</span>
-                  <code class="block break-all font-mono text-sm text-foreground">{exampleFullUrl(item)}</code>
+                  <span class="mb-1.5 block text-sm font-medium text-foreground/75">{item.label}</span>
+                  <code class="block break-all font-mono text-base leading-snug text-foreground">{exampleFullUrl(item)}</code>
                 </li>
               {/each}
             </ul>
-          </div>
+          </section>
 
           <div class="home-landing__providers">
             <div class="home-landing__providers-rule" aria-hidden="true"></div>
-            <div class="pt-10">
-              <p class="mb-5 text-sm font-medium text-foreground">支持 300+ 模型 API</p>
+            <section class="pt-10" aria-labelledby="home-providers-heading">
+              <h2 id="home-providers-heading" class="mb-5 text-sm font-medium text-foreground md:text-base">
+                支持 300+ 模型 API
+              </h2>
               <div
                 class="home-provider-strip mx-auto flex w-full max-w-2xl flex-wrap items-center justify-center gap-3.5 rounded-xl border border-border bg-muted/20 px-5 py-4 leading-none sm:max-w-3xl md:gap-5 md:px-6 md:py-5"
               >
@@ -267,9 +292,24 @@
                   />
                 {/each}
               </div>
-            </div>
+            </section>
           </div>
         </section>
+
+        <footer
+          class="mt-8 flex w-full flex-col items-center gap-1.5 border-t border-border pt-8 text-center md:mt-10 md:pt-10"
+          aria-label="页脚"
+        >
+          <p class="text-base font-semibold tracking-tight text-foreground">
+            <a
+              href={publicSiteUrl}
+              class="text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              CLOVAPI
+            </a>
+          </p>
+          <p class="text-sm text-muted-foreground">© 2026 CLOVAPI</p>
+        </footer>
       </div>
     </div>
   {:else if homePageContent.startsWith('https://')}
@@ -279,7 +319,9 @@
       style="width:100%;height:calc(100dvh - var(--app-main-padding-top, 4.5rem));border:none;"
     ></iframe>
   {:else}
-    <div class="panel p-4 prose dark:prose-invert max-w-none">
+    <div
+      class="panel p-4 prose prose-base max-w-none dark:prose-invert prose-headings:font-semibold prose-p:leading-relaxed prose-li:leading-relaxed prose-pre:bg-muted/60 prose-pre:border prose-pre:border-border prose-code:before:content-none prose-code:after:content-none"
+    >
       {@html homePageContent}
     </div>
   {/if}
@@ -292,9 +334,16 @@
   }
 
   .home-landing__providers-rule {
-    margin-left: -1.25rem;
-    margin-right: -1.25rem;
+    margin-left: -1rem;
+    margin-right: -1rem;
     border-top: 1px solid var(--border);
+  }
+
+  @media (min-width: 640px) {
+    .home-landing__providers-rule {
+      margin-left: -1.25rem;
+      margin-right: -1.25rem;
+    }
   }
 
   @media (min-width: 768px) {

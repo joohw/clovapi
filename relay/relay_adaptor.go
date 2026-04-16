@@ -12,7 +12,6 @@ import (
 	"github.com/QuantumNous/new-api/relay/channel/claude"
 	"github.com/QuantumNous/new-api/relay/channel/cloudflare"
 	"github.com/QuantumNous/new-api/relay/channel/codex"
-	"github.com/QuantumNous/new-api/relay/channel/cohere"
 	"github.com/QuantumNous/new-api/relay/channel/coze"
 	"github.com/QuantumNous/new-api/relay/channel/deepseek"
 	"github.com/QuantumNous/new-api/relay/channel/dify"
@@ -79,8 +78,6 @@ func GetAdaptor(apiType int) channel.Adaptor {
 		return &perplexity.Adaptor{}
 	case constant.APITypeAws:
 		return &aws.Adaptor{}
-	case constant.APITypeCohere:
-		return &cohere.Adaptor{}
 	case constant.APITypeDify:
 		return &dify.Adaptor{}
 	case constant.APITypeJina:

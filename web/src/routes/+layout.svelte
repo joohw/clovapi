@@ -72,7 +72,7 @@
   $: canonicalPath = seoPath(pathname);
   $: canonicalUrl = `${siteUrl}${canonicalPath === '/' ? '' : canonicalPath}`;
   $: pageTitle = (() => {
-    if (pathname === '/') return `${SITE_NAME} - 高性能的API网关`;
+    if (pathname === '/') return 'Agent设计的高性能API网关';
     if (pathname.startsWith('/models')) return `模型广场 - ${SITE_NAME}`;
     if (pathname.startsWith('/docs')) return `文档中心 - ${SITE_NAME}`;
     if (pathname.startsWith('/playground')) return `在线试用 - ${SITE_NAME}`;

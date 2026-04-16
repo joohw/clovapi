@@ -1,0 +1,48 @@
+.markdown h1 {
+  margin: 0 0 1rem;
+  font-size: 1.9rem;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.markdown h2 {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.25rem;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.markdown h3 {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 1.05rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.markdown p,
+.markdown li {
+  font-size: 0.98rem;
+}
+
+.markdown pre {
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--border);
+  background: #f4f4f5;
+  color: #18181b;
+  overflow-x: auto;
+  border-radius: 0;
+}
+
+.markdown pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+:global(.dark) .markdown pre {
+  background: #27272a;
+  color: #e4e4e7;
+}

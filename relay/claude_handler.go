@@ -46,6 +46,18 @@ func ClaudeHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *typ
 		return types.NewError(fmt.Errorf("invalid api type: %d", info.ApiType), types.ErrorCodeInvalidApiType, types.ErrOptionWithSkipRetry())
 	}
 	adaptor.Init(info)
+	requestURL, err := adaptor.GetRequestURL(info)
+	if err != nil {
+		return types.NewError(err, types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
+	}
+	if !isNativeClaudeUpstreamURL(requestURL) {
+		return types.NewErrorWithStatusCode(
+			fmt.Errorf("channel does not provide native Claude /messages upstream (resolved upstream: %s)", requestURL),
+			types.ErrorCodeInvalidRequest,
+			http.StatusBadRequest,
+			types.ErrOptionWithSkipRetry(),
+		)
+	}
 
 	if request.MaxTokens == nil || *request.MaxTokens == 0 {
 		defaultMaxTokens := uint(model_setting.GetClaudeSettings().GetDefaultMaxTokens(request.Model))
@@ -192,4 +204,23 @@ func ClaudeHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *typ
 
 	service.PostTextConsumeQuota(c, info, usage.(*dto.Usage), nil)
 	return nil
+}
+
+func isNativeClaudeUpstreamURL(requestURL string) bool {
+	u := strings.ToLower(strings.TrimSpace(requestURL))
+	if u == "" {
+		return false
+	}
+	if strings.Contains(u, "/v1/messages") || strings.Contains(u, "/anthropic/v1/messages") {
+		return true
+	}
+	// Vertex Anthropic publisher endpoints.
+	if strings.Contains(u, ":rawpredict") || strings.Contains(u, ":streamrawpredict") {
+		return true
+	}
+	// AWS Bedrock Converse API endpoints.
+	if strings.Contains(u, "/converse") {
+		return true
+	}
+	return false
 }

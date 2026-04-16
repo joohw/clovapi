@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -64,29 +62,8 @@ func SearchHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *typ
 		}
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", info.ApiKey))
 		req.Header.Set("Content-Type", "application/json")
-	case constant.ChannelTypeBrave:
-		endpoint = baseURL + "/res/v1/web/search"
-		params := url.Values{}
-		for k, v := range searchReq.RawParams {
-			if strings.EqualFold(k, "model") {
-				continue
-			}
-			appendQueryValue(params, k, v)
-		}
-		if params.Get("q") == "" {
-			params.Set("q", searchReq.Query)
-		}
-		if encoded := params.Encode(); encoded != "" {
-			endpoint += "?" + encoded
-		}
-		req, err = http.NewRequest(http.MethodGet, endpoint, nil)
-		if err != nil {
-			return types.NewError(err, types.ErrorCodeDoRequestFailed)
-		}
-		req.Header.Set("X-Subscription-Token", info.ApiKey)
-		req.Header.Set("Accept", "application/json")
 	default:
-		return types.NewErrorWithStatusCode(fmt.Errorf("search endpoint only supports Tavily/Brave channels"), types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+		return types.NewErrorWithStatusCode(fmt.Errorf("search endpoint only supports Tavily channels"), types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 	}
 
 	client, err := service.NewProxyHttpClient(info.ChannelSetting.Proxy)
@@ -124,36 +101,4 @@ func SearchHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *typ
 	}
 	service.PostTextConsumeQuota(c, info, usage, []string{"Search API 按次计费"})
 	return nil
-}
-
-func appendQueryValue(values url.Values, key string, value any) {
-	if key == "" || value == nil {
-		return
-	}
-	switch v := value.(type) {
-	case string:
-		if strings.TrimSpace(v) != "" {
-			values.Add(key, v)
-		}
-	case bool:
-		values.Add(key, strconv.FormatBool(v))
-	case float64:
-		if v == float64(int64(v)) {
-			values.Add(key, strconv.FormatInt(int64(v), 10))
-		} else {
-			values.Add(key, strconv.FormatFloat(v, 'f', -1, 64))
-		}
-	case int:
-		values.Add(key, strconv.Itoa(v))
-	case int64:
-		values.Add(key, strconv.FormatInt(v, 10))
-	case []any:
-		for _, item := range v {
-			appendQueryValue(values, key, item)
-		}
-	case []string:
-		for _, item := range v {
-			appendQueryValue(values, key, item)
-		}
-	}
 }

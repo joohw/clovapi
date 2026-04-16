@@ -19,6 +19,7 @@ type Pricing struct {
 	Description            string                  `json:"description,omitempty"`
 	Icon                   string                  `json:"icon,omitempty"`
 	Tags                   string                  `json:"tags,omitempty"`
+	Spec                   map[string]any          `json:"spec,omitempty"`
 	VendorID               int                     `json:"vendor_id,omitempty"`
 	QuotaType              int                     `json:"quota_type"`
 	OwnerBy                string                  `json:"owner_by"`
@@ -278,6 +279,7 @@ func updatePricing() {
 	}
 
 	pricingMap = make([]Pricing, 0)
+	specIndex := getModelSpecIndex()
 	for model, groups := range modelGroupsMap {
 		supportedEndpointTypes := modelSupportEndpointTypes[model]
 		pricing := Pricing{
@@ -298,6 +300,7 @@ func updatePricing() {
 			pricing.Tags = meta.Tags
 			pricing.VendorID = meta.VendorID
 		}
+		pricing.Spec = findModelSpec(model, specIndex)
 		if pc, ok := ratio_setting.GetModelPerCallUSD(model); ok && pc > 0 {
 			pricing.PerCallUSD = pc
 			pricing.QuotaType = 1

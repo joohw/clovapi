@@ -5,11 +5,13 @@
 upload
 *.exe
 *.db
-build
+/build
 *.db-journal
 logs
 web/dist
-web/build
+# Embed stub is tracked; ignore other generated files under web/build
+web/build/*
+!web/build/index.html
 .env
 one-api
 new-api

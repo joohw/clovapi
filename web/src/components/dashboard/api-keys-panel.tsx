@@ -186,8 +186,8 @@ export function ApiKeysPanel() {
   return (
     <>
       <section className="panel w-full min-w-0">
-        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between md:p-6 md:pb-4">
-          <h2 className="text-lg font-semibold tracking-tight">API 密钥</h2>
+        <div className="panel-header flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="panel-title">API 密钥</h2>
           <div className="flex flex-wrap items-center justify-end gap-2 sm:ml-auto">
             <Button variant="outline" size="sm" onClick={() => void loadTokens()} disabled={loading}>
               {loading ? "刷新中..." : "刷新"}
@@ -203,8 +203,7 @@ export function ApiKeysPanel() {
             </Button>
           </div>
         </div>
-        <div className="border-t border-border" role="presentation"></div>
-        <div className="p-4 md:p-6 md:pt-4">
+        <div className="panel-body">
           {loading ? (
             <div className="text-sm opacity-70">加载中...</div>
           ) : tokens.length === 0 ? (

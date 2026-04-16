@@ -7,7 +7,8 @@ import { apiGet } from "@/lib/api";
 import { clearStoredUser, getStoredUser, isAdminUser } from "@/lib/auth";
 import { applyThemeMode, initThemeMode, persistThemeMode, type ThemeMode } from "@/lib/theme";
 import { titleByPath } from "@/lib/site";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -177,20 +178,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             {theme === "dark" ? "☀" : "☾"}
           </button>
-          <button
-            type="button"
-            className={`avatar-btn ${menuOpen ? "avatar-btn-open" : ""}`}
-            onClick={() => setMenuOpen((prev) => !prev)}
-            aria-expanded={menuOpen}
-            aria-haspopup="menu"
-            title={hasSession ? "账户菜单" : "登录菜单"}
-          >
-            {userInitial}
-          </button>
-          {menuOpen ? (
-            <div className="user-menu" role="menu">
-              {hasSession ? (
-                <>
+          {hasSession ? (
+            <>
+              <button
+                type="button"
+                className={`avatar-btn ${menuOpen ? "avatar-btn-open" : ""}`}
+                onClick={() => setMenuOpen((prev) => !prev)}
+                aria-expanded={menuOpen}
+                aria-haspopup="menu"
+                title="账户菜单"
+              >
+                {userInitial}
+              </button>
+              {menuOpen ? (
+                <div className="user-menu" role="menu">
                   <Link href="/dashboard" className="user-menu-item" role="menuitem" onClick={() => setMenuOpen(false)}>
                     控制台
                   </Link>
@@ -210,19 +211,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     退出登录
                   </button>
-                </>
-              ) : (
-                <>
-                  <Link href="/login" className="user-menu-item" role="menuitem" onClick={() => setMenuOpen(false)}>
-                    登录
-                  </Link>
-                  <Link href="/register" className="user-menu-item" role="menuitem" onClick={() => setMenuOpen(false)}>
-                    注册
-                  </Link>
-                </>
-              )}
-            </div>
-          ) : null}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className={cn(buttonVariants({ variant: "default", size: "sm" }), "h-8 rounded-none px-3")}
+            >
+              登录
+            </Link>
+          )}
         </div>
       </header>
       <main

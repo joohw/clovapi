@@ -1,42 +1,37 @@
-# sv
+# CLOVAPI Next Frontend
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Next.js App Router (Node SSR) frontend for CLOVAPI.
 
-## Creating a project
+## Development
 
-If you're seeing this, you've probably already done this step. Congrats!
+`next.config.ts` rewrites `/api` and `/v1` to the Go backend on **127.0.0.1:3000**. Start **Go first**, then this app, or use `..\scripts\dev.ps1` from the repo root on Windows.
 
-```sh
-# create a new project
-npx sv create my-app
+```bash
+bun install
+bun run dev
 ```
 
-To recreate this project with the same configuration:
+Default dev URL: `http://localhost:3001` (Go API stays on `http://localhost:3000`).  
+`bun run dev` uses **webpack** (`--webpack`) for more stable Windows dev; if you see odd Turbopack errors, delete `web/.next` and retry.
 
-```sh
-# recreate this project
-bun x sv@0.14.0 create --template minimal --types jsdoc --add tailwindcss="plugins:none" --install bun web-svelte
+If you see `ECONNREFUSED 127.0.0.1:3000`, the Go process is not listening — run `go run main.go` in the repository root (or use `scripts/dev.ps1`).
+
+## Environment Variables
+
+Copy `.env.example` to `.env.local`:
+
+```bash
+cp .env.example .env.local
 ```
 
-## Developing
+- `NEXT_PUBLIC_SERVER_URL`: API base URL (e.g. `http://localhost:3000`)
+- `PUBLIC_SITE_URL`: public website URL for canonical/sitemap/llms
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Build & Run
 
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```bash
+bun run build
+bun run start
 ```
 
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+For integration with Go backend in this repository, set `FRONTEND_BASE_URL` on the Go service to point to this Next server.

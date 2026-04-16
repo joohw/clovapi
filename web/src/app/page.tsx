@@ -139,17 +139,17 @@ export default function HomePage() {
 
               <button
                 type="button"
-                className="home-landing__url-copy group mt-10 flex w-full min-w-0 items-stretch overflow-hidden border border-border bg-zinc-100/50 text-left transition-colors hover:bg-zinc-100/80 dark:bg-zinc-900/60 dark:hover:bg-zinc-900"
+                className="home-landing__url-copy group mt-10 flex w-full min-w-0 cursor-pointer items-stretch overflow-hidden border border-border bg-zinc-100/50 text-left transition-[background-color,border-color,box-shadow] duration-150 hover:border-foreground/20 hover:bg-zinc-100 hover:shadow-sm dark:bg-zinc-900/60 dark:hover:border-foreground/25 dark:hover:bg-zinc-800/90 dark:hover:shadow-none"
                 aria-label="点击复制 Base URL"
                 onClick={() => void copyBase()}
               >
-                <div className="min-w-0 flex-1 px-4 py-4 text-left sm:px-5 sm:py-4">
+                <div className="min-w-0 flex-1 px-4 py-4 text-left transition-colors duration-150 group-hover:bg-zinc-50/80 dark:group-hover:bg-zinc-900/40 sm:px-5 sm:py-4">
                   <span className="mb-1.5 block text-sm font-medium text-foreground/75">Base URL</span>
                   <code className="block break-all font-mono text-base leading-snug text-foreground sm:text-lg">
                     {apiBaseUrl}
                   </code>
                 </div>
-                <div className="flex shrink-0 items-center gap-2 border-l border-border bg-zinc-200/30 px-4 py-3 text-sm font-medium text-zinc-600 dark:bg-zinc-800/40 dark:text-zinc-300 sm:px-5">
+                <div className="flex shrink-0 items-center gap-2 border-l border-border bg-zinc-200/30 px-4 py-3 text-sm font-medium text-zinc-600 transition-colors duration-150 group-hover:bg-zinc-300/50 group-hover:text-foreground dark:bg-zinc-800/40 dark:text-zinc-300 dark:group-hover:bg-zinc-700/60 dark:group-hover:text-zinc-100 sm:px-5">
                   <span className="whitespace-nowrap">复制</span>
                 </div>
               </button>

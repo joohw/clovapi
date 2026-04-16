@@ -3,8 +3,9 @@
 *.md
 .vscode
 .gitignore
-Makefile
 docs
 .eslintcache
 .gocache
 /web/node_modules
+/web/.next
+/web/build

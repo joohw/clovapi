@@ -34,8 +34,8 @@ import (
 	_ "net/http/pprof"
 )
 
-// SvelteKit outputs hashed JS/CSS under web/build/_app/ — the directory name starts with "_".
-// go:embed skips "_" and "." names by default; "all:" includes the full build tree (see go doc embed).
+// Static UI for production lives under web/build (see Dockerfile stub). Hashed assets may use web/build/_app/.
+// go:embed skips "_" and "." names by default; "all:" includes the full tree (see go doc embed).
 //
 //go:embed all:web/build
 var buildFS embed.FS

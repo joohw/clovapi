@@ -443,11 +443,11 @@ export default function DashboardPage() {
       <ApiKeysPanel />
 
       <section className="panel">
-        <div className="border-b border-border p-4 md:p-6 md:pb-4">
+        <div className="panel-header">
           <h2 className="panel-title">控制台设置</h2>
         </div>
         <div className="panel-body space-y-6">
-          <section className="space-y-3 border-b border-border pb-5">
+          <section className="space-y-3">
             <h3 className="text-sm font-semibold">通知配置</h3>
             <p className="text-xs text-zinc-500">通知方式：仅邮件通知</p>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
@@ -491,7 +491,7 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          <section className="space-y-2 border-b border-border pb-5">
+          <section className="space-y-2">
             <h3 className="text-sm font-semibold">价格设置</h3>
             <div className="flex items-start justify-between gap-3 border border-border p-3">
               <div>
@@ -536,7 +536,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="panel">
-        <div className="border-b border-border p-4 md:p-6 md:pb-4">
+        <div className="panel-header">
           <h2 className="panel-title">安全设置</h2>
         </div>
         <div className="panel-body space-y-3">

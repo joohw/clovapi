@@ -155,10 +155,10 @@ docker run --name new-api -d --restart always \
 
 ## 🧭 前端切换（Next.js）
 
-当前仓库已提供 Next.js App Router 前端：`web-next/`。  
+当前仓库已提供 Next.js App Router 前端：`web/`。  
 如需使用该前端（Node SSR），请：
 
-1. 在 `web-next/` 启动前端服务（如 `bun run dev` 或 `bun run start`）；
+1. 在 `web/` 启动前端服务（如 `bun run dev` 或 `bun run start`）；
 2. 在后端环境变量中设置 `FRONTEND_BASE_URL` 指向该服务地址；
 3. 后端将把页面请求转发到该前端，API 仍由 Go 服务提供。
 

@@ -234,14 +234,6 @@ function channelStatusLabel(status: unknown) {
   return `状态 ${n}`;
 }
 
-function channelStatusClass(status: unknown) {
-  const n = Number(status);
-  if (n === 1) return "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300";
-  if (n === 2) return "border-border bg-muted text-muted-foreground";
-  if (n === 3) return "border-amber-500/35 bg-amber-500/10 text-amber-900 dark:text-amber-200";
-  return "border-border bg-muted/50 text-muted-foreground";
-}
-
 function userStatusLabel(status: unknown) {
   const n = Number(status);
   if (n === 1) return "启用";
@@ -1198,7 +1190,7 @@ export default function AdminPage() {
 
           <div className="admin-console-body panel-body relative min-h-0 flex-1 overflow-auto p-4 md:p-6">
             <div
-              className={`min-h-[420px] transition-opacity ${loading ? "pointer-events-none select-none opacity-70" : "opacity-100"}`}
+              className={`flex min-h-0 flex-1 flex-col transition-opacity ${loading ? "pointer-events-none select-none opacity-70" : "opacity-100"}`}
               aria-busy={loading}
             >
               {adminTab !== "model_pricing" && adminTab !== "topup_setting" ? (
@@ -1297,15 +1289,7 @@ export default function AdminPage() {
                                   ) : null}
                                 </div>
                               </TableCell>
-                              <TableCell>
-                                <span
-                                  className={`inline-flex items-center border px-2 py-0.5 text-xs leading-none ${channelStatusClass(
-                                    row.status,
-                                  )}`}
-                                >
-                                  {channelStatusLabel(row.status)}
-                                </span>
-                              </TableCell>
+                              <TableCell>{channelStatusLabel(row.status)}</TableCell>
                               <TableCell>{row.group || "—"}</TableCell>
                               <TableCell>{row.priority ?? "—"}</TableCell>
                               <TableCell>
@@ -1554,35 +1538,45 @@ export default function AdminPage() {
                 </div>
                 <div className="rounded-xl border border-border/80 bg-card/60 p-4 md:p-5">
                   <div className="mb-4">
-                    <p className="text-sm font-medium">在线充值参数</p>
+                    <p className="text-sm font-medium">易支付（在线充值）</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      配置最小充值金额、返佣比例和支付回调参数，修改后点击「保存充值设置」生效。
+                      对接彩虹易支付等易支付兼容网关：填写网关地址、商户 PID/密钥及业务参数。修改后请点击右上角「保存充值设置」生效。
                     </p>
                   </div>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label>MinTopUp（最小充值）</Label>
+                      <Label>最小充值金额</Label>
+                      <p className="text-xs text-muted-foreground">用户单笔在线充值不得低于该数值。</p>
                       <Input value={topupForm.MinTopUp} onChange={(event) => setTopupForm((prev) => ({ ...prev, MinTopUp: event.target.value }))} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label>InviterTopupRewardRatio（邀请返佣比例）</Label>
+                      <Label>邀请充值返佣比例</Label>
+                      <p className="text-xs text-muted-foreground">被邀请人通过易支付充值时，邀请人获得的奖励比例。</p>
                       <Input value={topupForm.InviterTopupRewardRatio} onChange={(event) => setTopupForm((prev) => ({ ...prev, InviterTopupRewardRatio: event.target.value }))} />
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
-                      <Label>PayAddress（支付服务地址）</Label>
-                      <Input value={topupForm.PayAddress} onChange={(event) => setTopupForm((prev) => ({ ...prev, PayAddress: event.target.value }))} />
+                      <Label>易支付网关地址</Label>
+                      <p className="text-xs text-muted-foreground">易支付接口根地址；是否带末尾斜杠以平台文档为准。</p>
+                      <Input
+                        value={topupForm.PayAddress}
+                        onChange={(event) => setTopupForm((prev) => ({ ...prev, PayAddress: event.target.value }))}
+                        placeholder="https://你的易支付域名/"
+                      />
                     </div>
                     <div className="space-y-1.5">
-                      <Label>EpayId（商户ID）</Label>
-                      <Input value={topupForm.EpayId} onChange={(event) => setTopupForm((prev) => ({ ...prev, EpayId: event.target.value }))} />
+                      <Label>商户 PID</Label>
+                      <p className="text-xs text-muted-foreground">易支付商户编号（partnerid）。</p>
+                      <Input value={topupForm.EpayId} onChange={(event) => setTopupForm((prev) => ({ ...prev, EpayId: event.target.value }))} placeholder="商户 PID" />
                     </div>
                     <div className="space-y-1.5">
-                      <Label>EpayKey（商户密钥，仅写入）</Label>
-                      <Input value={topupForm.EpayKey} onChange={(event) => setTopupForm((prev) => ({ ...prev, EpayKey: event.target.value }))} />
+                      <Label>商户密钥</Label>
+                      <p className="text-xs text-muted-foreground">易支付通讯密钥；仅在有新密钥时填写，保存后输入框会清空且服务端保留已存密钥。</p>
+                      <Input type="password" value={topupForm.EpayKey} onChange={(event) => setTopupForm((prev) => ({ ...prev, EpayKey: event.target.value }))} placeholder="留空则不修改" autoComplete="off" />
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
-                      <Label>CustomCallbackAddress（可选）</Label>
-                      <Input value={topupForm.CustomCallbackAddress} onChange={(event) => setTopupForm((prev) => ({ ...prev, CustomCallbackAddress: event.target.value }))} />
+                      <Label>自定义异步通知地址（可选）</Label>
+                      <p className="text-xs text-muted-foreground">若需指定易支付异步回调 URL，可填此项；留空则使用系统默认的 <span className="font-mono">/api/user/epay/notify</span> 回调路径。</p>
+                      <Input value={topupForm.CustomCallbackAddress} onChange={(event) => setTopupForm((prev) => ({ ...prev, CustomCallbackAddress: event.target.value }))} placeholder="可选，完整可访问 URL" />
                     </div>
                   </div>
                 </div>
@@ -1927,7 +1921,7 @@ export default function AdminPage() {
                 />
               </div>
             </div>
-            <div className="flex min-h-[min(42vh,420px)] min-w-0 flex-1 flex-col gap-1.5 border-t border-border pt-4 md:border-l md:border-t-0 md:pl-6 md:pt-0">
+            <div className="flex min-h-[min(42vh,420px)] min-w-0 flex-1 flex-col gap-1.5">
               <div className="flex items-center justify-between gap-2">
                 <Label htmlFor="ch-models" className="mb-0">
                   模型列表（可选）

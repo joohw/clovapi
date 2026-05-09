@@ -1,10 +1,13 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const backendTarget =
   process.env.BACKEND_PROXY_TARGET?.trim().replace(/\/+$/, "") ||
-  "http://127.0.0.1:3000";
+  "http://127.0.0.1:3500";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["127.0.0.1"],
+  outputFileTracingRoot: path.join(__dirname, ".."),
   skipTrailingSlashRedirect: true,
   async redirects() {
     return [

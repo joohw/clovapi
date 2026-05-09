@@ -1,0 +1,257 @@
+import fs from "node:fs";
+import path from "node:path";
+import { spawn } from "node:child_process";
+import { Client } from "ssh2";
+
+function parseEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`file not found: ${filePath}`);
+  }
+  const content = fs.readFileSync(filePath, "utf8");
+  const env = {};
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const idx = line.indexOf("=");
+    if (idx <= 0) continue;
+    const key = line.slice(0, idx).trim();
+    let value = line.slice(idx + 1).trim();
+    if (
+      (value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    env[key] = value;
+  }
+  return { env, raw: content };
+}
+
+function run(command, args, options = {}) {
+  const { cwd, input, redactedArgs } = options;
+  const printableArgs = redactedArgs || args;
+  console.log(`> ${command} ${printableArgs.join(" ")}`);
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      stdio: ["pipe", "inherit", "inherit"],
+      shell: false,
+    });
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`${command} exited with code ${code ?? "unknown"}`));
+    });
+    if (input != null) {
+      child.stdin.write(input);
+    }
+    child.stdin.end();
+  });
+}
+
+function shEscape(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+function parseRegistryLoginHost(registry) {
+  const host = String(registry || "").split("/")[0]?.trim();
+  if (!host) {
+    throw new Error("DOCKER_REGISTRY must include a valid registry host");
+  }
+  return host;
+}
+
+function getArgValue(flag) {
+  const idx = process.argv.indexOf(flag);
+  if (idx === -1) return undefined;
+  return process.argv[idx + 1];
+}
+
+function hasFlag(flag) {
+  return process.argv.includes(flag);
+}
+
+function isTruthy(value) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+}
+
+function printHelp() {
+  console.log(`Usage: npm run deploy -- [options]
+
+Options:
+  --config <path>       Deploy config file (default: .env.deploy)
+  --env-file <path>     Runtime env file sent to remote docker (default: .env)
+  --tag <tag>           Image tag (default: latest or DOCKER_IMAGE_TAG)
+  --image <name>        Image name without registry (default: clovapi or DOCKER_IMAGE_NAME)
+  --container <name>    Remote container name (default: clovapi)
+  --host-port <port>    Remote exposed port (default: 3500)
+  --data-dir <path>     Remote data dir mounted to /data (default: /opt/clovapi/data)
+  --no-image-update     Skip local build/login/push and remote pull
+  --dry-run             Print commands only, do not execute
+  --help                Show help
+`);
+}
+
+async function runRemoteWithStdin({
+  sshHost,
+  sshPort,
+  sshUser,
+  sshPassword,
+  remoteCommand,
+  stdinContent,
+}) {
+  return new Promise((resolve, reject) => {
+    const conn = new Client();
+    conn.on("ready", () => {
+      conn.exec(`bash -lc ${shEscape(remoteCommand)}`, (err, stream) => {
+        if (err) {
+          conn.end();
+          reject(err);
+          return;
+        }
+
+        stream.on("close", (code) => {
+          conn.end();
+          if (code === 0) resolve();
+          else reject(new Error(`remote command exited with code ${code ?? "unknown"}`));
+        });
+        stream.stderr.on("data", (chunk) => process.stderr.write(chunk));
+        stream.on("data", (chunk) => process.stdout.write(chunk));
+
+        if (stdinContent != null) {
+          stream.write(stdinContent);
+        }
+        stream.end();
+      });
+    });
+    conn.on("error", reject);
+
+    const connectOptions = {
+      host: sshHost,
+      port: sshPort,
+      username: sshUser,
+      readyTimeout: 30_000,
+    };
+    if (sshPassword) {
+      connectOptions.password = sshPassword;
+    }
+    conn.connect(connectOptions);
+  });
+}
+
+async function main() {
+  if (hasFlag("--help")) {
+    printHelp();
+    return;
+  }
+
+  const dryRun = hasFlag("--dry-run");
+  const noImageUpdate = hasFlag("--no-image-update");
+  const repoRoot = process.cwd();
+  const configPath = path.resolve(repoRoot, getArgValue("--config") || ".env.deploy");
+  const envFilePath = path.resolve(repoRoot, getArgValue("--env-file") || ".env");
+
+  const { env: deployEnv } = parseEnvFile(configPath);
+  const { raw: runtimeEnvRaw } = parseEnvFile(envFilePath);
+
+  const registry = deployEnv.DOCKER_REGISTRY || "";
+  const dockerUsername = deployEnv.DOCKER_USERNAME || "";
+  const dockerPassword = deployEnv.DOCKER_PASSWORD || "";
+  const sshHost = deployEnv.SSH_HOST;
+  const sshUser = deployEnv.SSH_USERNAME;
+  const sshPassword = deployEnv.SSH_PASSWORD || "";
+  const sshPort = Number(deployEnv.SSH_PORT || "22");
+
+  if (!sshHost || !sshUser) {
+    throw new Error("SSH_HOST and SSH_USERNAME are required in deploy config");
+  }
+  if (!dockerUsername || !dockerPassword) {
+    throw new Error("DOCKER_USERNAME and DOCKER_PASSWORD are required in deploy config");
+  }
+
+  const imageName = getArgValue("--image") || deployEnv.DOCKER_IMAGE_NAME || "clovapi";
+  const imageTag = getArgValue("--tag") || deployEnv.DOCKER_IMAGE_TAG || "latest";
+  const containerName = getArgValue("--container") || deployEnv.REMOTE_CONTAINER_NAME || "clovapi";
+  const hostPort = getArgValue("--host-port") || deployEnv.REMOTE_HOST_PORT || "3500";
+  const dataDir = getArgValue("--data-dir") || deployEnv.REMOTE_DATA_DIR || "/opt/clovapi/data";
+  const containerUid = String(deployEnv.REMOTE_CONTAINER_UID || "10001").trim();
+  const containerGid = String(deployEnv.REMOTE_CONTAINER_GID || "10001").trim();
+  const skipImageUpdate = noImageUpdate || isTruthy(deployEnv.DEPLOY_SKIP_IMAGE_UPDATE);
+
+  const imageRef = registry ? `${registry}/${imageName}:${imageTag}` : `${imageName}:${imageTag}`;
+  const registryLoginHost = parseRegistryLoginHost(registry);
+  const dockerPasswordB64 = Buffer.from(dockerPassword, "utf8").toString("base64");
+  const remoteImagePrepare = skipImageUpdate
+    ? "echo 'skip image update: use existing remote image'"
+    : [
+        `REG_PASS="$(printf %s ${shEscape(dockerPasswordB64)} | base64 -d)"`,
+        `printf '%s' "$REG_PASS" | docker login ${shEscape(registryLoginHost)} -u ${shEscape(dockerUsername)} --password-stdin`,
+        "unset REG_PASS",
+        `docker pull ${shEscape(imageRef)}`,
+      ].join(" && ");
+  const remoteCommand = [
+    "set -e",
+    remoteImagePrepare,
+    `(docker rm -f ${shEscape(containerName)} >/dev/null 2>&1 || true)`,
+    `mkdir -p ${shEscape(dataDir)}`,
+    `chown -R ${shEscape(`${containerUid}:${containerGid}`)} ${shEscape(dataDir)}`,
+    `chmod -R u+rwX,go-rwx ${shEscape(dataDir)}`,
+    `docker run -d --name ${shEscape(containerName)} --restart unless-stopped -p ${shEscape(`${hostPort}:3000`)} -v ${shEscape(`${dataDir}:/data`)} --env-file /dev/stdin ${shEscape(imageRef)}`,
+  ].join(" && ");
+
+  console.log("Deploy plan:");
+  console.log(`- image: ${imageRef}`);
+  console.log(`- remote: ${sshUser}@${sshHost}:${sshPort}`);
+  console.log(`- container: ${containerName}`);
+  console.log(`- data dir: ${dataDir}`);
+  console.log(`- data dir owner: ${containerUid}:${containerGid}`);
+  console.log(`- env file: ${path.relative(repoRoot, envFilePath)}`);
+  console.log(`- image update: ${skipImageUpdate ? "disabled" : "enabled"}`);
+  if (dryRun) {
+    console.log("\n[dry-run] skip execution");
+    return;
+  }
+
+  if (!skipImageUpdate) {
+    // 1. Build local docker image
+    console.log("\n[1/6] Building local docker image...");
+    await run("docker", ["build", "-t", imageRef, "."], { cwd: repoRoot });
+
+    // 2. Login and push
+    console.log("\n[2/6] Logging in to registry...");
+    const loginArgs = registry
+      ? ["login", registry, "-u", dockerUsername, "--password-stdin"]
+      : ["login", "-u", dockerUsername, "--password-stdin"];
+    const redactedLoginArgs = registry
+      ? ["login", registry, "-u", dockerUsername, "--password-stdin"]
+      : ["login", "-u", dockerUsername, "--password-stdin"];
+    await run("docker", loginArgs, {
+      input: `${dockerPassword}\n`,
+      redactedArgs: redactedLoginArgs,
+    });
+
+    console.log("\n[3/6] Pushing image...");
+    await run("docker", ["push", imageRef]);
+  } else {
+    console.log("\n[1-3/6] Image update disabled; skip local build/login/push.");
+  }
+
+  // 3/4/5/6 on remote through SSH, env injected via stdin (no file persisted)
+  console.log("\n[4-6/6] SSH to server, pull image, and run container with runtime env...");
+  await runRemoteWithStdin({
+    sshHost,
+    sshPort,
+    sshUser,
+    sshPassword,
+    remoteCommand,
+    stdinContent: runtimeEnvRaw.endsWith("\n") ? runtimeEnvRaw : `${runtimeEnvRaw}\n`,
+  });
+
+  console.log("\nDeploy completed.");
+}
+
+main().catch((error) => {
+  console.error(`Deploy failed: ${error.message}`);
+  process.exit(1);
+});

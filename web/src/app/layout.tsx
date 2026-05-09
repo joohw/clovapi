@@ -20,6 +20,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: HOME_TITLE,
   description: DEFAULT_DESCRIPTION,
+  icons: {
+    icon: [
+      { url: "/clover-light.svg", media: "(prefers-color-scheme: light)", type: "image/svg+xml" },
+      { url: "/clover.svg", media: "(prefers-color-scheme: dark)", type: "image/svg+xml" },
+    ],
+    shortcut: "/clover-light.svg",
+  },
 };
 
 export default async function RootLayout({
@@ -40,7 +47,7 @@ export default async function RootLayout({
         name: SITE_NAME,
         url: siteUrl,
         description: DEFAULT_DESCRIPTION,
-        logo: `${siteUrl}/favicon.ico`,
+        logo: `${siteUrl}/clover-light.svg`,
       },
       {
         "@type": "WebSite",

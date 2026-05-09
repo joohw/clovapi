@@ -20,5 +20,5 @@ export default async function DocsBySlugPage({ params }: DocsBySlugPageProps) {
   if (!docs.some((doc) => doc.slug === slug)) {
     notFound();
   }
-  return <DocsLayout docs={docs} activeSlug={slug} />;
+  return <DocsLayout docs={docs} activeSlug={slug} apiBaseUrl={apiBaseUrl} />;
 }

@@ -1,19 +1,4 @@
-import { readdir, readFile } from "node:fs/promises";
-import path from "node:path";
-import { renderMarkdown } from "@/lib/markdown";
-
-const DOCS_DIR = path.join(process.cwd(), "docs");
-
-const DOC_NAV_ORDER = [
-  "chat-completions",
-  "responses",
-  "claude-messages",
-  "search",
-  "embeddings",
-  "rerank",
-  "images-generations",
-  "audio-speech",
-] as const;
+import { API_DOC_PAGES } from "@/lib/api-docs-data";
 
 const DOC_SUFFIX_BY_SLUG: Record<string, string> = {
   "chat-completions": "/chat/completions",
@@ -26,67 +11,61 @@ const DOC_SUFFIX_BY_SLUG: Record<string, string> = {
   "audio-speech": "/audio/speech",
 };
 
+/** 同一网关路径下，多个上游厂商的参考端点与 cURL（如 Embeddings：OpenAI / Cohere） */
+export type ApiDocOriginalSource = {
+  id: string;
+  label: string;
+  originalEndpoint: string;
+  originalDocUrl: string;
+  originalDocLabel: string;
+  /** 已替换 ${BASE_URL} */
+  curlExample: string;
+  /** 该渠道在 Playground 中的默认请求体 JSON（可选） */
+  defaultRequestBody?: string;
+};
+
 export type ApiDoc = {
   slug: string;
   title: string;
   description: string;
-  html: string;
+  /** 已替换 ${BASE_URL} 的 cURL 示例全文（默认/主参考；与 originalSources 二选一或并存时以 originalSources 为准展示） */
+  curlExample: string;
+  originalEndpoint?: string;
+  originalDocUrl?: string;
+  originalDocLabel?: string;
+  /** 多上游参考；有多个时在文档区以下拉选择渠道 */
+  originalSources?: ApiDocOriginalSource[];
 };
 
 type GetApiDocsOptions = {
   baseUrl?: string;
 };
 
-function toTitleFromSlug(slug: string): string {
-  return slug
-    .split("-")
-    .filter(Boolean)
-    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
-    .join(" ");
+/** Path segment under `/v1`, e.g. `/responses`. Empty if slug is unknown. */
+export function getDocEndpointPath(slug: string): string {
+  return DOC_SUFFIX_BY_SLUG[slug] ?? "";
 }
 
-function parseTitle(markdown: string, slug: string): string {
-  const heading = markdown.match(/^#\s+(.+)$/m)?.[1]?.trim();
-  if (heading) return heading;
-  return toTitleFromSlug(slug);
-}
-
-function parseDescription(slug: string): string {
-  return DOC_SUFFIX_BY_SLUG[slug] || "";
+function applyBaseUrl(curl: string, base: string): string {
+  return curl.replace(/\$\{BASE_URL\}/g, base || "${BASE_URL}");
 }
 
 export async function getApiDocs(options?: GetApiDocsOptions): Promise<ApiDoc[]> {
-  let entries: string[];
-  try {
-    entries = await readdir(DOCS_DIR);
-  } catch {
-    return [];
-  }
-
-  const mdFiles = entries.filter((name) => name.toLowerCase().endsWith(".md"));
-  const docs = await Promise.all(
-    mdFiles.map(async (filename) => {
-      const slug = filename.replace(/\.md$/i, "");
-      const fullPath = path.join(DOCS_DIR, filename);
-      const rawMarkdown = await readFile(fullPath, "utf-8");
-      const baseUrl = options?.baseUrl?.trim();
-      const markdown = baseUrl
-        ? rawMarkdown
-            .replace(/\$\{BASE_URL\}/g, baseUrl)
-            .replace(/http:\/\/localhost:3000\/v1/g, baseUrl)
-        : rawMarkdown;
-      const title = parseTitle(markdown, slug);
-      const description = parseDescription(slug);
-      const html = await renderMarkdown(markdown);
-      return { slug, title, description, html };
-    }),
-  );
-  const order = new Map<string, number>(DOC_NAV_ORDER.map((slug, idx) => [slug, idx]));
-  docs.sort((a, b) => {
-    const ai = order.has(a.slug) ? (order.get(a.slug) as number) : Number.MAX_SAFE_INTEGER;
-    const bi = order.has(b.slug) ? (order.get(b.slug) as number) : Number.MAX_SAFE_INTEGER;
-    if (ai !== bi) return ai - bi;
-    return a.slug.localeCompare(b.slug);
+  const base = options?.baseUrl?.trim() ?? "";
+  return API_DOC_PAGES.map((def) => {
+    const originalSources = def.originalSources?.map((src) => ({
+      ...src,
+      curlExample: applyBaseUrl(src.curlExample, base),
+    }));
+    return {
+      slug: def.slug,
+      title: def.title,
+      description: def.description,
+      curlExample: applyBaseUrl(def.curlExample, base),
+      originalEndpoint: def.originalEndpoint,
+      originalDocUrl: def.originalDocUrl,
+      originalDocLabel: def.originalDocLabel,
+      originalSources,
+    };
   });
-  return docs;
 }

@@ -20,31 +20,6 @@ import {
 
 type HeaderLink = { text: string; to: string };
 
-const PIXEL_GLYPHS: Record<string, string[]> = {
-  C: ["01110", "10001", "10000", "10000", "10000", "10001", "01110"],
-  L: ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
-  O: ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
-  V: ["10001", "10001", "10001", "10001", "10001", "01010", "00100"],
-  A: ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
-  P: ["11110", "10001", "10001", "11110", "10000", "10000", "10000"],
-  I: ["11111", "00100", "00100", "00100", "00100", "00100", "11111"],
-};
-
-function buildPixelRows(text: string): string[] {
-  const rows = Array.from({ length: 7 }, () => "");
-  const chars = text.toUpperCase().split("");
-  chars.forEach((char, idx) => {
-    const glyph = PIXEL_GLYPHS[char] ?? PIXEL_GLYPHS.I;
-    for (let row = 0; row < 7; row += 1) {
-      rows[row] += glyph[row];
-      if (idx < chars.length - 1) rows[row] += "0";
-    }
-  });
-  return rows;
-}
-
-const BRAND_PIXEL_ROWS = buildPixelRows("CLOVAPI");
-
 function normalizePath(path: string) {
   if (!path) return "/";
   if (path.length > 1 && path.endsWith("/")) return path.slice(0, -1);
@@ -143,19 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link href="/" className="header-brand" aria-label="返回首页">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={theme === "dark" ? "/clover.svg" : "/clover-light.svg"} alt="CLOVAPI" className="header-brand-icon" />
-          <span className="sr-only">CLOVAPI</span>
-          <span className="header-brand-pixel" aria-hidden="true">
-            {BRAND_PIXEL_ROWS.map((row, rowIdx) => (
-              <span className="header-brand-pixel-row" key={`pixel-row-${rowIdx}`}>
-                {row.split("").map((bit, bitIdx) => (
-                  <span
-                    className={`header-brand-pixel-dot ${bit === "1" ? "is-on" : ""}`}
-                    key={`pixel-dot-${rowIdx}-${bitIdx}`}
-                  />
-                ))}
-              </span>
-            ))}
-          </span>
+          <span className="header-brand-wordmark">CLOVAPI</span>
         </Link>
         <nav className="header-nav">
           {headerLinks.map((link) => (
@@ -217,7 +180,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ) : (
             <Link
               href="/login"
-              className={cn(buttonVariants({ variant: "default", size: "sm" }), "h-8 rounded-none px-3")}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "h-8 rounded-none px-3"
+              )}
             >
               登录
             </Link>

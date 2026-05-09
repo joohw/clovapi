@@ -12,5 +12,5 @@ export default async function DocsPage() {
   const apiBaseUrl = serverAddress.endsWith("/v1") ? serverAddress : `${serverAddress}/v1`;
   const docs = await getApiDocs({ baseUrl: apiBaseUrl });
   const first = docs[0]?.slug || "";
-  return <DocsLayout docs={docs} activeSlug={first} />;
+  return <DocsLayout docs={docs} activeSlug={first} apiBaseUrl={apiBaseUrl} />;
 }

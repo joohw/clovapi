@@ -14,7 +14,7 @@ bun run dev
 Default dev URL: `http://localhost:3001` (Go API stays on `http://localhost:3000`).  
 `bun run dev` uses **webpack** (`--webpack`) for more stable Windows dev; if you see odd Turbopack errors, delete `web/.next` and retry.
 
-If you see `ECONNREFUSED 127.0.0.1:3000`, the Go process is not listening — run `go run main.go` in the repository root (or use `scripts/dev.ps1`).
+If you see `ECONNREFUSED 127.0.0.1:3000`, the Go process is not listening — run `go run .` in `backend/` (or use `scripts/dev.ps1`).
 
 ## Environment Variables
 

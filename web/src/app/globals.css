@@ -219,40 +219,12 @@ a:visited {
   display: block;
 }
 
-.header-brand-pixel {
-  --dot-size: 2.5px;
-  --gap: 0.75px;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--gap);
-  line-height: 0;
+.header-brand-wordmark {
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
   color: var(--foreground);
-}
-
-.header-brand-pixel-row {
-  display: inline-flex;
-  gap: var(--gap);
-  line-height: 0;
-}
-
-.header-brand-pixel-dot {
-  width: var(--dot-size);
-  height: var(--dot-size);
-  min-width: var(--dot-size);
-  min-height: var(--dot-size);
-  flex: 0 0 var(--dot-size);
-  box-sizing: border-box;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 0;
-  display: block;
-}
-
-.header-brand-pixel-dot.is-on {
-  background: transparent;
-  border-color: currentColor;
 }
 
 @media (max-width: 639px) {
@@ -261,15 +233,8 @@ a:visited {
     gap: 0;
   }
 
-  .header-brand-pixel {
+  .header-brand-wordmark {
     display: none;
-  }
-}
-
-@media (min-width: 640px) and (max-width: 767px) {
-  .header-brand-pixel {
-    --dot-size: 2.25px;
-    --gap: 0.6px;
   }
 }
 
@@ -379,21 +344,6 @@ a:visited {
 
 .user-menu-item-danger {
   color: #dc2626;
-}
-
-.login-btn {
-  height: 2.25rem;
-  min-height: 2.25rem;
-  padding: 0 0.95rem;
-  border-radius: 0;
-  border: 1px solid #d4d4d8;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  background: #ffffff;
-  color: #111111;
-  font-size: 0.875rem;
 }
 
 .app-main {
@@ -615,6 +565,11 @@ a:visited {
   vertical-align: top;
 }
 
+.admin-table-wrap .table th,
+.admin-table-wrap .table td {
+  vertical-align: middle;
+}
+
 .action-cell {
   display: flex;
   gap: 0.4rem;
@@ -645,7 +600,8 @@ a:visited {
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  overflow: hidden;
+  /* 主内容区可滚动；此前 hidden 会盖住组件上的 overflow-auto，导致日志等长列表无法滚动 */
+  overflow: auto;
 }
 
 .admin-console-tab-panel {

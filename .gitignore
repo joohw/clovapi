@@ -1,34 +1,54 @@
+# IDE / editor
 .idea
 .vscode
 .zed
 .history
-upload
-*.exe
-*.db
-/build
-*.db-journal
-logs
-web/dist
-# Embed stub is tracked; ignore other generated files under web/build
-web/build/*
-!web/build/index.html
+
+# OS
+.DS_Store
+
+# Environment files
 .env
+.env.*
+
+# Build outputs / binaries
+/build
+*.exe
 one-api
 new-api
 /__debug_bin*
-.DS_Store
-tiktoken_cache
-.eslintcache
-.gocache
-.gomodcache/
-.cache
-web/bun.lock
-plans
-.claude
 
+# Runtime data
+upload
+data/
+logs
+*.db
+*.db-journal
+tiktoken_cache
+
+# Caches
+.eslintcache
+.cache
+.gocache
+.gocache-temp
+.gomodcache/
+.gopath
+
+# Frontend artifacts / deps
+node_modules
+web/node_modules
+web/.next
+web/dist
+web/bun.lock
 electron/node_modules
 electron/dist
-data/
-.gomodcache/
-.gocache-temp
-.gopath
+
+# Embed stubs: keep index.html only
+web/build/*
+!web/build/index.html
+backend/web/build/*
+!backend/web/build/index.html
+
+# Local planning / assistant artifacts
+plans
+.claude

@@ -4,14 +4,19 @@
 # add a tiny stub index.html after the Next build for compile-time embed only.
 # Runtime UI is served from FRONTEND_BASE_URL (see README).
 # -----------------------------------------------------------------------------
-FROM oven/bun:1@sha256:0733e50325078969732ebe3b15ce4c4be5082f18c4ac1a0f0ca4839c2e4e42a7 AS frontend
+FROM oven/bun:1.3.13 AS frontend
 
 WORKDIR /frontend
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY web/package.json web/bun.lock ./
-RUN bun install
+RUN set -eux; \
+    bun install --frozen-lockfile || { \
+      echo "bun install failed, clear cache and retry once..."; \
+      rm -rf /root/.bun/install/cache; \
+      bun install --frozen-lockfile; \
+    }
 
 COPY web/ ./
 RUN bun run build \
@@ -21,9 +26,9 @@ RUN bun run build \
       > build/index.html
 
 # -----------------------------------------------------------------------------
-# Stage 2: Go binary (embeds web/build from stage 1)
+# Stage 2: Go binary from backend/ (embeds web/build from stage 1)
 # -----------------------------------------------------------------------------
-FROM golang:1.26.1-alpine@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f6c5bd6be49ed82039 AS backend
+FROM golang:1.26.1-alpine AS backend
 
 ENV GO111MODULE=on CGO_ENABLED=0
 
@@ -34,27 +39,33 @@ ENV GOEXPERIMENT=greenteagc
 
 WORKDIR /build
 
-COPY go.mod go.sum ./
+COPY backend/go.mod backend/go.sum ./backend/
+WORKDIR /build/backend
 RUN go mod download
 
-COPY . .
+COPY backend/ ./
 COPY --from=frontend /frontend/build ./web/build
 
-RUN go build -ldflags "-s -w" -o new-api
+RUN go build -trimpath -ldflags "-s -w" -o new-api
 
 # -----------------------------------------------------------------------------
 # Stage 3: Runtime
 # -----------------------------------------------------------------------------
-FROM debian:bookworm-slim@sha256:f06537653ac770703bc45b4b113475bd402f451e85223f0f2837acbf89ab020a
+FROM debian:bookworm-slim
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates tzdata libasan8 wget \
+    && apt-get install -y --no-install-recommends ca-certificates tzdata \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
 
-COPY --from=backend /build/new-api /
+RUN useradd -r -u 10001 -m -d /home/appuser appuser
+
+COPY --from=backend /build/backend/new-api /
 
 EXPOSE 3000
 WORKDIR /data
+RUN chown -R appuser:appuser /data
+
+USER appuser
 
 ENTRYPOINT ["/new-api"]

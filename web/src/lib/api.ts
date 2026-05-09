@@ -83,18 +83,20 @@ async function requestJson(path: string, init: RequestInit) {
   }
 }
 
-export async function apiGet(path: string) {
+export async function apiGet(path: string, init?: Pick<RequestInit, "signal">) {
   return requestJson(path, {
     method: "GET",
     headers: baseHeaders(),
+    ...init,
   });
 }
 
-export async function apiPost(path: string, body?: Record<string, unknown>) {
+export async function apiPost(path: string, body?: Record<string, unknown>, init?: Pick<RequestInit, "signal">) {
   return requestJson(path, {
     method: "POST",
     headers: { ...baseHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(body ?? {}),
+    ...init,
   });
 }
 

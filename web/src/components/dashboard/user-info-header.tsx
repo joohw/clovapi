@@ -303,11 +303,11 @@ export function UserInfoHeader({ user, status, onRefreshUser }: UserInfoHeaderPr
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>在线充值</DialogTitle>
-            <DialogDescription>请输入充值金额（USD）并选择支付方式。</DialogDescription>
+            <DialogDescription>通过易支付完成付款：请输入充值数额并选择下方支付方式。</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <label className="auth-label" htmlFor="topup-count">充值金额（USD）</label>
+              <label className="auth-label" htmlFor="topup-count">充值金额</label>
               <Input
                 id="topup-count"
                 type="number"
@@ -315,10 +315,10 @@ export function UserInfoHeader({ user, status, onRefreshUser }: UserInfoHeaderPr
                 onChange={(event) => setTopupCount(Number(event.target.value || 0))}
                 min={minTopup}
                 step={1}
-                placeholder={`最小 ${minTopup} USD`}
+                placeholder={`不少于 ${minTopup}`}
                 className="font-mono [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
-              <p className="mt-1 text-xs text-muted-foreground">按美元金额填写（USD）。</p>
+              <p className="mt-1 text-xs text-muted-foreground">数额含义与后台「额度展示」设置一致（如美元或人民币等）。</p>
             </div>
             <div>
               <div className="auth-label">支付方式</div>

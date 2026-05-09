@@ -43,7 +43,7 @@
   background: transparent;
   color: inherit;
   overflow-x: auto;
-  border-radius: 0;
+  border-radius: var(--radius-sm);
 }
 
 .markdown pre code {

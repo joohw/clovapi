@@ -1,45 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ApiKeysPanel } from "@/components/dashboard/api-keys-panel";
-import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
+import { useEffect, useMemo, useState } from "react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { apiGet, apiPost } from "@/lib/api";
 import { getStoredUser, setStoredUser } from "@/lib/auth";
 import { useToast } from "@/components/ui/toast-provider";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { dashboardSoftButtonClass } from "@/components/dashboard/dashboard-soft";
 import { UserInfoHeader } from "@/components/dashboard/user-info-header";
+import { Button } from "@/components/ui/button";
+
+const sectionClass = "panel w-full min-w-0";
 
 export default function DashboardPage() {
   const { showError, showSuccess } = useToast();
   const [user, setUser] = useState<Record<string, any> | null>(null);
   const [status, setStatus] = useState<Record<string, any>>({});
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [notificationSettings, setNotificationSettings] = useState({
-    warningType: "email",
-    warningThreshold: "",
-    webhookUrl: "",
-    webhookSecret: "",
-    notificationEmail: "",
-    barkUrl: "",
-    gotifyUrl: "",
-    gotifyToken: "",
-    gotifyPriority: 5,
-    upstreamModelUpdateNotifyEnabled: false,
-    acceptUnsetModelRatioModel: false,
-    recordIpLog: false,
-  });
   const [checkinLoading, setCheckinLoading] = useState(false);
   const [checkinSubmitting, setCheckinSubmitting] = useState(false);
   const [checkinCollapsed, setCheckinCollapsed] = useState(false);
@@ -78,60 +53,11 @@ export default function DashboardPage() {
     [checkinData],
   );
 
-  function quotaToDisplayInputString(quota: unknown): string {
-    const q = Number(quota || 0);
-    if (!Number.isFinite(q) || q <= 0) return "";
-    const quotaPerUnit = Number(localStorage.getItem("quota_per_unit") || "500000");
-    const usd = q / (Number.isFinite(quotaPerUnit) && quotaPerUnit > 0 ? quotaPerUnit : 500000);
-    return usd.toFixed(8).replace(/\.?0+$/, "");
-  }
-
-  function displayAmountToQuota(amount: number): number {
-    const quotaPerUnit = Number(localStorage.getItem("quota_per_unit") || "500000");
-    const valid = Number.isFinite(quotaPerUnit) && quotaPerUnit > 0 ? quotaPerUnit : 500000;
-    if (!Number.isFinite(amount) || amount <= 0) return 0;
-    return Math.round(amount * valid);
-  }
-
-  const applyNotificationFromUserSetting = useCallback(
-    (targetUser: Record<string, any>) => {
-      const raw = targetUser?.setting;
-      if (!raw) return;
-      try {
-        const settings = typeof raw === "string" ? JSON.parse(raw) : raw;
-        setNotificationSettings({
-          warningType: settings.notify_type || "email",
-          warningThreshold: quotaToDisplayInputString(
-            settings.quota_warning_threshold ?? 500000,
-          ),
-          webhookUrl: settings.webhook_url || "",
-          webhookSecret: settings.webhook_secret || "",
-          notificationEmail: settings.notification_email || "",
-          barkUrl: settings.bark_url || "",
-          gotifyUrl: settings.gotify_url || "",
-          gotifyToken: settings.gotify_token || "",
-          gotifyPriority:
-            settings.gotify_priority !== undefined
-              ? Number(settings.gotify_priority)
-              : 5,
-          upstreamModelUpdateNotifyEnabled:
-            settings.upstream_model_update_notify_enabled === true,
-          acceptUnsetModelRatioModel: settings.accept_unset_model_ratio_model || false,
-          recordIpLog: settings.record_ip_log || false,
-        });
-      } catch {
-        // ignore invalid user setting payload
-      }
-    },
-    [],
-  );
-
   useEffect(() => {
     const init = async () => {
       const localUser = getStoredUser();
       if (localUser) {
         setUser(localUser as Record<string, any>);
-        applyNotificationFromUserSetting(localUser as Record<string, any>);
       }
       try {
         const [statusRes, userRes] = await Promise.all([
@@ -146,14 +72,13 @@ export default function DashboardPage() {
         if (userRes?.success && userRes.data) {
           setUser(userRes.data);
           setStoredUser(userRes.data);
-          applyNotificationFromUserSetting(userRes.data);
         }
       } catch {
         showError("加载用户信息失败");
       }
     };
     void init();
-  }, [showError, applyNotificationFromUserSetting]);
+  }, [showError]);
 
   useEffect(() => {
     if (!status?.checkin_enabled) return;
@@ -218,362 +143,153 @@ export default function DashboardPage() {
     }
   }
 
-  function getWarningThresholdQuota(
-    settings: typeof notificationSettings,
-    strict: boolean,
-  ): number | null {
-    const parsed = parseFloat(String(settings.warningThreshold));
-    const fromInput = displayAmountToQuota(parsed);
-    if (fromInput > 0) return fromInput;
-
-    if (strict) {
-      showError("预警价格必须大于0");
-      return null;
-    }
-
-    try {
-      const raw = user?.setting;
-      if (raw) {
-        const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
-        const current = Number(obj?.quota_warning_threshold || 0);
-        if (Number.isFinite(current) && current > 0) return current;
-      }
-    } catch {
-      // ignore parsing failure and use default
-    }
-
-    return 500000;
-  }
-
-  async function persistNotificationSettings(
-    settings: typeof notificationSettings,
-    successMessage = "设置保存成功",
-    options?: { strictThreshold?: boolean },
-  ): Promise<boolean> {
-    const strictThreshold = options?.strictThreshold ?? true;
-    const quotaWarningThreshold = getWarningThresholdQuota(settings, strictThreshold);
-    if (quotaWarningThreshold == null) return false;
-
-    try {
-      const res = await apiPut("/api/user/setting", {
-        notify_type: "email",
-        quota_warning_threshold: quotaWarningThreshold,
-        notification_email: settings.notificationEmail,
-        upstream_model_update_notify_enabled:
-          settings.upstreamModelUpdateNotifyEnabled === true,
-        accept_unset_model_ratio_model:
-          settings.acceptUnsetModelRatioModel === true,
-        record_ip_log: settings.recordIpLog === true,
-      });
-      if (!res?.success) {
-        showError(res?.message || "保存失败");
-        return false;
-      }
-      showSuccess(successMessage);
-      return true;
-    } catch {
-      showError("设置保存失败");
-      return false;
-    }
-  }
-
-  async function saveNotificationSettings() {
-    await persistNotificationSettings(notificationSettings);
-  }
-
-  async function saveToggleSetting(
-    patch: Partial<typeof notificationSettings>,
-    successMessage: string,
-  ) {
-    const prevSettings = notificationSettings;
-    const nextSettings = { ...prevSettings, ...patch };
-    setNotificationSettings(nextSettings);
-    const ok = await persistNotificationSettings(nextSettings, successMessage, {
-      strictThreshold: false,
-    });
-    if (!ok) {
-      setNotificationSettings(prevSettings);
-    }
-  }
-
-  async function deleteAccount() {
-    if (deleteConfirmText !== user?.username) {
-      showError("请输入你的账户名以确认删除");
-      return;
-    }
-    const res = await apiDelete("/api/user/self");
-    if (!res?.success) {
-      showError(res?.message || "删除失败");
-      return;
-    }
-    showSuccess("账户已删除");
-    await apiGet("/api/user/logout");
-    localStorage.removeItem("user");
-    window.location.assign("/");
-  }
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
 
   return (
-    <div className="page-wrap space-y-4 w-full min-w-0">
+    <div className="page-wrap w-full min-w-0 space-y-5 pb-2">
       <UserInfoHeader user={user} status={status} onRefreshUser={async () => {
         const res = await apiGet("/api/user/self");
         if (res?.success && res.data) {
           setUser(res.data);
           setStoredUser(res.data);
-          applyNotificationFromUserSetting(res.data);
         }
       }} />
 
-      {status?.checkin_enabled ? (
-        <section className="panel">
-          <div className="panel-header">
-            <h2 className="panel-title">签到日历</h2>
-            <button
-              type="button"
-              className="btn btn-outline btn-xs"
-              onClick={() => setCheckinCollapsed((prev) => !prev)}
-            >
-              {checkinCollapsed ? "展开" : "收起"}
-            </button>
-          </div>
-          <div className="panel-body">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-sm text-zinc-500">
-                {checkinData.stats?.checked_in_today
-                  ? `今日已签到，累计 ${Number(checkinData.stats?.total_checkins || 0)} 天`
-                  : "每日签到可获得随机额度奖励"}
-              </div>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => void doCheckin()}
-                disabled={checkinSubmitting || checkinLoading || !!checkinData.stats?.checked_in_today}
-              >
-                {checkinSubmitting
-                  ? "签到中..."
-                  : checkinData.stats?.checked_in_today
-                    ? "今日已签到"
-                    : "立即签到"}
-              </button>
-            </div>
-            {!checkinCollapsed ? (
-              <div className="mt-4 space-y-3">
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="border border-border bg-zinc-100/40 p-2.5 text-center dark:bg-zinc-900/50">
-                    <div className="text-xl font-bold">{Number(checkinData.stats?.total_checkins || 0)}</div>
-                    <div className="text-xs text-zinc-500">累计签到</div>
-                  </div>
-                  <div className="border border-border bg-zinc-100/40 p-2.5 text-center dark:bg-zinc-900/50">
-                    <div className="text-xl font-bold">{renderQuota(monthlyQuota)}</div>
-                    <div className="text-xs text-zinc-500">本月获得</div>
-                  </div>
-                  <div className="border border-border bg-zinc-100/40 p-2.5 text-center dark:bg-zinc-900/50">
-                    <div className="text-xl font-bold">{renderQuota(Number(checkinData.stats?.total_quota || 0))}</div>
-                    <div className="text-xs text-zinc-500">累计获得</div>
-                  </div>
+      <div className="space-y-5">
+          {status?.checkin_enabled ? (
+            <section className={sectionClass}>
+              <div className="panel-header flex items-center justify-between p-4 pb-3 sm:p-5 sm:pb-3">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                  <h2 className="panel-title">签到日历</h2>
+                  {checkinData.stats?.checked_in_today ? (
+                    <span className="ml-1 inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                      今日已签到
+                    </span>
+                  ) : null}
                 </div>
-                <div className="border border-border">
-                  <div className="flex items-center justify-between border-b border-border bg-zinc-100/40 px-3 py-2 text-sm dark:bg-zinc-900/50">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const d = new Date(viewDate);
-                        d.setMonth(d.getMonth() - 1);
-                        setViewDate(d);
-                      }}
-                    >
-                      ←
-                    </button>
-                    <span>{viewDate.getFullYear()} 年 {viewDate.getMonth() + 1} 月</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const d = new Date(viewDate);
-                        d.setMonth(d.getMonth() + 1);
-                        setViewDate(d);
-                      }}
-                    >
-                      →
-                    </button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  className={dashboardSoftButtonClass}
+                  onClick={() => setCheckinCollapsed((prev) => !prev)}
+                >
+                  {checkinCollapsed ? "展开" : "收起"}
+                </Button>
+              </div>
+              <div className="panel-body px-4 pb-4 sm:px-5 sm:pb-5">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/25 px-3 py-3 dark:bg-muted/20">
+                  <div className="text-sm text-muted-foreground">
+                    {checkinData.stats?.checked_in_today
+                      ? `已签到，累计 ${Number(checkinData.stats?.total_checkins || 0)} 天 · 本月获得 ${renderQuota(monthlyQuota)}`
+                      : "每日签到可获得随机额度奖励"}
                   </div>
-                  {checkinLoading ? (
-                    <div className="p-6 text-center text-sm text-zinc-500">加载中...</div>
-                  ) : (
-                    <div className="grid grid-cols-7 gap-px bg-border p-1 text-center text-[11px]">
-                      {["日", "一", "二", "三", "四", "五", "六"].map((week) => (
-                        <div key={week} className="bg-zinc-100/60 py-1 font-medium text-zinc-500 dark:bg-zinc-900/60">
-                          {week}
-                        </div>
-                      ))}
-                      {monthCells.map((cell, index) =>
-                        cell ? (
-                          <div
-                            key={`${cell.dateStr}-${index}`}
-                            className="relative min-h-[52px] border border-transparent bg-background p-0.5 text-left"
-                            title={
-                              checkinRecordMap[cell.dateStr] != null
-                                ? `获得 ${renderQuota(checkinRecordMap[cell.dateStr])}`
-                                : ""
-                            }
-                          >
-                            <span className="absolute left-1 top-0.5 text-[11px] text-zinc-500">{cell.day}</span>
-                            {checkinRecordMap[cell.dateStr] != null ? (
-                              <div className="flex h-full flex-col items-center justify-center pt-3">
-                                <div className="mb-0.5 flex h-6 w-6 items-center justify-center border border-border bg-emerald-600 text-white">
-                                  ✓
-                                </div>
-                                <div className="text-[10px] font-medium leading-none text-emerald-600 dark:text-emerald-400">
-                                  {renderQuota(checkinRecordMap[cell.dateStr])}
-                                </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => void doCheckin()}
+                    disabled={checkinSubmitting || checkinLoading || !!checkinData.stats?.checked_in_today}
+                  >
+                    {checkinSubmitting
+                      ? "签到中..."
+                      : checkinData.stats?.checked_in_today
+                        ? "今日已签到"
+                        : "立即签到"}
+                  </Button>
+                </div>
+                {!checkinCollapsed ? (
+                  <div className="mt-4 space-y-3">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                      <div className="rounded-xl bg-muted/25 px-3 py-2 dark:bg-muted/20">
+                        <div className="text-[11px] text-muted-foreground">累计签到</div>
+                        <div className="text-lg font-semibold tabular-nums">{Number(checkinData.stats?.total_checkins || 0)}</div>
+                      </div>
+                      <div className="rounded-xl bg-muted/25 px-3 py-2 dark:bg-muted/20">
+                        <div className="text-[11px] text-muted-foreground">本月获得</div>
+                        <div className="text-lg font-semibold tabular-nums">{renderQuota(monthlyQuota)}</div>
+                      </div>
+                      <div className="rounded-xl bg-muted/25 px-3 py-2 dark:bg-muted/20">
+                        <div className="text-[11px] text-muted-foreground">累计获得</div>
+                        <div className="text-lg font-semibold tabular-nums">{renderQuota(Number(checkinData.stats?.total_quota || 0))}</div>
+                      </div>
+                    </div>
+                    <div className="overflow-hidden rounded-xl bg-muted/20 dark:bg-muted/15">
+                      <div className="flex items-center justify-between bg-muted/30 px-3 py-2 text-sm dark:bg-muted/25">
+                        <button
+                          type="button"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-muted/50 hover:bg-muted dark:bg-muted/40 dark:hover:bg-muted/70"
+                          onClick={() => {
+                            const d = new Date(viewDate);
+                            d.setMonth(d.getMonth() - 1);
+                            setViewDate(d);
+                          }}
+                          aria-label="上一月"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="font-medium tabular-nums">{viewDate.getFullYear()} 年 {viewDate.getMonth() + 1} 月</span>
+                        <button
+                          type="button"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-muted/50 hover:bg-muted dark:bg-muted/40 dark:hover:bg-muted/70"
+                          onClick={() => {
+                            const d = new Date(viewDate);
+                            d.setMonth(d.getMonth() + 1);
+                            setViewDate(d);
+                          }}
+                          aria-label="下一月"
+                        >
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      {checkinLoading ? (
+                        <div className="p-6 text-center text-sm text-muted-foreground">加载中...</div>
+                      ) : (
+                        <div className="grid grid-cols-7 gap-1 p-2 text-center text-[11px]">
+                          {["日", "一", "二", "三", "四", "五", "六"].map((week) => (
+                            <div key={week} className="rounded-md bg-muted/30 py-1.5 font-medium text-muted-foreground dark:bg-muted/25">
+                              {week}
+                            </div>
+                          ))}
+                          {monthCells.map((cell, index) =>
+                            cell ? (
+                              <div
+                                key={`${cell.dateStr}-${index}`}
+                                className={`relative min-h-[44px] rounded-md bg-muted/15 p-0.5 text-left dark:bg-muted/10 ${cell.dateStr === todayStr ? "bg-muted/35 ring-1 ring-inset ring-foreground/15 dark:bg-muted/30" : ""}`}
+                                title={
+                                  checkinRecordMap[cell.dateStr] != null
+                                    ? `获得 ${renderQuota(checkinRecordMap[cell.dateStr])}`
+                                    : ""
+                                }
+                              >
+                                <span className="absolute left-1 top-0.5 text-[10px] text-muted-foreground">{cell.day}</span>
+                                {checkinRecordMap[cell.dateStr] != null ? (
+                                  <div className="flex h-full flex-col items-center justify-center pt-2">
+                                    <div className="mb-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] text-white">
+                                      ✓
+                                    </div>
+                                    <div className="text-[9px] font-medium leading-none text-emerald-600 dark:text-emerald-400">
+                                      {renderQuota(checkinRecordMap[cell.dateStr])}
+                                    </div>
+                                  </div>
+                                ) : null}
                               </div>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <div key={`empty-${index}`} className="min-h-[52px] bg-background"></div>
-                        ),
+                            ) : (
+                              <div key={`empty-${index}`} className="min-h-[44px] rounded-md bg-muted/10 dark:bg-muted/[0.07]"></div>
+                            ),
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-
-      <ApiKeysPanel />
-
-      <section className="panel">
-        <div className="panel-header">
-          <h2 className="panel-title">控制台设置</h2>
-        </div>
-        <div className="panel-body space-y-6">
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold">通知配置</h3>
-            <p className="text-xs text-zinc-500">通知方式：仅邮件通知</p>
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              <Input
-                placeholder="额度预警阈值（显示货币）"
-                value={notificationSettings.warningThreshold}
-                onChange={(event) =>
-                  setNotificationSettings((prev) => ({
-                    ...prev,
-                    warningThreshold: event.target.value,
-                  }))
-                }
-              />
-              <Input
-                placeholder="通知邮箱"
-                value={notificationSettings.notificationEmail}
-                onChange={(event) =>
-                  setNotificationSettings((prev) => ({
-                    ...prev,
-                    notificationEmail: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <Label className="inline-flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={notificationSettings.upstreamModelUpdateNotifyEnabled}
-                onCheckedChange={(checked) =>
-                  setNotificationSettings((prev) => ({
-                    ...prev,
-                    upstreamModelUpdateNotifyEnabled: Boolean(checked),
-                  }))
-                }
-              />
-              上游模型更新通知
-            </Label>
-            <div className="flex justify-end">
-              <Button type="button" onClick={() => void saveNotificationSettings()}>
-                保存通知配置
-              </Button>
-            </div>
-          </section>
-
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold">价格设置</h3>
-            <div className="flex items-start justify-between gap-3 border border-border p-3">
-              <div>
-                <p className="text-sm font-medium">接受未设置价格模型</p>
-                <p className="text-xs text-zinc-500">
-                  当模型没有设置价格时仍接受调用，仅在信任站点时启用。
-                </p>
-              </div>
-              <Switch
-                checked={notificationSettings.acceptUnsetModelRatioModel}
-                onCheckedChange={(checked) =>
-                  void saveToggleSetting(
-                    { acceptUnsetModelRatioModel: Boolean(checked) },
-                    "价格设置已保存",
-                  )
-                }
-              />
-            </div>
-          </section>
-
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold">隐私设置</h3>
-            <div className="flex items-start justify-between gap-3 border border-border p-3">
-              <div>
-                <p className="text-sm font-medium">记录请求与错误日志 IP</p>
-                <p className="text-xs text-zinc-500">
-                  切换后立即保存，无需再点击保存按钮。
-                </p>
-              </div>
-              <Switch
-                checked={notificationSettings.recordIpLog}
-                onCheckedChange={(checked) =>
-                  void saveToggleSetting(
-                    { recordIpLog: Boolean(checked) },
-                    "隐私设置已保存",
-                  )
-                }
-              />
-            </div>
-          </section>
-        </div>
-      </section>
-
-      <section className="panel">
-        <div className="panel-header">
-          <h2 className="panel-title">安全设置</h2>
-        </div>
-        <div className="panel-body space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="destructive" onClick={() => setShowDeleteModal(true)}>
-              删除账户
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>删除账户确认</DialogTitle>
-            <DialogDescription className="text-red-500">
-              您正在删除自己的账户，此操作不可恢复。
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-1">
-            <Label>请输入用户名以确认删除</Label>
-            <Input
-              value={deleteConfirmText}
-              onChange={(event) => setDeleteConfirmText(event.target.value)}
-              placeholder={`输入 ${String(user?.username || "")} 以确认`}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
-              取消
-            </Button>
-            <Button variant="destructive" onClick={() => void deleteAccount()}>
-              删除
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </section>
+          ) : null}
+      </div>
     </div>
   );
 }

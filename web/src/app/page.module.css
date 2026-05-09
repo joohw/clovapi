@@ -1,0 +1,23 @@
+/* 首页专用样式（避免写入 globals.css） */
+
+.home :global(.btn:hover:not(:disabled)) {
+  box-shadow: none;
+}
+
+.providerStrip {
+  row-gap: 1rem;
+}
+
+.providerIcon {
+  display: block;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+  object-position: center;
+  filter: brightness(0);
+}
+
+:global(.dark) .providerIcon {
+  filter: brightness(0) invert(1);
+}

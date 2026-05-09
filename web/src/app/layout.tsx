@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AppShell } from "@/components/app-shell";
+import { SiteHeader } from "@/components/site-header";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { DEFAULT_DESCRIPTION, HOME_TITLE, SITE_NAME, getPublicSiteUrlFromRequest } from "@/lib/site";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
@@ -83,7 +83,8 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
         />
         <ToastProvider>
-          <AppShell>{children}</AppShell>
+          <SiteHeader />
+          {children}
         </ToastProvider>
       </body>
     </html>

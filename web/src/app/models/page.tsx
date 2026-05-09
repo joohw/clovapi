@@ -65,6 +65,9 @@ const MODEL_OPTION_KEYS = [
   "ModelPremiumRatio",
 ] as const;
 
+const formInputClass =
+  "w-full min-h-10 rounded-sm border border-border bg-transparent px-3 py-2 text-sm text-foreground";
+
 function fmtPrice(value?: number) {
   if (typeof value !== "number" || Number.isNaN(value) || value === 0) return "-";
   return `$${value.toFixed(3)}`;
@@ -397,9 +400,10 @@ export default function ModelsPage() {
 
   return (
     <div className="page-wrap flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="mx-auto flex min-h-0 min-w-0 w-full max-w-7xl flex-1 flex-col overflow-hidden px-4 pb-4 pt-4 sm:px-6 sm:pb-6 sm:pt-6">
       <section className="panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <div className="panel-body flex min-h-0 flex-1 flex-col">
-          <input className="auth-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索模型/描述/标签" />
+          <input className={formInputClass} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索模型/描述/标签" />
           {loading ? <p className="mt-3 text-sm text-zinc-500">加载中...</p> : null}
           {!loading && filtered.length === 0 ? <p className="mt-3 text-sm text-zinc-500">暂无数据</p> : null}
           {!loading && filtered.length > 0 ? (
@@ -407,50 +411,50 @@ export default function ModelsPage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th className="sticky top-0 z-20 bg-card">
-                      <button type="button" className="flex items-center gap-1" onClick={() => toggleSort("model_name")}>
+                    <th className="sticky top-0 z-20 bg-background">
+                      <button type="button" className="flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("model_name")}>
                         模型
                         <span className="text-xs opacity-70">{sortIndicator("model_name")}</span>
                       </button>
                     </th>
-                    <th className="sticky top-0 z-20 bg-card">
-                      <button type="button" className="flex items-center gap-1" onClick={() => toggleSort("vendor_name")}>
+                    <th className="sticky top-0 z-20 bg-background">
+                      <button type="button" className="flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("vendor_name")}>
                         供应商
                         <span className="text-xs opacity-70">{sortIndicator("vendor_name")}</span>
                       </button>
                     </th>
-                    <th className="sticky top-0 z-20 bg-card">
-                      <button type="button" className="flex items-center gap-1" onClick={() => toggleSort("reasoning")}>
+                    <th className="sticky top-0 z-20 bg-background">
+                      <button type="button" className="flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("reasoning")}>
                         推理能力
                         <span className="text-xs opacity-70">{sortIndicator("reasoning")}</span>
                       </button>
                     </th>
-                    <th className="sticky top-0 z-20 bg-card" title="在成本与分组倍率之上的模型溢价，默认 1">
-                      <button type="button" className="flex items-center gap-1" onClick={() => toggleSort("premium_ratio")}>
+                    <th className="sticky top-0 z-20 bg-background" title="在成本与分组倍率之上的模型溢价，默认 1">
+                      <button type="button" className="flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("premium_ratio")}>
                         溢价
                         <span className="text-xs opacity-70">{sortIndicator("premium_ratio")}</span>
                       </button>
                     </th>
-                    <th className="sticky top-0 z-20 bg-card text-right">
-                      <button type="button" className="ml-auto flex items-center justify-end gap-1" onClick={() => toggleSort("input_price")}>
+                    <th className="sticky top-0 z-20 bg-background text-right">
+                      <button type="button" className="ml-auto flex cursor-pointer items-center justify-end gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("input_price")}>
                         输入价格
                         <span className="text-xs opacity-70">{sortIndicator("input_price")}</span>
                       </button>
                     </th>
-                    <th className="sticky top-0 z-20 bg-card text-right">
-                      <button type="button" className="ml-auto flex items-center justify-end gap-1" onClick={() => toggleSort("output_price")}>
+                    <th className="sticky top-0 z-20 bg-background text-right">
+                      <button type="button" className="ml-auto flex cursor-pointer items-center justify-end gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("output_price")}>
                         输出价格
                         <span className="text-xs opacity-70">{sortIndicator("output_price")}</span>
                       </button>
                     </th>
-                    <th className="sticky top-0 z-20 bg-card text-right">
-                      <button type="button" className="ml-auto flex items-center justify-end gap-1" onClick={() => toggleSort("cache_read_price")}>
+                    <th className="sticky top-0 z-20 bg-background text-right">
+                      <button type="button" className="ml-auto flex cursor-pointer items-center justify-end gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("cache_read_price")}>
                         缓存命中
                         <span className="text-xs opacity-70">{sortIndicator("cache_read_price")}</span>
                       </button>
                     </th>
-                    <th className="sticky top-0 z-20 bg-card text-right">
-                      <button type="button" className="ml-auto flex items-center justify-end gap-1" onClick={() => toggleSort("per_call_price")}>
+                    <th className="sticky top-0 z-20 bg-background text-right">
+                      <button type="button" className="ml-auto flex cursor-pointer items-center justify-end gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("per_call_price")}>
                         单次价格
                         <span className="text-xs opacity-70">{sortIndicator("per_call_price")}</span>
                       </button>
@@ -526,6 +530,7 @@ export default function ModelsPage() {
           ) : null}
         </div>
       </section>
+      </div>
       {contextMenu && isAdmin ? (
         <div
           className="fixed z-50 min-w-36 rounded-md border border-border bg-popover p-1 shadow-md"

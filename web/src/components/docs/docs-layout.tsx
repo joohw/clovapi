@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ApiDoc } from "@/lib/docs";
+import { cn } from "@/lib/utils";
 import { DocsDocSection } from "./docs-doc-section";
 
 type DocsLayoutProps = {
@@ -13,25 +14,36 @@ export function DocsLayout({ docs, activeSlug, apiBaseUrl }: DocsLayoutProps) {
 
   return (
     <div className="page-wrap flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-      <section className="panel relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:before:absolute md:before:inset-y-0 md:before:left-72 md:before:w-px md:before:bg-border md:before:content-['']">
-        <div className="panel-body flex min-h-0 flex-1 flex-col overflow-hidden !p-0 md:flex-row">
-          <aside className="min-h-0 shrink-0 border-b border-border bg-card md:w-72 md:border-b-0">
-            <div className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">API 端点示例</div>
-            <nav className="max-h-[40vh] overflow-auto pb-2 md:h-[calc(100%-2.5rem)] md:max-h-none">
+      <div className="mx-auto flex h-full min-h-0 min-w-0 w-full max-w-7xl flex-1 flex-col overflow-hidden px-4 pb-4 pt-4 sm:px-6 sm:pb-6 sm:pt-6">
+      <section className="panel relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="panel-body flex min-h-0 flex-1 flex-col gap-4 overflow-hidden !p-0 md:flex-row md:gap-5">
+          <aside
+            className={cn(
+              "flex min-h-0 shrink-0 flex-col rounded-2xl bg-background/70 backdrop-blur-md dark:bg-background/55",
+              "md:w-72 md:self-stretch",
+            )}
+          >
+            <nav className="max-h-[40vh] overflow-auto p-2 pt-3 md:h-full md:max-h-none md:p-3 md:pt-3">
               {docs.map((doc) => {
                 const isActive = doc.slug === activeDoc?.slug;
                 return (
                   <Link
                     key={doc.slug}
                     href={`/docs/${doc.slug}`}
-                    className={`block w-full border-l-2 px-4 py-2 text-sm transition-colors ${
+                    className={cn(
+                      "block w-full rounded-xl px-3 py-2 text-sm transition-colors md:px-3",
                       isActive
-                        ? "border-zinc-400 bg-zinc-100 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                        : "border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
+                        ? "bg-muted/45 text-foreground dark:bg-muted/35"
+                        : "text-foreground hover:bg-muted/30 dark:hover:bg-muted/25",
+                    )}
                   >
                     <p className="font-medium">{doc.title}</p>
-                    <p className={`mt-1 text-xs ${isActive ? "text-zinc-600 dark:text-zinc-300" : "text-zinc-500 dark:text-zinc-400"}`}>
+                    <p
+                      className={cn(
+                        "mt-1 text-xs",
+                        isActive ? "text-muted-foreground" : "text-muted-foreground/85",
+                      )}
+                    >
                       {doc.description}
                     </p>
                   </Link>
@@ -39,7 +51,12 @@ export function DocsLayout({ docs, activeSlug, apiBaseUrl }: DocsLayoutProps) {
               })}
             </nav>
           </aside>
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:min-h-[calc(100dvh-8rem)]">
+          <div
+            className={cn(
+              "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-background/70 backdrop-blur-md dark:bg-background/55",
+              "md:min-h-[calc(100dvh-8rem)]",
+            )}
+          >
             {activeDoc ? (
               <DocsDocSection key={activeDoc.slug} activeDoc={activeDoc} apiBaseUrl={apiBaseUrl} />
             ) : (
@@ -50,6 +67,7 @@ export function DocsLayout({ docs, activeSlug, apiBaseUrl }: DocsLayoutProps) {
           </div>
         </div>
       </section>
+      </div>
     </div>
   );
 }

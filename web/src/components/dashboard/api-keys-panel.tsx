@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { KeyRound, Plus, RefreshCw } from "lucide-react";
 import { apiDelete, apiGet, apiPost } from "@/lib/api";
 import { useToast } from "@/components/ui/toast-provider";
+import { dashboardSoftButtonClass } from "@/components/dashboard/dashboard-soft";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -72,6 +75,8 @@ const EXPIRATION_OPTIONS = [
   { value: "1d", label: "1 天" },
   { value: "1m", label: "1 个月" },
 ] as const;
+
+const formLabelClass = "mb-1 block text-[0.85rem] text-zinc-500";
 
 function buildExpiredTime(option: string): number {
   const now = Math.floor(Date.now() / 1000);
@@ -186,11 +191,22 @@ export function ApiKeysPanel() {
   return (
     <>
       <section className="panel w-full min-w-0">
-        <div className="panel-header flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="panel-title">API 密钥</h2>
-          <div className="flex flex-wrap items-center justify-end gap-2 sm:ml-auto">
-            <Button variant="outline" size="sm" onClick={() => void loadTokens()} disabled={loading}>
-              {loading ? "刷新中..." : "刷新"}
+        <div className="panel-header flex flex-col gap-3 p-4 pb-3 sm:flex-row sm:items-center sm:justify-end sm:p-5 sm:pb-3">
+          <div className="flex w-full flex-wrap items-center justify-end gap-2">
+            {tokens.length > 0 ? (
+              <Badge variant="secondary" className="mr-auto">
+                {tokens.length}
+              </Badge>
+            ) : null}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={dashboardSoftButtonClass}
+              onClick={() => void loadTokens()}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+              {loading ? "刷新中" : "刷新"}
             </Button>
             <Button
               size="sm"
@@ -199,64 +215,105 @@ export function ApiKeysPanel() {
                 setShowCreateDialog(true);
               }}
             >
+              <Plus className="h-3.5 w-3.5" />
               添加令牌
             </Button>
           </div>
         </div>
-        <div className="panel-body">
+        <div className="panel-body px-4 pb-4 sm:px-5 sm:pb-5">
           {loading ? (
-            <div className="text-sm opacity-70">加载中...</div>
+            <div className="space-y-2 py-2">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-10 animate-pulse rounded-md bg-muted/40"
+                />
+              ))}
+            </div>
           ) : tokens.length === 0 ? (
-            <div className="text-sm opacity-70">暂无令牌数据</div>
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl bg-muted/25 px-4 py-10 text-center dark:bg-muted/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/50 text-muted-foreground dark:bg-muted/40">
+                <KeyRound className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">还没有 API 密钥</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">创建一个密钥开始调用 API。</p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setForm({ name: "", remain_quota: "", expired_time: "never" });
+                  setShowCreateDialog(true);
+                }}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                创建密钥
+              </Button>
+            </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>密钥</TableHead>
-                  <TableHead>名称</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>剩余额度</TableHead>
-                  <TableHead>过期时间</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tokens.map((token) => (
-                  <TableRow key={token.id} className={token.status !== 1 ? "opacity-70" : ""}>
-                    <TableCell className="max-w-[min(100%,18rem)] font-mono text-xs whitespace-normal break-all text-muted-foreground">
-                      {maskedKeyLabel(token)}
-                    </TableCell>
-                    <TableCell>{token.name || "-"}</TableCell>
-                    <TableCell>{token.status === 1 ? "启用" : "禁用"}</TableCell>
-                    <TableCell>{token.unlimited_quota ? "无限制" : renderQuota(token.remain_quota ?? 0)}</TableCell>
-                    <TableCell>{formatDate(token.expired_time)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex flex-wrap items-center justify-end gap-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void copyTokenKey(token.id)}
-                        >
-                          复制
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            setPendingDeleteId(token.id);
-                            setShowDeleteDialog(true);
-                          }}
-                        >
-                          删除
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>密钥</TableHead>
+                    <TableHead>名称</TableHead>
+                    <TableHead>状态</TableHead>
+                    <TableHead>剩余额度</TableHead>
+                    <TableHead>过期时间</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {tokens.map((token) => (
+                    <TableRow key={token.id} className={token.status !== 1 ? "opacity-70" : ""}>
+                      <TableCell className="max-w-[min(100%,18rem)] font-mono text-xs whitespace-normal break-all text-muted-foreground">
+                        {maskedKeyLabel(token)}
+                      </TableCell>
+                      <TableCell>{token.name || "-"}</TableCell>
+                      <TableCell>
+                        {token.status === 1 ? (
+                          <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                            启用
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-muted/45 text-muted-foreground">
+                            禁用
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        {token.unlimited_quota ? "无限制" : renderQuota(token.remain_quota ?? 0)}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{formatDate(token.expired_time)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-wrap items-center justify-end gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className={dashboardSoftButtonClass}
+                            onClick={() => void copyTokenKey(token.id)}
+                          >
+                            复制
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              setPendingDeleteId(token.id);
+                              setShowDeleteDialog(true);
+                            }}
+                          >
+                            删除
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </div>
       </section>
@@ -268,7 +325,7 @@ export function ApiKeysPanel() {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <label className="auth-label" htmlFor="dash-token-name">
+              <label className={formLabelClass} htmlFor="dash-token-name">
                 名称
               </label>
               <Input
@@ -280,7 +337,7 @@ export function ApiKeysPanel() {
               />
             </div>
             <div>
-              <label className="auth-label" htmlFor="dash-token-quota">
+              <label className={formLabelClass} htmlFor="dash-token-quota">
                 额度上限（美元，可选）
               </label>
               <Input
@@ -294,7 +351,7 @@ export function ApiKeysPanel() {
               />
             </div>
             <div>
-              <span className="auth-label mb-1 block">过期时间</span>
+              <span className={formLabelClass}>过期时间</span>
               <Select
                 value={form.expired_time}
                 onValueChange={(value) =>
@@ -315,7 +372,12 @@ export function ApiKeysPanel() {
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" type="button" onClick={() => setShowCreateDialog(false)}>
+            <Button
+              variant="ghost"
+              type="button"
+              className={dashboardSoftButtonClass}
+              onClick={() => setShowCreateDialog(false)}
+            >
               取消
             </Button>
             <Button type="button" disabled={creating} onClick={() => void createToken()}>
@@ -338,7 +400,7 @@ export function ApiKeysPanel() {
           </DialogHeader>
           <p className="text-sm text-muted-foreground">确定删除这个密钥吗？此操作不可恢复。</p>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+            <Button variant="ghost" className={dashboardSoftButtonClass} onClick={() => setShowDeleteDialog(false)}>
               取消
             </Button>
             <Button

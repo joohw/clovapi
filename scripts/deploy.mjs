@@ -173,7 +173,8 @@ async function main() {
   const imageName = getArgValue("--image") || deployEnv.DOCKER_IMAGE_NAME || "clovapi";
   const imageTag = getArgValue("--tag") || deployEnv.DOCKER_IMAGE_TAG || "latest";
   const containerName = getArgValue("--container") || deployEnv.REMOTE_CONTAINER_NAME || "clovapi";
-  const hostPort = getArgValue("--host-port") || deployEnv.REMOTE_HOST_PORT || "3500";
+  const backendHostPort = getArgValue("--host-port") || deployEnv.REMOTE_HOST_PORT || "3500";
+  const frontendHostPort = deployEnv.REMOTE_FRONTEND_PORT || "3000";
   const dataDir = getArgValue("--data-dir") || deployEnv.REMOTE_DATA_DIR || "/opt/clovapi/data";
   const containerUid = String(deployEnv.REMOTE_CONTAINER_UID || "10001").trim();
   const containerGid = String(deployEnv.REMOTE_CONTAINER_GID || "10001").trim();
@@ -197,13 +198,14 @@ async function main() {
     `mkdir -p ${shEscape(dataDir)}`,
     `chown -R ${shEscape(`${containerUid}:${containerGid}`)} ${shEscape(dataDir)}`,
     `chmod -R u+rwX,go-rwx ${shEscape(dataDir)}`,
-    `docker run -d --name ${shEscape(containerName)} --restart unless-stopped -p ${shEscape(`${hostPort}:3000`)} -v ${shEscape(`${dataDir}:/data`)} --env-file /dev/stdin ${shEscape(imageRef)}`,
+    `docker run -d --name ${shEscape(containerName)} --restart unless-stopped -p ${shEscape(`${frontendHostPort}:3000`)} -p ${shEscape(`${backendHostPort}:3500`)} -v ${shEscape(`${dataDir}:/data`)} --env-file /dev/stdin ${shEscape(imageRef)}`,
   ].join(" && ");
 
   console.log("Deploy plan:");
   console.log(`- image: ${imageRef}`);
   console.log(`- remote: ${sshUser}@${sshHost}:${sshPort}`);
   console.log(`- container: ${containerName}`);
+  console.log(`- ports: frontend ${frontendHostPort}->3000, backend ${backendHostPort}->3500`);
   console.log(`- data dir: ${dataDir}`);
   console.log(`- data dir owner: ${containerUid}:${containerGid}`);
   console.log(`- env file: ${path.relative(repoRoot, envFilePath)}`);

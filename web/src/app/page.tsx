@@ -36,6 +36,20 @@ const PROVIDER_LOGOS = [
   { id: "openrouter", alt: "OpenRouter" },
 ];
 
+/** 底层中性灰雾 + 静态点阵（Dot Grid 风格）+ 淡入页面背景 */
+function LandingQuietBackdrop() {
+  return (
+    <div
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-background"
+      aria-hidden
+    >
+      <div className={`absolute inset-0 ${styles.landingBackdrop}`} />
+      <div className={`absolute inset-0 ${styles.landingBackdropVeil}`} />
+      <div className={`absolute inset-0 ${styles.landingDotGrid}`} />
+    </div>
+  );
+}
+
 export default function HomePage() {
   const { showError, showSuccess } = useToast();
   const router = useRouter();
@@ -127,8 +141,12 @@ export default function HomePage() {
     return `${apiBaseUrl.replace(/\/+$/, "")}${item.suffix || ""}`;
   }
 
+  /** 未配置自定义首页内容时展示（加载过程中 homeContent 仍为空，可先显示极光背景） */
+  const showLandingBackdrop = !homeContent;
+
   return (
-    <div className={`page-wrap ${styles.home}`}>
+    <div className={`page-wrap ${styles.home} relative`}>
+      {showLandingBackdrop ? <LandingQuietBackdrop /> : null}
       {notice ? (
         <div className="mx-auto mb-6 max-w-6xl rounded-xl bg-muted/40 px-4 py-3 text-center text-sm leading-relaxed text-foreground/90 backdrop-blur-sm sm:text-left">
           {notice}
@@ -136,9 +154,9 @@ export default function HomePage() {
       ) : null}
 
       {homeContentLoaded && !homeContent ? (
-        <div className="w-full min-w-0">
+        <div className="relative z-[1] w-full min-w-0">
           <div className="home-landing relative mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-8 pb-14 pt-1 sm:gap-10 sm:pb-16 sm:pt-2 md:pt-4">
-            <section className="relative z-[1] w-full min-w-0 overflow-hidden rounded-2xl bg-background/85 px-5 py-8 text-center backdrop-blur-md dark:bg-background/75 sm:px-8 sm:py-10 md:px-10 md:py-12">
+            <section className="relative z-[1] w-full min-w-0 overflow-hidden rounded-2xl px-5 py-8 text-center sm:px-8 sm:py-10 md:px-10 md:py-12">
               <header className="relative">
                 <p className="inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                   <Sparkles className="size-3.5 shrink-0 text-muted-foreground/90" aria-hidden />
@@ -154,7 +172,7 @@ export default function HomePage() {
 
               <button
                 type="button"
-                className="group relative mt-10 w-full min-w-0 cursor-pointer overflow-hidden rounded-xl bg-muted/30 text-left transition-[background-color] duration-200 hover:bg-muted/45"
+                className="group relative mt-10 w-full min-w-0 cursor-pointer overflow-hidden rounded-xl border border-border/60 bg-transparent text-left transition-[background-color,border-color] duration-200 hover:border-border hover:bg-muted/10"
                 aria-label="点击复制 Base URL"
                 onClick={() => void copyBase()}
               >
@@ -167,7 +185,7 @@ export default function HomePage() {
                   </code>
                 </div>
                 <span
-                  className="pointer-events-none absolute right-3 top-1/2 z-[1] inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-lg bg-muted/80 text-foreground opacity-100 transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100"
+                  className="pointer-events-none absolute right-3 top-1/2 z-[1] inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-lg border border-border/50 bg-background/40 text-foreground opacity-100 backdrop-blur-sm transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100"
                   aria-hidden
                 >
                   <Copy className="h-4 w-4 shrink-0" />
@@ -202,12 +220,12 @@ export default function HomePage() {
               </div>
             </section>
 
-            <section className="relative z-[1] overflow-hidden rounded-2xl bg-background/75 backdrop-blur-md dark:bg-background/65">
+            <section className="relative z-[1] overflow-hidden rounded-2xl">
               <ul className="m-0 grid list-none grid-cols-1 gap-2.5 p-3 pt-2 sm:grid-cols-2 sm:p-4 sm:pt-3">
                 {API_EXAMPLES.map((item) => (
                   <li
                     key={item.label}
-                    className="group relative m-0 min-w-0 overflow-hidden rounded-xl bg-muted/25 text-left transition-colors duration-150 hover:bg-muted/40"
+                    className="group relative m-0 min-w-0 overflow-hidden rounded-xl border border-border/40 bg-transparent text-left transition-colors duration-150 hover:border-border/70 hover:bg-muted/10"
                   >
                     <Link
                       href={`/docs/${item.docSlug}`}
@@ -225,7 +243,7 @@ export default function HomePage() {
                     </div>
                     <button
                       type="button"
-                      className="absolute right-2 top-1/2 z-10 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg bg-muted/80 text-foreground opacity-100 transition-opacity duration-150 hover:bg-muted sm:opacity-0 sm:group-hover:opacity-100"
+                      className="absolute right-2 top-1/2 z-10 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg border border-border/50 bg-background/40 text-foreground opacity-100 backdrop-blur-sm transition-opacity duration-150 hover:bg-muted/30 sm:opacity-0 sm:group-hover:opacity-100"
                       aria-label="复制完整 URL"
                       onClick={(e) => {
                         e.preventDefault();
@@ -240,7 +258,7 @@ export default function HomePage() {
               </ul>
             </section>
 
-            <div className="relative z-[1] overflow-hidden rounded-2xl bg-background/75 px-5 py-8 backdrop-blur-md dark:bg-background/65 sm:px-7 sm:py-9">
+            <div className="relative z-[1] overflow-hidden rounded-2xl px-5 py-8 sm:px-7 sm:py-9">
               <section>
                 <div className="mb-6 flex flex-col gap-1 text-left sm:flex-row sm:items-end sm:justify-between">
                   <h2 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">

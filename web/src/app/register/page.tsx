@@ -101,7 +101,7 @@ export default function RegisterPage() {
             {errorMsg ? <p className="text-sm text-red-500">{errorMsg}</p> : null}
             <div className="pt-1">
               <button
-                className="inline-flex h-10 w-full items-center justify-center border border-zinc-900 bg-zinc-900 px-4 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-zinc-900 bg-zinc-900 px-4 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 type="submit"
                 disabled={loading}
               >

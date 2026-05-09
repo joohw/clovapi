@@ -1,5 +1,45 @@
 /* 首页专用样式（避免写入 globals.css） */
 
+/* 纯灰渐变背景：oklch 第二项为 chroma，全程为 0，避免任何色相 */
+.landingBackdrop {
+  opacity: 0.62;
+  background:
+    radial-gradient(ellipse 118% 82% at 50% -20%, oklch(0.91 0 0) 0%, transparent 56%),
+    radial-gradient(ellipse 92% 58% at 96% 42%, oklch(0.87 0 0) 0%, transparent 53%),
+    radial-gradient(ellipse 88% 52% at 6% 88%, oklch(0.93 0 0) 0%, transparent 50%);
+}
+
+:global(.dark) .landingBackdrop {
+  opacity: 0.48;
+  background:
+    radial-gradient(ellipse 118% 82% at 50% -20%, oklch(0.27 0 0) 0%, transparent 56%),
+    radial-gradient(ellipse 92% 58% at 94% 40%, oklch(0.24 0 0) 0%, transparent 53%);
+}
+
+.landingBackdropVeil {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklch, var(--background) 38%, transparent),
+    color-mix(in oklch, var(--background) 74%, transparent),
+    var(--background)
+  );
+}
+
+/*
+ * Dot Grid 质感（参考 React Bits DotGrid，仅用 CSS 点阵；无 WebGL/GSAP，避免眩目线条）
+ */
+.landingDotGrid {
+  opacity: 0.72;
+  background-image: radial-gradient(oklch(0.36 0 0 / 0.17) 1.35px, transparent 1.35px);
+  background-size: 26px 26px;
+  background-position: 0 0;
+}
+
+:global(.dark) .landingDotGrid {
+  opacity: 0.68;
+  background-image: radial-gradient(oklch(0.58 0 0 / 0.2) 1.35px, transparent 1.35px);
+}
+
 .home :global(.btn:hover:not(:disabled)) {
   box-shadow: none;
 }

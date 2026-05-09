@@ -87,6 +87,7 @@ Options:
   --container <name>    Remote container name (default: clovapi)
   --host-port <port>    Remote exposed port (default: 3500)
   --data-dir <path>     Remote data dir mounted to /data (default: /opt/clovapi/data)
+  --pull-base           Ask docker build to pull newer base images (FROM ...); default is local-only
   --no-image-update     Skip local build/login/push and remote pull
   --dry-run             Print commands only, do not execute
   --help                Show help
@@ -179,6 +180,9 @@ async function main() {
   const containerUid = String(deployEnv.REMOTE_CONTAINER_UID || "10001").trim();
   const containerGid = String(deployEnv.REMOTE_CONTAINER_GID || "10001").trim();
   const skipImageUpdate = noImageUpdate || isTruthy(deployEnv.DEPLOY_SKIP_IMAGE_UPDATE);
+  /** Prefer local base images (FROM ...) when networking to Docker Hub is flaky; override with --pull-base or DEPLOY_DOCKER_PULL_BASE=true */
+  const pullBaseImages =
+    hasFlag("--pull-base") || isTruthy(deployEnv.DEPLOY_DOCKER_PULL_BASE);
 
   const imageRef = registry ? `${registry}/${imageName}:${imageTag}` : `${imageName}:${imageTag}`;
   const registryLoginHost = parseRegistryLoginHost(registry);
@@ -210,6 +214,9 @@ async function main() {
   console.log(`- data dir owner: ${containerUid}:${containerGid}`);
   console.log(`- env file: ${path.relative(repoRoot, envFilePath)}`);
   console.log(`- image update: ${skipImageUpdate ? "disabled" : "enabled"}`);
+  if (!skipImageUpdate) {
+    console.log(`- docker build base images: ${pullBaseImages ? "pull from registry" : "local only (--pull=false)"}`);
+  }
   if (dryRun) {
     console.log("\n[dry-run] skip execution");
     return;
@@ -218,7 +225,10 @@ async function main() {
   if (!skipImageUpdate) {
     // 1. Build local docker image
     console.log("\n[1/6] Building local docker image...");
-    await run("docker", ["build", "-t", imageRef, "."], { cwd: repoRoot });
+    const buildArgs = pullBaseImages
+      ? ["build", "--pull=true", "-t", imageRef, "."]
+      : ["build", "--pull=false", "-t", imageRef, "."];
+    await run("docker", buildArgs, { cwd: repoRoot });
 
     // 2. Login and push
     console.log("\n[2/6] Logging in to registry...");

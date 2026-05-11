@@ -61,6 +61,7 @@ jobs:
     steps:
       - name: Decide npm publish
         id: npm_gate
+        working-directory: .
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -106,6 +107,7 @@ jobs:
     steps:
       - name: Decide winget submit
         id: winget_gate
+        working-directory: .
         run: |
           if ([string]::IsNullOrWhiteSpace("${{ secrets.WINGET_CREATE_TOKEN }}")) {
             "submit=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append

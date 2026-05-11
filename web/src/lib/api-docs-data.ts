@@ -1,360 +1,186 @@
-/**
- * API 文档页静态数据（原 web/docs/*.md），仅维护此处即可。
- * 请求示例中的 ${BASE_URL} 在 getApiDocs 中替换为实际网关 /v1 前缀地址。
- */
-
-/** 同一 slug 下多个上游参考（网关路径不变，仍为 /v1/... 或 Playground /pg/...） */
-export type ApiDocOriginalSourceDefinition = {
-  id: string;
-  label: string;
-  originalEndpoint: string;
-  originalDocUrl: string;
-  originalDocLabel: string;
-  curlExample: string;
-  /** Playground 默认 JSON 请求体（可选） */
-  defaultRequestBody?: string;
-};
-
 export type ApiDocDefinition = {
   slug: string;
   title: string;
   description: string;
-  originalEndpoint: string;
-  originalDocUrl: string;
-  originalDocLabel: string;
-  /** 展示在文档区的默认 cURL（无 originalSources 或与第一项一致时使用） */
-  curlExample: string;
-  /** 多个渠道/厂商文档与示例；有 2 项及以上时文档区以下拉选择 */
-  originalSources?: ApiDocOriginalSourceDefinition[];
+  content: string;
 };
 
 export const API_DOC_PAGES: readonly ApiDocDefinition[] = [
   {
-    slug: "chat-completions",
-    title: "Chat Completions",
-    description: "/chat/completions",
-    originalEndpoint: "https://api.openai.com/v1/chat/completions",
-    originalDocUrl: "https://platform.openai.com/docs/api-reference/chat/create",
-    originalDocLabel: "OpenAI Chat Completions",
-    curlExample: `curl -X POST "\${BASE_URL}/chat/completions" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "gpt-4o",
-    "messages": [
-      { "role": "system", "content": "You are a helpful assistant." },
-      { "role": "user", "content": "What is the weather like in Boston today?" }
-    ],
-    "tools": [
-      {
-        "type": "function",
-        "function": {
-          "name": "get_current_weather",
-          "description": "Get the current weather in a given location",
-          "parameters": {
-            "type": "object",
-            "properties": {
-              "location": {
-                "type": "string",
-                "description": "The city and state, e.g. San Francisco, CA"
-              },
-              "unit": { "type": "string", "enum": ["celsius", "fahrenheit"] }
-            },
-            "required": ["location"]
-          }
-        }
-      }
-    ],
-    "tool_choice": "auto",
-    "temperature": 0.7,
-    "max_tokens": 1024,
-    "top_p": 1,
-    "frequency_penalty": 0,
-    "presence_penalty": 0,
-    "response_format": { "type": "text" },
-    "stream": false
-  }'`,
-    originalSources: [
-      {
-        id: "openai",
-        label: "OpenAI",
-        originalEndpoint: "https://api.openai.com/v1/chat/completions",
-        originalDocUrl: "https://platform.openai.com/docs/api-reference/chat/create",
-        originalDocLabel: "OpenAI Chat Completions",
-        curlExample: `curl -X POST "\${BASE_URL}/chat/completions" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "gpt-4o",
-    "messages": [
-      { "role": "system", "content": "You are a helpful assistant." },
-      { "role": "user", "content": "What is the weather like in Boston today?" }
-    ],
-    "tools": [
-      {
-        "type": "function",
-        "function": {
-          "name": "get_current_weather",
-          "description": "Get the current weather in a given location",
-          "parameters": {
-            "type": "object",
-            "properties": {
-              "location": {
-                "type": "string",
-                "description": "The city and state, e.g. San Francisco, CA"
-              },
-              "unit": { "type": "string", "enum": ["celsius", "fahrenheit"] }
-            },
-            "required": ["location"]
-          }
-        }
-      }
-    ],
-    "tool_choice": "auto",
-    "temperature": 0.7,
-    "max_tokens": 1024,
-    "top_p": 1,
-    "frequency_penalty": 0,
-    "presence_penalty": 0,
-    "response_format": { "type": "text" },
-    "stream": false
-  }'`,
-        defaultRequestBody: `{
-  "model": "gpt-4.1-mini",
-  "stream": true,
-  "messages": [{ "role": "user", "content": "Hello" }]
-}`,
-      },
-      {
-        id: "deepseek",
-        label: "DeepSeek",
-        originalEndpoint: "https://api.deepseek.com/v1/chat/completions",
-        originalDocUrl: "https://api-docs.deepseek.com/",
-        originalDocLabel: "DeepSeek API",
-        curlExample: `curl -X POST "\${BASE_URL}/chat/completions" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "deepseek-chat",
-    "messages": [{ "role": "user", "content": "Hello" }],
-    "stream": true
-  }'`,
-        defaultRequestBody: `{
-  "model": "deepseek-chat",
-  "stream": true,
-  "messages": [{ "role": "user", "content": "Hello" }]
-}`,
-      },
-    ],
+    slug: "quick-start",
+    title: "快速开始",
+    description: "安装与首个可用配置",
+    content: `
+# clovapi CLI 快速开始
+
+clovapi 用于把一份上游 API 配置，快速下发到不同 coding agent CLI（Claude Code、Codex、OpenCode、OpenClaw、Hermes、Kimi Code CLI）。
+
+## 1) 安装
+
+### npm
+\`\`\`bash
+npm i -g @clovapi/cli
+clovapi version
+\`\`\`
+
+### Homebrew
+\`\`\`bash
+brew tap clovapi/tap
+brew install clovapi
+\`\`\`
+
+### winget
+\`\`\`powershell
+winget install Clovapi.Clovapi
+\`\`\`
+
+## 2) 保存一个 profile
+
+\`\`\`bash
+clovapi set --name deepseek-claude \\
+  --api-style claude \\
+  --base-url https://api.deepseek.com/anthropic \\
+  --model deepseek-v4-flash \\
+  --api-key "$DEEPSEEK_API_KEY"
+\`\`\`
+
+## 3) 应用到目标 CLI
+
+\`\`\`bash
+clovapi switch --cli claude-code deepseek-claude
+\`\`\`
+
+## 4) 查看当前状态
+
+\`\`\`bash
+clovapi profiles
+\`\`\`
+`,
   },
   {
-    slug: "responses",
-    title: "Responses",
-    description: "/responses",
-    originalEndpoint: "https://api.openai.com/v1/responses",
-    originalDocUrl: "https://platform.openai.com/docs/api-reference/responses",
-    originalDocLabel: "OpenAI Responses",
-    curlExample: `curl -X POST "\${BASE_URL}/responses" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "gpt-4.1",
-    "input": "Summarize recent advances in quantum error correction in three bullet points.",
-    "instructions": "Use clear Markdown. Prefer short sentences.",
-    "tools": [
-      { "type": "web_search_preview" },
-      {
-        "type": "function",
-        "function": {
-          "name": "lookup_doc",
-          "description": "Look up an internal document by id",
-          "parameters": {
-            "type": "object",
-            "properties": { "doc_id": { "type": "string" } },
-            "required": ["doc_id"]
-          }
-        }
-      }
-    ],
-    "tool_choice": "auto",
-    "temperature": 0.8,
-    "max_output_tokens": 1200,
-    "text": { "format": { "type": "text" } }
-  }'`,
+    slug: "profiles",
+    title: "Profile 管理",
+    description: "set / profiles / remove / test",
+    content: `
+# Profile 管理
+
+## 新增或更新
+
+\`\`\`bash
+clovapi set --name my-openai \\
+  --api-style openai-responses \\
+  --base-url https://api.openai.com/v1 \\
+  --model gpt-4.1-mini \\
+  --api-key "$OPENAI_API_KEY"
+\`\`\`
+
+如果不传完整参数，会进入交互式输入。
+
+## 列出与查看绑定
+
+\`\`\`bash
+clovapi profiles
+\`\`\`
+
+输出包含：
+- 已保存 profiles
+- 每个 CLI 支持的 api style
+- 每个 CLI 最后一次应用的是哪个 profile
+
+## 删除 profile
+
+\`\`\`bash
+clovapi remove my-openai
+\`\`\`
+
+## 连通性测试
+
+\`\`\`bash
+clovapi test
+clovapi test my-openai
+\`\`\`
+`,
   },
   {
-    slug: "claude-messages",
-    title: "Claude Messages",
-    description: "/messages",
-    originalEndpoint: "https://api.anthropic.com/v1/messages",
-    originalDocUrl: "https://docs.anthropic.com/en/api/messages",
-    originalDocLabel: "Anthropic Messages",
-    curlExample: `curl -X POST "\${BASE_URL}/messages" \\
-  -H "x-api-key: YOUR_API_KEY" \\
-  -H "anthropic-version: 2023-06-01" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "claude-sonnet-4-20250514",
-    "max_tokens": 1024,
-    "system": "You are a concise technical assistant.",
-    "messages": [
-      { "role": "user", "content": "What is the weather in Paris? Use the tool if needed." }
-    ],
-    "tools": [
-      {
-        "name": "get_weather",
-        "description": "Get current weather for a city",
-        "input_schema": {
-          "type": "object",
-          "properties": {
-            "city": { "type": "string", "description": "City name" }
-          },
-          "required": ["city"]
-        }
-      }
-    ],
-    "tool_choice": { "type": "auto" },
-    "temperature": 0.7,
-    "top_p": 0.95
-  }'`,
+    slug: "switch",
+    title: "切换到各 CLI",
+    description: "switch 与风格匹配规则",
+    content: `
+# 切换与下发
+
+## 指定 CLI + profile（推荐脚本化）
+
+\`\`\`bash
+clovapi switch --cli codex deepseek-codex
+\`\`\`
+
+## 交互式切换
+
+\`\`\`bash
+clovapi switch
+\`\`\`
+
+流程是：先选 CLI，再选 profile；也可以在菜单中只重置当前 CLI。
+
+## 风格匹配原则
+
+profile 的 \`api_style\` 必须与目标 CLI 支持范围匹配，不匹配会被拒绝。
+
+常见示例：
+- \`claude-code\` 只接受 \`claude\`
+- \`codex\` 走 \`openai-responses\`
+- \`opencode/openclaw/hermes/kimi-code\` 支持范围更广
+
+## 验证是否生效
+
+\`\`\`bash
+clovapi profiles
+\`\`\`
+
+确认 active 绑定后，再到目标 CLI 执行一次请求验证即可。
+`,
   },
   {
-    slug: "search",
-    title: "Search",
-    description: "/search",
-    originalEndpoint: "https://api.tavily.com/search",
-    originalDocUrl: "https://docs.tavily.com/documentation/api-reference/endpoint/search",
-    originalDocLabel: "Tavily Search",
-    curlExample: `curl -X POST "\${BASE_URL}/search" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "search-v1",
-    "query": "How to configure an OpenAI-compatible API gateway?",
-    "include_answer": true,
-    "search_depth": "advanced",
-    "max_results": 8,
-    "topic": "general"
-  }'`,
-  },
-  {
-    slug: "embeddings",
-    title: "Embeddings",
-    description: "/embeddings",
-    originalEndpoint: "https://api.openai.com/v1/embeddings",
-    originalDocUrl: "https://platform.openai.com/docs/api-reference/embeddings/create",
-    originalDocLabel: "OpenAI Embeddings",
-    curlExample: `curl -X POST "\${BASE_URL}/embeddings" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "text-embedding-3-small",
-    "input": [
-      "AI 网关的计费策略",
-      "如何接入统一模型 API"
-    ],
-    "encoding_format": "float",
-    "dimensions": 1536
-  }'`,
-    originalSources: [
-      {
-        id: "openai",
-        label: "OpenAI",
-        originalEndpoint: "https://api.openai.com/v1/embeddings",
-        originalDocUrl: "https://platform.openai.com/docs/api-reference/embeddings/create",
-        originalDocLabel: "OpenAI Embeddings",
-        curlExample: `curl -X POST "\${BASE_URL}/embeddings" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "text-embedding-3-small",
-    "input": [
-      "AI 网关的计费策略",
-      "如何接入统一模型 API"
-    ],
-    "encoding_format": "float",
-    "dimensions": 1536
-  }'`,
-      },
-      {
-        id: "cohere",
-        label: "Cohere",
-        originalEndpoint: "https://api.cohere.ai/v1/embed",
-        originalDocUrl: "https://docs.cohere.com/reference/embed",
-        originalDocLabel: "Cohere Embed",
-        curlExample: `curl -X POST "\${BASE_URL}/embeddings" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "embed-english-v3.0",
-    "input": [
-      "AI 网关的计费策略",
-      "如何接入统一模型 API"
-    ],
-    "encoding_format": "float",
-    "dimensions": 1024
-  }'`,
-      },
-    ],
-  },
-  {
-    slug: "rerank",
-    title: "Rerank",
-    description: "/rerank",
-    originalEndpoint: "https://api.jina.ai/v1/rerank",
-    originalDocUrl: "https://jina.ai/reranker/",
-    originalDocLabel: "Jina Rerank API",
-    curlExample: `curl -X POST "\${BASE_URL}/rerank" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "jina-reranker-v2-base-multilingual",
-    "query": "How do I configure rate limits for API keys?",
-    "documents": [
-      "Rate limits can be set per token in the dashboard under Keys.",
-      "The gateway supports per-model concurrency caps.",
-      "Billing is usage-based on tokens consumed."
-    ],
-    "top_n": 2,
-    "return_documents": true
-  }'`,
-  },
-  {
-    slug: "images-generations",
-    title: "Images Generations",
-    description: "/images/generations",
-    originalEndpoint: "https://api.openai.com/v1/images/generations",
-    originalDocUrl: "https://platform.openai.com/docs/api-reference/images/create",
-    originalDocLabel: "OpenAI Images",
-    curlExample: `curl -X POST "\${BASE_URL}/images/generations" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "dall-e-3",
-    "prompt": "A minimal line-art logo of a cloud with a key icon, flat vector, white on dark gray",
-    "n": 1,
-    "size": "1024x1024",
-    "quality": "standard",
-    "response_format": "url",
-    "style": "vivid"
-  }'`,
-  },
-  {
-    slug: "audio-speech",
-    title: "Audio Speech",
-    description: "/audio/speech",
-    originalEndpoint: "https://api.openai.com/v1/audio/speech",
-    originalDocUrl: "https://platform.openai.com/docs/api-reference/audio/createSpeech",
-    originalDocLabel: "OpenAI Audio speech",
-    curlExample: `curl -X POST "\${BASE_URL}/audio/speech" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "tts-1",
-    "voice": "alloy",
-    "input": "你好，欢迎使用 CLOVAPI 统一模型网关。",
-    "response_format": "mp3",
-    "speed": 1.0
-  }'`,
+    slug: "troubleshooting",
+    title: "故障排查",
+    description: "401、冲突、配置覆盖",
+    content: `
+# 故障排查
+
+## 401 / 403
+
+1. 先执行：
+
+\`\`\`bash
+clovapi test <profile-name>
+\`\`\`
+
+2. 检查：
+- API key 是否有效
+- Base URL 是否带了正确路径（如 OpenAI 兼容通常带 \`/v1\`）
+- 模型名是否存在
+
+## Claude Code 认证冲突
+
+如果出现 token / api key 冲突，重新执行：
+
+\`\`\`bash
+clovapi switch --cli claude-code <profile-name>
+\`\`\`
+
+并确认 Claude 配置中仅保留 clovapi 写入的认证字段。
+
+## OpenCode 切换后看起来“没变化”
+
+优先检查项目级配置是否覆盖全局配置（例如仓库内 \`opencode.json\`）。
+
+## 一键重置
+
+\`\`\`bash
+clovapi reset --yes
+\`\`\`
+
+会清空保存的 profile 和 active 绑定，请谨慎执行。
+`,
   },
 ];

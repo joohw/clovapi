@@ -10,7 +10,6 @@ import { EditorView } from "@codemirror/view";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getDocEndpointPath } from "@/lib/docs";
-import { getUserId } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast-provider";
 import { Loader2, Play } from "lucide-react";
@@ -276,11 +275,6 @@ export function DocsApiTester({
       showError("当前文档端点未配置请求路径");
       return;
     }
-    const uid = getUserId();
-    if (!uid || uid === "-1" || Number(uid) <= 0) {
-      showError("请先登录后再试");
-      return;
-    }
     setSendAttempted(true);
     const jsonErr = getJsonBodyError(body);
     if (jsonErr) {
@@ -304,7 +298,7 @@ export function DocsApiTester({
         headers: {
           "Content-Type": "application/json",
           "Cache-Control": "no-store",
-          "New-Api-User": uid,
+          "New-Api-User": "-1",
         },
         body: serialized,
       });

@@ -1,55 +1,24 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
 import type { ApiDoc } from "@/lib/docs";
-import { getDocEndpointPath } from "@/lib/docs";
-import { getDocVariants } from "./docs-variants";
-import { DocsApiTester } from "./docs-api-tester";
-import { DocsOriginalDocPanel } from "./docs-original-doc-panel";
+import { renderMarkdown } from "@/lib/markdown";
+import styles from "./docs-layout.module.css";
 
 type DocsDocSectionProps = {
   activeDoc: ApiDoc;
-  apiBaseUrl: string;
 };
 
-export function DocsDocSection({ activeDoc, apiBaseUrl }: DocsDocSectionProps) {
-  const variants = useMemo(() => getDocVariants(activeDoc), [activeDoc]);
-  const [sourceId, setSourceId] = useState(() => variants[0]?.id ?? "default");
-
-  useEffect(() => {
-    const first = variants[0]?.id ?? "default";
-    setSourceId((prev) => (variants.some((v) => v.id === prev) ? prev : first));
-  }, [activeDoc.slug, variants]);
-
-  const sourcePresetBodies = useMemo(() => {
-    const out: Partial<Record<string, string>> = {};
-    for (const v of variants) {
-      const raw = v.defaultRequestBody?.trim();
-      if (raw) out[v.id] = raw;
-    }
-    return Object.keys(out).length ? out : undefined;
-  }, [variants]);
-
-  const multiSource = variants.length > 1;
-
+export async function DocsDocSection({ activeDoc }: DocsDocSectionProps) {
+  const html = await renderMarkdown(activeDoc.content);
   return (
-    <>
-      <div className="flex min-h-0 flex-[1_1_0%] flex-col overflow-hidden border-b border-border">
-        <DocsOriginalDocPanel
-          variants={variants}
-          activeSourceId={sourceId}
-          onActiveSourceIdChange={setSourceId}
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-11 shrink-0 items-center border-b border-border px-4 md:px-5">
+        <h2 className="text-sm font-semibold text-foreground">{activeDoc.title}</h2>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto px-4 py-3 md:px-5">
+        <article
+          className={styles.markdown}
+          dangerouslySetInnerHTML={{ __html: html }}
         />
       </div>
-      <div className="flex min-h-0 flex-[1_1_0%] flex-col overflow-hidden">
-        <DocsApiTester
-          apiBaseUrl={apiBaseUrl}
-          endpointPath={getDocEndpointPath(activeDoc.slug)}
-          slug={activeDoc.slug}
-          docSourceId={multiSource ? sourceId : undefined}
-          sourcePresetBodies={multiSource ? sourcePresetBodies : undefined}
-        />
-      </div>
-    </>
+    </div>
   );
 }

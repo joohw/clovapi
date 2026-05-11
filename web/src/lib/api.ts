@@ -1,7 +1,4 @@
-import { clearStoredUser, getUserId } from "@/lib/auth";
-
 const API_BASE = process.env.NEXT_PUBLIC_SERVER_URL?.trim().replace(/\/+$/, "") || "";
-const AUTH_EXPIRED_HINTS = ["未登录", "Unauthorized", "unauthorized"];
 
 function buildUrl(path: string): string {
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
@@ -18,28 +15,8 @@ function shouldRetryWithRelative(path: string): boolean {
 function baseHeaders(): HeadersInit {
   return {
     "Cache-Control": "no-store",
-    "New-Api-User": getUserId(),
+    "New-Api-User": "-1",
   };
-}
-
-function handleAuthExpired(response: Response, payload: any) {
-  if (typeof window === "undefined") return;
-  const hasSession = !!localStorage.getItem("user");
-  if (!hasSession) return;
-  const message = String(payload?.message || "");
-  const unauthorizedByStatus = response.status === 401;
-  const unauthorizedByMessage = AUTH_EXPIRED_HINTS.some((hint) =>
-    message.includes(hint),
-  );
-  if (!unauthorizedByStatus && !unauthorizedByMessage) return;
-  clearStoredUser();
-  const currentPath = window.location.pathname;
-  if (!["/login", "/register", "/reset"].includes(currentPath)) {
-    const redirect = encodeURIComponent(
-      window.location.pathname + window.location.search,
-    );
-    window.location.assign(`/login?redirect=${redirect}`);
-  }
 }
 
 async function parseJsonResponse(response: Response) {
@@ -65,14 +42,12 @@ async function requestJson(path: string, init: RequestInit) {
   try {
     const response = await request(primaryUrl);
     const payload = await parseJsonResponse(response);
-    handleAuthExpired(response, payload);
     return payload;
   } catch (error) {
     if (shouldRetryWithRelative(path)) {
       try {
         const fallbackResponse = await request(path);
         const fallbackPayload = await parseJsonResponse(fallbackResponse);
-        handleAuthExpired(fallbackResponse, fallbackPayload);
         return fallbackPayload;
       } catch {
         // ignore and return original fetch failure

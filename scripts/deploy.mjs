@@ -55,10 +55,8 @@ function shEscape(value) {
 
 function parseRegistryLoginHost(registry) {
   const host = String(registry || "").split("/")[0]?.trim();
-  if (!host) {
-    throw new Error("DOCKER_REGISTRY must include a valid registry host");
-  }
-  return host;
+  if (host) return host;
+  return "docker.io";
 }
 
 function getArgValue(flag) {
@@ -85,8 +83,7 @@ Options:
   --tag <tag>           Image tag (default: latest or DOCKER_IMAGE_TAG)
   --image <name>        Image name without registry (default: clovapi or DOCKER_IMAGE_NAME)
   --container <name>    Remote container name (default: clovapi)
-  --host-port <port>    Remote exposed port (default: 3500)
-  --data-dir <path>     Remote data dir mounted to /data (default: /opt/clovapi/data)
+  --host-port <port>    Remote exposed frontend port (default: 3000)
   --pull-base           Ask docker build to pull newer base images (FROM ...); default is local-only
   --no-image-update     Skip local build/login/push and remote pull
   --dry-run             Print commands only, do not execute
@@ -174,11 +171,11 @@ async function main() {
   const imageName = getArgValue("--image") || deployEnv.DOCKER_IMAGE_NAME || "clovapi";
   const imageTag = getArgValue("--tag") || deployEnv.DOCKER_IMAGE_TAG || "latest";
   const containerName = getArgValue("--container") || deployEnv.REMOTE_CONTAINER_NAME || "clovapi";
-  const backendHostPort = getArgValue("--host-port") || deployEnv.REMOTE_HOST_PORT || "3500";
-  const frontendHostPort = deployEnv.REMOTE_FRONTEND_PORT || "3000";
-  const dataDir = getArgValue("--data-dir") || deployEnv.REMOTE_DATA_DIR || "/opt/clovapi/data";
-  const containerUid = String(deployEnv.REMOTE_CONTAINER_UID || "10001").trim();
-  const containerGid = String(deployEnv.REMOTE_CONTAINER_GID || "10001").trim();
+  const frontendHostPort =
+    getArgValue("--host-port") ||
+    deployEnv.REMOTE_FRONTEND_PORT ||
+    deployEnv.REMOTE_HOST_PORT ||
+    "3000";
   const skipImageUpdate = noImageUpdate || isTruthy(deployEnv.DEPLOY_SKIP_IMAGE_UPDATE);
   /** Prefer local base images (FROM ...) when networking to Docker Hub is flaky; override with --pull-base or DEPLOY_DOCKER_PULL_BASE=true */
   const pullBaseImages =
@@ -199,19 +196,14 @@ async function main() {
     "set -e",
     remoteImagePrepare,
     `(docker rm -f ${shEscape(containerName)} >/dev/null 2>&1 || true)`,
-    `mkdir -p ${shEscape(dataDir)}`,
-    `chown -R ${shEscape(`${containerUid}:${containerGid}`)} ${shEscape(dataDir)}`,
-    `chmod -R u+rwX,go-rwx ${shEscape(dataDir)}`,
-    `docker run -d --name ${shEscape(containerName)} --restart unless-stopped -p ${shEscape(`${frontendHostPort}:3000`)} -p ${shEscape(`${backendHostPort}:3500`)} -v ${shEscape(`${dataDir}:/data`)} --env-file /dev/stdin ${shEscape(imageRef)}`,
+    `docker run -d --name ${shEscape(containerName)} --restart unless-stopped -p ${shEscape(`${frontendHostPort}:3000`)} --env-file /dev/stdin ${shEscape(imageRef)}`,
   ].join(" && ");
 
   console.log("Deploy plan:");
   console.log(`- image: ${imageRef}`);
   console.log(`- remote: ${sshUser}@${sshHost}:${sshPort}`);
   console.log(`- container: ${containerName}`);
-  console.log(`- ports: frontend ${frontendHostPort}->3000, backend ${backendHostPort}->3500`);
-  console.log(`- data dir: ${dataDir}`);
-  console.log(`- data dir owner: ${containerUid}:${containerGid}`);
+  console.log(`- ports: frontend ${frontendHostPort}->3000`);
   console.log(`- env file: ${path.relative(repoRoot, envFilePath)}`);
   console.log(`- image update: ${skipImageUpdate ? "disabled" : "enabled"}`);
   if (!skipImageUpdate) {

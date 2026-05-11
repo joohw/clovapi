@@ -3,7 +3,7 @@ import path from "node:path";
 
 const backendTarget =
   process.env.BACKEND_PROXY_TARGET?.trim().replace(/\/+$/, "") ||
-  "http://127.0.0.1:3500";
+  "http://127.0.0.1:27482";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],

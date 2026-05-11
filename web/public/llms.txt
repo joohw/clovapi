@@ -1,0 +1,19 @@
+# CLOVAPI
+
+> 将 Claude Code / Codex / OpenCode 等 CLI 客户端切换到任意上游：同一 Base URL，后端路由多家第三方供应商（类似 API Switcher）。
+
+## 站点
+- 主页: /
+- 机器可读站点地图: /sitemap.xml
+- 本文件: /llms.txt
+
+## 面向开发者与 Agent 的公开路径
+- 文档与接入说明: /docs
+- 模型列表（公开定价与能力）: /models
+
+## API（OpenAI 兼容风格）
+- 推荐 Base URL: /v1
+- 认证: 请求头 `Authorization: Bearer <用户 API 令牌>`
+
+## 抓取
+- robots.txt: /robots.txt

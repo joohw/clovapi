@@ -6,10 +6,9 @@ import { DocsDocSection } from "./docs-doc-section";
 type DocsLayoutProps = {
   docs: ApiDoc[];
   activeSlug: string;
-  apiBaseUrl: string;
 };
 
-export function DocsLayout({ docs, activeSlug, apiBaseUrl }: DocsLayoutProps) {
+export function DocsLayout({ docs, activeSlug }: DocsLayoutProps) {
   const activeDoc = docs.find((doc) => doc.slug === activeSlug) ?? docs[0];
 
   return (
@@ -58,7 +57,7 @@ export function DocsLayout({ docs, activeSlug, apiBaseUrl }: DocsLayoutProps) {
             )}
           >
             {activeDoc ? (
-              <DocsDocSection key={activeDoc.slug} activeDoc={activeDoc} apiBaseUrl={apiBaseUrl} />
+              <DocsDocSection key={activeDoc.slug} activeDoc={activeDoc} />
             ) : (
               <div className="p-4 text-sm text-zinc-500">
                 <p>暂无文档配置。</p>

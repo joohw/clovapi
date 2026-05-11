@@ -86,7 +86,7 @@ export function UserInfoHeader({ user, status, onRefreshUser }: UserInfoHeaderPr
         if (res?.success && res.data != null && res.data !== "") {
           const code = String(res.data);
           setAffLink(
-            `${window.location.origin}/register?aff=${encodeURIComponent(code)}`,
+            `${window.location.origin}/?aff=${encodeURIComponent(code)}`,
           );
         } else if (res?.message) {
           showError(res.message);

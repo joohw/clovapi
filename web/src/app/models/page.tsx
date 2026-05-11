@@ -1,6 +1,6 @@
 "use client";
 
-import { type SyntheticEvent, useEffect, useMemo, useState } from "react";
+import { type SyntheticEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { apiPut } from "@/lib/api";
 import { useToast } from "@/components/ui/toast-provider";
@@ -9,6 +9,7 @@ import { getStoredUser, isAdminUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import curatedModelsJson from "@/data/curatedmodels.json";
 
 type ModelItem = {
   id?: number;
@@ -56,6 +58,19 @@ type SortKey =
   | null;
 
 type SortDirection = "asc" | "desc" | null;
+type ModelsTab = "recommended" | "all";
+
+type CuratedModelItem = {
+  model: string;
+  provider: string;
+  apiStyle: string;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  inputUsdPerM?: number;
+  outputUsdPerM?: number;
+  cacheReadUsdPerM?: number;
+  notes?: string;
+};
 
 const MODEL_OPTION_KEYS = [
   "ModelInputUSDPerM",
@@ -74,6 +89,7 @@ function fmtPrice(value?: number) {
 }
 
 const PRICE_ALIGN_CLASS = "text-right font-mono tabular-nums";
+const curatedModels = curatedModelsJson as CuratedModelItem[];
 
 function parseNumberMap(raw: unknown) {
   const text = String(raw || "").trim();
@@ -93,6 +109,16 @@ function parseNumberMap(raw: unknown) {
 
 function stringifyMap(map: Record<string, number>) {
   return JSON.stringify(map || {});
+}
+
+function formatInteger(value?: number) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "-";
+  return value.toLocaleString("en-US");
+}
+
+function formatPricePerM(value?: number) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "-";
+  return `$${value.toFixed(3)}`;
 }
 
 export default function ModelsPage() {
@@ -120,6 +146,7 @@ export default function ModelsPage() {
   const [modelPricingSaving, setModelPricingSaving] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [activeTab, setActiveTab] = useState<ModelsTab>("recommended");
 
   function inferVendorNameFromModelName(modelName?: string): string {
     const raw = String(modelName || "").trim();
@@ -188,7 +215,7 @@ export default function ModelsPage() {
     );
   }, [models, search]);
 
-  function getReasoningCapability(model: ModelItem) {
+  const getReasoningCapability = useCallback((model: ModelItem) => {
     const reasoning = model?.spec?.reasoning;
     if (typeof reasoning === "boolean") {
       return { state: reasoning ? "supported" : "unsupported" as const };
@@ -209,7 +236,7 @@ export default function ModelsPage() {
       return { state: "supported" as const };
     }
     return { state: "unknown" as const };
-  }
+  }, []);
 
   function toggleSort(key: Exclude<SortKey, null>) {
     if (sortKey !== key) {
@@ -230,7 +257,7 @@ export default function ModelsPage() {
     return sortDirection === "asc" ? "↑" : "↓";
   }
 
-  function getSortValue(model: ModelItem, key: Exclude<SortKey, null>) {
+  const getSortValue = useCallback((model: ModelItem, key: Exclude<SortKey, null>) => {
     switch (key) {
       case "model_name":
         return String(model.model_name || "").toLowerCase();
@@ -257,7 +284,7 @@ export default function ModelsPage() {
       default:
         return null;
     }
-  }
+  }, [getReasoningCapability]);
 
   const sorted = useMemo(() => {
     if (!sortKey || !sortDirection) return filtered;
@@ -273,7 +300,7 @@ export default function ModelsPage() {
       if (typeof av === "number" && typeof bv === "number") return (av - bv) * factor;
       return String(av).localeCompare(String(bv), "zh-Hans-CN") * factor;
     });
-  }, [filtered, sortDirection, sortKey]);
+  }, [filtered, sortDirection, sortKey, getSortValue]);
 
   async function copyModelName(name?: string) {
     if (!name) return;
@@ -403,131 +430,196 @@ export default function ModelsPage() {
       <div className="mx-auto flex min-h-0 min-w-0 w-full max-w-7xl flex-1 flex-col overflow-hidden px-4 pb-4 pt-4 sm:px-6 sm:pb-6 sm:pt-6">
       <section className="panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <div className="panel-body flex min-h-0 flex-1 flex-col">
-          <input className={formInputClass} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索模型/描述/标签" />
-          {loading ? <p className="mt-3 text-sm text-zinc-500">加载中...</p> : null}
-          {!loading && filtered.length === 0 ? <p className="mt-3 text-sm text-zinc-500">暂无数据</p> : null}
-          {!loading && filtered.length > 0 ? (
-            <div className="table-wrap mt-3 min-h-0 flex-1">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th className="sticky top-0 z-20 bg-background">
-                      <button type="button" className="flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("model_name")}>
-                        模型
-                        <span className="text-xs opacity-70">{sortIndicator("model_name")}</span>
-                      </button>
-                    </th>
-                    <th className="sticky top-0 z-20 bg-background">
-                      <button type="button" className="flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("vendor_name")}>
-                        供应商
-                        <span className="text-xs opacity-70">{sortIndicator("vendor_name")}</span>
-                      </button>
-                    </th>
-                    <th className="sticky top-0 z-20 bg-background">
-                      <button type="button" className="flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("reasoning")}>
-                        推理能力
-                        <span className="text-xs opacity-70">{sortIndicator("reasoning")}</span>
-                      </button>
-                    </th>
-                    <th className="sticky top-0 z-20 bg-background" title="在成本与分组倍率之上的模型溢价，默认 1">
-                      <button type="button" className="flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("premium_ratio")}>
-                        溢价
-                        <span className="text-xs opacity-70">{sortIndicator("premium_ratio")}</span>
-                      </button>
-                    </th>
-                    <th className="sticky top-0 z-20 bg-background text-right">
-                      <button type="button" className="ml-auto flex cursor-pointer items-center justify-end gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("input_price")}>
-                        输入价格
-                        <span className="text-xs opacity-70">{sortIndicator("input_price")}</span>
-                      </button>
-                    </th>
-                    <th className="sticky top-0 z-20 bg-background text-right">
-                      <button type="button" className="ml-auto flex cursor-pointer items-center justify-end gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("output_price")}>
-                        输出价格
-                        <span className="text-xs opacity-70">{sortIndicator("output_price")}</span>
-                      </button>
-                    </th>
-                    <th className="sticky top-0 z-20 bg-background text-right">
-                      <button type="button" className="ml-auto flex cursor-pointer items-center justify-end gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("cache_read_price")}>
-                        缓存命中
-                        <span className="text-xs opacity-70">{sortIndicator("cache_read_price")}</span>
-                      </button>
-                    </th>
-                    <th className="sticky top-0 z-20 bg-background text-right">
-                      <button type="button" className="ml-auto flex cursor-pointer items-center justify-end gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("per_call_price")}>
-                        单次价格
-                        <span className="text-xs opacity-70">{sortIndicator("per_call_price")}</span>
-                      </button>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sorted.map((model, idx) => (
-                    <tr
-                      key={`${model.model_name || "model"}-${idx}`}
-                      onContextMenu={(event) => {
-                        if (!isAdmin) return;
-                        event.preventDefault();
-                        setContextMenu({
-                          x: event.clientX,
-                          y: event.clientY,
-                          model,
-                        });
-                      }}
-                    >
-                      <td>
-                        <button type="button" className="text-left text-foreground hover:underline" onClick={() => void copyModelName(model.model_name)}>
-                          {model.model_name || "-"}
-                        </button>
-                      </td>
-                      <td>
-                        {model.vendor_name ? (
-                          <div className="flex items-center gap-2">
-                            {resolveVendorIcon(model.vendor_icon, model.vendor_name, model.model_name) ? (
-                              <img
-                                src={resolveVendorIcon(model.vendor_icon, model.vendor_name, model.model_name)}
-                                alt={model.vendor_name}
-                                className="h-4 w-4 rounded-sm dark:invert"
-                                onError={(event) => onVendorIconError(event, model)}
-                              />
-                            ) : null}
-                            <span>{model.vendor_name}</span>
-                          </div>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-                      <td>
-                        {(() => {
-                          const capability = getReasoningCapability(model);
-                          if (capability.state === "supported") {
-                            return (
-                              <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                                支持
-                              </span>
-                            );
-                          }
-                          if (capability.state === "unsupported") {
-                            return (
-                              <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                                不支持
-                              </span>
-                            );
-                          }
-                          return <span className="text-sm text-zinc-500">-</span>;
-                        })()}
-                      </td>
-                      <td>{typeof model.premium_ratio === "number" ? model.premium_ratio.toFixed(3) : "-"}</td>
-                      <td className={PRICE_ALIGN_CLASS}>{fmtPrice(model.input_price)}</td>
-                      <td className={PRICE_ALIGN_CLASS}>{fmtPrice(model.output_price)}</td>
-                      <td className={PRICE_ALIGN_CLASS}>{model.quota_type === 0 ? fmtPrice(model.cache_read_price) : "-"}</td>
-                      <td className={PRICE_ALIGN_CLASS}>{model.quota_type === 1 ? fmtPrice(model.input_price) : "-"}</td>
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as ModelsTab)}
+            className="min-h-0 flex-1"
+          >
+            <TabsList variant="line" className="w-fit p-0">
+              <TabsTrigger value="recommended" className="px-3">
+                模型推荐
+              </TabsTrigger>
+              <TabsTrigger value="all" className="px-3">
+                全量模型定价
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="recommended" className="mt-3 min-h-0 flex-1">
+              <div className="table-wrap min-h-0 flex-1">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th className="sticky top-0 z-20 bg-background">模型</th>
+                      <th className="sticky top-0 z-20 bg-background">供应商</th>
+                      <th className="sticky top-0 z-20 bg-background">API 风格</th>
+                      <th className="sticky top-0 z-20 bg-background text-right">上下文窗口</th>
+                      <th className="sticky top-0 z-20 bg-background text-right">输出上限</th>
+                      <th className="sticky top-0 z-20 bg-background text-right">输入价格</th>
+                      <th className="sticky top-0 z-20 bg-background text-right">输出价格</th>
+                      <th className="sticky top-0 z-20 bg-background text-right">缓存命中</th>
+                      <th className="sticky top-0 z-20 bg-background">说明</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
+                  </thead>
+                  <tbody>
+                    {curatedModels.map((model) => (
+                      <tr key={`${model.provider}-${model.model}`}>
+                        <td>
+                          <button
+                            type="button"
+                            className="text-left text-foreground hover:underline"
+                            onClick={() => void copyModelName(model.model)}
+                          >
+                            {model.model}
+                          </button>
+                        </td>
+                        <td>{model.provider}</td>
+                        <td>{model.apiStyle}</td>
+                        <td className={PRICE_ALIGN_CLASS}>{formatInteger(model.contextWindow)}</td>
+                        <td className={PRICE_ALIGN_CLASS}>{formatInteger(model.maxOutputTokens)}</td>
+                        <td className={PRICE_ALIGN_CLASS}>{formatPricePerM(model.inputUsdPerM)}</td>
+                        <td className={PRICE_ALIGN_CLASS}>{formatPricePerM(model.outputUsdPerM)}</td>
+                        <td className={PRICE_ALIGN_CLASS}>{formatPricePerM(model.cacheReadUsdPerM)}</td>
+                        <td>{model.notes || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="all" className="mt-3 min-h-0 flex-1 flex-col">
+              <input
+                className={formInputClass}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="搜索模型/描述/标签"
+              />
+              {loading ? <p className="mt-3 text-sm text-zinc-500">加载中...</p> : null}
+              {!loading && filtered.length === 0 ? <p className="mt-3 text-sm text-zinc-500">暂无数据</p> : null}
+              {!loading && filtered.length > 0 ? (
+                <div className="table-wrap mt-3 min-h-0 flex-1">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th className="sticky top-0 z-20 bg-background">
+                          <button type="button" className="flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("model_name")}>
+                            模型
+                            <span className="text-xs opacity-70">{sortIndicator("model_name")}</span>
+                          </button>
+                        </th>
+                        <th className="sticky top-0 z-20 bg-background">
+                          <button type="button" className="flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("vendor_name")}>
+                            供应商
+                            <span className="text-xs opacity-70">{sortIndicator("vendor_name")}</span>
+                          </button>
+                        </th>
+                        <th className="sticky top-0 z-20 bg-background">
+                          <button type="button" className="flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("reasoning")}>
+                            推理能力
+                            <span className="text-xs opacity-70">{sortIndicator("reasoning")}</span>
+                          </button>
+                        </th>
+                        <th className="sticky top-0 z-20 bg-background" title="在成本与分组倍率之上的模型溢价，默认 1">
+                          <button type="button" className="flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("premium_ratio")}>
+                            溢价
+                            <span className="text-xs opacity-70">{sortIndicator("premium_ratio")}</span>
+                          </button>
+                        </th>
+                        <th className="sticky top-0 z-20 bg-background text-right">
+                          <button type="button" className="ml-auto flex cursor-pointer items-center justify-end gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("input_price")}>
+                            输入价格
+                            <span className="text-xs opacity-70">{sortIndicator("input_price")}</span>
+                          </button>
+                        </th>
+                        <th className="sticky top-0 z-20 bg-background text-right">
+                          <button type="button" className="ml-auto flex cursor-pointer items-center justify-end gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("output_price")}>
+                            输出价格
+                            <span className="text-xs opacity-70">{sortIndicator("output_price")}</span>
+                          </button>
+                        </th>
+                        <th className="sticky top-0 z-20 bg-background text-right">
+                          <button type="button" className="ml-auto flex cursor-pointer items-center justify-end gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("cache_read_price")}>
+                            缓存命中
+                            <span className="text-xs opacity-70">{sortIndicator("cache_read_price")}</span>
+                          </button>
+                        </th>
+                        <th className="sticky top-0 z-20 bg-background text-right">
+                          <button type="button" className="ml-auto flex cursor-pointer items-center justify-end gap-1 transition-colors hover:text-foreground" onClick={() => toggleSort("per_call_price")}>
+                            单次价格
+                            <span className="text-xs opacity-70">{sortIndicator("per_call_price")}</span>
+                          </button>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sorted.map((model, idx) => (
+                        <tr
+                          key={`${model.model_name || "model"}-${idx}`}
+                          onContextMenu={(event) => {
+                            if (!isAdmin) return;
+                            event.preventDefault();
+                            setContextMenu({
+                              x: event.clientX,
+                              y: event.clientY,
+                              model,
+                            });
+                          }}
+                        >
+                          <td>
+                            <button type="button" className="text-left text-foreground hover:underline" onClick={() => void copyModelName(model.model_name)}>
+                              {model.model_name || "-"}
+                            </button>
+                          </td>
+                          <td>
+                            {model.vendor_name ? (
+                              <div className="flex items-center gap-2">
+                                {resolveVendorIcon(model.vendor_icon, model.vendor_name, model.model_name) ? (
+                                  <img
+                                    src={resolveVendorIcon(model.vendor_icon, model.vendor_name, model.model_name)}
+                                    alt={model.vendor_name}
+                                    className="h-4 w-4 rounded-sm dark:invert"
+                                    onError={(event) => onVendorIconError(event, model)}
+                                  />
+                                ) : null}
+                                <span>{model.vendor_name}</span>
+                              </div>
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                          <td>
+                            {(() => {
+                              const capability = getReasoningCapability(model);
+                              if (capability.state === "supported") {
+                                return (
+                                  <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                    支持
+                                  </span>
+                                );
+                              }
+                              if (capability.state === "unsupported") {
+                                return (
+                                  <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                    不支持
+                                  </span>
+                                );
+                              }
+                              return <span className="text-sm text-zinc-500">-</span>;
+                            })()}
+                          </td>
+                          <td>{typeof model.premium_ratio === "number" ? model.premium_ratio.toFixed(3) : "-"}</td>
+                          <td className={PRICE_ALIGN_CLASS}>{fmtPrice(model.input_price)}</td>
+                          <td className={PRICE_ALIGN_CLASS}>{fmtPrice(model.output_price)}</td>
+                          <td className={PRICE_ALIGN_CLASS}>{model.quota_type === 0 ? fmtPrice(model.cache_read_price) : "-"}</td>
+                          <td className={PRICE_ALIGN_CLASS}>{model.quota_type === 1 ? fmtPrice(model.input_price) : "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </TabsContent>
+          </Tabs>
         </div>
       </section>
       </div>

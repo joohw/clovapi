@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClovAPI CLI Client</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="background-grid" aria-hidden="true"></div>
+    <main class="app-shell">
+      <header class="app-header">
+        <div class="brand">
+          <div class="dot"></div>
+          <div>
+            <p class="eyebrow">Agent-first CLI</p>
+            <h1>ClovAPI Desktop Client</h1>
+          </div>
+        </div>
+        <p class="hint">Minimal command runner with website-inspired styling.</p>
+      </header>
+
+      <section class="panel controls">
+        <label class="field">
+          <span>Command</span>
+          <input id="commandInput" type="text" value="clovapi --help" />
+        </label>
+        <label class="field">
+          <span>Working directory</span>
+          <input id="cwdInput" type="text" />
+        </label>
+        <div class="actions">
+          <button id="runButton" class="btn btn-primary">Run</button>
+          <button id="stopButton" class="btn">Stop</button>
+          <button id="clearButton" class="btn">Clear</button>
+          <button id="exampleButton" class="btn">Use Example</button>
+        </div>
+      </section>
+
+      <section class="panel output-panel">
+        <div class="output-header">
+          <p>Output</p>
+          <span id="statusBadge" class="badge">Idle</span>
+        </div>
+        <pre id="output"></pre>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

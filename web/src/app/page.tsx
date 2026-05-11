@@ -46,6 +46,7 @@ const ORIGINAL_DOCS: HomeOriginalDoc[] = [
 ];
 
 const INSTALL_COMMANDS: HomeInstallCommand[] = [
+  { id: "curl", label: "curl", command: "curl -fsSL https://raw.githubusercontent.com/clovapi/clovapi/main/install.sh | bash" },
   { id: "npm", label: "npm", command: "npm i -g @clovapi/cli" },
   { id: "brew", label: "Homebrew", command: "brew tap clovapi/tap && brew install clovapi" },
   { id: "winget", label: "winget", command: "winget install Clovapi.Clovapi" },
@@ -293,7 +294,7 @@ export default function HomePage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       key={provider.id}
-                      src={`/models-dev-logos/${provider.id}.svg`}
+                      src={`/vendor-icons/${provider.id}.svg`}
                       alt={provider.alt}
                       className={`${styles.providerIcon} opacity-90 transition-opacity duration-200 hover:opacity-100`}
                       width="32"

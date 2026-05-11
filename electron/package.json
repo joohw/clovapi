@@ -1,0 +1,15 @@
+{
+  "name": "clovapi-desktop-minimal",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Minimal desktop CLI runner for ClovAPI",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^42.0.1"
+  }
+}

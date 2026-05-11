@@ -32,8 +32,9 @@ export function SiteHeader() {
   const headerLinks = useMemo<HeaderLink[]>(() => {
     return [
       { text: "首页", to: "/" },
-      { text: "模型", to: "/models" },
       { text: "文档", to: "/docs" },
+      { text: "模型", to: "/models" },
+      { text: "智能体", to: "/agents" },
     ];
   }, []);
 

@@ -7,8 +7,12 @@
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "dev:api": "go run ./backend",
+    "dev:api": "go -C backend run . -port 27482",
     "dev:web": "npm --prefix web run dev",
-    "deploy": "node scripts/deploy.mjs"
+    "deploy": "node scripts/deploy.mjs",
+    "switcher:test": "go -C switcher test ./...",
+    "switcher:build": "go -C switcher build -o clovapi ./cmd/clovapi",
+    "switcher:build:versioned": "go -C switcher build -ldflags \"-X main.version=dev-local -X main.commit=local -X main.date=local\" -o clovapi ./cmd/clovapi",
+    "switcher:npm:pack": "cd switcher/npm && npm pack --dry-run"
   }
 }

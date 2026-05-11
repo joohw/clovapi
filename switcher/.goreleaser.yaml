@@ -1,0 +1,62 @@
+project_name: clovapi
+
+dist: dist
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: clovapi
+    main: ./cmd/clovapi
+    binary: clovapi
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+
+archives:
+  - id: default
+    builds:
+      - clovapi
+    name_template: "clovapi_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: checksums.txt
+
+brews:
+  - name: clovapi
+    ids:
+      - default
+    repository:
+      owner: clovapi
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: clovapi-bot
+      email: bot@clovapi.dev
+    homepage: "https://github.com/joohw/new-api"
+    description: "CLI profile switcher for coding agents"
+    license: "MIT"
+    test: |
+      system "#{bin}/clovapi", "version"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

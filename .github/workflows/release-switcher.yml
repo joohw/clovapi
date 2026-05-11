@@ -1,0 +1,106 @@
+name: release-switcher
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without leading v (for npm/winget only)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: switcher
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: switcher/go.mod
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Setup GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          install-only: true
+
+      - name: GoReleaser (release + brew)
+        if: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+        run: goreleaser release --clean --config .goreleaser.yaml
+
+      - name: GoReleaser (release only, skip brew)
+        if: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN == '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: goreleaser release --clean --config .goreleaser.yaml --skip=brew
+
+  npm:
+    runs-on: ubuntu-latest
+    needs: goreleaser
+    if: ${{ secrets.NPM_TOKEN != '' }}
+    defaults:
+      run:
+        working-directory: switcher/npm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Sync package version from tag
+        if: ${{ github.ref_type == 'tag' }}
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version
+
+      - name: Sync package version from input
+        if: ${{ github.ref_type != 'tag' && inputs.version != '' }}
+        run: npm version "${{ inputs.version }}" --no-git-tag-version
+
+      - name: Publish npm package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+
+  winget:
+    runs-on: windows-latest
+    needs: goreleaser
+    if: ${{ github.ref_type == 'tag' && secrets.WINGET_CREATE_TOKEN != '' }}
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: switcher/packaging/winget
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install wingetcreate
+        run: winget install --id Microsoft.WingetCreate --source winget --accept-source-agreements --accept-package-agreements
+
+      - name: Submit winget update PR
+        env:
+          WINGET_CREATE_TOKEN: ${{ secrets.WINGET_CREATE_TOKEN }}
+        run: |
+          $version = "${env:GITHUB_REF_NAME}".TrimStart("v")
+          wingetcreate update Clovapi.Clovapi --version $version --submit --token $env:WINGET_CREATE_TOKEN

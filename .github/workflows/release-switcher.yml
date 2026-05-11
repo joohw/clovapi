@@ -48,7 +48,7 @@ jobs:
           if [ -n "$HOMEBREW_TAP_GITHUB_TOKEN" ]; then
             goreleaser release --clean --config .goreleaser.yaml
           else
-            goreleaser release --clean --config .goreleaser.yaml --skip=brew
+            goreleaser release --clean --config .goreleaser.yaml --skip=homebrew
           fi
 
   npm:

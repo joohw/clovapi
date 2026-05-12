@@ -36,8 +36,9 @@ function getReleaseCoordinates() {
   }
 
   const versionTag = `v${pkg.version}`;
+  const artifactVersion = pkg.version;
   const ext = osName === "windows" ? "zip" : "tar.gz";
-  const archiveName = `clovapi_${versionTag}_${osName}_${archName}.${ext}`;
+  const archiveName = `clovapi_${artifactVersion}_${osName}_${archName}.${ext}`;
 
   return {
     osName,

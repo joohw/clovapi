@@ -13,7 +13,7 @@ export function getDocVariants(doc: ApiDoc): ApiDocOriginalSource[] {
         originalEndpoint: doc.originalEndpoint,
         originalDocUrl: doc.originalDocUrl,
         originalDocLabel: doc.originalDocLabel || "原始文档",
-        curlExample: doc.curlExample,
+        curlExample: doc.curlExample || "",
       },
     ];
   }
@@ -24,7 +24,7 @@ export function getDocVariants(doc: ApiDoc): ApiDocOriginalSource[] {
       originalEndpoint: "",
       originalDocUrl: "",
       originalDocLabel: "",
-      curlExample: doc.curlExample,
+      curlExample: doc.curlExample || "",
     },
   ];
 }

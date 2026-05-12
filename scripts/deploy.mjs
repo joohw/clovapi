@@ -149,6 +149,11 @@ async function main() {
   const repoRoot = process.cwd();
   const configPath = path.resolve(repoRoot, getArgValue("--config") || ".env.deploy");
   const envFilePath = path.resolve(repoRoot, getArgValue("--env-file") || ".env");
+  const dockerfilePath = path.resolve(repoRoot, "web/Dockerfile.frontend");
+
+  if (!fs.existsSync(dockerfilePath)) {
+    throw new Error(`dockerfile not found: ${dockerfilePath}`);
+  }
 
   const { env: deployEnv } = parseEnvFile(configPath);
   const { raw: runtimeEnvRaw } = parseEnvFile(envFilePath);
@@ -200,6 +205,8 @@ async function main() {
   ].join(" && ");
 
   console.log("Deploy plan:");
+  console.log("- mode: frontend-only");
+  console.log(`- dockerfile: ${path.relative(repoRoot, dockerfilePath)}`);
   console.log(`- image: ${imageRef}`);
   console.log(`- remote: ${sshUser}@${sshHost}:${sshPort}`);
   console.log(`- container: ${containerName}`);
@@ -218,8 +225,8 @@ async function main() {
     // 1. Build local docker image
     console.log("\n[1/6] Building local docker image...");
     const buildArgs = pullBaseImages
-      ? ["build", "--pull=true", "-t", imageRef, "."]
-      : ["build", "--pull=false", "-t", imageRef, "."];
+      ? ["build", "--pull=true", "-f", dockerfilePath, "-t", imageRef, "."]
+      : ["build", "--pull=false", "-f", dockerfilePath, "-t", imageRef, "."];
     await run("docker", buildArgs, { cwd: repoRoot });
 
     // 2. Login and push

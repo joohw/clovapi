@@ -4,7 +4,7 @@
   "description": "Install clovapi CLI from GitHub Releases",
   "repository": {
     "type": "git",
-    "url": "https://github.com/joohw/new-api.git",
+    "url": "https://github.com/joohw/clovapi.git",
     "directory": "switcher/npm"
   },
   "license": "MIT",

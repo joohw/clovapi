@@ -129,9 +129,18 @@ Paths expand correctly on Windows (user profile / AppData).
 
 - Tag `vX.Y.Z` to trigger `.github/workflows/release-switcher.yml`.
 - `switcher/.goreleaser.yaml` builds darwin/linux/windows archives and `checksums.txt`.
-- npm package (`switcher/npm`) downloads those archives at install time and verifies SHA256.
+- Release workflow can upload archives, `checksums.txt`, and `latest.txt` to Cloudflare R2 (when R2 secrets are set).
+- npm package (`switcher/npm`) prefers the R2 mirror at install time, then falls back to GitHub Releases.
 - Homebrew formula is updated through GoReleaser to `clovapi/homebrew-tap` when `HOMEBREW_TAP_GITHUB_TOKEN` is set.
 - winget submit is driven by `wingetcreate` when `WINGET_CREATE_TOKEN` is set.
+
+Cloudflare R2 secrets used by workflow:
+
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET`
+- `R2_ARTIFACT_PREFIX` (optional, defaults to `clovapi`)
 
 ## DeepSeek + Claude Code (Anthropic-compatible)
 

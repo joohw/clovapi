@@ -3,11 +3,9 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Copy, Sparkles } from "lucide-react";
-import { apiGet } from "@/lib/api";
-import { renderMarkdown } from "@/lib/markdown";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast-provider";
-import { HOME_CLI_CLIENTS, HOME_TITLE, SITE_NAME } from "@/lib/site";
+import { HOME_CLI_CLIENTS, SITE_NAME } from "@/lib/site";
 import styles from "./page.module.css";
 
 type HomeOriginalDoc = {
@@ -46,7 +44,7 @@ const ORIGINAL_DOCS: HomeOriginalDoc[] = [
 ];
 
 const INSTALL_COMMANDS: HomeInstallCommand[] = [
-  { id: "curl", label: "curl", command: "curl -fsSL https://raw.githubusercontent.com/clovapi/clovapi/main/install.sh | bash" },
+  { id: "curl", label: "curl", command: "curl -fsSL https://downloads.clovapi.com/install.sh | bash" },
   { id: "npm", label: "npm", command: "npm i -g @clovapi/cli" },
   { id: "brew", label: "Homebrew", command: "brew tap clovapi/tap && brew install clovapi" },
   { id: "winget", label: "winget", command: "winget install Clovapi.Clovapi" },
@@ -83,32 +81,23 @@ function LandingQuietBackdrop() {
 
 export default function HomePage() {
   const { showError, showSuccess } = useToast();
-  const [status, setStatus] = useState<Record<string, any>>({});
-  const [notice, setNotice] = useState("");
-  const [homeContent, setHomeContent] = useState("");
-  const [homeContentLoaded, setHomeContentLoaded] = useState(false);
   const [clientOrigin, setClientOrigin] = useState("");
   const [cliIndex, setCliIndex] = useState(0);
   const [installTab, setInstallTab] = useState(INSTALL_COMMANDS[0]?.id || "npm");
 
-  const showDefaultLanding = homeContentLoaded && !homeContent;
+  const showDefaultLanding = true;
 
   useEffect(() => {
-    if (!showDefaultLanding) {
-      document.title = HOME_TITLE;
-      return;
-    }
     document.title = `将 ${HOME_CLI_CLIENTS[cliIndex]} 切换为任意上游 · ${SITE_NAME}`;
-  }, [showDefaultLanding, cliIndex]);
+  }, [cliIndex]);
 
   useEffect(() => {
-    if (!showDefaultLanding) return undefined;
     const intervalMs = 3200;
     const id = window.setInterval(() => {
       setCliIndex((i) => (i + 1) % HOME_CLI_CLIENTS.length);
     }, intervalMs);
     return () => window.clearInterval(id);
-  }, [showDefaultLanding]);
+  }, []);
 
   const publicSiteUrl = useMemo(
     () => (process.env.NEXT_PUBLIC_SITE_URL || "").trim().replace(/\/+$/, "") || clientOrigin || "/",
@@ -117,31 +106,6 @@ export default function HomePage() {
 
   useEffect(() => {
     setClientOrigin(window.location.origin);
-    const init = async () => {
-      try {
-        const [statusRes, noticeRes, homeRes] = await Promise.all([
-          apiGet("/api/status"),
-          apiGet("/api/notice"),
-          apiGet("/api/home_page_content"),
-        ]);
-        if (statusRes?.success && statusRes?.data) {
-          setStatus(statusRes.data);
-          localStorage.setItem("status", JSON.stringify(statusRes.data));
-        }
-        if (noticeRes?.success && noticeRes.data) setNotice(String(noticeRes.data));
-        if (homeRes?.success) {
-          const data = String(homeRes.data || "");
-          if (data && !data.startsWith("https://")) {
-            setHomeContent(await renderMarkdown(data));
-          } else {
-            setHomeContent(data);
-          }
-        }
-      } finally {
-        setHomeContentLoaded(true);
-      }
-    };
-    void init();
   }, []);
 
   async function copyInstallCommand(command: string) {
@@ -153,18 +117,11 @@ export default function HomePage() {
     }
   }
 
-  /** 未配置自定义首页内容时展示（加载过程中 homeContent 仍为空，可先显示极光背景） */
-  const showLandingBackdrop = !homeContent;
+  const showLandingBackdrop = true;
 
   return (
     <div className={`page-wrap ${styles.home} relative `}>
       {showLandingBackdrop ? <LandingQuietBackdrop /> : null}
-      {notice ? (
-        <div className="mx-auto mb-6 max-w-6xl rounded-xl bg-muted/40 px-4 py-3 text-left text-sm leading-relaxed text-foreground/90 backdrop-blur-sm">
-          {notice}
-        </div>
-      ) : null}
-
       {showDefaultLanding ? (
         <div className="relative z-[1] w-full min-w-0">
           <div className="home-landing relative mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-8 pb-14 pt-1 sm:gap-10 sm:pb-16 sm:pt-2 md:pt-4">
@@ -222,16 +179,6 @@ export default function HomePage() {
                   查看教程
                   <ArrowRight className="size-4 opacity-70" aria-hidden />
                 </Link>
-                {Boolean(status?.demo_site_enabled) && status?.version ? (
-                  <button
-                    className="btn btn-outline"
-                    onClick={() =>
-                      window.open("https://github.com/QuantumNous/new-api", "_blank")
-                    }
-                  >
-                    {String(status.version)}
-                  </button>
-                ) : null}
               </div>
             </section>
 
@@ -318,24 +265,6 @@ export default function HomePage() {
               </p>
             </footer>
           </div>
-        </div>
-      ) : null}
-
-      {homeContentLoaded && homeContent.startsWith("https://") ? (
-        <iframe
-          title="home-page-content"
-          src={homeContent}
-          style={{
-            width: "100%",
-            height: "calc(100dvh - var(--app-main-padding-top, 4.5rem))",
-            border: "none",
-          }}
-        ></iframe>
-      ) : null}
-
-      {homeContentLoaded && homeContent && !homeContent.startsWith("https://") ? (
-        <div className="prose prose-base max-w-none p-0 dark:prose-invert prose-headings:font-semibold prose-p:leading-relaxed prose-li:leading-relaxed prose-pre:bg-muted/30 prose-code:before:content-none prose-code:after:content-none">
-          <div dangerouslySetInnerHTML={{ __html: homeContent }} />
         </div>
       ) : null}
 

@@ -13,7 +13,7 @@ This directory stores templates and helper scripts for publishing `clovapi` to `
 ## Manual rendering
 
 ```powershell
-pwsh -File .\render.ps1 -Version 0.1.0 -Repo joohw/new-api
+pwsh -File .\render.ps1 -Version 0.1.0 -Repo joohw/clovapi
 ```
 
 Generated manifests are written to `generated/`.

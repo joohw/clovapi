@@ -56,6 +56,24 @@ async function download(url) {
   return Buffer.from(arr);
 }
 
+function trimTrailingSlash(input) {
+  return String(input || "").replace(/\/+$/, "");
+}
+
+function buildBaseUrlCandidates(versionTag) {
+  if (process.env.CLOVAPI_CLI_BASE_URL) {
+    return [trimTrailingSlash(process.env.CLOVAPI_CLI_BASE_URL)];
+  }
+
+  const bases = [];
+  const r2Base = trimTrailingSlash(
+    process.env.CLOVAPI_R2_BASE_URL || `https://downloads.clovapi.com/clovapi/${versionTag}`
+  );
+  if (r2Base) bases.push(r2Base);
+  bases.push(`https://github.com/joohw/clovapi/releases/download/${versionTag}`);
+  return bases;
+}
+
 function parseChecksum(checksumContent, fileName) {
   const line = checksumContent
     .split(/\r?\n/)
@@ -94,25 +112,39 @@ async function extractArchive(archivePath, archiveName, outDir) {
 
 async function main() {
   const { versionTag, archiveName } = getReleaseCoordinates();
-  const baseUrl =
-    process.env.CLOVAPI_CLI_BASE_URL ||
-    `https://github.com/joohw/new-api/releases/download/${versionTag}`;
+  const baseCandidates = buildBaseUrlCandidates(versionTag);
+  let checksumBuffer = null;
+  let archiveBuffer = null;
+  let usedBaseUrl = "";
+  let lastError = null;
 
-  const checksumUrl = `${baseUrl}/checksums.txt`;
-  const archiveUrl = `${baseUrl}/${archiveName}`;
-
-  console.log(`[clovapi install] downloading ${archiveName}`);
-
-  const [checksumBuffer, archiveBuffer] = await Promise.all([
-    download(checksumUrl),
-    download(archiveUrl),
-  ]);
-
-  const expected = parseChecksum(checksumBuffer.toString("utf8"), archiveName);
-  const actual = sha256(archiveBuffer);
-  if (expected !== actual) {
-    throw new Error(`checksum mismatch for ${archiveName}`);
+  for (const baseUrl of baseCandidates) {
+    const checksumUrl = `${baseUrl}/checksums.txt`;
+    const archiveUrl = `${baseUrl}/${archiveName}`;
+    try {
+      console.log(`[clovapi install] trying ${baseUrl}`);
+      [checksumBuffer, archiveBuffer] = await Promise.all([
+        download(checksumUrl),
+        download(archiveUrl),
+      ]);
+      const expected = parseChecksum(checksumBuffer.toString("utf8"), archiveName);
+      const actual = sha256(archiveBuffer);
+      if (expected !== actual) {
+        throw new Error(`checksum mismatch for ${archiveName}`);
+      }
+      usedBaseUrl = baseUrl;
+      break;
+    } catch (error) {
+      lastError = error;
+      console.warn(`[clovapi install] source failed: ${baseUrl}`);
+    }
   }
+
+  if (!checksumBuffer || !archiveBuffer) {
+    throw new Error(`all sources failed: ${lastError ? lastError.message : "unknown error"}`);
+  }
+
+  console.log(`[clovapi install] downloading ${archiveName} from ${usedBaseUrl}`);
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clovapi-install-"));
   const archivePath = path.join(tmpDir, archiveName);

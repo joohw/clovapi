@@ -47,7 +47,7 @@ brews:
     commit_author:
       name: clovapi-bot
       email: bot@clovapi.dev
-    homepage: "https://github.com/joohw/new-api"
+    homepage: "https://github.com/joohw/clovapi"
     description: "CLI profile switcher for coding agents"
     license: "MIT"
     test: |

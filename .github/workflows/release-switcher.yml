@@ -51,6 +51,58 @@ jobs:
             goreleaser release --clean --config .goreleaser.yaml --skip=homebrew
           fi
 
+      - name: Decide R2 publish
+        id: r2_gate
+        working-directory: .
+        run: |
+          if [ -n "${{ secrets.R2_ACCOUNT_ID }}" ] && [ -n "${{ secrets.R2_ACCESS_KEY_ID }}" ] && [ -n "${{ secrets.R2_SECRET_ACCESS_KEY }}" ] && [ -n "${{ secrets.R2_BUCKET }}" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Python
+        if: ${{ steps.r2_gate.outputs.publish == 'true' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install awscli
+        if: ${{ steps.r2_gate.outputs.publish == 'true' }}
+        run: pip install --upgrade awscli
+
+      - name: Upload release artifacts to Cloudflare R2
+        if: ${{ steps.r2_gate.outputs.publish == 'true' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ARTIFACT_PREFIX: ${{ secrets.R2_ARTIFACT_PREFIX }}
+          RELEASE_INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+
+          version_tag=""
+          if [[ "${GITHUB_REF_NAME:-}" == v* ]]; then
+            version_tag="${GITHUB_REF_NAME}"
+          elif [[ -n "${RELEASE_INPUT_VERSION:-}" ]]; then
+            version_tag="v${RELEASE_INPUT_VERSION}"
+          else
+            echo "No tag/input version found, skip R2 upload."
+            exit 0
+          fi
+
+          artifact_prefix="${R2_ARTIFACT_PREFIX:-clovapi}"
+          endpoint_url="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          target_prefix="s3://${R2_BUCKET}/${artifact_prefix}/${version_tag}"
+
+          aws --endpoint-url "${endpoint_url}" s3 cp dist/ "${target_prefix}/" --recursive
+          printf "%s" "${version_tag}" > /tmp/latest.txt
+          aws --endpoint-url "${endpoint_url}" s3 cp /tmp/latest.txt "s3://${R2_BUCKET}/${artifact_prefix}/latest.txt"
+          aws --endpoint-url "${endpoint_url}" s3 cp ../web/public/install.sh "s3://${R2_BUCKET}/install.sh"
+
   npm:
     runs-on: ubuntu-latest
     needs: goreleaser

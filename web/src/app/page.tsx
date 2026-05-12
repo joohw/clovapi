@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Copy, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast-provider";
 import { HOME_CLI_CLIENTS, SITE_NAME } from "@/lib/site";
@@ -11,7 +12,7 @@ import styles from "./page.module.css";
 type HomeOriginalDoc = {
   label: string;
   href: string;
-  description: string;
+  descriptionKey: string;
 };
 
 type HomeInstallCommand = {
@@ -24,22 +25,22 @@ const ORIGINAL_DOCS: HomeOriginalDoc[] = [
   {
     label: "OpenAI Chat Completions",
     href: "https://platform.openai.com/docs/api-reference/chat/create",
-    description: "原始文档：/v1/chat/completions",
+    descriptionKey: "home.originalDocs.chatCompletions",
   },
   {
     label: "Anthropic Messages",
     href: "https://docs.anthropic.com/en/api/messages",
-    description: "原始文档：/v1/messages",
+    descriptionKey: "home.originalDocs.anthropicMessages",
   },
   {
     label: "OpenAI Responses",
     href: "https://platform.openai.com/docs/api-reference/responses",
-    description: "原始文档：/v1/responses",
+    descriptionKey: "home.originalDocs.openaiResponses",
   },
   {
     label: "Google Gemini API",
     href: "https://ai.google.dev/gemini-api/docs",
-    description: "原始文档：Gemini GenerateContent",
+    descriptionKey: "home.originalDocs.gemini",
   },
 ];
 
@@ -80,6 +81,7 @@ function LandingQuietBackdrop() {
 }
 
 export default function HomePage() {
+  const { t, i18n } = useTranslation();
   const { showError, showSuccess } = useToast();
   const [clientOrigin, setClientOrigin] = useState("");
   const [cliIndex, setCliIndex] = useState(0);
@@ -88,8 +90,8 @@ export default function HomePage() {
   const showDefaultLanding = true;
 
   useEffect(() => {
-    document.title = `将 ${HOME_CLI_CLIENTS[cliIndex]} 切换为任意上游 · ${SITE_NAME}`;
-  }, [cliIndex]);
+    document.title = t("home.pageTitle", { client: HOME_CLI_CLIENTS[cliIndex], siteName: SITE_NAME });
+  }, [cliIndex, i18n.language, t]);
 
   useEffect(() => {
     const intervalMs = 3200;
@@ -111,9 +113,9 @@ export default function HomePage() {
   async function copyInstallCommand(command: string) {
     try {
       await navigator.clipboard.writeText(command);
-      showSuccess("安装命令已复制到剪贴板");
+      showSuccess(t("home.copySuccess"));
     } catch {
-      showError("复制失败");
+      showError(t("home.copyFailed"));
     }
   }
 
@@ -129,19 +131,19 @@ export default function HomePage() {
               <header className="relative">
                 <p className="inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                   <Sparkles className="size-3.5 shrink-0 text-muted-foreground/90" aria-hidden />
-                  Agent-first · High-performance API
+                  {t("home.tagline")}
                 </p>
                 <h1 className="mt-5 text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-                  开源 API 切换器
+                  {t("home.title")}
                 </h1>
                 <p className="mt-5 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-[1.05rem]">
-                  在 Claude Code、Codex、OpenCode 等Agent CLI 中保持同一套接入方式，无需反复改配置；clovapi 帮你把请求切换到不同上游，实现故障切换与灵活选路。
+                  {t("home.subtitle")}
                 </p>
               </header>
 
               <div className="mt-10 inline-flex max-w-full min-w-0 flex-col items-start gap-2 text-left">
                 <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                  安装命令
+                  {t("home.installCommand")}
                 </span>
                 <Tabs value={installTab} onValueChange={setInstallTab} className="max-w-full">
                   <TabsList variant="line" className="w-fit justify-start p-0">
@@ -160,7 +162,7 @@ export default function HomePage() {
                         <button
                           type="button"
                           className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-muted/40 hover:text-foreground"
-                          aria-label={`复制 ${item.label} 安装命令`}
+                          aria-label={t("home.copyInstallCommand", { label: item.label })}
                           onClick={() => void copyInstallCommand(item.command)}
                         >
                           <Copy className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -176,7 +178,7 @@ export default function HomePage() {
                   href="/docs"
                   className="btn btn-outline inline-flex h-11 min-h-11 items-center gap-2 px-8 text-sm font-medium sm:h-12 sm:min-h-12 sm:px-10 sm:text-base"
                 >
-                  查看教程
+                  {t("home.tutorial")}
                   <ArrowRight className="size-4 opacity-70" aria-hidden />
                 </Link>
               </div>
@@ -185,7 +187,7 @@ export default function HomePage() {
             <section className="relative z-[1] overflow-hidden rounded-2xl">
               <div className="pb-0 pt-2 sm:pt-3 p-6">
                 <h2 className="text-sm font-medium tracking-tight text-foreground/90">
-                  兼容4种 API 风格
+                  {t("home.apiStyles")}
                 </h2>
               </div>
               <ul className="m-0 grid list-none grid-cols-1 gap-2.5 p-3 pt-2 sm:p-4 sm:pt-3">
@@ -202,13 +204,13 @@ export default function HomePage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="absolute inset-0 z-0 outline-offset-[-1px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          aria-label={`查看「${item.label}」（新标签页打开）`}
+                          aria-label={t("home.openInNewTab", { label: item.label })}
                         />
                       ) : (
                         <Link
                           href={item.href}
                           className="absolute inset-0 z-0 outline-offset-[-1px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          aria-label={`查看「${item.label}」`}
+                          aria-label={t("home.openDoc", { label: item.label })}
                         />
                       )}
                       <div className="pointer-events-none relative z-[1] p-4 sm:p-5">
@@ -216,7 +218,7 @@ export default function HomePage() {
                           {item.label}
                           <ArrowRight className="size-3.5 opacity-0 transition-opacity duration-150 group-hover:opacity-60" aria-hidden />
                         </span>
-                        <p className="text-sm leading-relaxed text-muted-foreground">{item.description}</p>
+                        <p className="text-sm leading-relaxed text-muted-foreground">{t(item.descriptionKey)}</p>
                       </div>
                     </li>
                   );
@@ -229,10 +231,10 @@ export default function HomePage() {
                 <div className="mb-6 flex flex-col gap-2 text-left sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <h2 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
-                      多家供应商，一处切换
+                      {t("home.providersTitle")}
                     </h2>
                     <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                      同一套 SDK / CLI / Agent 配置，后端按需映射通道——对标 IDE 里「切换服务商」，只是把切换放到了网关侧。
+                      {t("home.providersSubtitle")}
                     </p>
                   </div>
                 </div>
@@ -261,7 +263,7 @@ export default function HomePage() {
                 </a>
               </p>
               <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                © 2026 CLOVAPI
+                {t("home.footerCopyright")}
               </p>
             </footer>
           </div>

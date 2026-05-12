@@ -113,7 +113,8 @@ main() {
     fail "could not resolve a downloadable version from configured sources"
   fi
 
-  archive_name="clovapi_${version_tag}_${os_name}_${arch_name}.tar.gz"
+  artifact_version="${version_tag#v}"
+  archive_name="clovapi_${artifact_version}_${os_name}_${arch_name}.tar.gz"
   checksum_url="$selected_base/checksums.txt"
   archive_url="$selected_base/$archive_name"
 

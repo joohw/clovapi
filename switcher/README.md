@@ -14,7 +14,7 @@ For **Claude Code**, env wiring matches community **cc-switch** / **ccswitch**; 
 
 | Command | Description |
 |--------|-------------|
-| `clovapi profiles` | Show saved profiles, CLI ↔ API-style matrix, and last-applied CLIs (aliases: **`list`**, **`ls`**) |
+| `clovapi lit` | Show saved profiles, CLI ↔ API-style matrix, and last-applied CLIs (aliases: **`profiles`**, **`list`**, **`ls`**) |
 | `clovapi set --name NAME` | Save one upstream profile (CLI is chosen at switch time); connectivity test before persist (`--name` required, aliases: **`add`**, **`new`**) |
 | `clovapi remove <name>` | Remove one saved profile (aliases: **`rm`**, **`delete`**) |
 | `clovapi switch [--cli KIND] [PROFILE_NAME]` | Apply one profile to one CLI. Interactive flow: choose CLI first, then choose a profile for that CLI, or **`0)` reset this CLI only**. Alias **`use`** |
@@ -107,7 +107,7 @@ Paths expand correctly on Windows (user profile / AppData).
 
 | clovapi | Alias(es) | Similar to |
 |---------|-----------|------------|
-| `profiles` | `list`, `ls` | `cc-switch list`, `ccswitch list` |
+| `lit` | `profiles`, `list`, `ls` | `cc-switch list`, `ccswitch list` |
 | `set` | `add`, `new` | One-shot save of upstream binding |
 | `switch [--cli …]` | `use …` | Apply one saved profile into one tool config |
 | `remove NAME` | `rm`, `delete` | Delete one saved profile |

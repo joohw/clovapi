@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
+import { I18nProvider } from "@/components/i18n-provider";
 import { SiteHeader } from "@/components/site-header";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { DEFAULT_DESCRIPTION, HOME_TITLE, SITE_NAME, getPublicSiteUrlFromRequest } from "@/lib/site";
@@ -77,15 +79,19 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
-        <script
+        <Script id="theme-boot-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+        <Script
+          id="site-jsonld"
           type="application/ld+json"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
         />
-        <ToastProvider>
-          <SiteHeader />
-          {children}
-        </ToastProvider>
+        <I18nProvider>
+          <ToastProvider>
+            <SiteHeader />
+            {children}
+          </ToastProvider>
+        </I18nProvider>
       </body>
     </html>
   );

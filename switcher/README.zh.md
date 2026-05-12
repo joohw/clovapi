@@ -14,7 +14,7 @@
 
 | 命令 | 说明 |
 |------|------|
-| `clovapi profiles` | 展示已保存的 profiles、CLI ↔ API 形态矩阵、上次下发的 CLI（别名：**`list`**、**`ls`**） |
+| `clovapi lit` | 展示已保存的 profiles、CLI ↔ API 形态矩阵、上次下发的 CLI（别名：**`profiles`**、**`list`**、**`ls`**） |
 | `clovapi set --name NAME` | 保存一个上游 profile（CLI 在 switch 时再选择）；持久化前先测连通（`--name` 必填，别名：**`add`**、**`new`**） |
 | `clovapi remove <name>` | 删除一条已保存 profile（别名：**`rm`**、**`delete`**） |
 | `clovapi switch [--cli KIND] [PROFILE_NAME]` | 将某个 profile 应用到某一 CLI（`--cli` 或交互选择）。交互流程：先选 CLI，再选 profile，或 **`0)` 仅重置该 CLI**。别名 **`use`** |
@@ -107,7 +107,7 @@ cd switcher && go test ./...
 
 | clovapi | 别名 | 类似 |
 |---------|------|------|
-| `profiles` | `list`、`ls` | `cc-switch list`、`ccswitch list` |
+| `lit` | `profiles`、`list`、`ls` | `cc-switch list`、`ccswitch list` |
 | `set` | `add`、`new` | 一次性保存上游绑定 |
 | `switch [--cli …]` | `use …` | 将单个 profile 推入单一工具 |
 | `remove NAME` | `rm`、`delete` | 删除单条 profile |

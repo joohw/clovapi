@@ -42,7 +42,7 @@ func newRoot() *cobra.Command {
 
 func cmdProfiles() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "profiles",
+		Use:   "lit",
 		Short: "Show saved profiles, CLI matrix, and active bindings",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Println("CLI kind        | Supported API styles")
@@ -95,7 +95,7 @@ func cmdProfiles() *cobra.Command {
 			return nil
 		},
 	}
-	c.Aliases = []string{"list", "ls"}
+	c.Aliases = []string{"profiles", "list", "ls"}
 	return c
 }
 
@@ -164,7 +164,7 @@ func cmdSet() *cobra.Command {
 				return fmt.Errorf("model is required")
 			}
 
-			fmt.Println("Testing connectivity…")
+			fmt.Println("Testing connectivity...")
 			if err := testclient.Probe(st, baseURL, apiKey, model); err != nil {
 				return fmt.Errorf("connectivity test failed: %w", err)
 			}
@@ -522,7 +522,7 @@ func cmdTest() *cobra.Command {
 				if cliShow == "" {
 					cliShow = "—"
 				}
-				fmt.Printf("Testing %q (%s / %s)… ", label, cliShow, p.APIStyle)
+				fmt.Printf("Testing %q (%s / %s)... ", label, cliShow, p.APIStyle)
 				if err := testclient.Probe(p.APIStyle, p.BaseURL, p.APIKey, p.Model); err != nil {
 					fmt.Println("FAIL")
 					fmt.Fprintf(os.Stderr, "  %v\n", err)

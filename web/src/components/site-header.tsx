@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { applyThemeMode, initThemeMode, persistThemeMode, type ThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ function isNavActive(currentPath: string, href: string): boolean {
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const { t, i18n } = useTranslation();
   const [theme, setTheme] = useState<ThemeMode>("light");
 
   useEffect(() => {
@@ -31,18 +33,25 @@ export function SiteHeader() {
 
   const headerLinks = useMemo<HeaderLink[]>(() => {
     return [
-      { text: "首页", to: "/" },
-      { text: "文档", to: "/docs" },
-      { text: "模型", to: "/models" },
-      { text: "智能体", to: "/agents" },
+      { text: t("header.home"), to: "/" },
+      { text: t("header.docs"), to: "/docs" },
+      { text: t("header.models"), to: "/models" },
+      { text: t("header.agents"), to: "/agents" },
     ];
-  }, []);
+  }, [t]);
+
+  const githubUrl = (process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/joohw/clovapi").trim();
+  const isEnglish = i18n.resolvedLanguage?.toLowerCase().startsWith("en");
 
   function toggleTheme() {
     const nextTheme: ThemeMode = theme === "dark" ? "light" : "dark";
     applyThemeMode(nextTheme);
     persistThemeMode(nextTheme);
     setTheme(nextTheme);
+  }
+
+  async function toggleLanguage() {
+    await i18n.changeLanguage(isEnglish ? "zh-CN" : "en");
   }
 
   function navLinkClass(active: boolean) {
@@ -68,7 +77,7 @@ export function SiteHeader() {
           <Link
             href="/"
             className="inline-flex items-center rounded-md opacity-[0.72] motion-safe:transition-[opacity,transform] motion-safe:duration-300 motion-safe:ease-out hover:opacity-100 hover:scale-[1.06] active:scale-[1.02] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            aria-label="返回首页"
+            aria-label={t("header.backHome")}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={theme === "dark" ? "/clover.svg" : "/clover-light.svg"} alt="" className="h-[1.35rem] w-[1.35rem]" />
@@ -82,12 +91,33 @@ export function SiteHeader() {
           </nav>
         </div>
         <div className="relative inline-flex items-center gap-2">
+          <a
+            href={githubUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t("header.github")}
+            title={t("header.github")}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden className="h-4 w-4 fill-current">
+              <path d="M12 1.5a10.5 10.5 0 0 0-3.32 20.46c.52.1.71-.22.71-.5v-1.78c-2.9.63-3.51-1.23-3.51-1.23-.47-1.2-1.16-1.52-1.16-1.52-.95-.64.07-.63.07-.63 1.06.08 1.61 1.09 1.61 1.09.93 1.6 2.44 1.14 3.03.87.1-.68.36-1.14.65-1.4-2.32-.26-4.75-1.16-4.75-5.17 0-1.14.4-2.08 1.09-2.82-.11-.27-.47-1.35.1-2.81 0 0 .88-.28 2.9 1.08a9.99 9.99 0 0 1 5.29 0c2.02-1.36 2.9-1.08 2.9-1.08.57 1.46.21 2.54.1 2.81.68.74 1.09 1.68 1.09 2.82 0 4.02-2.44 4.9-4.77 5.16.37.32.7.93.7 1.88v2.8c0 .28.18.61.72.5A10.5 10.5 0 0 0 12 1.5Z" />
+            </svg>
+          </a>
+          <button
+            type="button"
+            className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-card px-2 text-xs font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            onClick={() => void toggleLanguage()}
+            aria-label={t("header.language")}
+            title={isEnglish ? t("header.switchToZh") : t("header.switchToEn")}
+          >
+            {isEnglish ? "中" : "EN"}
+          </button>
           <button
             type="button"
             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             onClick={toggleTheme}
-            aria-label={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
-            title={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
+            aria-label={theme === "dark" ? t("header.switchToLight") : t("header.switchToDark")}
+            title={theme === "dark" ? t("header.switchToLight") : t("header.switchToDark")}
           >
             {theme === "dark" ? "☀" : "☾"}
           </button>

@@ -41,7 +41,7 @@ brews:
     ids:
       - default
     repository:
-      owner: clovapi
+      owner: joohw
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     commit_author:

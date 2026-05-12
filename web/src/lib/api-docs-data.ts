@@ -25,8 +25,7 @@ clovapi version
 
 ### Homebrew
 \`\`\`bash
-brew tap clovapi/tap
-brew install clovapi
+brew install joohw/homebrew-tap/clovapi
 \`\`\`
 
 ### winget

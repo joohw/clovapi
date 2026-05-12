@@ -37,11 +37,10 @@ npm i -g @clovapi/cli
 clovapi version
 ```
 
-### Homebrew (tap)
+### Homebrew (tap formula)
 
 ```bash
-brew tap clovapi/tap
-brew install clovapi
+brew install joohw/homebrew-tap/clovapi
 ```
 
 ### winget
@@ -131,7 +130,7 @@ Paths expand correctly on Windows (user profile / AppData).
 - `switcher/.goreleaser.yaml` builds darwin/linux/windows archives and `checksums.txt`.
 - Release workflow can upload archives, `checksums.txt`, and `latest.txt` to Cloudflare R2 (when R2 secrets are set).
 - npm package (`switcher/npm`) prefers the R2 mirror at install time, then falls back to GitHub Releases.
-- Homebrew formula is updated through GoReleaser to `clovapi/homebrew-tap` when `HOMEBREW_TAP_GITHUB_TOKEN` is set.
+- Homebrew formula is updated through GoReleaser to `joohw/homebrew-tap` when `HOMEBREW_TAP_GITHUB_TOKEN` is set.
 - winget submit is driven by `wingetcreate` when `WINGET_CREATE_TOKEN` is set.
 
 Cloudflare R2 secrets used by workflow:

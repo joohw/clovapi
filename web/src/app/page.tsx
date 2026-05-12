@@ -46,7 +46,7 @@ const ORIGINAL_DOCS: HomeOriginalDoc[] = [
 const INSTALL_COMMANDS: HomeInstallCommand[] = [
   { id: "curl", label: "curl", command: "curl -fsSL https://downloads.clovapi.com/install.sh | bash" },
   { id: "npm", label: "npm", command: "npm i -g @clovapi/cli" },
-  { id: "brew", label: "Homebrew", command: "brew tap clovapi/tap && brew install clovapi" },
+  { id: "brew", label: "Homebrew", command: "brew install joohw/homebrew-tap/clovapi" },
   { id: "winget", label: "winget", command: "winget install Clovapi.Clovapi" },
 ];
 

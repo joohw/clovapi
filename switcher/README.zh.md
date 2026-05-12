@@ -37,11 +37,10 @@ npm i -g @clovapi/cli
 clovapi version
 ```
 
-### Homebrew（tap）
+### Homebrew（tap formula）
 
 ```bash
-brew tap clovapi/tap
-brew install clovapi
+brew install joohw/homebrew-tap/clovapi
 ```
 
 ### winget
@@ -130,7 +129,7 @@ cd switcher && go test ./...
 - 打 `vX.Y.Z` tag 触发 `.github/workflows/release-switcher.yml`。
 - `switcher/.goreleaser.yaml` 产出 darwin/linux/windows 压缩包与 `checksums.txt`。
 - npm 包（`switcher/npm`）安装时下载对应压缩包并校验 SHA256。
-- 配置 `HOMEBREW_TAP_GITHUB_TOKEN` 时，GoReleaser 自动更新 `clovapi/homebrew-tap`。
+- 配置 `HOMEBREW_TAP_GITHUB_TOKEN` 时，GoReleaser 自动更新 `joohw/homebrew-tap`。
 - 配置 `WINGET_CREATE_TOKEN` 时，workflow 调用 `wingetcreate` 自动提交 winget 更新 PR。
 
 ## DeepSeek + Claude Code（Anthropic 兼容）

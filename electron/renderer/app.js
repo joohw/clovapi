@@ -10,10 +10,14 @@ const DEFAULT_PRESETS = [
     defaultModel: "",
   },
 ];
+// Keep commands aligned with switcher/internal/apply (cliExecutableOnPATH).
 const DEFAULT_CLIS = [
   { id: "cli-claude", name: "Claude Code", command: "claude", profileId: "" },
   { id: "cli-codex", name: "Codex", command: "codex", profileId: "" },
   { id: "cli-opencode", name: "OpenCode", command: "opencode", profileId: "" },
+  { id: "cli-openclaw", name: "OpenClaw", command: "openclaw", profileId: "" },
+  { id: "cli-hermes", name: "Hermes", command: "hermes", profileId: "" },
+  { id: "cli-kimi-code", name: "Kimi Code", command: "kimi", profileId: "" },
 ];
 
 const dom = {
@@ -240,6 +244,18 @@ function renderProfiles() {
   });
 }
 
+function mergeCliSlotsFromDefaults() {
+  const byId = new Map(state.clis.map((cli) => [cli.id, cli]));
+  state.clis = DEFAULT_CLIS.map((def) => {
+    const ex = byId.get(def.id);
+    const profileId = ex?.profileId;
+    return {
+      ...def,
+      profileId: typeof profileId === "string" ? profileId : "",
+    };
+  });
+}
+
 function normalizeCliProfile() {
   state.clis = state.clis.map((cli) => {
     if (!state.profiles.length) return { ...cli, profileId: "" };
@@ -349,6 +365,7 @@ function bindEvents() {
 
 window.addEventListener("DOMContentLoaded", async () => {
   readInitialState();
+  mergeCliSlotsFromDefaults();
   await loadPresets();
   normalizeCliProfile();
   persistState();

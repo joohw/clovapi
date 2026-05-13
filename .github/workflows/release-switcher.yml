@@ -176,9 +176,33 @@ jobs:
         working-directory: .
         run: |
           if ([string]::IsNullOrWhiteSpace("${{ secrets.WINGET_CREATE_TOKEN }}")) {
+            Write-Host "WINGET_CREATE_TOKEN is empty, skip winget submit."
             "submit=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          } else {
+            exit 0
+          }
+
+          $manifestPath = "manifests/c/Clovapi/Clovapi"
+          $manifestApi = "https://api.github.com/repos/microsoft/winget-pkgs/contents/$manifestPath"
+          $headers = @{
+            "Accept" = "application/vnd.github+json"
+            "User-Agent" = "clovapi-release-workflow"
+          }
+
+          try {
+            Invoke-RestMethod -Uri $manifestApi -Headers $headers -Method Get | Out-Null
+            Write-Host "Found winget package path '$manifestPath', will submit update."
             "submit=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } catch {
+            $statusCode = $null
+            if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+              $statusCode = [int]$_.Exception.Response.StatusCode
+            }
+            if ($statusCode -eq 404) {
+              Write-Warning "winget package path '$manifestPath' not found in microsoft/winget-pkgs. Skip automated update until first manifest PR is merged."
+              "submit=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            } else {
+              throw
+            }
           }
 
       - name: Checkout

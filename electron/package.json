@@ -11,5 +11,8 @@
   },
   "devDependencies": {
     "electron": "^42.0.1"
+  },
+  "dependencies": {
+    "clovapi": "file:.."
   }
 }

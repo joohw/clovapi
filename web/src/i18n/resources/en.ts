@@ -2,6 +2,7 @@ const en = {
   header: {
     home: "Home",
     docs: "Docs",
+    skill: "Skill",
     models: "Models",
     agents: "Agents",
     backHome: "Back to home",
@@ -36,6 +37,28 @@ const en = {
     providersSubtitle:
       "Use one SDK / CLI / Agent setup, then map channels in the gateway as needed. It is like switching providers in an IDE, but handled at the gateway layer.",
     footerCopyright: "© 2026 CLOVAPI",
+  },
+  skill: {
+    title: "Agent Skill: How to Use CLOVAPI",
+    subtitle:
+      "This page is a standard integration guide for agents. Copy the skill prompt below into your system prompt so the agent can call CLOVAPI consistently.",
+    step1: "Prepare an API key and pass it through the agent runtime environment.",
+    step2: "Point the Base URL to your CLOVAPI endpoint.",
+    step3: "Prefer OpenAI-compatible endpoints (/v1/chat/completions or /v1/responses).",
+    step4: "Call /v1/models first to discover available models before real requests.",
+    envTitle: "Environment variables",
+    promptTitle: "Recommended skill prompt for agents",
+    requestTitle: "OpenAI-compatible request example",
+    copy: "Copy",
+    copied: "Copied to clipboard",
+    copyFailed: "Copy failed",
+    docsButton: "View docs",
+    githubButton: "View GitHub",
+    notesTitle: "Recommended behavior constraints",
+    note1: "Do not hardcode model names; fetch the model list first.",
+    note2: "On 401/403, check API key and gateway permissions first.",
+    note3: "On 429/5xx, retry with backoff and return readable errors when failing.",
+    note4: "Use streaming by default, then fallback to non-streaming if needed.",
   },
 } as const;
 

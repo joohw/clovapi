@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "description": "Preset definitions for Add API dialog",
+  "apiStyles": ["openai", "anthropic", "gemini"],
+  "presets": [
+    {
+      "id": "custom",
+      "apiName": "Custom",
+      "baseUrl": "",
+      "apiStyle": "openai",
+      "defaultModel": "",
+      "notes": "User-defined preset. Fields can be left empty."
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "apiName": "DeepSeek",
+      "baseUrl": "https://api.deepseek.com/v1",
+      "apiStyle": "openai",
+      "defaultModel": "deepseek-v4-pro",
+      "notes": "OpenAI-compatible endpoint."
+    },
+    {
+      "id": "openai-default",
+      "apiName": "OpenAI",
+      "baseUrl": "https://api.openai.com/v1",
+      "apiStyle": "openai",
+      "defaultModel": "gpt-4.1",
+      "notes": "Official OpenAI API."
+    },
+    {
+      "id": "anthropic-default",
+      "apiName": "Anthropic",
+      "baseUrl": "https://api.anthropic.com",
+      "apiStyle": "anthropic",
+      "defaultModel": "claude-sonnet-4-0",
+      "notes": "Anthropic native style."
+    },
+    {
+      "id": "gemini-default",
+      "apiName": "Google Gemini",
+      "baseUrl": "https://generativelanguage.googleapis.com",
+      "apiStyle": "gemini",
+      "defaultModel": "gemini-2.5-pro",
+      "notes": "Gemini native style."
+    }
+  ]
+}

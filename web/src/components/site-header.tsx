@@ -35,6 +35,7 @@ export function SiteHeader() {
     return [
       { text: t("header.home"), to: "/" },
       { text: t("header.docs"), to: "/docs" },
+      { text: t("header.skill"), to: "/skill" },
       { text: t("header.models"), to: "/models" },
       { text: t("header.agents"), to: "/agents" },
     ];

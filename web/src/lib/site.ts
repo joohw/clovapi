@@ -28,5 +28,6 @@ export function titleByPath(pathname: string): string {
   if (pathname === "/") return HOME_TITLE;
   if (pathname.startsWith("/models")) return `模型与路由 - ${SITE_NAME}`;
   if (pathname.startsWith("/docs")) return `接入文档 - ${SITE_NAME}`;
+  if (pathname.startsWith("/skill")) return `Agent Skill - ${SITE_NAME}`;
   return SITE_NAME;
 }

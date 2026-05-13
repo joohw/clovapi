@@ -8,8 +8,8 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:web": "npm --prefix web run dev",
-    "dev:desktop": "npm --prefix electron run dev",
-    "desktop:install": "npm --prefix electron install",
+    "dev:desktop": "npm -C electron run dev",
+    "desktop:install": "npm -C electron install",
     "deploy": "node scripts/deploy.mjs",
     "switcher:test": "go -C switcher test ./...",
     "switcher:build": "go -C switcher build -o clovapi ./cmd/clovapi",

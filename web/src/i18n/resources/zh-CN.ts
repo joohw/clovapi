@@ -2,6 +2,7 @@ const zhCN = {
   header: {
     home: "首页",
     docs: "文档",
+    skill: "Skill",
     models: "模型",
     agents: "智能体",
     backHome: "返回首页",
@@ -36,6 +37,28 @@ const zhCN = {
     providersSubtitle:
       "同一套 SDK / CLI / Agent 配置，后端按需映射通道——对标 IDE 里「切换服务商」，只是把切换放到了网关侧。",
     footerCopyright: "© 2026 CLOVAPI",
+  },
+  skill: {
+    title: "Agent Skill：如何使用 CLOVAPI",
+    subtitle:
+      "这页是给 Agent 的标准接入说明。把下方技能提示词复制到系统提示中，Agent 就能按统一方式调用 CLOVAPI。",
+    step1: "准备 API Key，并通过环境变量传给 Agent 运行环境。",
+    step2: "将 Base URL 指向你的 CLOVAPI 地址。",
+    step3: "优先使用 OpenAI 兼容接口（/v1/chat/completions 或 /v1/responses）。",
+    step4: "先请求 /v1/models 获取可用模型，再发起正式请求。",
+    envTitle: "环境变量示例",
+    promptTitle: "建议给 Agent 的 Skill 提示词",
+    requestTitle: "OpenAI 兼容请求示例",
+    copy: "复制",
+    copied: "内容已复制到剪贴板",
+    copyFailed: "复制失败",
+    docsButton: "查看接入文档",
+    githubButton: "查看 GitHub",
+    notesTitle: "行为约束建议",
+    note1: "不要硬编码模型名，先读取模型列表。",
+    note2: "遇到 401/403 先检查 API Key 与网关权限。",
+    note3: "遇到 429/5xx 自动退避重试，并在失败时返回可读错误。",
+    note4: "默认启用流式输出，失败时自动回退非流式。",
   },
 } as const;
 

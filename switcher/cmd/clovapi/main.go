@@ -32,36 +32,25 @@ func main() {
 func newRoot() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "clovapi",
-		Short:         "One unified upstream API config → apply to Claude Code, Codex, OpenCode, OpenClaw, Hermes, Kimi Code CLI",
+		Short:         fmt.Sprintf("clovapi %s — One unified upstream API config → apply to Claude Code, Codex, OpenCode, OpenClaw, Hermes, Kimi Code CLI", version),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
-	root.AddCommand(cmdProfiles(), cmdSet(), cmdRemove(), cmdSwitch(), cmdTest(), cmdReset(), cmdVersion())
+	root.CompletionOptions.DisableDefaultCmd = true
+	root.AddCommand(cmdProfiles(), cmdSet(), cmdRemove(), cmdSwitch(), cmdTest(), cmdReset())
 	return root
 }
 
 func cmdProfiles() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "lit",
-		Short: "Show saved profiles, CLI matrix, and active bindings",
+		Short: "Show saved profiles",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("CLI kind        | Supported API styles")
-			fmt.Println("----------------|---------------------")
-			for _, k := range apply.RegisteredKinds() {
-				var styles []string
-				for _, s := range apply.SupportedStyles(k) {
-					styles = append(styles, string(s))
-				}
-				fmt.Printf("%-15s | %s\n", k, strings.Join(styles, ", "))
-			}
-			fmt.Println()
-
 			s, err := profile.Load()
 			if err != nil {
 				return err
 			}
 			if len(s.List) > 0 {
-				fmt.Println("Saved profiles:")
 				fmt.Println("Name            CLI             Style      Model                 Base URL")
 				fmt.Println("----------------+----------------+----------+----------------------+---------------------------")
 				for _, p := range s.List {
@@ -79,18 +68,6 @@ func cmdProfiles() *cobra.Command {
 					}
 					fmt.Printf("%-15s %-15s %-10s %-21s %s\n", nm, cliCol, p.APIStyle, mod, truncate(p.BaseURL, 26))
 				}
-				fmt.Println()
-			} else {
-				fmt.Println("No saved profile yet. Run: clovapi set --name <name>")
-				fmt.Println()
-			}
-			fmt.Println("Last applied (per CLI):")
-			if len(s.Active) == 0 {
-				fmt.Println("  (none)")
-				return nil
-			}
-			for cli, name := range s.Active {
-				fmt.Printf("  %s -> %s\n", cli, name)
 			}
 			return nil
 		},
@@ -104,7 +81,7 @@ func cmdSet() *cobra.Command {
 		name, styleStr, baseURL, apiKey, model string
 	)
 	c := &cobra.Command{
-		Use:   "set",
+		Use:   "add",
 		Short: "Save one API profile (flags or prompts); connectivity test before save",
 		Long: "Writes one profile under profiles list (name, api_style, base URL, key, model).\n" +
 			"Use `clovapi switch --cli <kind>` to apply it into local CLI config.",
@@ -199,7 +176,7 @@ func cmdSet() *cobra.Command {
 	c.Flags().StringVar(&baseURL, "base-url", "", "Upstream base URL")
 	c.Flags().StringVar(&apiKey, "api-key", "", "API key (or prompt)")
 	c.Flags().StringVar(&model, "model", "", "Default model id (required; used for connectivity test and CLI config)")
-	c.Aliases = []string{"add", "new"}
+	c.Aliases = []string{"set", "new"}
 	return c
 }
 
@@ -284,7 +261,7 @@ func cmdSwitch() *cobra.Command {
 				return fmt.Errorf("profile %q not found", profileArg)
 			}
 			if !ok {
-				return fmt.Errorf("no saved compatible profile for %s — run: clovapi set --name <name>", kind)
+				return fmt.Errorf("no saved compatible profile for %s — run: clovapi add --name <name>", kind)
 			}
 			label := p.Name
 			if strings.TrimSpace(profileArg) != "" {
@@ -413,7 +390,7 @@ func promptProfileActionForCLI(sc *bufio.Scanner, kind clikind.Kind, s *profile.
 		})
 	}
 	if len(picks) == 0 {
-		return interactivePick{}, fmt.Errorf("no compatible profile for %s — run `clovapi set --name <name>` first", kind)
+		return interactivePick{}, fmt.Errorf("no compatible profile for %s — run `clovapi add --name <name>` first", kind)
 	}
 	fmt.Print("Enter number or name: ")
 	if !sc.Scan() {
@@ -505,7 +482,7 @@ func cmdTest() *cobra.Command {
 				list = []profile.Profile{p}
 			} else {
 				if len(s.List) == 0 {
-					return fmt.Errorf("no saved profile — run: clovapi set --name <name>")
+					return fmt.Errorf("no saved profile — run: clovapi add --name <name>")
 				}
 				list = append(list, s.List...)
 			}
@@ -535,18 +512,6 @@ func cmdTest() *cobra.Command {
 				return fmt.Errorf("%d profile(s) failed", failed)
 			}
 			return nil
-		},
-	}
-}
-
-func cmdVersion() *cobra.Command {
-	return &cobra.Command{
-		Use:   "version",
-		Short: "Print build version information",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("clovapi version %s\n", version)
-			fmt.Printf("commit: %s\n", commit)
-			fmt.Printf("built:  %s\n", date)
 		},
 	}
 }

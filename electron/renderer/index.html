@@ -1,50 +1,74 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ClovAPI CLI Client</title>
+    <title>ClovAPI Switcher</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <div class="background-grid" aria-hidden="true"></div>
-    <main class="app-shell">
-      <header class="app-header">
-        <div class="brand">
-          <div class="dot"></div>
-          <div>
-            <p class="eyebrow">Agent-first CLI</p>
-            <h1>ClovAPI Desktop Client</h1>
-          </div>
+    <main class="page">
+      <section class="toolbar">
+        <div class="tabs">
+          <button id="tabCli" class="tab active" type="button">客户端切换</button>
+          <button id="tabProfiles" class="tab" type="button">API 管理</button>
         </div>
-        <p class="hint">Minimal command runner with website-inspired styling.</p>
-      </header>
-
-      <section class="panel controls">
-        <label class="field">
-          <span>Command</span>
-          <input id="commandInput" type="text" value="clovapi --help" />
-        </label>
-        <label class="field">
-          <span>Working directory</span>
-          <input id="cwdInput" type="text" />
-        </label>
-        <div class="actions">
-          <button id="runButton" class="btn btn-primary">Run</button>
-          <button id="stopButton" class="btn">Stop</button>
-          <button id="clearButton" class="btn">Clear</button>
-          <button id="exampleButton" class="btn">Use Example</button>
-        </div>
+        <button id="newProfileBtn" class="btn" type="button">添加 API</button>
       </section>
 
-      <section class="panel output-panel">
-        <div class="output-header">
-          <p>Output</p>
-          <span id="statusBadge" class="badge">Idle</span>
-        </div>
-        <pre id="output"></pre>
+      <p id="boundCliText" class="meta">已绑定命令: 检查中...</p>
+
+      <section id="cliPanel" class="panel">
+        <div id="cliList" class="list"></div>
+      </section>
+
+      <section id="profilesPanel" class="panel" hidden>
+        <div class="section-title">已配置 API</div>
+        <div id="profilesList" class="profile-list"></div>
       </section>
     </main>
+
+    <dialog id="profileDialog" class="dialog">
+      <form id="profileForm" method="dialog" class="dialog-card">
+        <h2 id="dialogTitle">添加 API</h2>
+        <p class="dialog-desc">创建或修改本地 API 配置，用于一键切换客户端的上游参数。</p>
+        <label class="field">
+          <span>预设</span>
+          <select id="presetInput">
+            <option value="custom">custom</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>API 名称</span>
+          <input id="nameInput" required />
+        </label>
+        <label class="field">
+          <span>API 地址</span>
+          <input id="baseUrlInput" required placeholder="http://127.0.0.1:27483/v1" />
+        </label>
+        <label class="field">
+          <span>API Key</span>
+          <input id="apiKeyInput" />
+        </label>
+        <label class="field">
+          <span>默认模型</span>
+          <input id="modelInput" placeholder="gpt-4o-mini" />
+        </label>
+        <label class="field">
+          <span>API 风格</span>
+          <select id="apiStyleInput">
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="gemini">Gemini</option>
+          </select>
+        </label>
+        <div class="dialog-actions">
+          <button id="cancelDialogBtn" class="btn" type="button">取消</button>
+          <button id="saveDialogBtn" class="btn primary" type="submit">保存</button>
+        </div>
+      </form>
+    </dialog>
+
     <script src="./app.js"></script>
   </body>
 </html>

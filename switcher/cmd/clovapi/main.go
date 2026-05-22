@@ -202,6 +202,7 @@ func cmdRemove() *cobra.Command {
 
 func cmdSwitch() *cobra.Command {
 	var cliStr string
+	var resetFlag bool
 	c := &cobra.Command{
 		Use:   "switch [PROFILE_NAME]",
 		Short: "Apply one saved profile to one CLI",
@@ -235,6 +236,21 @@ func cmdSwitch() *cobra.Command {
 			profileArg := ""
 			if len(args) >= 1 {
 				profileArg = strings.TrimSpace(args[0])
+			}
+
+			if resetFlag {
+				if profileArg != "" {
+					return fmt.Errorf("cannot use --reset with a profile name argument")
+				}
+				if err := apply.ResetDefault(kind); err != nil {
+					return err
+				}
+				s.ClearActive(string(kind))
+				if err := profile.Save(s); err != nil {
+					return err
+				}
+				fmt.Printf("Reset %s to default (cleared clovapi relay bindings).\n", kind)
+				return nil
 			}
 
 			if kindStr == "" && profileArg == "" {
@@ -271,6 +287,7 @@ func cmdSwitch() *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&cliStr, "cli", "", "Target CLI (omit to prompt): claude-code|codex|opencode|openclaw|hermes|kimi-code")
+	c.Flags().BoolVar(&resetFlag, "reset", false, "Clear clovapi relay bindings for this CLI only (use with --cli)")
 	c.Aliases = []string{"use"}
 	return c
 }

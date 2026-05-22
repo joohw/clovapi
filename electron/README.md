@@ -1,13 +1,34 @@
 # ClovAPI Desktop Client (Minimal)
 
-This is a minimal Electron desktop client for running CLI commands with a UI that matches the ClovAPI website style.
+Electron UI for the **clovapi** switcher CLI. Profile data is stored in the same file as the CLI (`profiles.json`), not in browser `localStorage`.
+
+## Config location (shared with CLI)
+
+| OS | Path |
+|----|------|
+| Windows | `%APPDATA%\clovapi\profiles.json` |
+| macOS / Linux | `~/.config/clovapi/profiles.json` (or `$XDG_CONFIG_HOME/clovapi/profiles.json`) |
+
+On first launch, if `profiles.json` is empty and legacy `localStorage` (`clovapi-webui-state-v1`) exists, the app migrates once into `profiles.json`.
 
 ## Features
 
-- Minimal command runner (input command, execute, stream output)
-- Stop running process
-- Custom working directory
-- Website-inspired dark visual style
+- **客户端管理**：为已安装的 CLI 选择「官方订阅」或第三方 API，并「应用」到本地配置
+  - Claude Code / Codex：清除 clovapi 中继，使用 OAuth 凭据
+  - Kimi Code：**Claude Code 订阅** — 读取 Claude OAuth 凭据，自动生成 profile 并写入 Kimi `config.toml`
+- **API 管理**：**仅四种固定供应商**（`claude-code`、`codex`、`ollama`、`custom-api`），不可动态注册新供应商；自定义 API 仅手动添加模型（与 `clovapi set` 同一 `profiles.json`）
+- **本地代理**：应用 CLI 后请求走 `http://127.0.0.1:{port}/{providerId}/{modelId}/{apiStyle}/v1/…`（四种供应商各占固定 `providerId`）
+- **协议中间层**（`protocol/`）：所有 POST 经 IR 编解码（4 ingress × 4 egress，流式优先）；路径上 `apiStyle` 为客户端协议，可与 profile 中上游协议不同（如 `openai-chat` → Claude 订阅）
+- **测试**：`npm test`（`electron/protocol/protocol.test.js`，含 16 组请求矩阵 + 代理集成）
+- Bind each installed CLI to a profile (`active` map in `profiles.json`)
+- **应用** runs `clovapi switch --cli <kind> <name>` to write Codex / OpenCode / etc. configs
+- **测试** runs `clovapi test <name>`
+
+## UI
+
+Renderer is **Svelte 5 + Vite** under `ui/`. Production build output: `ui-dist/`.
+
+API presets: `preset/api-presets.template.json` (bundled at build time).
 
 ## Start
 
@@ -17,6 +38,14 @@ From repository root:
 cd electron
 npm install
 npm run dev
+```
+
+Development runs Vite on port 5173 and Electron with `ELECTRON_DEV=1`.
+
+Production-style (built UI):
+
+```bash
+npm run start
 ```
 
 ## Default command

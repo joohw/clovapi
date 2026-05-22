@@ -42,6 +42,7 @@ web/dist
 web/bun.lock
 electron/node_modules
 electron/dist
+electron/ui-dist
 
 # Embed stubs: keep index.html only
 web/build/*
@@ -52,3 +53,4 @@ backend/web/build/*
 # Local planning / assistant artifacts
 plans
 .claude
+ref/

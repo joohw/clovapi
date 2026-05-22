@@ -210,3 +210,46 @@ func TestApplyRegistry(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestApplyKimiWritesMaxContextSize(t *testing.T) {
+	_ = testHome(t)
+	path, err := KimiConfigPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	p := profile.Profile{
+		Name: "sub", CLI: clikind.KimiCode, APIStyle: apistyle.Claude,
+		BaseURL: "https://api.anthropic.com", APIKey: "sk-ant-test", Model: "claude-sonnet-4-20250514",
+	}
+	if err := Apply(p); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var root map[string]any
+	if err := toml.Unmarshal(data, &root); err != nil {
+		t.Fatal(err)
+	}
+	models, _ := root["models"].(map[string]any)
+	ent, _ := models["claude-sonnet-4-20250514"].(map[string]any)
+	if ent == nil {
+		t.Fatalf("models entry missing: %#v", models)
+	}
+	switch v := ent["max_context_size"].(type) {
+	case int:
+		if v <= 0 {
+			t.Fatalf("max_context_size: %d", v)
+		}
+	case int64:
+		if v <= 0 {
+			t.Fatalf("max_context_size: %d", v)
+		}
+	default:
+		t.Fatalf("max_context_size type: %T %v", ent["max_context_size"], ent["max_context_size"])
+	}
+}

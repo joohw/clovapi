@@ -7,6 +7,7 @@ const { getDecoder, getEncoder } = require("./registry");
 const { prepareUpstreamRequest, transformResponse, readStream } = require("./pipeline");
 const { joinUrl, resolveIngressContext } = require("../proxy-resolver");
 const { createLocalProxyServer } = require("../local-proxy");
+const providerRegistry = require("../provider-registry");
 const profileStore = require("../profile-store");
 const { testVendorModel } = require("../model-adapters");
 const subscriptionAuth = require("../subscription-auth");
@@ -31,6 +32,20 @@ describe("joinUrl", () => {
       joinUrl("https://chatgpt.com/backend-api", "/codex/responses"),
       "https://chatgpt.com/backend-api/codex/responses",
     );
+  });
+});
+
+describe("proxy ingress URL", () => {
+  it("does not put /v1 in generated CLI base_url", () => {
+    assert.equal(
+      providerRegistry.buildProxyIngressBaseUrl(27483, "claude-code", "claude-opus-4-6", "claude"),
+      "http://127.0.0.1:27483/claude-code/claude-opus-4-6/claude",
+    );
+  });
+
+  it("parses the client-provided /v1 request prefix once", () => {
+    const parsed = providerRegistry.parseProxyIngressPath("/claude-code/claude-opus-4-6/claude/v1/messages");
+    assert.equal(parsed.pathSuffix, "/messages");
   });
 });
 

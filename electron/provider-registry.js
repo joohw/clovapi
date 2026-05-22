@@ -1,6 +1,7 @@
 /**
  * 固定四种供应商（providerId），禁止动态注册新供应商类型。
  * 代理路径：/{providerId}/{modelId}/{apiStyle}/v1/…
+ * CLI base_url 只到 /{apiStyle}；客户端自己会追加 /v1/…
  */
 
 const OLLAMA_PROFILE_NAME = "Ollama";
@@ -111,7 +112,7 @@ function buildProxyIngressBaseUrl(port, providerId, modelId, apiStyle) {
   const host = "127.0.0.1";
   const encModel = encodeURIComponent(String(modelId || "").trim());
   const style = String(apiStyle || "").trim().toLowerCase();
-  return `http://${host}:${Number(port) || 27483}/${providerId}/${encModel}/${style}/v1`;
+  return `http://${host}:${Number(port) || 27483}/${providerId}/${encModel}/${style}`;
 }
 
 function parseProxyIngressPath(pathname) {

@@ -72,6 +72,7 @@ async function* encodeSseStream(eventSource) {
       yield Buffer.from(
         formatOpenAiSseData({ error: { message: event.message, type: event.code || "api_error" } }),
       );
+      yield Buffer.from(formatOpenAiDone());
       return;
     }
     if (event.type === "message_start" && !sentRole) {

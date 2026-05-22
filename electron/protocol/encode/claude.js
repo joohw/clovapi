@@ -1,4 +1,8 @@
 const { formatClaudeSse } = require("../sse");
+const { collectSystemPrompt, claudeApiMessages } = require("../ir");
+
+const CLAUDE_CODE_OAUTH_SYSTEM_PROMPT =
+  "You are Claude Code, Anthropic's official CLI for Claude.";
 
 function newMessageId() {
   return `msg_${Date.now().toString(36)}`;
@@ -24,14 +28,17 @@ function encodeRequest(ir) {
   const body = {
     model: ir.model,
     max_tokens: ir.max_tokens ?? 1024,
-    messages: ir.messages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    })),
+    messages: claudeApiMessages(ir.messages),
     stream: ir.stream !== false,
   };
   if (ir.temperature != null) body.temperature = ir.temperature;
-  if (ir.metadata?.system) body.system = ir.metadata.system;
+  let system = collectSystemPrompt(ir);
+  if (ir.metadata?.subscriptionClaudeOAuth) {
+    system = system
+      ? `${CLAUDE_CODE_OAUTH_SYSTEM_PROMPT}\n\n${system}`
+      : CLAUDE_CODE_OAUTH_SYSTEM_PROMPT;
+  }
+  if (system) body.system = system;
   return Buffer.from(JSON.stringify(body));
 }
 

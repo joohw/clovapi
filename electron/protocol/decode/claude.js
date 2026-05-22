@@ -1,26 +1,16 @@
-const { createIrRequest, textContent } = require("../ir");
+const { createIrRequest, partitionSystemMessages } = require("../ir");
 const { parseSseChunk } = require("../sse");
-
-function mapClaudeMessages(messages) {
-  const out = [];
-  for (const msg of messages || []) {
-    const role = String(msg?.role || "user").trim().toLowerCase();
-    if (role === "user" || role === "assistant" || role === "system") {
-      out.push({ role, content: textContent(msg.content) });
-    }
-  }
-  return out;
-}
 
 function decodeRequest(body) {
   const raw = JSON.parse(String(body || "{}"));
+  const { messages, system } = partitionSystemMessages(raw.messages, raw.system);
   return createIrRequest({
     model: raw.model,
-    messages: mapClaudeMessages(raw.messages),
+    messages,
     stream: raw.stream !== false,
     max_tokens: raw.max_tokens,
     temperature: raw.temperature,
-    metadata: { system: raw.system },
+    metadata: system ? { system } : undefined,
   });
 }
 
@@ -69,7 +59,7 @@ async function* decodeSseStream(chunks) {
           message: String(err.message || err.type || "upstream error"),
           code: err.type,
         };
-        continue;
+        return;
       }
       if (payload?.type === "message_start") {
         yield { type: "message_start", role: "assistant", model: payload.message?.model };

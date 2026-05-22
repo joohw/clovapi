@@ -9,18 +9,27 @@ const OLLAMA_PROFILE_NAME = "Ollama";
 const CUSTOM_API_PROFILE_NAME = "自定义 API";
 const MODEL_BINDING_PREFIX = "@model:";
 
+const { CLAUDE_SUBSCRIPTION_MODEL_FALLBACKS } = require("./claude-backend");
+const { CODEX_SUBSCRIPTION_MODEL_FALLBACKS } = require("./codex-backend");
+
 const SUBSCRIPTION_VENDOR_DEFS = [
   {
     subscription_provider_id: "claude-code",
     name: "Claude Code 订阅",
-    models: [{ id: "default", label: "默认", model: "default", api_style: "claude" }],
+    models: [],
   },
   {
     subscription_provider_id: "codex",
     name: "Codex 订阅",
-    models: [{ id: "default", label: "默认", model: "default", api_style: "openai-responses" }],
+    models: [],
   },
 ];
+
+function isPlaceholderSubscriptionModelEntry(entry) {
+  const id = String(entry?.id || "").trim().toLowerCase();
+  const model = String(entry?.model || "").trim().toLowerCase();
+  return !model || id === "default" || model === "default";
+}
 
 function configDir() {
   if (process.platform === "win32") {
@@ -103,6 +112,10 @@ function normalizeVendorProfile(p, index = 0) {
   const apiStyle = normalizeApiStyle(
     p?.api_style ?? p?.apiStyle ?? models[0]?.api_style ?? models[0]?.apiStyle,
   );
+  let aggregateModel = topModel || (models[0]?.model || "");
+  if (kind === "subscription" && !models.length) {
+    aggregateModel = "";
+  }
   return {
     name,
     kind,
@@ -113,7 +126,7 @@ function normalizeVendorProfile(p, index = 0) {
     api_style: apiStyle,
     base_url: String(p?.base_url || "").trim(),
     api_key: String(p?.api_key || ""),
-    model: topModel || (models[0]?.model || ""),
+    model: aggregateModel,
     models,
   };
 }
@@ -124,9 +137,44 @@ function enforceAllowedProfiles(store) {
   return store.profiles.length < before;
 }
 
+function isLocalProxyStubActiveValue(value) {
+  const v = String(value || "").trim();
+  return v.toLowerCase().startsWith("__local_proxy_");
+}
+
+/** 清理 active：去掉 clovapi switch 写入的 stub 名、无效 @model 绑定、已删除供应商。 */
+function sanitizeActiveBindings(store) {
+  if (!store || typeof store !== "object") return false;
+  if (!store.active || typeof store.active !== "object") {
+    store.active = {};
+    return false;
+  }
+  let changed = false;
+  for (const [cli, activeName] of Object.entries({ ...store.active })) {
+    const value = String(activeName || "").trim();
+    if (!value) {
+      delete store.active[cli];
+      changed = true;
+      continue;
+    }
+    if (isLocalProxyStubActiveValue(value) || !value.startsWith(MODEL_BINDING_PREFIX)) {
+      delete store.active[cli];
+      changed = true;
+      continue;
+    }
+    const parsed = parseModelBinding(value);
+    if (!parsed || !findVendorModel(store, parsed.vendorName, parsed.modelId)) {
+      delete store.active[cli];
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 function finalizeStore(store) {
   ensureDefaultOllamaProfile(store);
   enforceAllowedProfiles(store);
+  sanitizeActiveBindings(store);
 }
 
 function parseModelBinding(binding) {
@@ -186,17 +234,45 @@ function findStoreVendorProfile(store, vendorName) {
   return matches[0];
 }
 
+function subscriptionDefaultApiStyle(vendor) {
+  const providerId = String(vendor?.subscription_provider_id || "").trim();
+  const def = SUBSCRIPTION_VENDOR_DEFS.find((item) => item.subscription_provider_id === providerId);
+  if (def?.models?.[0]?.api_style) return def.models[0].api_style;
+  if (providerId === "codex") return "openai-responses";
+  return "claude";
+}
+
 function findVendorModel(store, vendorName, modelId) {
   const vendor = findStoreVendorProfile(store, vendorName);
   if (!vendor) return null;
   const id = String(modelId || "").trim().toLowerCase();
+  if (!id) return null;
   const model = (vendor.models || []).find((m) => {
     const mid = String(m.id || "").toLowerCase();
     const upstream = String(m.model || "").toLowerCase();
     return mid === id || upstream === id;
   });
-  if (!model) return null;
-  return { vendor, model };
+  if (model) return { vendor, model };
+
+  // 订阅：应用时可能从 OAuth 解析出路径上的 modelId，但尚未写入 models[]（运行时代理仍需解析）
+  if (String(vendor.kind || "").trim().toLowerCase() === "subscription") {
+    const wire = String(modelId || "").trim();
+    if (wire && wire.toLowerCase() !== "default") {
+      return {
+        vendor,
+        model: normalizeModelEntry(
+          {
+            id: wire,
+            label: wire,
+            model: wire,
+            api_style: subscriptionDefaultApiStyle(vendor),
+          },
+          0,
+        ),
+      };
+    }
+  }
+  return null;
 }
 
 function mergeVendorModels(existing, fetched) {
@@ -438,7 +514,7 @@ function defaultSubscriptionStoreProfile(def) {
     model_adapter: "subscription",
     base_url: "",
     api_key: "",
-    models: def.models,
+    models: [],
   });
 }
 
@@ -505,8 +581,15 @@ function ensureDefaultSubscriptionVendors(store) {
       profile.model_adapter = "subscription";
       changed = true;
     }
-    if (!profile.models?.length) {
-      profile.models = def.models.map((m, i) => normalizeModelEntry(m, i));
+    if (!Array.isArray(profile.models)) {
+      profile.models = [];
+      changed = true;
+    } else if (
+      profile.models.length === 1 &&
+      isPlaceholderSubscriptionModelEntry(profile.models[0])
+    ) {
+      // 清掉历史版本写入的占位 default，允许用户通过「拉取模型」自行填充。
+      profile.models = [];
       changed = true;
     }
   }
@@ -695,4 +778,6 @@ module.exports = {
   mergeVendorModels,
   storeFromUiVendors,
   resolveModelBinding,
+  sanitizeActiveBindings,
+  isLocalProxyStubActiveValue,
 };

@@ -203,6 +203,10 @@ func cmdRemove() *cobra.Command {
 func cmdSwitch() *cobra.Command {
 	var cliStr string
 	var resetFlag bool
+	var directBaseURL string
+	var directAPIKey string
+	var directModel string
+	var directAPIStyle string
 	c := &cobra.Command{
 		Use:   "switch [PROFILE_NAME]",
 		Short: "Apply one saved profile to one CLI",
@@ -242,6 +246,9 @@ func cmdSwitch() *cobra.Command {
 				if profileArg != "" {
 					return fmt.Errorf("cannot use --reset with a profile name argument")
 				}
+				if strings.TrimSpace(directBaseURL) != "" {
+					return fmt.Errorf("cannot use --reset with --base-url")
+				}
 				if err := apply.ResetDefault(kind); err != nil {
 					return err
 				}
@@ -251,6 +258,13 @@ func cmdSwitch() *cobra.Command {
 				}
 				fmt.Printf("Reset %s to default (cleared clovapi relay bindings).\n", kind)
 				return nil
+			}
+
+			if strings.TrimSpace(directBaseURL) != "" {
+				if profileArg != "" {
+					return fmt.Errorf("cannot use profile name with --base-url (pass --model and optional --api-style instead)")
+				}
+				return applyDirectToCLI(kind, directBaseURL, directAPIKey, directModel, directAPIStyle)
 			}
 
 			if kindStr == "" && profileArg == "" {
@@ -288,8 +302,53 @@ func cmdSwitch() *cobra.Command {
 	}
 	c.Flags().StringVar(&cliStr, "cli", "", "Target CLI (omit to prompt): claude-code|codex|opencode|openclaw|hermes|kimi-code")
 	c.Flags().BoolVar(&resetFlag, "reset", false, "Clear clovapi relay bindings for this CLI only (use with --cli)")
+	c.Flags().StringVar(&directBaseURL, "base-url", "", "Apply endpoint directly (desktop local proxy); do not use a saved profile or __local_proxy_* stub")
+	c.Flags().StringVar(&directAPIKey, "api-key", "clovapi-local", "API key written to CLI config when using --base-url")
+	c.Flags().StringVar(&directModel, "model", "", "Model id written to CLI config when using --base-url (required with --base-url)")
+	c.Flags().StringVar(&directAPIStyle, "api-style", "", "API style when using --base-url (default: openai-chat for opencode, claude for claude-code, etc.)")
 	c.Aliases = []string{"use"}
 	return c
+}
+
+func applyDirectToCLI(kind clikind.Kind, baseURL, apiKey, model, styleStr string) error {
+	mod := strings.TrimSpace(model)
+	if mod == "" {
+		return fmt.Errorf("--model is required with --base-url")
+	}
+	st, err := apistyle.Parse(strings.TrimSpace(styleStr))
+	if err != nil {
+		if strings.TrimSpace(styleStr) != "" {
+			return err
+		}
+		switch kind {
+		case clikind.ClaudeCode, clikind.KimiCode:
+			st = apistyle.Claude
+		case clikind.Codex:
+			st = apistyle.OpenAIResponses
+		default:
+			st = apistyle.OpenAIChat
+		}
+	}
+	key := strings.TrimSpace(apiKey)
+	if key == "" {
+		key = "clovapi-local"
+	}
+	p := profile.Profile{
+		Name:     "__direct__",
+		CLI:      kind,
+		BaseURL:  strings.TrimSpace(baseURL),
+		APIKey:   key,
+		Model:    mod,
+		APIStyle: st,
+	}
+	if !apply.KindSupportsStyle(kind, p.APIStyle) {
+		return fmt.Errorf("cli %q does not support api_style %q (supported here: %s)", kind, p.APIStyle, styleChoices(kind))
+	}
+	if err := apply.Apply(p); err != nil {
+		return err
+	}
+	fmt.Printf("Applied direct endpoint to %s (model %q)\n", kind, mod)
+	return nil
 }
 
 func resolveProfileForSwitch(s *profile.Store, kind clikind.Kind, profileName string) (profile.Profile, bool) {
@@ -332,7 +391,10 @@ func applyProfileToCLI(s *profile.Store, kind clikind.Kind, p profile.Profile, l
 	if strings.TrimSpace(activeLabel) == "" {
 		activeLabel = string(kind)
 	}
-	s.SetActive(string(kind), activeLabel)
+	// Desktop local-proxy stubs use __local_proxy_*; do not overwrite UI @model: bindings in active.
+	if !strings.HasPrefix(strings.TrimSpace(p.Name), "__local_proxy_") {
+		s.SetActive(string(kind), activeLabel)
+	}
 	if err := profile.Save(s); err != nil {
 		return err
 	}

@@ -69,6 +69,82 @@ function textContent(value) {
   return String(value);
 }
 
+/** Normalize Anthropic/OpenAI `system` field (string or text blocks) to plain text. */
+function systemText(value) {
+  if (value == null) return "";
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) {
+    return value
+      .map((part) => {
+        if (typeof part === "string") return part.trim();
+        if (part && typeof part === "object") return textContent(part.text ?? part);
+        return "";
+      })
+      .filter(Boolean)
+      .join("\n\n");
+  }
+  if (typeof value === "object") return textContent(value.text ?? value);
+  return String(value).trim();
+}
+
+/**
+ * Split system prompt from message list (Messages API: system is top-level, not a message role).
+ * @param {IrMessage[]} messages
+ * @param {unknown} [extraSystem] raw top-level `system` from request JSON
+ */
+function partitionSystemMessages(messages, extraSystem) {
+  const apiMessages = [];
+  const systemParts = [];
+  const extra = systemText(extraSystem);
+  if (extra) systemParts.push(extra);
+
+  for (const msg of messages || []) {
+    const role = String(msg?.role || "user").trim().toLowerCase();
+    if (role === "system") {
+      const text = textContent(msg.content);
+      if (text) systemParts.push(text);
+      continue;
+    }
+    if (role === "user" || role === "assistant" || role === "tool") {
+      const entry = { role, content: textContent(msg.content) };
+      if (msg.tool_call_id) entry.tool_call_id = String(msg.tool_call_id);
+      if (msg.name) entry.name = String(msg.name);
+      apiMessages.push(entry);
+    }
+  }
+
+  return {
+    messages: apiMessages,
+    system: systemParts.length ? systemParts.join("\n\n") : undefined,
+  };
+}
+
+/** @param {Partial<IrRequest>} ir */
+function collectSystemPrompt(ir) {
+  const parts = [];
+  const fromMeta = systemText(ir?.metadata?.system);
+  if (fromMeta) parts.push(fromMeta);
+  for (const msg of ir?.messages || []) {
+    if (String(msg.role || "").toLowerCase() !== "system") continue;
+    const text = textContent(msg.content);
+    if (text) parts.push(text);
+  }
+  if (!parts.length) return undefined;
+  return parts.join("\n\n");
+}
+
+/** User/assistant messages only (for Claude Messages API). */
+function claudeApiMessages(messages) {
+  const out = [];
+  for (const msg of messages || []) {
+    const role = String(msg?.role || "").trim().toLowerCase();
+    if (role === "user" || role === "assistant") {
+      out.push({ role, content: msg.content });
+    }
+  }
+  return out;
+}
+
 /** @param {Partial<IrRequest>} partial */
 function createIrRequest(partial = {}) {
   return {
@@ -104,6 +180,10 @@ module.exports = {
   API_STYLES,
   normalizeStyle,
   textContent,
+  systemText,
+  partitionSystemMessages,
+  collectSystemPrompt,
+  claudeApiMessages,
   createIrRequest,
   cloneEvent,
   collectEvents,

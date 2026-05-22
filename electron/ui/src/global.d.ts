@@ -18,7 +18,7 @@ type SubscriptionBridge = {
   cancelLogin(provider: string): Promise<unknown>;
   claudeProfile(targetCli: string): Promise<BuildProfileResult>;
   buildProfile(provider: string, targetCli: string): Promise<BuildProfileResult>;
-  logout(provider: string): Promise<{ ok?: boolean; error?: string }>;
+  logout(provider: string): Promise<ProfilesLoadResult>;
 };
 
 type ProfilesBridge = {
@@ -44,6 +44,20 @@ type ProxyBridge = {
     port?: number;
     apiStyle?: string;
   }>;
+  buildIngress(cliKind: string, binding: string): Promise<{
+    ok?: boolean;
+    error?: string;
+    baseUrl?: string;
+    model?: string;
+    modelId?: string;
+    apiStyle?: string;
+    port?: number;
+  }>;
+};
+
+type ProxyLogsBridge = {
+  list(): Promise<ProxyLogsResult>;
+  clear(): Promise<ProxyLogsResult>;
 };
 
 type ProxyConfig = {
@@ -60,6 +74,33 @@ type ProxyStatusResult = {
   host?: string;
   baseUrl?: string;
   config?: ProxyConfig;
+};
+
+export type ProxyLogEntry = {
+  id: string;
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+  request: {
+    method: string;
+    url: string;
+    headers: Record<string, string>;
+    body: string;
+  };
+  upstream: {
+    method: string;
+    url: string;
+    status: number;
+    headers: Record<string, string>;
+    body: string;
+  };
+  error?: string;
+};
+
+type ProxyLogsResult = {
+  ok?: boolean;
+  error?: string;
+  entries?: ProxyLogEntry[];
 };
 
 type BuildProfileResult = {
@@ -104,6 +145,7 @@ declare global {
     clovapiSubscription?: SubscriptionBridge;
     clovapiProfiles?: ProfilesBridge;
     clovapiProxy?: ProxyBridge;
+    clovapiProxyLogs?: ProxyLogsBridge;
   }
 }
 

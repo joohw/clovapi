@@ -13,6 +13,9 @@ function enrichIrRequest(ir, upstream) {
   if (upstream?.source === "subscription:codex") {
     ir.metadata = { ...(ir.metadata || {}), codexSubscription: true };
   }
+  if (upstream?.source === "subscription:claude-code") {
+    ir.metadata = { ...(ir.metadata || {}), subscriptionClaudeOAuth: true };
+  }
   return ir;
 }
 

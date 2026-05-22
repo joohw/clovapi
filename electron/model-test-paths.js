@@ -18,9 +18,12 @@ const {
   isCodexAccountUnsupportedModelError,
 } = require("./codex-backend");
 const {
+  ANTHROPIC_OAUTH_BASE_URL,
+  CLAUDE_SUBSCRIPTION_MODEL_FALLBACKS,
   buildClaudeOAuthHeaders,
+  buildClaudeOAuthProbePayload,
+  probeClaudeOAuthMessagesStream,
   isClaudeOAuthToken,
-  resolveClaudeTestModels,
   isClaudeAccountUnsupportedModelError,
 } = require("./claude-backend");
 
@@ -343,65 +346,64 @@ async function probeAnthropicMessages(base, apiKey, model, timeoutMs, extraHeade
   };
 }
 
+function resolveClaudeProbeModel(profile) {
+  const want = String(profile?.model || "").trim();
+  if (want && want !== "default") return want;
+  return CLAUDE_SUBSCRIPTION_MODEL_FALLBACKS[0];
+}
+
 async function probeClaudeSubscriptionMessages(profile, timeoutMs) {
   const apiKey = String(profile.api_key || "").trim();
   if (!apiKey) {
     return {
       ok: false,
-      url: joinV1Path(profile.base_url, "messages"),
+      url: joinV1Path(profile.base_url || ANTHROPIC_OAUTH_BASE_URL, "messages"),
       error: "缺少 Claude OAuth access_token，请重新登录 Claude Code 订阅。",
     };
   }
 
-  const base = normalizeBaseUrl(profile.base_url);
+  const base = normalizeBaseUrl(profile.base_url || ANTHROPIC_OAUTH_BASE_URL);
   const url = joinV1Path(base, "messages");
   const headers = buildClaudeOAuthHeaders(apiKey);
-  const models = await resolveClaudeTestModels(profile.model);
-  let lastFailure = null;
+  const model = resolveClaudeProbeModel(profile);
+  const payload = buildClaudeOAuthProbePayload(model, PROBE_MESSAGE);
 
-  for (const model of models) {
-    const payload = {
-      model,
-      max_tokens: PROBE_MAX_TOKENS,
-      messages: [{ role: "user", content: PROBE_MESSAGE }],
+  const response = await probeClaudeOAuthMessagesStream(url, headers, payload, timeoutMs);
+  if (response.ok) {
+    return {
+      ok: true,
+      transport: "sse",
+      url,
+      payload,
+      response,
+      requested: profile.model,
+      used: model,
     };
-    const response = await httpPostJson(url, headers, payload, timeoutMs);
-    if (passedStatus(response.status)) {
-      return {
-        ok: true,
-        url,
-        payload,
-        response,
-        requested: profile.model,
-        used: model,
-        ...(profile.model && model !== profile.model
-          ? {
-              fallbackFrom: `${profile.model} 不在当前 Claude 账号模型表，已自动回退`,
-            }
-          : {}),
-      };
-    }
-    lastFailure = {
+  }
+
+  if (isClaudeAccountUnsupportedModelError(response.body, response.status)) {
+    return {
       ok: false,
       url,
       payload,
       response,
       requested: profile.model,
       used: model,
-      error: formatHttpError(response.status, response.body),
+      transport: "sse",
+      error: response.error || formatHttpError(response.status, response.body),
     };
-    if (!isClaudeAccountUnsupportedModelError(response.body, response.status)) {
-      return lastFailure;
-    }
   }
 
-  return (
-    lastFailure || {
-      ok: false,
-      url,
-      error: "Claude 探测失败：无可用模型",
-    }
-  );
+  return {
+    ok: false,
+    url,
+    payload,
+    response,
+    requested: profile.model,
+    used: model,
+    transport: "sse",
+    error: response.error || formatHttpError(response.status, response.body),
+  };
 }
 
 async function probeClaudeWithFallback(base, apiKey, model, timeoutMs) {
@@ -465,7 +467,7 @@ function buildHttpReport(profile, pathId, captured, meta = {}) {
         : "",
     profile.account_id ? `ChatGPT Account: ${maskApiKey(profile.account_id)}` : "",
     captured?.transport ? `传输: ${captured.transport}` : "",
-    `API Key: ${maskApiKey(profile.api_key)}`,
+    `${isClaudeOAuthToken(profile.api_key) ? "OAuth Token" : "API Key"}: ${maskApiKey(profile.api_key)}`,
     captured?.fallbackFrom ? `Claude 回退: ${captured.fallbackFrom}` : "",
     "",
     "=== 请求 ===",

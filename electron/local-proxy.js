@@ -14,6 +14,11 @@ const {
   prepareUpstreamRequest,
   transformResponse,
 } = require("./protocol/pipeline");
+const {
+  sanitizeUpstreamResponseHeaders,
+  createDecompressStream,
+} = require("./proxy-response-headers");
+const proxyLogger = require("./proxy-logger");
 
 const HOP_BY_HOP = new Set([
   "connection",
@@ -48,10 +53,18 @@ function buildIngressModelsListBody(ingressStyle, modelId) {
   });
 }
 
+const INBOUND_AUTH_HEADERS = new Set([
+  "authorization",
+  "x-api-key",
+  "api-key",
+  "x-auth-token",
+]);
+
 function filterRequestHeaders(headers) {
   const out = {};
   for (const [key, value] of Object.entries(headers || {})) {
     if (!key || HOP_BY_HOP.has(key.toLowerCase())) continue;
+    if (INBOUND_AUTH_HEADERS.has(key.toLowerCase())) continue;
     if (value === undefined) continue;
     out[key] = value;
   }
@@ -102,6 +115,7 @@ function createLocalProxyServer(options = {}) {
   const getPort = () => Number(options.port) || 27483;
 
   const server = http.createServer(async (req, res) => {
+    let logId = "";
     try {
       const port = getPort();
       const url = new URL(req.url || "/", `http://127.0.0.1:${port}`);
@@ -170,13 +184,42 @@ function createLocalProxyServer(options = {}) {
       delete headers["content-length"];
       headers["content-length"] = String(upstreamBody.length);
 
-      const upstreamRes = await forwardRequest(upstreamUrl, method, headers, upstreamBody);
+      logId = proxyLogger.startRequest({
+        method,
+        url: req.url || "",
+        headers: req.headers,
+        requestBody: body,
+        upstreamMethod: method,
+        upstreamUrl,
+      });
 
-      if (!shouldTransformRequest(method) || body.length === 0) {
-        const responseHeaders = { ...upstreamRes.headers };
-        delete responseHeaders.connection;
-        res.writeHead(upstreamRes.statusCode || 502, responseHeaders);
-        upstreamRes.pipe(res);
+      const upstreamRes = await forwardRequest(upstreamUrl, method, headers, upstreamBody);
+      proxyLogger.setUpstreamResponse(logId, {
+        status: upstreamRes.statusCode || 0,
+        headers: upstreamRes.headers,
+      });
+
+      const passthroughResponse =
+        shouldTransformRequest(method) &&
+        body.length > 0 &&
+        profileStore.normalizeApiStyle(ingressStyle) ===
+          profileStore.normalizeApiStyle(egressStyle);
+
+      if (passthroughResponse || !shouldTransformRequest(method) || body.length === 0) {
+        res.writeHead(
+          upstreamRes.statusCode || 502,
+          sanitizeUpstreamResponseHeaders(upstreamRes.headers),
+        );
+        const decompress = createDecompressStream(upstreamRes.headers["content-encoding"]);
+        if (decompress) {
+          decompress.on("data", (chunk) => proxyLogger.appendUpstreamBody(logId, chunk));
+          decompress.on("end", () => proxyLogger.finishRequest(logId));
+          upstreamRes.pipe(decompress).pipe(res);
+        } else {
+          upstreamRes.on("data", (chunk) => proxyLogger.appendUpstreamBody(logId, chunk));
+          upstreamRes.on("end", () => proxyLogger.finishRequest(logId));
+          upstreamRes.pipe(res);
+        }
         return;
       }
 
@@ -185,6 +228,7 @@ function createLocalProxyServer(options = {}) {
         egressStyle,
         ir: ir || { stream: true },
         upstreamRes,
+        onUpstreamBodyChunk: (chunk) => proxyLogger.appendUpstreamBody(logId, chunk),
       });
 
       res.writeHead(transformed.status, transformed.headers);
@@ -193,8 +237,10 @@ function createLocalProxyServer(options = {}) {
       } else {
         res.end(transformed.body);
       }
+      proxyLogger.finishRequest(logId);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      if (logId) proxyLogger.finishRequest(logId, message);
       if (!res.headersSent) {
         res.writeHead(502, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: message }));

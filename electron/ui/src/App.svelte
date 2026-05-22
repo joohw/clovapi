@@ -3,6 +3,7 @@
   import * as Tabs from "$lib/components/ui/tabs/index.js";
   import CliPanel from "./components/CliPanel.svelte";
   import ProfilesPanel from "./components/ProfilesPanel.svelte";
+  import ProxyLogsPanel from "./components/ProxyLogsPanel.svelte";
   import SettingsPanel from "./components/SettingsPanel.svelte";
   import ProfileDialog from "./components/ProfileDialog.svelte";
   import ModelDialog from "./components/ModelDialog.svelte";
@@ -14,7 +15,7 @@
   });
 
   function onTabChange(value: string) {
-    if (value === "cli" || value === "profiles" || value === "settings") {
+    if (value === "cli" || value === "profiles" || value === "logs" || value === "settings") {
       setActiveTab(value as TabId);
     }
   }
@@ -30,6 +31,7 @@
     <Tabs.List>
       <Tabs.Trigger value="cli">客户端管理</Tabs.Trigger>
       <Tabs.Trigger value="profiles">API 管理</Tabs.Trigger>
+      <Tabs.Trigger value="logs">代理日志</Tabs.Trigger>
       <Tabs.Trigger value="settings">设置</Tabs.Trigger>
     </Tabs.List>
 
@@ -38,6 +40,9 @@
     </Tabs.Content>
     <Tabs.Content value="profiles" class="min-h-0 outline-none">
       <ProfilesPanel />
+    </Tabs.Content>
+    <Tabs.Content value="logs" class="min-h-0 outline-none">
+      <ProxyLogsPanel />
     </Tabs.Content>
     <Tabs.Content value="settings" class="min-h-0 outline-none">
       <SettingsPanel />

@@ -1,18 +1,8 @@
-const { createIrRequest, textContent } = require("../ir");
+const { createIrRequest, textContent, partitionSystemMessages } = require("../ir");
 const { parseSseChunk } = require("../sse");
 
-function mapOpenAiMessages(messages) {
-  const out = [];
-  for (const msg of messages || []) {
-    const role = String(msg?.role || "user").trim().toLowerCase();
-    if (role === "user" || role === "assistant" || role === "system" || role === "tool") {
-      const entry = { role, content: textContent(msg.content) };
-      if (msg.tool_call_id) entry.tool_call_id = String(msg.tool_call_id);
-      if (msg.name) entry.name = String(msg.name);
-      out.push(entry);
-    }
-  }
-  return out;
+function mapOpenAiMessages(messages, extraSystem) {
+  return partitionSystemMessages(messages, extraSystem);
 }
 
 function mapTools(tools) {
@@ -32,13 +22,15 @@ function mapTools(tools) {
 
 function decodeRequest(body) {
   const raw = JSON.parse(String(body || "{}"));
+  const { messages, system } = mapOpenAiMessages(raw.messages, raw.system);
   return createIrRequest({
     model: raw.model,
-    messages: mapOpenAiMessages(raw.messages),
+    messages,
     stream: raw.stream !== false,
     max_tokens: raw.max_tokens,
     temperature: raw.temperature,
     tools: mapTools(raw.tools),
+    metadata: system ? { system } : undefined,
   });
 }
 

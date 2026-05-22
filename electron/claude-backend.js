@@ -9,6 +9,9 @@ const ANTHROPIC_OAUTH_BASE_URL = "https://api.anthropic.com";
 const ANTHROPIC_MODELS_URL = `${ANTHROPIC_OAUTH_BASE_URL}/v1/models`;
 const CLAUDE_CODE_VERSION = "2.1.75";
 const FETCH_TIMEOUT_MS = 20_000;
+/** pi-ai OAuth 请求必须携带的 Claude Code system（见 packages/ai/src/providers/anthropic.ts） */
+const CLAUDE_CODE_OAUTH_SYSTEM_PROMPT =
+  "You are Claude Code, Anthropic's official CLI for Claude.";
 
 const CLAUDE_SUBSCRIPTION_MODEL_FALLBACKS = [
   "claude-sonnet-4-6",
@@ -38,13 +41,142 @@ function isClaudeOAuthToken(token) {
   return String(token || "").trim().includes("sk-ant-oat");
 }
 
+function buildClaudeOAuthProbePayload(model, userMessage = "ping") {
+  const modelId =
+    String(model || "").trim() || CLAUDE_SUBSCRIPTION_MODEL_FALLBACKS[0];
+  return {
+    model: modelId,
+    max_tokens: 16,
+    stream: true,
+    system: [{ type: "text", text: CLAUDE_CODE_OAUTH_SYSTEM_PROMPT }],
+    messages: [{ role: "user", content: String(userMessage || "ping") }],
+  };
+}
+
+function claudeStreamProbePassed(raw, status) {
+  const text = String(raw || "");
+  if (status >= 400) return false;
+  if (/event:\s*error\b/i.test(text) || text.includes('"type":"error"')) {
+    return false;
+  }
+  return (
+    text.includes("message_stop") ||
+    text.includes("content_block_delta") ||
+    text.includes("message_start")
+  );
+}
+
+function formatClaudeStreamError(status, raw) {
+  const text = String(raw || "").trim();
+  if (status >= 400) {
+    return text ? `HTTP ${status}: ${text.slice(0, 400)}` : `HTTP ${status}`;
+  }
+  if (!text) return "SSE 流未返回任何事件";
+  if (/event:\s*error\b/i.test(text)) return "SSE 流返回 error 事件";
+  return "SSE 流未收到 message_start / content_block_delta / message_stop";
+}
+
+function probeClaudeOAuthMessagesStream(urlString, headers, payload, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    let url;
+    try {
+      url = new URL(urlString);
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
+    const body = { ...payload, stream: true };
+    const data = JSON.stringify(body);
+    const lib = url.protocol === "https:" ? https : http;
+    let settled = false;
+
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+
+    const req = lib.request(
+      {
+        hostname: url.hostname,
+        port: url.port || (url.protocol === "https:" ? 443 : 80),
+        path: `${url.pathname}${url.search}`,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+          "Content-Length": Buffer.byteLength(data),
+          ...headers,
+        },
+      },
+      (res) => {
+        let raw = "";
+        const status = res.statusCode || 0;
+
+        const finalize = () => {
+          const ok = claudeStreamProbePassed(raw, status);
+          finish({
+            ok,
+            status,
+            headers: res.headers,
+            body: raw.slice(0, 8192),
+            error: ok ? "" : formatClaudeStreamError(status, raw),
+          });
+        };
+
+        if (status >= 400) {
+          res.on("data", (chunk) => {
+            raw += chunk.toString();
+          });
+          res.on("end", finalize);
+          return;
+        }
+
+        res.on("data", (chunk) => {
+          raw += chunk.toString();
+          if (raw.includes("message_stop") || raw.includes("content_block_delta")) {
+            req.destroy();
+            finish({
+              ok: true,
+              status,
+              headers: res.headers,
+              body: raw.slice(0, 8192),
+            });
+          } else if (/event:\s*error\b/i.test(raw) || raw.includes('"type":"error"')) {
+            req.destroy();
+            finish({
+              ok: false,
+              status,
+              headers: res.headers,
+              body: raw.slice(0, 8192),
+              error: formatClaudeStreamError(status, raw),
+            });
+          }
+        });
+
+        res.on("end", finalize);
+      },
+    );
+
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`请求超时 (${timeoutMs}ms)`));
+    });
+    req.on("error", reject);
+    req.write(data);
+    req.end();
+  });
+}
+
 function buildClaudeOAuthHeaders(accessToken) {
   const token = String(accessToken || "").trim();
+  // 对齐 pi-ai Claude Code OAuth：Bearer + Claude Code beta/UA（非 x-api-key）
   return {
     Authorization: `Bearer ${token}`,
     Accept: "application/json",
     "anthropic-version": "2023-06-01",
-    "anthropic-beta": "claude-code-20250219, oauth-2025-04-20",
+    "anthropic-beta": "claude-code-20250219,oauth-2025-04-20",
+    "anthropic-dangerous-direct-browser-access": "true",
     "user-agent": `claude-cli/${CLAUDE_CODE_VERSION}`,
     "x-app": "cli",
   };
@@ -255,9 +387,12 @@ module.exports = {
   ANTHROPIC_OAUTH_BASE_URL,
   ANTHROPIC_MODELS_URL,
   CLAUDE_CODE_VERSION,
+  CLAUDE_CODE_OAUTH_SYSTEM_PROMPT,
   CLAUDE_SUBSCRIPTION_MODEL_FALLBACKS,
   isClaudeOAuthToken,
   buildClaudeOAuthHeaders,
+  buildClaudeOAuthProbePayload,
+  probeClaudeOAuthMessagesStream,
   fetchClaudeOAuthModels,
   loadClaudeAccountModels,
   resolveClaudeTestModels,

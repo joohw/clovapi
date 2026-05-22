@@ -105,7 +105,7 @@
         {line}
       </p>
     {/each}
-    {#if testDetail && testStatus === "fail"}
+    {#if testDetail && (testStatus === "pass" || testStatus === "fail")}
       <details class="group text-xs">
         <summary class="cursor-pointer text-muted-foreground hover:text-foreground">查看详情</summary>
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -->

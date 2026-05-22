@@ -6,7 +6,8 @@ const profileStore = require("./profile-store");
 const subscriptionAuth = require("./subscription-auth");
 const subscriptionOAuthFlow = require("./subscription-oauth-flow");
 const proxyManager = require("./proxy-manager");
-const { buildProxyStubProfile } = require("./proxy-resolver");
+const proxyLogger = require("./proxy-logger");
+const { buildProxyStubProfile, buildIngressForBinding } = require("./proxy-resolver");
 const modelAdapters = require("./model-adapters");
 const { sanitizeForIpc } = require("./ipc-utils");
 
@@ -230,12 +231,45 @@ function storeToPayload(store) {
   };
 }
 
+function clearSubscriptionProviderState(store, providerId) {
+  const id = String(providerId || "").trim();
+  if (!id) return false;
+
+  const vendorNames = new Set();
+  let changed = false;
+  for (const profile of store.profiles || []) {
+    if (
+      String(profile.kind || "").trim().toLowerCase() === "subscription" &&
+      String(profile.subscription_provider_id || "").trim() === id
+    ) {
+      vendorNames.add(String(profile.name || "").trim().toLowerCase());
+      if (Array.isArray(profile.models) && profile.models.length > 0) {
+        profile.models = [];
+        changed = true;
+      }
+    }
+  }
+
+  if (store.active && typeof store.active === "object") {
+    for (const [cli, binding] of Object.entries({ ...store.active })) {
+      const parsed = profileStore.parseModelBinding(binding);
+      if (parsed && vendorNames.has(String(parsed.vendorName || "").trim().toLowerCase())) {
+        delete store.active[cli];
+        changed = true;
+      }
+    }
+  }
+
+  return changed;
+}
+
 ipcMain.handle("profiles:load", async () => {
   try {
     let store = await profileStore.loadStore();
     if (
       profileStore.ensureDefaultOllamaProfile(store) ||
-      profileStore.ensureDefaultSubscriptionVendors(store)
+      profileStore.ensureDefaultSubscriptionVendors(store) ||
+      profileStore.sanitizeActiveBindings(store)
     ) {
       store = await profileStore.saveStore(store);
     }
@@ -506,7 +540,26 @@ ipcMain.handle("subscription:logout", async (_event, payload) => {
   if (!cfg) {
     return { ok: false, error: `未知订阅类型: ${provider}` };
   }
-  return subscriptionAuth.removeAuthFile(provider);
+  const removed = subscriptionAuth.removeAuthFile(provider);
+  if (!removed?.ok) return removed;
+
+  try {
+    let store = await profileStore.loadStore();
+    profileStore.ensureDefaultSubscriptionVendors(store);
+    if (clearSubscriptionProviderState(store, provider)) {
+      store = await profileStore.saveStore(store);
+    }
+    return {
+      ok: true,
+      path: profileStore.profilesPath(),
+      ...storeToPayload(store),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "退出成功，但清理 profiles.json 失败",
+    };
+  }
 });
 
 ipcMain.handle("proxy:status", async () => {
@@ -544,6 +597,50 @@ ipcMain.handle("proxy:stop", async () => {
   }
 });
 
+ipcMain.handle("proxy-logs:list", async () => {
+  return { ok: true, entries: proxyLogger.list() };
+});
+
+ipcMain.handle("proxy-logs:clear", async () => {
+  proxyLogger.clear();
+  return { ok: true, entries: [] };
+});
+
+ipcMain.handle("proxy:build-ingress", async (_event, payload) => {
+  try {
+    const cliKind = String(payload?.cliKind || "").trim();
+    const binding = String(payload?.binding || "").trim();
+    if (!cliKind || !binding) {
+      return { ok: false, error: "cliKind and binding are required" };
+    }
+    const ensured = await proxyManager.ensureRunning();
+    if (!ensured.ok) {
+      return ensured;
+    }
+    const store = await profileStore.loadStore();
+    const ingress = await buildIngressForBinding(cliKind, ensured.port, binding, store);
+    const stubName = `__local_proxy_${cliKind}__`;
+    const before = store.profiles.length;
+    store.profiles = store.profiles.filter((p) => String(p.name || "") !== stubName);
+    if (store.profiles.length < before) {
+      await profileStore.saveStore(store);
+    }
+    return {
+      ok: true,
+      port: ensured.port,
+      baseUrl: ingress.baseUrl,
+      model: ingress.model,
+      modelId: ingress.modelId,
+      apiStyle: ingress.apiStyle,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to build proxy ingress",
+    };
+  }
+});
+
 ipcMain.handle("proxy:ensure-stub", async (_event, payload) => {
   try {
     const cliKind = String(payload?.cliKind || "").trim();
@@ -556,10 +653,30 @@ ipcMain.handle("proxy:ensure-stub", async (_event, payload) => {
       return ensured;
     }
     const store = await profileStore.loadStore();
-    const stub = buildProxyStubProfile(cliKind, ensured.port, binding, store);
+    const stub = await buildProxyStubProfile(cliKind, ensured.port, binding, store);
     profileStore.upsertProfile(store, stub);
+    const parsed = profileStore.parseModelBinding(binding);
+    if (parsed && Array.isArray(stub.models) && stub.models[0]) {
+      const vendorIdx = store.profiles.findIndex(
+        (p) => String(p.name || "").toLowerCase() === parsed.vendorName.toLowerCase(),
+      );
+      if (vendorIdx >= 0) {
+        const vendor = store.profiles[vendorIdx];
+        if (String(vendor.kind || "").toLowerCase() === "subscription") {
+          store.profiles[vendorIdx] = {
+            ...vendor,
+            models: profileStore.mergeVendorModels(vendor.models, stub.models),
+          };
+        }
+      }
+    }
     await profileStore.saveStore(store);
-    return { ok: true, stubName: stub.name, port: ensured.port, apiStyle };
+    return {
+      ok: true,
+      stubName: stub.name,
+      port: ensured.port,
+      apiStyle: stub.api_style,
+    };
   } catch (error) {
     return {
       ok: false,

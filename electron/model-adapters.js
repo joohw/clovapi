@@ -163,7 +163,14 @@ function normalizeModelEntry(raw, defaultApiStyle) {
   const label = String(raw?.label || "").trim() || model;
   const id = String(raw?.id || "").trim() || slugModelId(label, model);
   const apiStyle = String(raw?.api_style ?? raw?.apiStyle ?? defaultApiStyle).trim() || defaultApiStyle;
-  return { id, label, model, api_style: apiStyle };
+  return {
+    id,
+    label,
+    model,
+    api_style: apiStyle,
+    base_url: String(raw?.base_url ?? raw?.baseUrl ?? "").trim(),
+    api_key: String(raw?.api_key ?? raw?.apiKey ?? "").trim(),
+  };
 }
 
 function parseOpenAiModels(body, defaultApiStyle) {

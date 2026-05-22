@@ -24,22 +24,18 @@ import type {
 export function apiStylesForCli(kind: string): string[] {
   if (kind === "claude-code" || kind === "kimi-code") return ["claude"];
   if (kind === "codex") return ["openai-responses"];
-  if (kind === "opencode" || kind === "openclaw" || kind === "hermes") {
-    return ["claude", "openai-chat", "openai-responses", "gemini"];
-  }
+  if (kind === "opencode" || kind === "openclaw" || kind === "hermes") return ["openai-chat"];
   return [];
 }
 
 export function modelCompatibleWithCli(model: VendorModel, kind: string): boolean {
-  return apiStylesForCli(kind).includes(model.apiStyle);
+  // CLI compatibility is determined by its fixed ingress style; upstream styles are converted by the proxy.
+  return apiStylesForCli(kind).length > 0 && API_STYLES.includes(model.apiStyle as (typeof API_STYLES)[number]);
 }
 
 export function subscriptionProviderIdsForCli(kind: string): string[] {
-  const styles = apiStylesForCli(kind);
-  const providers: string[] = [];
-  if (styles.includes("claude")) providers.push("claude-code");
-  if (styles.includes("openai-responses")) providers.push("codex");
-  return providers;
+  if (!apiStylesForCli(kind).length) return [];
+  return SUBSCRIPTION_VENDOR_DEFS.map((item) => item.subscriptionProviderId);
 }
 
 export function isDefaultOllamaProfile(name: string): boolean {
@@ -145,14 +141,7 @@ export function getSubscriptionVendors(vendors: Vendor[]): Vendor[] {
       kind: "subscription",
       subscriptionProviderId: def.subscriptionProviderId,
       modelAdapter: "subscription",
-      models: [
-        {
-          id: "default",
-          label: "默认",
-          model: "default",
-          apiStyle: def.modelApiStyle,
-        },
-      ],
+      models: [],
     });
   });
 }
@@ -315,13 +304,20 @@ export function vendorSummaryLine(vendor: Vendor, subscription?: SubscriptionIte
 export function modelBindingLabel(vendor: Vendor, model: VendorModel): string {
   const kind = vendorKindLabel(vendor);
   if (vendor.kind === "subscription") {
-    return `${kind} · ${vendor.name}`;
+    const modelName = String(model.label || model.model || model.id || "").trim() || "—";
+    return `${vendor.name} · ${modelName}`;
   }
   if (isDefaultCustomApiProfile(vendor.name)) {
     const url = String(model.baseUrl || "").trim() || "未配置地址";
     return `${kind} · ${model.label || model.model} · ${url}`;
   }
   return `${kind} · ${vendor.name} · ${model.label || model.model} · ${model.apiStyle}`;
+}
+
+function cliModelBindingLabel(vendor: Vendor, model: VendorModel): string {
+  const provider = String(vendor.name || "").trim() || "Provider";
+  const modelName = String(model.label || model.model || model.id || "").trim() || "Model";
+  return `${provider}/${modelName}`;
 }
 
 export function customApiModelLine(model: VendorModel): string {
@@ -429,7 +425,7 @@ export function buildCliBindingOptions(
         const loggedIn = Boolean(sub?.loggedIn);
         options.push({
           value: modelBindingValue(vendor.name, model.id),
-          label: loggedIn ? modelBindingLabel(vendor, model) : `${vendor.name}（需先登录）`,
+          label: loggedIn ? cliModelBindingLabel(vendor, model) : `${vendor.name}（需先登录）`,
           disabled: !loggedIn,
           hint: loggedIn ? undefined : `请先在 API 管理完成${vendor.name}登录`,
         });
@@ -438,7 +434,7 @@ export function buildCliBindingOptions(
 
       options.push({
         value: modelBindingValue(vendor.name, model.id),
-        label: modelBindingLabel(vendor, model),
+        label: cliModelBindingLabel(vendor, model),
       });
     }
   }

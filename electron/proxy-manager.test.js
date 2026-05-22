@@ -1,0 +1,90 @@
+const EventEmitter = require("node:events");
+const assert = require("node:assert/strict");
+const test = require("node:test");
+const {
+  createGoProxyManager,
+  buildProxyServeArgs,
+  reachableLoopbackHost,
+  healthUrl,
+  redactSecrets,
+} = require("./proxy-manager");
+
+test("buildProxyServeArgs — argv tokens fixed", () => {
+  const { args, host, port } = buildProxyServeArgs({ host: "127.0.0.1", port: 1234 });
+  assert.deepEqual(args, ["proxy", "serve", "--host", "127.0.0.1", "--port", "1234"]);
+  assert.equal(host, "127.0.0.1");
+  assert.equal(port, 1234);
+});
+
+test("reachableLoopbackHost — bind-all maps to localhost health", () => {
+  assert.equal(reachableLoopbackHost("0.0.0.0"), "127.0.0.1");
+});
+
+test("healthUrl — probes loopback host for [::]", () => {
+  const u = new URL(healthUrl({ host: "::", port: 4000 }));
+  assert.equal(u.hostname, "127.0.0.1");
+});
+
+test("redactSecrets masks bearer-ish tokens", () => {
+  const out = redactSecrets("Bearer sk-xxxxxxxxxxxxxxxxxxxxxxxx");
+  assert.match(out, /\[redacted\]/);
+});
+
+test("start — external proxy: no spawn when /health OK", async () => {
+  const mgr = createGoProxyManager({
+    resolveExecutable: async () => "should-not-run",
+    loadProxyConfigFn: async () => ({ host: "127.0.0.1", port: 57901 }),
+    spawnFn() {
+      assert.fail("spawn must not be called when proxy already serves /health");
+    },
+    fetchHealth: async () => ({ ok: true, body: { ok: true, service: "clovapi-core-proxy" } }),
+  });
+  const st = await mgr.start({ port: 57901 });
+  assert.equal(st.ok, true);
+  assert.equal(st.running, true);
+  assert.equal(st.managed, false);
+  assert.equal(st.external, true);
+  assert.strictEqual(st.pid, null);
+});
+
+test("start — invokes spawnFn with proxy serve argv", async () => {
+  let sawSpawn = false;
+  class FakeProcess extends EventEmitter {
+    stdout = new EventEmitter();
+    stderr = new EventEmitter();
+    pid = 42_001;
+    killed = false;
+    exitCode = null;
+    signalCode = null;
+    kill() {
+      /* keep alive until test ends */
+    }
+  }
+
+  const fakeChild = new FakeProcess();
+  let tick = 0;
+  const mgr = createGoProxyManager({
+    resolveExecutable: async () => "/opt/bin/clovapi",
+    loadProxyConfigFn: async () => ({ host: "127.0.0.1", port: 58901 }),
+    healthPollMs: 1,
+    healthDeadlineMs: 2000,
+    fetchHealth: async () => {
+      tick += 1;
+      return { ok: tick >= 3, body: tick >= 3 ? { ok: true, service: "clovapi-core-proxy" } : {} };
+    },
+    spawnFn(executable, args) {
+      sawSpawn = true;
+      assert.equal(executable, "/opt/bin/clovapi");
+      assert.deepEqual(args, ["proxy", "serve", "--host", "127.0.0.1", "--port", "58901"]);
+      queueMicrotask(() => fakeChild.emit("spawn"));
+      return /** @type {any} */ (fakeChild);
+    },
+  });
+
+  const st = await mgr.start({ port: 58901 });
+  assert.ok(sawSpawn);
+  assert.equal(st.ok, true);
+  assert.equal(st.managed, true);
+  assert.strictEqual(st.pid, 42_001);
+  fakeChild.emit("close", 0, null);
+});

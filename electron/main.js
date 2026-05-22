@@ -5,9 +5,9 @@ const { spawn } = require("node:child_process");
 const profileStore = require("./profile-store");
 const subscriptionAuth = require("./subscription-auth");
 const subscriptionOAuthFlow = require("./subscription-oauth-flow");
-const proxyManager = require("./proxy-manager");
+const { createGoProxyManager } = require("./proxy-manager");
 const proxyLogger = require("./proxy-logger");
-const { buildProxyStubProfile, buildIngressForBinding } = require("./proxy-resolver");
+const { buildProxyStubProfile, buildIngressForBinding } = require("./proxy-ingress-cli");
 const modelAdapters = require("./model-adapters");
 const { sanitizeForIpc } = require("./ipc-utils");
 
@@ -97,6 +97,8 @@ async function resolveClovapiExecutable() {
   const system = await resolveCommandPath("clovapi");
   return system.exists ? system.path : "";
 }
+
+const proxyManager = createGoProxyManager({ resolveExecutable: resolveClovapiExecutable });
 
 function startChildProcess(command, options = {}) {
   const { cwd = process.cwd(), env = process.env, executable, args = [] } = options;

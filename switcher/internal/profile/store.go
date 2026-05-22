@@ -14,11 +14,33 @@ import (
 	cfgpkg "github.com/clovapi/switcher/internal/config"
 )
 
+func defaultProxyConfig() ProxyConfig {
+	return ProxyConfig{Enabled: true, Host: "127.0.0.1", Port: 27483}
+}
+
+func ensureProxyDefaults(s *Store, oldVersion int) {
+	if s == nil {
+		return
+	}
+	if strings.TrimSpace(s.Proxy.Host) == "" {
+		s.Proxy.Host = "127.0.0.1"
+	}
+	if s.Proxy.Port == 0 {
+		s.Proxy.Port = 27483
+	}
+	// Preserve an explicit false when loading an existing v4 store. Empty stores
+	// and pre-v4 stores have no way to express false, so default them to enabled.
+	if oldVersion == 0 || oldVersion < StoreVersion {
+		s.Proxy.Enabled = true
+	}
+}
+
 func emptyStore() *Store {
 	return &Store{
 		Version: StoreVersion,
 		Active:  map[string]string{},
 		List:    nil,
+		Proxy:   defaultProxyConfig(),
 	}
 }
 
@@ -46,12 +68,14 @@ func Load() (*Store, error) {
 	}
 	migrateLegacyCurrentIntoProfiles(data, &s)
 	migrateLegacyAPIStyles(&s)
+	oldVersion := s.Version
 	if s.Version == 0 {
 		s.Version = StoreVersion
 	}
 	if s.Active == nil {
 		s.Active = map[string]string{}
 	}
+	ensureProxyDefaults(&s, oldVersion)
 	return &s, nil
 }
 
@@ -106,6 +130,7 @@ func Save(s *Store) error {
 	if s.Active == nil {
 		s.Active = map[string]string{}
 	}
+	ensureProxyDefaults(s, s.Version)
 	p, err := cfgpkg.ProfilesPath()
 	if err != nil {
 		return err

@@ -90,6 +90,49 @@ function clear() {
   entries.length = 0;
 }
 
+function pushProcLine(stream, redactedBody) {
+  const id = String(nextId++);
+  const body = Buffer.isBuffer(redactedBody) ? redactedBody.toString("utf8") : String(redactedBody ?? "");
+  const stamp = stream === "stderr" ? "ERR" : "OUT";
+  const entry = {
+    id,
+    startedAt: nowIso(),
+    completedAt: nowIso(),
+    durationMs: 0,
+    request: {
+      method: "CORE",
+      url: `[go-proxy/${stamp}]`,
+      headers: {},
+      body,
+    },
+    upstream: {
+      method: "",
+      url: "",
+      status: 0,
+      headers: {},
+      body: "",
+    },
+    error: "",
+  };
+  pushEntry(entry);
+  return id;
+}
+
+function pushProcChunks(stream, redactedChunks) {
+  const textSource = Buffer.isBuffer(redactedChunks)
+    ? redactedChunks.toString("utf8")
+    : String(redactedChunks ?? "");
+  const normalized = textSource.endsWith("\n") ? textSource.slice(0, -1) : textSource;
+  const lines = normalized.split(/\n/).filter((line) => line.length > 0);
+  if (!lines.length) {
+    pushProcLine(stream, textSource.trim() === "" ? "" : textSource);
+    return;
+  }
+  for (const line of lines) {
+    pushProcLine(stream, line);
+  }
+}
+
 module.exports = {
   startRequest,
   setUpstreamResponse,
@@ -97,4 +140,6 @@ module.exports = {
   finishRequest,
   list,
   clear,
+  pushProcLine,
+  pushProcChunks,
 };

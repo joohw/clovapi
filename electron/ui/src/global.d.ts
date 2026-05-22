@@ -70,6 +70,9 @@ type ProxyStatusResult = {
   ok?: boolean;
   error?: string;
   running?: boolean;
+  managed?: boolean;
+  pid?: number | null;
+  external?: boolean;
   port?: number;
   host?: string;
   baseUrl?: string;

@@ -2,10 +2,13 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -13,6 +16,7 @@ import (
 	"github.com/clovapi/switcher/internal/apply"
 	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
+	coreproxy "github.com/clovapi/switcher/internal/proxy"
 	"github.com/clovapi/switcher/internal/testclient"
 )
 
@@ -37,7 +41,7 @@ func newRoot() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(cmdProfiles(), cmdSet(), cmdRemove(), cmdSwitch(), cmdTest(), cmdReset())
+	root.AddCommand(cmdProfiles(), cmdSet(), cmdRemove(), cmdSwitch(), cmdProxy(), cmdTest(), cmdReset())
 	return root
 }
 
@@ -539,6 +543,87 @@ func cmdReset() *cobra.Command {
 		},
 	}
 	c.Flags().BoolVarP(&yes, "yes", "y", false, "Skip confirmation prompt")
+	return c
+}
+
+func cmdProxy() *cobra.Command {
+	var host string
+	var port int
+	c := &cobra.Command{
+		Use:   "proxy",
+		Short: "Run and inspect the built-in local proxy core",
+		Long:  "The proxy is the headless core used by the desktop shell. It listens on /{providerId}/{modelId}/{apiStyle}/v1/...",
+	}
+	start := &cobra.Command{
+		Use:     "start",
+		Aliases: []string{"serve", "run"},
+		Short:   "Start the local proxy in the foreground",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			s, err := profile.Load()
+			if err != nil {
+				return err
+			}
+			cfg := s.Proxy
+			if strings.TrimSpace(host) != "" {
+				cfg.Host = strings.TrimSpace(host)
+			}
+			if port != 0 {
+				cfg.Port = port
+			}
+			server := coreproxy.NewServer(cfg)
+			fmt.Printf("clovapi core proxy listening on http://%s:%d\n", server.Config.Host, server.Config.Port)
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				return err
+			}
+			return nil
+		},
+	}
+	start.Flags().StringVar(&host, "host", "", "Host to listen on (default from profiles.json proxy.host)")
+	start.Flags().IntVar(&port, "port", 0, "Port to listen on (default from profiles.json proxy.port)")
+	status := &cobra.Command{
+		Use:   "status",
+		Short: "Check whether the local proxy responds to /health",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			s, err := profile.Load()
+			if err != nil {
+				return err
+			}
+			cfg := coreproxy.NewServer(s.Proxy).Config
+			client := http.Client{Timeout: 2 * time.Second}
+			url := fmt.Sprintf("http://%s:%d/health", cfg.Host, cfg.Port)
+			resp, err := client.Get(url)
+			if err != nil {
+				return fmt.Errorf("proxy not reachable at %s: %w", url, err)
+			}
+			defer resp.Body.Close()
+			var body map[string]any
+			if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+				return err
+			}
+			fmt.Printf("%s status=%d %v\n", url, resp.StatusCode, body)
+			if resp.StatusCode != http.StatusOK {
+				return fmt.Errorf("proxy health returned status %d", resp.StatusCode)
+			}
+			return nil
+		},
+	}
+	config := &cobra.Command{
+		Use:   "config",
+		Short: "Print the proxy config from profiles.json",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			s, err := profile.Load()
+			if err != nil {
+				return err
+			}
+			data, err := json.MarshalIndent(s.Proxy, "", "  ")
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(data))
+			return nil
+		},
+	}
+	c.AddCommand(start, status, config)
 	return c
 }
 

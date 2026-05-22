@@ -17,9 +17,9 @@ On first launch, if `profiles.json` is empty and legacy `localStorage` (`clovapi
   - Claude Code / Codex：清除 clovapi 中继，使用 OAuth 凭据
   - Kimi Code：**Claude Code 订阅** — 读取 Claude OAuth 凭据，自动生成 profile 并写入 Kimi `config.toml`
 - **API 管理**：**仅四种固定供应商**（`claude-code`、`codex`、`ollama`、`custom-api`），不可动态注册新供应商；自定义 API 仅手动添加模型（与 `clovapi set` 同一 `profiles.json`）
-- **本地代理**：应用 CLI 后请求走 `http://127.0.0.1:{port}/{providerId}/{modelId}/{apiStyle}/v1/…`（四种供应商各占固定 `providerId`）
-- **协议中间层**（`protocol/`）：所有 POST 经 IR 编解码（4 ingress × 4 egress，流式优先）；路径上 `apiStyle` 为客户端协议，可与 profile 中上游协议不同（如 `openai-chat` → Claude 订阅）
-- **测试**：`npm test`（`electron/protocol/protocol.test.js`，含 16 组请求矩阵 + 代理集成）
+- **本地代理**：Electron 在主进程拉起 **Go `clovapi proxy serve`**（与 CLI 同源），监听 `profiles.json` 中的 `proxy.host` / `proxy.port`（默认 `http://127.0.0.1:27483`）。请求路由与 Go 内核一致：`http://127.0.0.1:{port}/{providerId}/{modelId}/{apiStyle}/v1/…`
+- **协议与解码**：全部由 **Go `switcher/internal/proxy` + protocol** 持有；Electron 不写平行 JS proxy
+- **测试**：`npm test`（进程管理参数构造、`/health` 外部代理分支、ingress URL 分段编码）
 - Bind each installed CLI to a profile (`active` map in `profiles.json`)
 - **应用** runs `clovapi switch --cli <kind> <name>` to write Codex / OpenCode / etc. configs
 - **测试** runs `clovapi test <name>`

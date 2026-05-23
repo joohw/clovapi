@@ -6,6 +6,7 @@ const { createGoProxyManager } = require("./proxy-manager");
 const proxyLogger = require("./proxy-logger");
 const callLogsStore = require("./call-logs-store");
 const clovapiDesktop = require("./clovapi-desktop");
+const { buildBundledCandidates, resolveClovapiExecutable: resolveBundledClovapiExecutable } = require("./clovapi-exec");
 const subscriptionAuth = require("./subscription-auth");
 const subscriptionOAuthFlow = require("./subscription-oauth-flow");
 const { sanitizeForIpc } = require("./ipc-utils");
@@ -71,23 +72,15 @@ function emitOutput(type, chunk) {
 
 function getBundledCliCandidates() {
   const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
-  return [
+  return buildBundledCandidates([
     process.env.CLOVAPI_ELECTRON_CLI_PATH,
     path.join(process.resourcesPath || "", "bin", exeName),
     path.join(app.getAppPath ? app.getAppPath() : "", "bin", exeName),
-    path.join(__dirname, "bin", exeName),
-    path.join(__dirname, "..", "switcher", exeName),
-    path.join(process.cwd(), "switcher", exeName)
-  ].filter(Boolean);
+  ]);
 }
 
 function resolveBundledCliPath() {
-  for (const candidate of getBundledCliCandidates()) {
-    try {
-      if (candidate && fs.existsSync(candidate)) return candidate;
-    } catch {}
-  }
-  return "";
+  return resolveBundledClovapiExecutable({ extraCandidates: getBundledCliCandidates() });
 }
 
 async function resolveClovapiExecutable() {

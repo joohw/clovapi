@@ -17,7 +17,7 @@ func cmdDesktop() *cobra.Command {
 		Use:   "desktop",
 		Short: "Desktop shell JSON API (profiles, auth, tests)",
 	}
-	c.AddCommand(cmdDesktopProfiles(), cmdDesktopVendor(), cmdDesktopAuth())
+	c.AddCommand(cmdDesktopProfiles(), cmdDesktopProxy(), cmdDesktopVendor(), cmdDesktopAuth())
 	return c
 }
 
@@ -80,6 +80,43 @@ func cmdDesktopProfilesTest() *cobra.Command {
 	c.Flags().StringVar(&binding, "binding", "", "Model binding (@model:Vendor/model-id)")
 	c.Flags().IntVar(&port, "port", 0, "Local proxy port override")
 	return c
+}
+
+func cmdDesktopProxy() *cobra.Command {
+	c := &cobra.Command{
+		Use:   "proxy",
+		Short: "Load or save local proxy bind settings",
+	}
+	c.AddCommand(cmdDesktopProxyLoad(), cmdDesktopProxySave())
+	return c
+}
+
+func cmdDesktopProxyLoad() *cobra.Command {
+	return &cobra.Command{
+		Use:   "load",
+		Short: "Load normalized proxy bind settings",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return writeDesktopJSON(desktop.LoadProxyConfig())
+		},
+	}
+}
+
+func cmdDesktopProxySave() *cobra.Command {
+	return &cobra.Command{
+		Use:   "save",
+		Short: "Save proxy bind settings from JSON on stdin",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			data, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				return err
+			}
+			var input desktop.UIProxyConfig
+			if err := json.Unmarshal(data, &input); err != nil {
+				return fmt.Errorf("parse proxy save payload: %w", err)
+			}
+			return writeDesktopJSON(desktop.SaveProxyConfig(input))
+		},
+	}
 }
 
 func cmdDesktopVendor() *cobra.Command {

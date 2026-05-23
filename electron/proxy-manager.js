@@ -1,5 +1,5 @@
 const { spawn } = require("node:child_process");
-const profileStore = require("./profile-store");
+const clovapiDesktop = require("./clovapi-desktop");
 
 const DEFAULT_PORT = 27483;
 const DEFAULT_HOST = "127.0.0.1";
@@ -220,10 +220,13 @@ function createGoProxyManager(deps) {
 
   /** @returns {Promise<ProxyBindConfig & { enabled?: boolean }>} */
   async function loadProxyConfigFromDisk() {
-    const store = await profileStore.loadStore();
-    const cfg = store.proxy && typeof store.proxy === "object" ? store.proxy : {};
+    const result = await clovapiDesktop.loadProxyConfig();
+    if (!result?.ok) {
+      throw new Error(String(result?.error || "failed to load proxy config"));
+    }
+    const cfg = result.proxy && typeof result.proxy === "object" ? result.proxy : {};
     return {
-      enabled: true,
+      enabled: cfg.enabled !== false,
       host: String(cfg.host || DEFAULT_HOST).trim() || DEFAULT_HOST,
       port: Number(cfg.port) || DEFAULT_PORT,
     };
@@ -241,11 +244,22 @@ function createGoProxyManager(deps) {
   }
 
   async function saveProxyConfig(patch) {
-    const store = await profileStore.loadStore();
     const current = await loadProxyConfigFromDisk();
-    store.proxy = { ...current, ...patch };
-    await profileStore.saveStore(store);
-    return store.proxy;
+    const merged = { ...current, ...patch };
+    const result = await clovapiDesktop.saveProxyConfig({
+      enabled: merged.enabled !== false,
+      host: String(merged.host || DEFAULT_HOST).trim() || DEFAULT_HOST,
+      port: Number(merged.port) || DEFAULT_PORT,
+    });
+    if (!result?.ok) {
+      throw new Error(String(result?.error || "failed to save proxy config"));
+    }
+    const cfg = result.proxy && typeof result.proxy === "object" ? result.proxy : merged;
+    return {
+      enabled: cfg.enabled !== false,
+      host: String(cfg.host || DEFAULT_HOST).trim() || DEFAULT_HOST,
+      port: Number(cfg.port) || DEFAULT_PORT,
+    };
   }
 
   /** @param {ProxyBindConfig} cfg */

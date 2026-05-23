@@ -2,7 +2,17 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
-function resolveClovapiExecutable() {
+function buildBundledCandidates(extraCandidates = []) {
+  const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
+  const defaults = [
+    path.join(__dirname, "bin", exeName),
+    path.join(__dirname, "..", "switcher", exeName),
+    path.join(process.cwd(), "switcher", exeName),
+  ];
+  return [...extraCandidates, ...defaults].filter(Boolean);
+}
+
+function resolveClovapiExecutable(options = {}) {
   const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
   if (process.env.CLOVAPI_ELECTRON_CLI_PATH) {
     try {
@@ -31,11 +41,7 @@ function resolveClovapiExecutable() {
   } catch {
     /* ignore */
   }
-  const candidates = [
-    path.join(__dirname, "bin", exeName),
-    path.join(__dirname, "..", "switcher", exeName),
-  ];
-  for (const candidate of candidates) {
+  for (const candidate of buildBundledCandidates(options.extraCandidates)) {
     try {
       if (candidate && fs.existsSync(candidate)) return candidate;
     } catch {
@@ -46,7 +52,7 @@ function resolveClovapiExecutable() {
 }
 
 function runClovapiArgs(args, options = {}) {
-  const exe = resolveClovapiExecutable();
+  const exe = resolveClovapiExecutable(options);
   if (!exe) {
     return {
       ok: false,
@@ -74,6 +80,7 @@ function runClovapiArgs(args, options = {}) {
 }
 
 module.exports = {
+  buildBundledCandidates,
   resolveClovapiExecutable,
   runClovapiArgs,
 };

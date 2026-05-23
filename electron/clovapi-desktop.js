@@ -31,6 +31,17 @@ function loadProfiles() {
   return runDesktop(["profiles", "load"]);
 }
 
+function loadProxyConfig() {
+  return runDesktop(["proxy", "load"], { timeout: 10000 });
+}
+
+function saveProxyConfig(payload) {
+  return runDesktop(["proxy", "save"], {
+    input: JSON.stringify(payload || {}),
+    timeout: 10000,
+  });
+}
+
 function saveProfiles(payload) {
   return runDesktop(["profiles", "save"], {
     input: JSON.stringify(payload || {}),
@@ -71,6 +82,8 @@ function authLogout(provider) {
 module.exports = {
   runDesktop,
   loadProfiles,
+  loadProxyConfig,
+  saveProxyConfig,
   saveProfiles,
   listVendorModels,
   testBinding,

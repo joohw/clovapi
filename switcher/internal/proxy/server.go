@@ -23,7 +23,7 @@ import (
 
 type Server struct {
 	Config profile.ProxyConfig
-	// ProfileLoader resolves persisted Desktop v4 profiles; defaults to profile.Load when nil (set in ctor).
+	// ProfileLoader resolves persisted Desktop v4 profiles; defaults to profile.LoadDesktop when nil (set in ctor).
 	ProfileLoader func() (*profile.Store, error)
 	// HTTPClient performs upstream calls when serving matching ingress/egress requests; defaults in NewServer (2-minute timeout).
 	HTTPClient *http.Client
@@ -64,7 +64,7 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 	}
 	s := &Server{
 		Config:        cfg,
-		ProfileLoader: profile.Load,
+		ProfileLoader: profile.LoadDesktop,
 		CallLogs:      NewCallLogStore(),
 		HTTPClient: &http.Client{
 			Timeout: 2 * time.Minute,

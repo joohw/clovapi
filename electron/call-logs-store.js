@@ -1,15 +1,6 @@
 const fs = require("node:fs");
-const path = require("node:path");
-const { configDir } = require("./profile-store");
+const { callLogsDir, callLogsDBPath } = require("./config-paths");
 const { runClovapiArgs } = require("./clovapi-exec");
-
-function callLogsDir() {
-  return path.join(configDir(), "call-logs");
-}
-
-function callLogsDBPath() {
-  return path.join(callLogsDir(), "call-logs.sqlite");
-}
 
 function readCallLogsViaCLI(limit = 200) {
   const result = runClovapiArgs(

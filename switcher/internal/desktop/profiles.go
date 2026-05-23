@@ -221,6 +221,53 @@ func SaveProfiles(input SaveInput) SaveResult {
 	}
 }
 
+type ProxyConfigResult struct {
+	OK    bool          `json:"ok"`
+	Proxy UIProxyConfig `json:"proxy,omitempty"`
+	Error string        `json:"error,omitempty"`
+}
+
+func proxyConfigFromStore(s *profile.Store) UIProxyConfig {
+	if s == nil {
+		return UIProxyConfig{}
+	}
+	return UIProxyConfig{
+		Enabled: s.Proxy.Enabled,
+		Host:    s.Proxy.Host,
+		Port:    s.Proxy.Port,
+	}
+}
+
+// LoadProxyConfig returns normalized proxy bind settings from profiles.json.
+func LoadProxyConfig() ProxyConfigResult {
+	s, err := profile.LoadDesktop()
+	if err != nil {
+		return ProxyConfigResult{OK: false, Error: err.Error()}
+	}
+	return ProxyConfigResult{OK: true, Proxy: proxyConfigFromStore(s)}
+}
+
+// SaveProxyConfig merges proxy settings into profiles.json.
+func SaveProxyConfig(input UIProxyConfig) ProxyConfigResult {
+	current, err := profile.LoadDesktop()
+	if err != nil {
+		return ProxyConfigResult{OK: false, Error: err.Error()}
+	}
+	current.Proxy = profile.ProxyConfig{
+		Enabled: input.Enabled,
+		Host:    strings.TrimSpace(input.Host),
+		Port:    input.Port,
+	}
+	if err := profile.SaveDesktop(current); err != nil {
+		return ProxyConfigResult{OK: false, Error: err.Error()}
+	}
+	saved, err := profile.LoadDesktop()
+	if err != nil {
+		return ProxyConfigResult{OK: false, Error: err.Error()}
+	}
+	return ProxyConfigResult{OK: true, Proxy: proxyConfigFromStore(saved)}
+}
+
 // ParseSaveInput decodes stdin JSON for profiles save.
 func ParseSaveInput(data []byte) (SaveInput, error) {
 	var input SaveInput

@@ -53,7 +53,7 @@
         {@const sub = subscriptionStatusForVendor(vendor, store.subscriptions)}
         <ListRow
           title={vendor.name}
-          lines={[vendorSummaryLine(vendor, sub)]}
+          lines={[vendorSummaryLine(vendor, sub, store.ollamaInstalled)]}
           onOpen={() => openVendor(vendor.name)}
         >
           {#snippet actions()}

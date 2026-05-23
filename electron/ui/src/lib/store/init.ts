@@ -1,4 +1,4 @@
-import { detectCliPath, setRunning } from "./cli";
+import { detectCliPath, detectOllamaInstalled, setRunning } from "./cli";
 import { loadModelTests } from "./model-tests";
 import { loadPresets } from "./presets";
 import { loadProfilesFromDisk } from "./profiles";
@@ -21,5 +21,6 @@ export async function initApp() {
     const tool = await bridge.toolStatus?.().catch(() => null);
     store.clovapiAvailable = Boolean(tool?.available);
     await detectCliPath();
+    await detectOllamaInstalled();
   }
 }

@@ -1,5 +1,5 @@
 import { resolveVendorByName } from "../helpers";
-import { detectCliPath } from "./cli";
+import { detectCliPath, detectOllamaInstalled } from "./cli";
 import { loadProfilesFromDisk } from "./profiles";
 import { refreshProxyLogs, refreshProxyStatus } from "./proxy";
 import { refreshSubscriptions } from "./subscriptions";
@@ -30,6 +30,7 @@ export function setActiveTab(tab: TabId) {
     void (async () => {
       await loadProfilesFromDisk();
       await refreshSubscriptions();
+      await detectOllamaInstalled();
     })();
   } else {
     void refreshSubscriptions();

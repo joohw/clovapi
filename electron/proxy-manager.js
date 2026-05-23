@@ -282,6 +282,21 @@ function createGoProxyManager(deps) {
     };
   }
 
+  async function probeHealth() {
+    const cfg = await loadProxyConfig();
+    const url = healthUrl(cfg);
+    const started = Date.now();
+    const hc = await fetchHealth(url);
+    return {
+      ok: true,
+      passed: hc.ok === true,
+      url,
+      latencyMs: Date.now() - started,
+      body: hc.body ?? null,
+      error: hc.ok ? "" : String(hc.error || "health failed"),
+    };
+  }
+
   /** @returns {Promise<void>} */
   function killManagedSubtree(pid) {
     return new Promise((resolve) => {
@@ -542,6 +557,7 @@ function createGoProxyManager(deps) {
     loadProxyConfig,
     saveProxyConfig,
     status,
+    probeHealth,
     start,
     stop,
     ensureRunning,

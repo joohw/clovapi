@@ -59,6 +59,51 @@ export async function clearSystemLogs() {
   store.proxySystemLogSelectedId = null;
 }
 
+export async function runProxyHealthTest() {
+  if (store.proxyHealthTest?.status === "testing") return;
+
+  const bridge = window.clovapiProxy;
+  if (!bridge?.health) {
+    toast.error("当前环境不支持代理 Health 测试");
+    return;
+  }
+
+  store.proxyHealthTest = {
+    status: "testing",
+    summary: "测试中…",
+    detail: "",
+  };
+
+  try {
+    const result = await bridge.health();
+    await refreshProxyStatus();
+
+    if (result?.ok && result.passed) {
+      const latency = result.latencyMs != null ? `${result.latencyMs}ms` : "";
+      store.proxyHealthTest = {
+        status: "pass",
+        summary: latency ? `Health OK · ${latency}` : "Health OK",
+        detail: "",
+      };
+      return;
+    }
+
+    const reason = result?.error || "代理未响应 /health";
+    store.proxyHealthTest = {
+      status: "fail",
+      summary: `Health 失败 · ${reason}`,
+      detail: "",
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Health 测试失败";
+    store.proxyHealthTest = {
+      status: "fail",
+      summary: `测试失败 · ${message}`,
+      detail: "",
+    };
+  }
+}
+
 export async function restartLocalProxy() {
   const bridge = window.clovapiProxy;
   if (!bridge?.stop || !bridge?.start) {

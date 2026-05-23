@@ -283,15 +283,25 @@ export function resolveVendorByName(vendors: Vendor[], name: string): Vendor | u
   return findVendorByName(vendors, name);
 }
 
-export function vendorSummaryLine(vendor: Vendor, subscription?: SubscriptionItem): string {
+export function vendorSummaryLine(
+  vendor: Vendor,
+  subscription?: SubscriptionItem,
+  ollamaInstalled = false,
+): string {
   const count = vendor.models?.length || 0;
   const models = `${count} 个模型`;
-  const kind = vendorKindLabel(vendor);
   if (vendor.kind === "subscription") {
     const status = subscription?.summary || "未登录";
-    return `${kind} · ${status} · ${models}`;
+    return `${status} · ${models}`;
   }
-  return `${kind} · ${vendorAdapterLine(vendor)} · ${models}`;
+  if (isOllamaVendor(vendor)) {
+    const install = ollamaInstalled ? "已安装" : "未安装";
+    return `${install} · ${models}`;
+  }
+  if (isDefaultCustomApiProfile(vendor.name)) {
+    return models;
+  }
+  return `${vendorKindLabel(vendor)} · ${vendorAdapterLine(vendor)} · ${models}`;
 }
 
 export function modelBindingLabel(vendor: Vendor, model: VendorModel): string {

@@ -47,6 +47,17 @@ export async function detectCliPath() {
   store.cliDetectedPath = next;
 }
 
+export async function detectOllamaInstalled() {
+  const bridge = window.clovapiCli;
+  if (!bridge?.which) return;
+  try {
+    const result = await bridge.which("ollama");
+    store.ollamaInstalled = Boolean(result?.exists);
+  } catch {
+    store.ollamaInstalled = false;
+  }
+}
+
 async function runClovapiArgsAndWait(args: string[]) {
   const bridge = window.clovapiCli;
   if (!bridge?.runClovapi) {

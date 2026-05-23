@@ -27,7 +27,7 @@ export {
   removeVendorModel,
 } from "./profiles";
 export { canFetchVendorModels, isVendorFetching, fetchVendorModels } from "./vendor-models";
-export { refreshProxyStatus, refreshProxyLogs, clearCallLogs, clearSystemLogs, restartLocalProxy } from "./proxy";
+export { refreshProxyStatus, refreshProxyLogs, clearCallLogs, clearSystemLogs, restartLocalProxy, runProxyHealthTest } from "./proxy";
 export { loadPresets, applyPresetToForm, applyPresetToModelForm } from "./presets";
 export {
   setActiveTab,
@@ -51,6 +51,7 @@ export {
   setRunning,
   onCliBindingChange,
   detectCliPath,
+  detectOllamaInstalled,
   runCliApply,
   cliApplyTitle,
 } from "./cli";

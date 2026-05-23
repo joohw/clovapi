@@ -33,8 +33,18 @@ type ProfilesBridge = {
   modelAdapters(): Promise<ModelAdaptersResult>;
 };
 
+type ProxyHealthResult = {
+  ok?: boolean;
+  passed?: boolean;
+  error?: string;
+  url?: string;
+  latencyMs?: number;
+  body?: unknown;
+};
+
 type ProxyBridge = {
   status(): Promise<ProxyStatusResult>;
+  health(): Promise<ProxyHealthResult>;
   start(port?: number): Promise<ProxyStatusResult>;
   stop(): Promise<{ ok?: boolean; error?: string }>;
   ensureStub(cliKind: string, binding: string): Promise<{

@@ -609,6 +609,18 @@ ipcMain.handle("proxy:status", async () => {
   }
 });
 
+ipcMain.handle("proxy:health", async () => {
+  try {
+    return await proxyManager.probeHealth();
+  } catch (error) {
+    return {
+      ok: false,
+      passed: false,
+      error: error instanceof Error ? error.message : "Failed to probe proxy health",
+    };
+  }
+});
+
 ipcMain.handle("proxy:start", async (_event, payload) => {
   try {
     const port = Number(payload?.port) || undefined;

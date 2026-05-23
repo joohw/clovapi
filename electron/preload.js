@@ -59,6 +59,9 @@ contextBridge.exposeInMainWorld("clovapiProxy", {
   status() {
     return ipcRenderer.invoke("proxy:status");
   },
+  health() {
+    return ipcRenderer.invoke("proxy:health");
+  },
   start(port) {
     return ipcRenderer.invoke("proxy:start", { port });
   },

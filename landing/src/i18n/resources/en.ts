@@ -53,7 +53,7 @@ const en = {
     downloadMac: "Download for macOS",
     downloadWindows: "Download for Windows",
     installAgentSkill: "Install Agent Skill",
-    ctaTitle: "Get the desktop app",
+    ctaTitle: "Multiple ways to use clovapi",
     ctaSubtitle: "Manage agent APIs in a GUI — or install the CLI for one-line switching.",
     ctaGithub: "View on GitHub",
     apiStyleItems: {

@@ -35,7 +35,9 @@ export default function SkillPage() {
       <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-1 flex-col gap-4 px-4 pb-4 pt-4 sm:px-6 sm:pb-6 sm:pt-6">
         <section className="panel">
           <div className="panel-body">
-            <p className="text-sm font-medium text-foreground">{t("skill.agentHintTitle")}</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+              {t("skill.agentHintTitle")}
+            </h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{t("skill.agentHint")}</p>
 
             <div className={`${styles.terminalCard} mt-5 max-w-2xl`}>

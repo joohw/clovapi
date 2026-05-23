@@ -53,7 +53,7 @@ const zhCN = {
     downloadMac: "下载 macOS 客户端",
     downloadWindows: "下载 Windows 客户端",
     installAgentSkill: "安装 Agent Skill",
-    ctaTitle: "下载桌面客户端",
+    ctaTitle: "多种使用方式",
     ctaSubtitle: "图形界面管理 Agent API，也支持 CLI 一行命令安装与切换。",
     ctaGithub: "GitHub 源码",
     apiStyleItems: {

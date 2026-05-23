@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { ClientDownloadButtons } from "@/components/home/client-download-buttons";
 import { ShellHighlight } from "@/components/shell-highlight";
 import { useToast } from "@/components/ui/toast-provider";
+import { USE_CASE_ZH_HEIGHT, USE_CASE_ZH_IMAGE, USE_CASE_ZH_WIDTH } from "@/lib/assets";
 import { HOME_TITLE } from "@/lib/site";
 import styles from "@/app/page.module.css";
 
@@ -83,11 +84,12 @@ export function HomeHero() {
 
           <div className={`${styles.useCaseShot} min-w-0 w-full`}>
             <Image
-              src="/use-case-zh.png"
+              src={USE_CASE_ZH_IMAGE}
               alt={t("home.useCaseAlt")}
-              width={700}
-              height={760}
+              width={USE_CASE_ZH_WIDTH}
+              height={USE_CASE_ZH_HEIGHT}
               priority
+              unoptimized
               sizes="(min-width: 1024px) 42vw, 100vw"
               className="h-auto w-full"
             />

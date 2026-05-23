@@ -70,15 +70,17 @@ func cmdDesktopProfilesSave() *cobra.Command {
 func cmdDesktopProfilesTest() *cobra.Command {
 	var binding string
 	var port int
+	var cliKind string
 	c := &cobra.Command{
 		Use:   "test",
 		Short: "Probe a @model binding via the local proxy",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return writeDesktopJSON(desktop.TestBinding(binding, port))
+			return writeDesktopJSON(desktop.TestBinding(binding, port, cliKind))
 		},
 	}
 	c.Flags().StringVar(&binding, "binding", "", "Model binding (@model:Vendor/model-id)")
 	c.Flags().IntVar(&port, "port", 0, "Local proxy port override")
+	c.Flags().StringVar(&cliKind, "cli", "", "CLI kind for ingress style (e.g. codex|claude-code)")
 	return c
 }
 

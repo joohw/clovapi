@@ -241,6 +241,7 @@ export type SubscriptionVendorRow = SubscriptionItem & {
 
 type ProfileTestPayload = {
   binding: string;
+  cli?: string;
   vendors?: Vendor[];
   active?: Record<string, string>;
   proxy?: ProxyConfig;

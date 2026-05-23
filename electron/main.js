@@ -312,6 +312,7 @@ ipcMain.handle("profiles:test", async (_event, payload) => {
     }
     const body = {
       binding: payload?.binding,
+      cli: payload?.cli,
       proxy: {
         port: Number(payload?.proxy?.port) || Number(ensured.port) || 27483,
       },

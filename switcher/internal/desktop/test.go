@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/clovapi/switcher/internal/apistyle"
+	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
 	"github.com/clovapi/switcher/internal/testclient"
@@ -30,8 +32,25 @@ func defaultProxyTestAPIStyle(vendor profile.Profile, model profile.Model, provi
 	return string(profile.NormalizeAPIStyle("openai-chat"))
 }
 
+func resolveProbeStyles(providerID, cliKindStr string, vendor profile.Profile, model profile.Model) (ingressStyle string, probeStyle apistyle.Style, err error) {
+	ingressStyle = defaultProxyTestAPIStyle(vendor, model, providerID)
+	probeStyle = profile.NormalizeAPIStyle(ingressStyle)
+	cliKindStr = strings.TrimSpace(cliKindStr)
+	if cliKindStr == "" {
+		return ingressStyle, probeStyle, nil
+	}
+	kind, parseErr := clikind.Parse(cliKindStr)
+	if parseErr != nil {
+		return "", "", parseErr
+	}
+	ingressStyle = string(profile.CliIngressStyle(kind))
+	probeStyle = profile.CliIngressStyle(kind)
+	return ingressStyle, probeStyle, nil
+}
+
 // TestBinding probes connectivity via the local proxy ingress URL.
-func TestBinding(binding string, portOverride int) TestResult {
+// When cliKind is set, the probe uses that CLI's fixed ingress style (cross-subscription path).
+func TestBinding(binding string, portOverride int, cliKindStr string) TestResult {
 	binding = strings.TrimSpace(binding)
 	if binding == "" {
 		return TestResult{
@@ -68,7 +87,14 @@ func TestBinding(binding string, portOverride int) TestResult {
 		}
 	}
 
-	apiStyleStr := defaultProxyTestAPIStyle(hit.Vendor, hit.Model, providerID)
+	apiStyleStr, probeStyle, styleErr := resolveProbeStyles(providerID, cliKindStr, hit.Vendor, hit.Model)
+	if styleErr != nil {
+		return TestResult{
+			OK: false, Passed: false, Summary: "测试失败",
+			Error: styleErr.Error(),
+			Text:  fmt.Sprintf("无效的 CLI 类型：%s", cliKindStr),
+		}
+	}
 	pathModelID, modelWire := profile.ResolveWireModelForIngress(hit, modelID)
 	port := s.Proxy.Port
 	if portOverride > 0 {
@@ -78,9 +104,8 @@ func TestBinding(binding string, portOverride int) TestResult {
 		port = 27483
 	}
 	baseURL := provider.BuildProxyIngressBaseURL(port, providerID, pathModelID, apiStyleStr)
-	style := profile.NormalizeAPIStyle(apiStyleStr)
 
-	if err := testclient.Probe(style, baseURL, "clovapi-local", modelWire); err != nil {
+	if err := testclient.Probe(probeStyle, baseURL, "clovapi-local", modelWire); err != nil {
 		return TestResult{
 			OK: true, Passed: false, Summary: "测试失败",
 			Text:  fmt.Sprintf("连通性测试失败：%v", err),

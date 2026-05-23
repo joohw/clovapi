@@ -1,4 +1,4 @@
-import { modelTestStatusKey, toIpcPayload } from "../helpers";
+import { crossSubscriptionTestCli, modelTestStatusKey, toIpcPayload } from "../helpers";
 import { t } from "../i18n";
 import { isModelTesting, setModelTestResult, setModelTestTesting } from "./model-tests";
 import { refreshProxyLogs } from "./proxy";
@@ -23,10 +23,12 @@ export async function runModelTest(binding: string) {
   const TEST_UI_TIMEOUT_MS = 130_000;
   let result: Awaited<ReturnType<NonNullable<typeof bridge.test>>>;
   try {
+    const cli = crossSubscriptionTestCli(key, store.profiles, store.active, store.clis);
     result = await Promise.race([
       bridge.test(
         toIpcPayload({
           binding: key,
+          cli: cli || undefined,
           vendors: store.profiles,
           active: store.active,
           proxy: { enabled: true, host: "127.0.0.1", port: store.proxyPort },

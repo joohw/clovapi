@@ -58,6 +58,10 @@ function listVendorModels(vendorName) {
 function testBinding(payload) {
   const binding = String(payload?.binding || "").trim();
   const args = ["profiles", "test", "--binding", binding];
+  const cli = String(payload?.cli || "").trim();
+  if (cli) {
+    args.push("--cli", cli);
+  }
   const port = Number(payload?.proxy?.port);
   if (Number.isFinite(port) && port > 0) {
     args.push("--port", String(port));

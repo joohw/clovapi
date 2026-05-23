@@ -203,6 +203,24 @@ export function subscriptionProviderFromBinding(value: string, vendors: Vendor[]
   return "";
 }
 
+/** Pick the CLI ingress style used for cross-subscription routing tests. */
+export function crossSubscriptionTestCli(
+  binding: string,
+  vendors: Vendor[] = [],
+  active: Record<string, string> = {},
+  clis: CliDef[] = [],
+): string {
+  for (const cli of clis) {
+    if (String(active[cli.kind] || "").trim() === String(binding || "").trim()) {
+      return cli.kind;
+    }
+  }
+  const providerId = subscriptionProviderFromBinding(binding, vendors);
+  if (providerId === "claude-code") return "codex";
+  if (providerId === "codex") return "claude-code";
+  return "";
+}
+
 export function modelBindingValue(vendorName: string, modelId: string): string {
   return `${MODEL_BINDING_PREFIX}${vendorName}/${modelId}`;
 }

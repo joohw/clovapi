@@ -16,7 +16,7 @@ const zhCN = {
       "支持 Claude Code、Codex 官方订阅与第三方 API，一键 switch 写入 Agent CLI 配置。",
     quickStart: "快速开始",
     quickStartHint:
-      "先用 clovapi add 保存上游 API profile，再用 clovapi switch 经本地代理提供给目标 Agent CLI。",
+      "添加的API profile 会经由本地代理提供给目标 Agent CLI",
     useCaseAlt: "ClovAPI Switcher 桌面客户端界面：管理 Claude Code、Codex 等 Agent 的 API 上游",
     copy: "复制",
     copySuccess: "命令已复制到剪贴板",

@@ -16,7 +16,7 @@ const en = {
       "Supports Claude Code and Codex official subscriptions plus third-party APIs — apply profiles to agent CLIs with one switch.",
     quickStart: "Quick start",
     quickStartHint:
-      "Run clovapi add to save an upstream profile, then clovapi switch to serve it to your agent CLI through the built-in local proxy.",
+      "The added API profile is served to your target Agent CLI via the local proxy",
     useCaseAlt: "ClovAPI Switcher desktop app managing API upstreams for Claude Code, Codex, and other agents",
     copy: "Copy",
     copySuccess: "Commands copied to clipboard",

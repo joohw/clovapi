@@ -294,7 +294,7 @@ function readClaudeAccessToken(credentials = {}) {
 async function fetchClaudeOAuthModels(credentials = {}) {
   const accessToken = readClaudeAccessToken(credentials);
   if (!accessToken) {
-    throw new Error("Claude 未登录：缺少 access_token，请先在 API 管理登录 Claude Code 订阅。");
+    throw new Error("Claude 未登录：缺少 access_token，请先在 API 管理登录 Claude 订阅。");
   }
 
   try {

@@ -130,11 +130,76 @@ async function defaultFetchHealth(url) {
   }
 }
 
+/** @param {ProxyBindConfig} cfg */
+function callLogUrl(cfg) {
+  const { host, port } = buildProxyServeArgs(cfg);
+  const clientHost = healthClientHost(host);
+  return `http://${clientHost}:${port}/__debug/call-log`;
+}
+
+/** @type {(url: string) => Promise<{ ok: boolean; supports: boolean; error?: string }>} */
+async function defaultFetchCallLogSupport(url) {
+  const target = String(url || "").trim();
+  if (!target) {
+    return { ok: false, supports: false, error: "call-log URL is empty" };
+  }
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 2500);
+  try {
+    const res = await fetch(target, { signal: ac.signal });
+    if (!res.ok) {
+      return { ok: false, supports: false, error: `call-log status ${res.status}` };
+    }
+    const json = await res.json();
+    return { ok: true, supports: Array.isArray(json?.entries) };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "call-log request failed";
+    return { ok: false, supports: false, error: msg };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** @param {ProxyBindConfig} cfg @param {number} [skipPid] */
+function releaseBindPort(cfg, skipPid = 0) {
+  const port = Number(cfg?.port) || DEFAULT_PORT;
+  const ignored = Number(skipPid) > 0 ? Number(skipPid) : 0;
+  if (process.platform === "win32") {
+    return Promise.resolve(false);
+  }
+  return new Promise((resolve) => {
+    const child = spawn("lsof", ["-ti", `tcp:${port}`, "-sTCP:LISTEN"], { windowsHide: true });
+    const chunks = [];
+    child.stdout.on("data", (chunk) => chunks.push(String(chunk || "")));
+    child.on("error", () => resolve(false));
+    child.on("close", () => {
+      const pids = chunks
+        .join("")
+        .split(/\s+/)
+        .map((value) => Number.parseInt(value, 10))
+        .filter((pid) => pid > 0 && pid !== ignored);
+      if (!pids.length) {
+        resolve(false);
+        return;
+      }
+      for (const pid of pids) {
+        try {
+          process.kill(pid, "SIGTERM");
+        } catch {
+          /* noop */
+        }
+      }
+      setTimeout(() => resolve(true), 280);
+    });
+  });
+}
+
 /**
  * @typedef {object} ProxyManagerDeps
  * @property {() => Promise<string>} resolveExecutable Zero when missing.
  * @property {typeof spawn} [spawnFn]
  * @property {typeof defaultFetchHealth} [fetchHealth]
+ * @property {typeof defaultFetchCallLogSupport} [fetchCallLogSupport]
  * @property {number} [healthPollMs]
  * @property {number} [healthDeadlineMs]
  * @property {() => Promise<{ host: string; port: number; enabled?: boolean }>} [loadProxyConfigFn]
@@ -147,6 +212,7 @@ function createGoProxyManager(deps) {
   const resolveExecutable = deps.resolveExecutable;
   const spawnFn = deps.spawnFn || spawn;
   const fetchHealth = deps.fetchHealth || defaultFetchHealth;
+  const fetchCallLogSupport = deps.fetchCallLogSupport || defaultFetchCallLogSupport;
   const healthPollMs = Number(deps.healthPollMs) > 0 ? Number(deps.healthPollMs) : 80;
   const healthDeadlineMs = Number(deps.healthDeadlineMs) > 0 ? Number(deps.healthDeadlineMs) : 15_000;
 
@@ -332,6 +398,40 @@ function createGoProxyManager(deps) {
     await killManagedSubtree(pid);
   }
 
+  /** @param {ProxyBindConfig} cfg */
+  async function proxySupportsCallLog(cfg) {
+    const result = await fetchCallLogSupport(callLogUrl(cfg));
+    return Boolean(result.supports);
+  }
+
+  /** @param {ProxyBindConfig} cfg @param {{ host: string; port: number; baseUrl: string }} urls */
+  async function acceptExternalProxy(cfg, urls) {
+    if (!(await proxySupportsCallLog(cfg))) {
+      return null;
+    }
+    return {
+      ok: true,
+      alreadyRunning: true,
+      running: true,
+      managed: false,
+      pid: null,
+      external: true,
+      port: urls.port,
+      host: urls.host,
+      baseUrl: urls.baseUrl,
+    };
+  }
+
+  /** @param {ProxyBindConfig} cfg @param {string} reason */
+  async function replaceStaleExternalProxy(cfg, reason) {
+    proxyLogger.pushSystemLine(
+      "system",
+      `[proxy-manager] ${reason} (port ${Number(cfg?.port) || DEFAULT_PORT})`,
+    );
+    await releaseBindPort(cfg, managedPidOrNull() ?? 0);
+    await new Promise((resolve) => setTimeout(resolve, 280));
+  }
+
   /**
    * @param {{ port?: number; host?: string }} [options]
    */
@@ -349,30 +449,29 @@ function createGoProxyManager(deps) {
     const ownedAlive = ownsHealthyManagedPid();
 
     if (hProbe.ok && !ownedAlive) {
-      return {
-        ok: true,
-        alreadyRunning: true,
-        running: true,
-        managed: false,
-        pid: null,
-        external: true,
-        port: urls.port,
-        host: urls.host,
-        baseUrl: urls.baseUrl,
-      };
+      const external = await acceptExternalProxy(merged, urls);
+      if (external) return external;
+      await replaceStaleExternalProxy(
+        merged,
+        "replacing stale external proxy without call-log support",
+      );
     }
 
     if (hProbe.ok && ownedAlive && managedPidOrNull() != null) {
-      return {
-        ok: true,
-        alreadyRunning: true,
-        running: true,
-        managed: true,
-        pid: managedPidOrNull(),
-        port: urls.port,
-        host: urls.host,
-        baseUrl: urls.baseUrl,
-      };
+      if (await proxySupportsCallLog(merged)) {
+        return {
+          ok: true,
+          alreadyRunning: true,
+          running: true,
+          managed: true,
+          pid: managedPidOrNull(),
+          port: urls.port,
+          host: urls.host,
+          baseUrl: urls.baseUrl,
+        };
+      }
+      await stopManaged("managed-proxy-without-call-log-support");
+      await new Promise((r) => setTimeout(r, 140));
     }
 
     if (ownedAlive && !hProbe.ok) {
@@ -431,17 +530,12 @@ function createGoProxyManager(deps) {
 
       if (hc.ok === true && !oursAlive) {
         await stopManaged("bind-race-or-external");
-        return {
-          ok: true,
-          alreadyRunning: true,
-          running: true,
-          managed: false,
-          pid: null,
-          external: true,
-          port: urls.port,
-          host: urls.host,
-          baseUrl: urls.baseUrl,
-        };
+        const external = await acceptExternalProxy(merged, urls);
+        if (external) return external;
+        await replaceStaleExternalProxy(
+          merged,
+          "replacing stale external proxy after bind race",
+        );
       }
 
       if (hc.ok === true && oursAlive) {
@@ -461,17 +555,12 @@ function createGoProxyManager(deps) {
 
       const post = await fetchHealth(healthUrl(merged));
       if (post.ok) {
-        return {
-          ok: true,
-          alreadyRunning: true,
-          running: true,
-          managed: false,
-          pid: null,
-          external: true,
-          port: urls.port,
-          host: urls.host,
-          baseUrl: urls.baseUrl,
-        };
+        const external = await acceptExternalProxy(merged, urls);
+        if (external) return external;
+        await replaceStaleExternalProxy(
+          merged,
+          "replacing stale external proxy after startup failure",
+        );
       }
 
       return {
@@ -525,15 +614,26 @@ function createGoProxyManager(deps) {
     const hi = await fetchHealth(healthUrl(mergedCfg));
     if (hi.ok === true) {
       const owns = ownsHealthyManagedPid();
-      return {
-        ok: true,
-        running: true,
-        managed: Boolean(owns),
-        pid: managedPidOrNull(),
-        port: urls.port,
-        host: urls.host,
-        baseUrl: urls.baseUrl,
-      };
+      if (await proxySupportsCallLog(mergedCfg)) {
+        return {
+          ok: true,
+          running: true,
+          managed: Boolean(owns),
+          pid: managedPidOrNull(),
+          port: urls.port,
+          host: urls.host,
+          baseUrl: urls.baseUrl,
+        };
+      }
+      if (owns) {
+        await stopManaged("managed-proxy-without-call-log-support");
+        await new Promise((resolve) => setTimeout(resolve, 140));
+      } else {
+        await replaceStaleExternalProxy(
+          mergedCfg,
+          "replacing stale external proxy without call-log support",
+        );
+      }
     }
     const started = await start(payload);
     if (!started.ok) {
@@ -573,6 +673,7 @@ module.exports = {
   healthClientHost,
   reachableLoopbackHost,
   healthUrl,
+  callLogUrl,
   redactSecrets,
   createGoProxyManager,
 };

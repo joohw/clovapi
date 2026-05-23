@@ -2,18 +2,22 @@ package proxy
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
 func TestCallLogStorePushAndList(t *testing.T) {
-	store := NewCallLogStore(2)
+	dir := t.TempDir()
+	store := newCallLogStoreAt(dir)
 	store.Push(CallLogEntry{Request: CallLogRequest{Method: "POST", URL: "/a"}})
 	store.Push(CallLogEntry{Request: CallLogRequest{Method: "GET", URL: "/b"}})
 	store.Push(CallLogEntry{Request: CallLogRequest{Method: "DELETE", URL: "/c"}})
 
-	entries := store.List()
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 entries, got %d", len(entries))
+	entries := store.ListRecent(0)
+	if len(entries) != 3 {
+		t.Fatalf("expected 3 entries, got %d", len(entries))
 	}
 	if entries[0].Request.URL != "/c" || entries[1].Request.URL != "/b" {
 		t.Fatalf("unexpected order: %#v", entries)
@@ -35,13 +39,115 @@ func TestShouldRecordCallLog(t *testing.T) {
 	}
 }
 
+func TestCallLogPreservesFullBody(t *testing.T) {
+	dir := t.TempDir()
+	store := newCallLogStoreAt(dir)
+	trace := startRequestTrace(store, mustHTTPRequest(t))
+	if trace == nil {
+		t.Fatal("expected trace")
+	}
+	body := strings.Repeat("x", 32_768)
+	trace.setRequestBody([]byte(body))
+	trace.setUpstreamResponse(http.StatusOK, http.Header{"Content-Type": []string{"application/json"}}, []byte(body))
+	trace.finish()
+	entries := store.ListRecent(0)
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+	if len(entries[0].Request.Body) != len(body) {
+		t.Fatalf("request body len = %d, want %d", len(entries[0].Request.Body), len(body))
+	}
+	if len(entries[0].Upstream.Body) != len(body) {
+		t.Fatalf("upstream body len = %d, want %d", len(entries[0].Upstream.Body), len(body))
+	}
+}
+
+func TestCallLogClear(t *testing.T) {
+	dir := t.TempDir()
+	store := newCallLogStoreAt(dir)
+	store.Push(CallLogEntry{Request: CallLogRequest{Method: "POST", URL: "/a"}})
+	store.Clear()
+	if entries := store.ListRecent(0); len(entries) != 0 {
+		t.Fatalf("expected 0 entries after clear, got %d", len(entries))
+	}
+}
+
+func TestFindCallLogEntry(t *testing.T) {
+	dir := t.TempDir()
+	store := newCallLogStoreAt(dir)
+	store.Push(CallLogEntry{ID: "entry-1", Request: CallLogRequest{Method: "POST", URL: "/a"}})
+	got, err := store.Find("entry-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ID != "entry-1" {
+		t.Fatalf("id = %q", got.ID)
+	}
+}
+
+func TestExportCallLogDB(t *testing.T) {
+	dir := t.TempDir()
+	store := newCallLogStoreAt(dir)
+	store.Push(CallLogEntry{ID: "entry-1", Request: CallLogRequest{Method: "POST", URL: "/a"}})
+	outPath := filepath.Join(t.TempDir(), "export.jsonl")
+	out, err := os.Create(outPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err := exportCallLogDB(store.db, out)
+	out.Close()
+	if err != nil || n == 0 {
+		t.Fatalf("export n=%d err=%v", n, err)
+	}
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "entry-1") {
+		t.Fatalf("export missing entry: %q", string(data))
+	}
+}
+
+func mustHTTPRequest(t *testing.T) *http.Request {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodPost, "http://127.0.0.1:1/p/a", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return req
+}
+
+func TestRequestTraceCapturesInboundMetadata(t *testing.T) {
+	dir := t.TempDir()
+	req, err := http.NewRequest(http.MethodPost, "http://127.0.0.1:27483/codex/gpt-5.4-mini/openai-responses/v1/responses", strings.NewReader(`{"input":"ping"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "127.0.0.1:27483"
+	req.Header.Set("Content-Type", "application/json")
+	trace := startRequestTrace(newCallLogStoreAt(dir), req)
+	if trace == nil {
+		t.Fatal("expected trace")
+	}
+	if trace.entry.Request.URL != "http://127.0.0.1:27483/codex/gpt-5.4-mini/openai-responses/v1/responses" {
+		t.Fatalf("url = %q", trace.entry.Request.URL)
+	}
+	if trace.entry.Request.Proto != "HTTP/1.1" {
+		t.Fatalf("proto = %q", trace.entry.Request.Proto)
+	}
+	if trace.entry.Request.Headers["Host"] != "127.0.0.1:27483" {
+		t.Fatalf("host header = %q", trace.entry.Request.Headers["Host"])
+	}
+}
+
 func TestRequestTraceRedactsAuthorization(t *testing.T) {
+	dir := t.TempDir()
 	req, err := http.NewRequest(http.MethodPost, "http://127.0.0.1:1/p/a", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	req.Header.Set("Authorization", "Bearer secret-token")
-	trace := startRequestTrace(NewCallLogStore(10), req)
+	trace := startRequestTrace(newCallLogStoreAt(dir), req)
 	if trace == nil {
 		t.Fatal("expected trace")
 	}

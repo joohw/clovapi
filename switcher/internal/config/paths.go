@@ -38,6 +38,42 @@ func ProfilesPath() (string, error) {
 	return filepath.Join(d, "profiles.json"), nil
 }
 
+// CallLogsDir returns the directory for sharded proxy call log JSONL files.
+func CallLogsDir() (string, error) {
+	d, err := Dir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(d, "call-logs"), nil
+}
+
+// CallLogsDBPath returns the SQLite database for persisted proxy call logs.
+func CallLogsDBPath() (string, error) {
+	d, err := CallLogsDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(d, "call-logs.sqlite"), nil
+}
+
+// CallLogsPath returns the default JSONL file for requests without a session id.
+func CallLogsPath() (string, error) {
+	d, err := CallLogsDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(d, "default.jsonl"), nil
+}
+
+// CallLogsLegacyPath returns the pre-shard single JSONL path (read/clear for migration).
+func CallLogsLegacyPath() (string, error) {
+	d, err := Dir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(d, "call-logs.jsonl"), nil
+}
+
 // SetDirOverride sets the config directory (tests only). Empty clears.
 func SetDirOverride(dir string) {
 	overrideDir = dir

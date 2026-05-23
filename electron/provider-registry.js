@@ -5,20 +5,20 @@
  */
 
 const OLLAMA_PROFILE_NAME = "Ollama";
-const CUSTOM_API_PROFILE_NAME = "自定义 API";
+const CUSTOM_API_PROFILE_NAME = "Custom API";
 
 const FIXED_PROVIDER_IDS = Object.freeze(["claude-code", "codex", "ollama", "custom-api"]);
 
 const PROVIDER_REGISTRY = Object.freeze([
   {
     id: "claude-code",
-    vendorName: "Claude Code 订阅",
+    vendorName: "Claude Subscription",
     kind: "subscription",
     subscriptionProviderId: "claude-code",
   },
   {
     id: "codex",
-    vendorName: "Codex 订阅",
+    vendorName: "Codex Subscription",
     kind: "subscription",
     subscriptionProviderId: "codex",
   },

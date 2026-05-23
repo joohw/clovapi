@@ -265,7 +265,7 @@ export function vendorKindLabel(vendor: Vendor): string {
     const provider = vendor.localProvider || "ollama";
     return provider === "ollama" ? "Ollama" : `本地 · ${provider}`;
   }
-  if (isDefaultCustomApiProfile(vendor.name)) return "自定义 API";
+  if (isDefaultCustomApiProfile(vendor.name)) return CUSTOM_API_PROFILE_NAME;
   return "API";
 }
 

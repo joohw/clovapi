@@ -1,17 +1,53 @@
-import { MODEL_TEST_STORAGE_KEY, TEST_STATUS_STORAGE_KEY } from "../constants";
+import { MODEL_TEST_STORAGE_KEY, MODEL_TEST_VALIDITY_MS, TEST_STATUS_STORAGE_KEY } from "../constants";
 import { modelTestStatusKey, parseModelBinding } from "../helpers";
 import { store } from "./state.svelte";
 import type { ModelTestEntry } from "../../global";
+
+export function isModelTestEntryValid(entry: ModelTestEntry | undefined | null): boolean {
+  if (!entry) return false;
+  if (entry.status === "testing") return true;
+  const testedAt = entry.testedAt;
+  if (testedAt == null || !Number.isFinite(testedAt) || testedAt <= 0) return false;
+  return Date.now() - testedAt < MODEL_TEST_VALIDITY_MS;
+}
+
+export function formatModelTestTime(testedAt: number): string {
+  const date = new Date(testedAt);
+  if (Number.isNaN(date.getTime())) return "";
+  const now = new Date();
+  const time = date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  if (date.toDateString() === now.toDateString()) return time;
+  const day = date.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+  return `${day} ${time}`;
+}
+
+export function formatModelTestSummary(entry: ModelTestEntry): string {
+  const summary = String(entry.summary || "").trim();
+  if (entry.status === "testing") return summary || "测试中…";
+  if (!isModelTestEntryValid(entry)) return "";
+  const timeLabel = entry.testedAt ? formatModelTestTime(entry.testedAt) : "";
+  if (!summary) return timeLabel;
+  return timeLabel ? `${summary} · ${timeLabel}` : summary;
+}
 
 function normalizeModelTestEntry(raw: unknown): ModelTestEntry | null {
   if (!raw || typeof raw !== "object") return null;
   const status = String((raw as ModelTestEntry).status || "").trim();
   if (status !== "testing" && status !== "pass" && status !== "fail") return null;
-  return {
+  const testedAtRaw = Number((raw as ModelTestEntry).testedAt);
+  const testedAt = Number.isFinite(testedAtRaw) && testedAtRaw > 0 ? testedAtRaw : undefined;
+  const entry: ModelTestEntry = {
     status,
     summary: String((raw as ModelTestEntry).summary || "").trim(),
     detail: String((raw as ModelTestEntry).detail || "").trim(),
+    testedAt,
   };
+  if (status !== "testing" && !isModelTestEntryValid(entry)) return null;
+  return entry;
 }
 
 function loadLegacyTestStatus(): Record<string, string> {
@@ -62,10 +98,12 @@ function persistModelTests() {
     const payload: Record<string, ModelTestEntry> = {};
     for (const [key, entry] of Object.entries(store.modelTests)) {
       if (entry.status === "testing") continue;
+      if (!isModelTestEntryValid(entry)) continue;
       payload[key] = {
         status: entry.status,
         summary: entry.summary,
         detail: "",
+        testedAt: entry.testedAt,
       };
     }
     window.localStorage.setItem(MODEL_TEST_STORAGE_KEY, JSON.stringify(payload));
@@ -74,9 +112,23 @@ function persistModelTests() {
   }
 }
 
+function clearExpiredModelTest(key: string) {
+  const k = String(key || "").trim();
+  if (!k || !(k in store.modelTests)) return;
+  delete store.modelTests[k];
+  persistModelTests();
+}
+
 export function getModelTest(key: string): ModelTestEntry | undefined {
   const k = String(key || "").trim();
-  return k ? store.modelTests[k] : undefined;
+  if (!k) return undefined;
+  const entry = store.modelTests[k];
+  if (!entry) return undefined;
+  if (entry.status !== "testing" && !isModelTestEntryValid(entry)) {
+    clearExpiredModelTest(k);
+    return undefined;
+  }
+  return entry;
 }
 
 export function isModelTesting(key: string): boolean {
@@ -100,6 +152,7 @@ export function setModelTestResult(key: string, passed: boolean, summary: string
     status: passed ? "pass" : "fail",
     summary: summary || (passed ? "测试成功" : "测试失败"),
     detail: detail || "",
+    testedAt: Date.now(),
   };
   persistModelTests();
 }

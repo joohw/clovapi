@@ -14,6 +14,7 @@
     indent = false,
     linesNowrap = false,
     onOpen,
+    leading,
     actions,
   }: {
     title: string;
@@ -26,6 +27,7 @@
     indent?: boolean;
     linesNowrap?: boolean;
     onOpen?: () => void;
+    leading?: Snippet;
     actions: Snippet;
   } = $props();
 
@@ -88,33 +90,40 @@
     testStatus === "fail" && "bg-red-500/5",
   )}
 >
-  <div class="min-w-0 flex-1 space-y-1">
-    {#if onOpen}
-      {@render titleRow(true)}
-    {:else}
-      {@render titleRow(false)}
+  <div class="flex min-w-0 flex-1 items-center gap-3">
+    {#if leading}
+      <div class="shrink-0 self-center">
+        {@render leading()}
+      </div>
     {/if}
-    {#each lines as line (line)}
-      <p
-        class={cn(
-          "text-xs leading-relaxed text-muted-foreground",
-          linesNowrap ? "truncate whitespace-nowrap" : "break-all",
-        )}
-        title={linesNowrap ? line : undefined}
-      >
-        {line}
-      </p>
-    {/each}
-    {#if testDetail && (testStatus === "pass" || testStatus === "fail")}
-      <details class="group text-xs">
-        <summary class="cursor-pointer text-muted-foreground hover:text-foreground">查看详情</summary>
-        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-        <pre
-          class="mt-1.5 max-h-48 overflow-auto rounded-md border border-border bg-muted/40 p-2 font-mono text-[11px] leading-relaxed break-words whitespace-pre-wrap"
-          tabindex="0"
-        >{testDetail}</pre>
-      </details>
-    {/if}
+    <div class="min-w-0 flex-1 space-y-1">
+      {#if onOpen}
+        {@render titleRow(true)}
+      {:else}
+        {@render titleRow(false)}
+      {/if}
+      {#each lines as line (line)}
+        <p
+          class={cn(
+            "text-xs leading-relaxed text-muted-foreground",
+            linesNowrap ? "truncate whitespace-nowrap" : "break-all",
+          )}
+          title={linesNowrap ? line : undefined}
+        >
+          {line}
+        </p>
+      {/each}
+      {#if testDetail && (testStatus === "pass" || testStatus === "fail")}
+        <details class="group text-xs">
+          <summary class="cursor-pointer text-muted-foreground hover:text-foreground">查看详情</summary>
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+          <pre
+            class="mt-1.5 max-h-48 overflow-auto rounded-md border border-border bg-muted/40 p-2 font-mono text-[11px] leading-relaxed break-words whitespace-pre-wrap"
+            tabindex="0"
+          >{testDetail}</pre>
+        </details>
+      {/if}
+    </div>
   </div>
   <div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
     {@render actions()}

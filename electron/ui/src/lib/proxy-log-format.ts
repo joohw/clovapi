@@ -9,6 +9,66 @@ export function formatProxyLogTime(value: string): string {
   }
 }
 
+/** Compact ingress path: /{provider}/{model}/{apiStyle} — strips /v1/... suffix. */
+export function proxyLogIngressPath(url: string): string {
+  let path = String(url || "").trim();
+  if (/^https?:\/\//i.test(path)) {
+    try {
+      path = new URL(path).pathname;
+    } catch {
+      /* keep raw url */
+    }
+  }
+  const match = path.match(/^(\/[^/]+\/[^/]+\/[^/]+)(?:\/v1(?:\/.*)?)?$/);
+  if (match) return match[1];
+  const v1Index = path.indexOf("/v1");
+  if (v1Index > 0) return path.slice(0, v1Index);
+  return path;
+}
+
+export function proxyLogInboundRequestLine(entry: ProxyLogEntry): string {
+  const method = String(entry.request?.method || "GET").trim().toUpperCase();
+  const url = String(entry.request?.url || "").trim() || "/";
+  const proto = String(entry.request?.proto || "HTTP/1.1").trim() || "HTTP/1.1";
+  return `${method} ${url} ${proto}`;
+}
+
+export function proxyLogUpstreamRequestLine(entry: ProxyLogEntry): string {
+  const method = String(entry.upstream?.method || "POST").trim().toUpperCase();
+  const url = String(entry.upstream?.url || "").trim();
+  if (!url) return "";
+  return `${method} ${url} HTTP/1.1`;
+}
+
+export function proxyLogOverviewText(entry: ProxyLogEntry): string {
+  const inboundHeaders = proxyLogHeaderText(entry.request?.headers || {});
+  const upstreamHeaders = proxyLogHeaderText(entry.upstream?.headers || {});
+  const status = entry.upstream?.status ? String(entry.upstream.status) : "(pending)";
+  return [
+    "── 入站 ──",
+    proxyLogInboundRequestLine(entry),
+    "",
+    inboundHeaders,
+    "",
+    "── 上游 ──",
+    `HTTP ${status}`,
+    proxyLogUpstreamRequestLine(entry),
+    "",
+    upstreamHeaders,
+  ].join("\n");
+}
+
+export function proxyLogInboundRequestText(entry: ProxyLogEntry): string {
+  const headers = proxyLogHeaderText(entry.request?.headers || {});
+  const body = proxyLogBodyText(entry.request?.body || "");
+  return `${proxyLogInboundRequestLine(entry)}\n\n${headers}\n\n${body}`;
+}
+
+export function proxyLogCardTitle(entry: ProxyLogEntry): string {
+  const method = String(entry.request?.method || "GET").trim().toUpperCase();
+  return `${method} ${proxyLogIngressPath(entry.request?.url || "")}`;
+}
+
 export function proxyLogStatusClass(status: number): string {
   if (!status) return "text-muted-foreground";
   if (status >= 200 && status < 300) return "text-emerald-600 dark:text-emerald-400";

@@ -1,5 +1,6 @@
-import { formatTestBody, modelTestStatusKey, toIpcPayload } from "../helpers";
+import { modelTestStatusKey, toIpcPayload } from "../helpers";
 import { isModelTesting, setModelTestResult, setModelTestTesting } from "./model-tests";
+import { refreshProxyLogs } from "./proxy";
 import { store } from "./state.svelte";
 import { toast } from "../toast";
 
@@ -39,13 +40,13 @@ export async function runModelTest(binding: string) {
     ]);
   } catch (error) {
     const message = error instanceof Error ? error.message : "API 测试失败";
-    setModelTestResult(statusKey, false, "测试失败", message);
+    setModelTestResult(statusKey, false, message, "");
     return;
   }
 
-  const detail = formatTestBody(result);
   const passed = Boolean(result?.passed);
   const summary = result?.summary || (passed ? "测试成功" : "测试失败");
 
-  setModelTestResult(statusKey, passed, summary, detail);
+  setModelTestResult(statusKey, passed, summary, "");
+  void refreshProxyLogs();
 }

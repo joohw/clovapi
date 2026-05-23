@@ -56,6 +56,7 @@ test("start — external proxy: no spawn when /health OK", async () => {
       assert.fail("spawn must not be called when proxy already serves /health");
     },
     fetchHealth: async () => ({ ok: true, body: { ok: true, service: "clovapi-core-proxy" } }),
+    fetchCallLogSupport: async () => ({ ok: true, supports: true }),
   });
   const st = await mgr.start({ port: 57901 });
   assert.equal(st.ok, true);

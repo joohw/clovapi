@@ -1,18 +1,20 @@
 package proxy
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 )
 
-const defaultCallLogMax = 200
-
 type CallLogRequest struct {
 	Method  string            `json:"method"`
 	URL     string            `json:"url"`
+	Proto   string            `json:"proto,omitempty"`
 	Headers map[string]string `json:"headers"`
 	Body    string            `json:"body"`
 }
@@ -26,61 +28,123 @@ type CallLogUpstream struct {
 }
 
 type CallLogEntry struct {
-	ID          string           `json:"id"`
-	StartedAt   string           `json:"startedAt"`
-	CompletedAt string           `json:"completedAt"`
-	DurationMs  int64            `json:"durationMs"`
-	Request     CallLogRequest   `json:"request"`
-	Upstream    CallLogUpstream  `json:"upstream"`
-	Error       string           `json:"error,omitempty"`
+	ID          string          `json:"id"`
+	SessionID   string          `json:"sessionId,omitempty"`
+	SessionKind string          `json:"sessionKind,omitempty"`
+	StartedAt   string          `json:"startedAt"`
+	CompletedAt string          `json:"completedAt"`
+	DurationMs  int64           `json:"durationMs"`
+	Request     CallLogRequest  `json:"request"`
+	Upstream    CallLogUpstream `json:"upstream"`
+	Error       string          `json:"error,omitempty"`
 }
 
 type CallLogStore struct {
-	mu      sync.Mutex
-	max     int
-	nextID  int
-	entries []CallLogEntry
+	mu     sync.Mutex
+	dbPath string
+	db     *sql.DB
 }
 
-func NewCallLogStore(max int) *CallLogStore {
-	if max <= 0 {
-		max = defaultCallLogMax
+func NewCallLogStore() *CallLogStore {
+	dbPath, err := CallLogsDBPath()
+	if err != nil {
+		return &CallLogStore{}
 	}
-	return &CallLogStore{max: max}
+	db, err := openCallLogDB(dbPath)
+	if err != nil {
+		return &CallLogStore{dbPath: dbPath}
+	}
+	_ = importJSONLForConfiguredStore(db)
+	return &CallLogStore{dbPath: dbPath, db: db}
+}
+
+func newCallLogStoreAt(dir string) *CallLogStore {
+	dbPath := filepath.Join(strings.TrimSpace(dir), "call-logs.sqlite")
+	db, err := openCallLogDB(dbPath)
+	if err != nil {
+		return &CallLogStore{dbPath: dbPath}
+	}
+	_ = importJSONLIfNeeded(db, dir)
+	return &CallLogStore{dbPath: dbPath, db: db}
+}
+
+func (s *CallLogStore) DBPath() string {
+	if s == nil {
+		return ""
+	}
+	return s.dbPath
+}
+
+// Path returns the SQLite database path.
+func (s *CallLogStore) Path() string {
+	return s.DBPath()
 }
 
 func (s *CallLogStore) Push(entry CallLogEntry) {
-	if s == nil {
+	if s == nil || s.db == nil {
 		return
+	}
+	if strings.TrimSpace(entry.ID) == "" {
+		entry.ID = fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	if strings.TrimSpace(entry.StartedAt) == "" {
+		entry.StartedAt = time.Now().UTC().Format(time.RFC3339Nano)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.nextID++
-	entry.ID = fmt.Sprintf("%d", s.nextID)
-	s.entries = append([]CallLogEntry{entry}, s.entries...)
-	if len(s.entries) > s.max {
-		s.entries = s.entries[:s.max]
-	}
+	_ = insertCallLogEntry(s.db, entry)
 }
 
 func (s *CallLogStore) List() []CallLogEntry {
-	if s == nil {
+	return s.ListRecent(defaultCallLogUIListMax)
+}
+
+func (s *CallLogStore) ListRecent(limit int) []CallLogEntry {
+	return s.ListRecentSession(limit, "")
+}
+
+func (s *CallLogStore) ListRecentSession(limit int, sessionID string) []CallLogEntry {
+	if s == nil || s.db == nil {
 		return nil
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	out := make([]CallLogEntry, len(s.entries))
-	copy(out, s.entries)
+	entries, err := listCallLogEntries(s.db, limit, sessionID)
+	if err != nil {
+		return nil
+	}
+	return entries
+}
+
+func (s *CallLogStore) ListSessions(limit int) []CallLogSessionSummary {
+	if s == nil || s.db == nil {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out, err := listCallLogSessions(s.db, limit)
+	if err != nil {
+		return nil
+	}
 	return out
 }
 
+func (s *CallLogStore) Find(id string) (CallLogEntry, error) {
+	if s == nil || s.db == nil {
+		return CallLogEntry{}, errors.New("call log store unavailable")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return findCallLogEntryInDB(s.db, id)
+}
+
 func (s *CallLogStore) Clear() {
-	if s == nil {
+	if s == nil || s.db == nil {
 		return
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.entries = nil
+	_ = clearCallLogDB(s.db)
 }
 
 func shouldRecordCallLog(path string) bool {
@@ -114,10 +178,6 @@ func startRequestTrace(store *CallLogStore, r *http.Request) *requestTrace {
 	if !shouldRecordCallLog(path) {
 		return nil
 	}
-	url := path
-	if r.URL.RawQuery != "" {
-		url = path + "?" + r.URL.RawQuery
-	}
 	return &requestTrace{
 		store: store,
 		start: time.Now().UTC(),
@@ -125,18 +185,73 @@ func startRequestTrace(store *CallLogStore, r *http.Request) *requestTrace {
 			StartedAt: time.Now().UTC().Format(time.RFC3339Nano),
 			Request: CallLogRequest{
 				Method:  r.Method,
-				URL:     url,
-				Headers: cloneRedactedHeaders(r.Header),
+				URL:     inboundRequestURL(r),
+				Proto:   inboundRequestProto(r),
+				Headers: cloneInboundRequestHeaders(r),
 			},
 		},
 	}
+}
+
+func inboundRequestURL(r *http.Request) string {
+	if r == nil || r.URL == nil {
+		return ""
+	}
+	path := r.URL.EscapedPath()
+	if path == "" {
+		path = r.URL.Path
+	}
+	if r.URL.RawQuery != "" {
+		path = path + "?" + r.URL.RawQuery
+	}
+	host := strings.TrimSpace(r.Host)
+	if host == "" {
+		host = strings.TrimSpace(r.URL.Host)
+	}
+	if host == "" {
+		return path
+	}
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	return scheme + "://" + host + path
+}
+
+func inboundRequestProto(r *http.Request) string {
+	if r == nil {
+		return ""
+	}
+	proto := strings.TrimSpace(r.Proto)
+	if proto == "" {
+		return "HTTP/1.1"
+	}
+	return proto
+}
+
+func cloneInboundRequestHeaders(r *http.Request) map[string]string {
+	if r == nil {
+		return map[string]string{}
+	}
+	out := cloneRedactedHeaders(r.Header)
+	host := strings.TrimSpace(r.Host)
+	if host == "" {
+		return out
+	}
+	for key := range out {
+		if strings.EqualFold(key, "host") {
+			return out
+		}
+	}
+	out["Host"] = host
+	return out
 }
 
 func (t *requestTrace) setRequestBody(body []byte) {
 	if t == nil {
 		return
 	}
-	t.entry.Request.Body = truncateCallLogText(string(body))
+	t.entry.Request.Body = string(body)
 }
 
 func (t *requestTrace) setUpstreamRequest(method, url string) {
@@ -147,17 +262,13 @@ func (t *requestTrace) setUpstreamRequest(method, url string) {
 	t.entry.Upstream.URL = strings.TrimSpace(url)
 }
 
-func (t *requestTrace) setUpstreamResponse(status int, headers http.Header, body []byte, streaming bool) {
+func (t *requestTrace) setUpstreamResponse(status int, headers http.Header, body []byte) {
 	if t == nil {
 		return
 	}
 	t.entry.Upstream.Status = status
 	t.entry.Upstream.Headers = cloneRedactedHeaders(headers)
-	if streaming {
-		t.entry.Upstream.Body = "[streaming response]"
-		return
-	}
-	t.entry.Upstream.Body = truncateCallLogText(string(body))
+	t.entry.Upstream.Body = string(body)
 }
 
 func (t *requestTrace) setError(msg string) {
@@ -201,12 +312,4 @@ func redactHeaderValue(value string) string {
 		return "Bearer [redacted]"
 	}
 	return "[redacted]"
-}
-
-func truncateCallLogText(text string) string {
-	const max = 8192
-	if len(text) <= max {
-		return text
-	}
-	return text[:max] + " …[truncated]"
 }

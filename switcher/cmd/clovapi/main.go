@@ -620,7 +620,183 @@ func cmdProxy() *cobra.Command {
 			return nil
 		},
 	}
-	c.AddCommand(start, status, config)
+	c.AddCommand(start, status, config, cmdProxyLogs())
+	return c
+}
+
+func cmdProxyLogs() *cobra.Command {
+	var limit int
+	var jsonOut bool
+	var outPath string
+	var yes bool
+	var sessionID string
+
+	c := &cobra.Command{
+		Use:   "logs",
+		Short: "Read and export persisted proxy call logs (SQLite)",
+		Long:  "Call logs are stored in ~/.config/clovapi/call-logs/call-logs.sqlite. Existing JSONL shards are imported once on first open.",
+	}
+
+	pathCmd := &cobra.Command{
+		Use:   "path",
+		Short: "Print the call log SQLite database path",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			p, err := coreproxy.CallLogsDBPath()
+			if err != nil {
+				return err
+			}
+			fmt.Println(p)
+			return nil
+		},
+	}
+
+	listCmd := &cobra.Command{
+		Use:   "list",
+		Short: "List recent call log entries",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			store := coreproxy.NewCallLogStore()
+			var entries []coreproxy.CallLogEntry
+			if strings.TrimSpace(sessionID) != "" {
+				entries = store.ListRecentSession(limit, sessionID)
+			} else {
+				entries = store.ListRecent(limit)
+			}
+			if jsonOut {
+				data, err := json.MarshalIndent(entries, "", "  ")
+				if err != nil {
+					return err
+				}
+				fmt.Println(string(data))
+				return nil
+			}
+			if len(entries) == 0 {
+				fmt.Println("(no call logs)")
+				return nil
+			}
+			for _, entry := range entries {
+				statusText := "pending"
+				if entry.Upstream.Status != 0 {
+					statusText = fmt.Sprintf("HTTP %d", entry.Upstream.Status)
+				}
+				fmt.Printf("%s  %s  %s %s  %s  %dms\n",
+					entry.ID,
+					entry.StartedAt,
+					entry.Request.Method,
+					entry.Request.URL,
+					statusText,
+					entry.DurationMs,
+				)
+			}
+			return nil
+		},
+	}
+	listCmd.Flags().IntVar(&limit, "limit", 50, "Max entries to show (0 = all)")
+	listCmd.Flags().BoolVar(&jsonOut, "json", false, "Output JSON")
+	listCmd.Flags().StringVar(&sessionID, "session", "", "Filter by session id (e.g. Claude Code session)")
+
+	sessionsCmd := &cobra.Command{
+		Use:   "sessions",
+		Short: "List grouped call log sessions",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			store := coreproxy.NewCallLogStore()
+			items := store.ListSessions(limit)
+			if jsonOut {
+				data, err := json.MarshalIndent(items, "", "  ")
+				if err != nil {
+					return err
+				}
+				fmt.Println(string(data))
+				return nil
+			}
+			if len(items) == 0 {
+				fmt.Println("(no sessions)")
+				return nil
+			}
+			for _, item := range items {
+				fmt.Printf("%s  kind=%s  entries=%d  last=%s\n",
+					item.SessionID,
+					item.SessionKind,
+					item.EntryCount,
+					item.LastStartedAt,
+				)
+			}
+			return nil
+		},
+	}
+	sessionsCmd.Flags().IntVar(&limit, "limit", 50, "Max sessions to show (0 = all)")
+	sessionsCmd.Flags().BoolVar(&jsonOut, "json", false, "Output JSON")
+
+	readCmd := &cobra.Command{
+		Use:   "read <id>",
+		Short: "Print one call log entry as JSON",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			entry, err := coreproxy.FindCallLogEntry(args[0])
+			if err != nil {
+				return err
+			}
+			data, err := json.MarshalIndent(entry, "", "  ")
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(data))
+			return nil
+		},
+	}
+
+	exportCmd := &cobra.Command{
+		Use:   "export",
+		Short: "Export call logs as JSONL",
+		Long:  "Writes all stored entries as JSONL to stdout or --out. Suitable for RL / training pipelines.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var out *os.File
+			if strings.TrimSpace(outPath) == "" || outPath == "-" {
+				out = os.Stdout
+			} else {
+				var err error
+				out, err = os.Create(outPath)
+				if err != nil {
+					return err
+				}
+				defer out.Close()
+			}
+			n, err := coreproxy.ExportCallLogs(out)
+			if err != nil {
+				return err
+			}
+			if out != os.Stdout {
+				fmt.Fprintf(os.Stderr, "exported %d entries to %s\n", n, outPath)
+			}
+			return nil
+		},
+	}
+	exportCmd.Flags().StringVar(&outPath, "out", "-", "Output file (- for stdout)")
+
+	clearCmd := &cobra.Command{
+		Use:   "clear",
+		Short: "Clear persisted call logs",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !yes {
+				fmt.Print("Clear all persisted call logs? [y/N]: ")
+				reader := bufio.NewReader(os.Stdin)
+				line, err := reader.ReadString('\n')
+				if err != nil {
+					return err
+				}
+				line = strings.TrimSpace(strings.ToLower(line))
+				if line != "y" && line != "yes" {
+					fmt.Println("Aborted.")
+					return nil
+				}
+			}
+			coreproxy.NewCallLogStore().Clear()
+			fmt.Println("Call logs cleared.")
+			return nil
+		},
+	}
+	clearCmd.Flags().BoolVarP(&yes, "yes", "y", false, "Skip confirmation prompt")
+
+	c.AddCommand(pathCmd, listCmd, sessionsCmd, readCmd, exportCmd, clearCmd)
 	return c
 }
 

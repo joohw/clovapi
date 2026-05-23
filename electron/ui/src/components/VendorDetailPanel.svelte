@@ -28,6 +28,7 @@
     subscriptionStatusForProvider,
     store,
   } from "../lib/store.svelte";
+  import { formatModelTestSummary } from "../lib/store/model-tests";
   import ListRow from "./ListRow.svelte";
   import SectionCard from "./SectionCard.svelte";
 
@@ -49,10 +50,13 @@
 
   function modelTestUi(binding: string) {
     const entry = getModelTest(modelTestStatusKey(binding));
+    if (!entry) {
+      return { status: "" as const, summary: "", detail: "" };
+    }
     return {
-      status: modelTestStatus(entry?.status),
-      summary: entry?.summary || "",
-      detail: entry?.detail || "",
+      status: modelTestStatus(entry.status),
+      summary: formatModelTestSummary(entry),
+      detail: "",
     };
   }
 
@@ -151,7 +155,6 @@
         showStatusDot
         testStatus={test.status}
         testSummary={test.summary}
-        testDetail={test.detail}
       >
         {#snippet actions()}
           {#if canManuallyManageVendorModels(vendor)}

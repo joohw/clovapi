@@ -17,7 +17,7 @@ const OAUTH_CALLBACK_PORTS = {
 };
 
 function portInUseMessage(providerId, port) {
-  const label = providerId === "codex" ? "Codex" : "Claude Code";
+  const label = providerId === "codex" ? "Codex" : "Claude";
   return (
     `本地 OAuth 回调端口 ${port} 已被占用，${label} 登录无法启动。` +
     `请关闭其他占用该端口的程序（如 ${label} CLI、其他登录窗口），或完成已在进行中的浏览器登录后重试。`

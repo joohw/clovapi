@@ -15,7 +15,7 @@ On first launch, if `profiles.json` is empty and legacy `localStorage` (`clovapi
 
 - **Agent 管理**：为已安装的 CLI 选择「官方订阅」或第三方 API，并「应用」到本地配置
   - Claude Code / Codex：清除 clovapi 中继，使用 OAuth 凭据
-  - Kimi Code：**Claude Code 订阅** — 读取 Claude OAuth 凭据，自动生成 profile 并写入 Kimi `config.toml`
+  - Kimi Code：**Claude Subscription** — 读取 Claude OAuth 凭据，自动生成 profile 并写入 Kimi `config.toml`
 - **API 管理**：**仅四种固定供应商**（`claude-code`、`codex`、`ollama`、`custom-api`），不可动态注册新供应商；自定义 API 仅手动添加模型（与 `clovapi add` 同一 `profiles.json`）
 - **本地代理**：Electron 在主进程拉起 **Go `clovapi proxy serve`**（与 CLI 同源），监听 `profiles.json` 中的 `proxy.host` / `proxy.port`（默认 `http://127.0.0.1:27483`）。请求路由与 Go 内核一致：`http://127.0.0.1:{port}/{providerId}/{modelId}/{apiStyle}/v1/…`
 - **协议与解码**：全部由 **Go `switcher/internal/proxy` + protocol** 持有；Electron 不写平行 JS proxy

@@ -358,7 +358,7 @@ async function probeClaudeSubscriptionMessages(profile, timeoutMs) {
     return {
       ok: false,
       url: joinV1Path(profile.base_url || ANTHROPIC_OAUTH_BASE_URL, "messages"),
-      error: "缺少 Claude OAuth access_token，请重新登录 Claude Code 订阅。",
+      error: "缺少 Claude OAuth access_token，请重新登录 Claude 订阅。",
     };
   }
 

@@ -2,8 +2,11 @@
  * Ingress URL + CLI stub profiles for local Go core proxy ({providerId}/{modelId}/{apiStyle}).
  * No HTTP/protocol conversion — Electron only persists config matching the Go router shape.
  */
-const profileStore = require("./profile-store");
 const providerRegistry = require("./provider-registry");
+
+function loadProfileStore() {
+  return require("./profile-store");
+}
 
 function cliIngressStyle(cliKind) {
   const kind = String(cliKind || "").trim();
@@ -36,6 +39,7 @@ async function resolveWireModelForStub(hit, parsedModelId) {
 }
 
 async function buildProxyStubProfile(cliKind, port, binding, store) {
+  const profileStore = loadProfileStore();
   const parsed = profileStore.parseModelBinding(binding);
   if (!parsed) {
     throw new Error(`无效的绑定: ${binding}`);
@@ -87,8 +91,37 @@ async function buildIngressForBinding(cliKind, port, binding, store) {
   };
 }
 
+function defaultProxyTestApiStyle(vendor, model, providerId) {
+  const fromModel = String(model?.api_style || "").trim();
+  if (fromModel) return loadProfileStore().normalizeApiStyle(fromModel);
+  if (providerId === "claude-code") return "claude";
+  if (providerId === "codex") return "openai-responses";
+  return "openai-chat";
+}
+
+/** Profile for connectivity probe via local Go proxy (shows up in call logs). */
+async function buildProxyTestProfile(vendor, model, port) {
+  const hit = { vendor, model };
+  const providerId = providerRegistry.providerIdFromStoreProfile(vendor);
+  if (!providerRegistry.isFixedProviderId(providerId)) {
+    throw new Error(`不支持的供应商: ${vendor?.name || "(unnamed)"}`);
+  }
+  const parsedModelId = String(model?.id || model?.model || "").trim();
+  const apiStyle = defaultProxyTestApiStyle(vendor, model, providerId);
+  const { modelId, modelWire } = await resolveWireModelForStub(hit, parsedModelId);
+  return {
+    name: `${vendor.name}/${modelId}`,
+    kind: vendor.kind,
+    api_style: apiStyle,
+    base_url: providerRegistry.buildProxyIngressBaseUrl(port, providerId, modelId, apiStyle),
+    api_key: "clovapi-local",
+    model: modelWire,
+  };
+}
+
 module.exports = {
   cliIngressStyle,
   buildProxyStubProfile,
   buildIngressForBinding,
+  buildProxyTestProfile,
 };

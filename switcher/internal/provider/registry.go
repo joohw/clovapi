@@ -12,10 +12,10 @@ const (
 	OllamaProviderID     = "ollama"
 	CustomAPIProviderID  = "custom-api"
 
-	ClaudeCodeVendorName = "Claude Code 订阅"
-	CodexVendorName      = "Codex 订阅"
+	ClaudeCodeVendorName = "Claude Subscription"
+	CodexVendorName      = "Codex Subscription"
 	OllamaVendorName     = "Ollama"
-	CustomAPIVendorName  = "自定义 API"
+	CustomAPIVendorName  = "Custom API"
 )
 
 type Definition struct {

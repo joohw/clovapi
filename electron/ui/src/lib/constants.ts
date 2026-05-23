@@ -2,15 +2,17 @@ import type { ModelAdapterDef } from "../global";
 
 export const TEST_STATUS_STORAGE_KEY = "clovapi-test-status-v1";
 export const MODEL_TEST_STORAGE_KEY = "clovapi-model-tests-v2";
+/** 模型连通性测试结果默认有效时长（3 小时） */
+export const MODEL_TEST_VALIDITY_MS = 3 * 60 * 60 * 1000;
 export const CUSTOM_PRESET_ID = "custom";
 
 export const DEFAULT_CLIS = [
-  { id: "cli-claude", name: "Claude Code", command: "claude", kind: "claude-code" },
-  { id: "cli-codex", name: "Codex", command: "codex", kind: "codex" },
-  { id: "cli-opencode", name: "OpenCode", command: "opencode", kind: "opencode" },
+  { id: "cli-claude", name: "ClaudeCli", command: "claude", kind: "claude-code" },
+  { id: "cli-codex", name: "CodexCli", command: "codex", kind: "codex" },
+  { id: "cli-opencode", name: "OpenCodeCli", command: "opencode", kind: "opencode" },
   { id: "cli-openclaw", name: "OpenClaw", command: "openclaw", kind: "openclaw" },
   { id: "cli-hermes", name: "Hermes", command: "hermes", kind: "hermes" },
-  { id: "cli-kimi-code", name: "Kimi Code", command: "kimi", kind: "kimi-code" },
+  { id: "cli-kimi-code", name: "KimiCodeCli", command: "kimi", kind: "kimi-code" },
 ] as const;
 
 export const DEFAULT_PRESETS = [
@@ -27,12 +29,12 @@ export const API_STYLES = ["claude", "openai-chat", "openai-responses", "gemini"
 export const SUBSCRIPTION_VENDOR_DEFS = [
   {
     subscriptionProviderId: "claude-code",
-    name: "Claude Code 订阅",
+    name: "Claude Subscription",
     modelApiStyle: "claude" as const,
   },
   {
     subscriptionProviderId: "codex",
-    name: "Codex 订阅",
+    name: "Codex Subscription",
     modelApiStyle: "openai-responses" as const,
   },
 ] as const;
@@ -66,7 +68,7 @@ export const DEFAULT_MODEL_ADAPTERS: ModelAdapterDef[] = [
   },
 ];
 
-export const CUSTOM_API_PROFILE_NAME = "自定义 API";
+export const CUSTOM_API_PROFILE_NAME = "Custom API";
 
 export const OLLAMA_PROFILE_NAME = "Ollama";
 
@@ -75,8 +77,8 @@ export const FIXED_PROVIDER_IDS = ["claude-code", "codex", "ollama", "custom-api
 export type FixedProviderId = (typeof FIXED_PROVIDER_IDS)[number];
 
 export const BUILTIN_PROVIDERS = [
-  { id: "claude-code" as const, vendorName: "Claude Code 订阅", kind: "subscription" as const },
-  { id: "codex" as const, vendorName: "Codex 订阅", kind: "subscription" as const },
+  { id: "claude-code" as const, vendorName: "Claude Subscription", kind: "subscription" as const },
+  { id: "codex" as const, vendorName: "Codex Subscription", kind: "subscription" as const },
   { id: "ollama" as const, vendorName: OLLAMA_PROFILE_NAME, kind: "local" as const },
   { id: "custom-api" as const, vendorName: CUSTOM_API_PROFILE_NAME, kind: "api" as const },
 ] as const;

@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -63,7 +64,7 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 	s := &Server{
 		Config:        cfg,
 		ProfileLoader: profile.Load,
-		CallLogs:      NewCallLogStore(defaultCallLogMax),
+		CallLogs:      NewCallLogStore(),
 		HTTPClient: &http.Client{
 			Timeout: 2 * time.Minute,
 			Transport: &http.Transport{
@@ -232,9 +233,36 @@ func countWireArray(v any) int {
 	return len(arr)
 }
 
+const maxInboundProxyBody = 1 << 22
+
+func readInboundBody(r *http.Request) ([]byte, error) {
+	if r == nil || r.Body == nil {
+		return nil, nil
+	}
+	lim := io.LimitReader(r.Body, maxInboundProxyBody+1)
+	payload, err := io.ReadAll(lim)
+	if err != nil {
+		return payload, err
+	}
+	if len(payload) > maxInboundProxyBody {
+		return nil, fmt.Errorf("request body too large")
+	}
+	return payload, nil
+}
+
 func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	trace := startRequestTrace(s.CallLogs, r)
 	defer trace.finish()
+
+	payload, bodyErr := readInboundBody(r)
+	_ = r.Body.Close()
+	trace.setRequestBody(payload)
+	if bodyErr != nil {
+		trace.setError("read request body")
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "read request body"})
+		return
+	}
+	r.Body = io.NopCloser(bytes.NewReader(payload))
 
 	path := r.URL.EscapedPath()
 	if path == "" {
@@ -248,7 +276,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	if (r.Method == http.MethodGet || r.Method == http.MethodHead) && isModelsPath(ingress.PathSuffix) {
 		body := buildModelsListBody(ingress.APIStyle, ingress.ModelID)
-		trace.setUpstreamResponse(http.StatusOK, http.Header{"Content-Type": []string{"application/json"}}, []byte(body), false)
+		trace.setUpstreamResponse(http.StatusOK, http.Header{"Content-Type": []string{"application/json"}}, []byte(body))
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		if r.Method != http.MethodHead {
@@ -293,15 +321,6 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnsupportedMediaType, map[string]string{"error": "Content-Type must be application/json"})
 		return
 	}
-
-	payload, err := io.ReadAll(io.LimitReader(r.Body, 1<<24))
-	if err != nil {
-		trace.setError("read request body")
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "read request body"})
-		return
-	}
-	_ = r.Body.Close()
-	trace.setRequestBody(payload)
 
 	hints := protocol.UpstreamHints{Model: route.EffectiveModel, Source: route.Source}
 	upJSON, ir, _, err := protocol.PrepareUpstreamRequest(route.IngressStyle, route.EgressStyle, payload, hints)
@@ -357,7 +376,6 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if streamingSSE {
-		trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, nil, true)
 		baseSan := protocol.SanitizeUpstreamResponseHeaders(upResp.Header.Clone())
 		streamHdr := protocol.MergeSSEProxyDownstreamHeaders(baseSan)
 		for k, vv := range streamHdr {
@@ -367,17 +385,22 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		w.WriteHeader(upResp.StatusCode)
-		_ = protocol.TranscodePlaintextSSEToIngress(r.Context(), route.IngressStyle, route.EgressStyle, ir.Model, plaintextReader, w)
+		var capture bytes.Buffer
+		tee := io.TeeReader(plaintextReader, &capture)
+		if err := protocol.TranscodePlaintextSSEToIngress(r.Context(), route.IngressStyle, route.EgressStyle, ir.Model, tee, w); err != nil {
+			trace.setError(err.Error())
+		}
+		trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, capture.Bytes())
 		return
 	}
 
-	upBody, err := io.ReadAll(io.LimitReader(plaintextReader, protocol.MaxDownstreamWireBytes))
+	upBody, err := io.ReadAll(plaintextReader)
 	if err != nil {
 		trace.setError("read upstream response")
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "read upstream response"})
 		return
 	}
-	trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, upBody, false)
+	trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, upBody)
 
 	upStatus := upResp.StatusCode
 	if ir.Stream && upStatus >= 400 {

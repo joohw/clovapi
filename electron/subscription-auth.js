@@ -20,7 +20,7 @@ const {
 const PROVIDERS = {
   "claude-code": {
     id: "claude-code",
-    label: "Claude Code 订阅",
+    label: "Claude Subscription",
     command: "claude",
     loginArgs: ["auth", "login"],
     authPath() {
@@ -29,7 +29,7 @@ const PROVIDERS = {
   },
   codex: {
     id: "codex",
-    label: "Codex 订阅",
+    label: "Codex Subscription",
     command: "codex",
     authPath() {
       const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex");
@@ -294,10 +294,10 @@ function buildSubscriptionProfile(providerId, targetCli) {
 function buildClaudeSubscriptionProfile(targetCli = "claude-code") {
   const data = readClaudeCredentialsData();
   if (!data) {
-    return { ok: false, error: "未检测到 Claude Code 订阅凭据，请先在 API 管理登录 Claude Code 订阅。" };
+    return { ok: false, error: "未检测到 Claude 订阅凭据，请先在 API 管理登录 Claude 订阅。" };
   }
   if (!isClaudeCredentialsValid(data)) {
-    return { ok: false, error: "Claude Code 订阅凭据无效或已过期，请重新登录。" };
+    return { ok: false, error: "Claude 订阅凭据无效或已过期，请重新登录。" };
   }
   const token = String(data.claudeAiOauth?.accessToken || "").trim();
   return {

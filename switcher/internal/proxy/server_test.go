@@ -82,7 +82,7 @@ func fixtureDesktopCustomAPIStore() *profile.Store {
 	return &profile.Store{
 		Version: profile.StoreVersion,
 		List: []profile.Profile{{
-			Name:         "自定义 API",
+			Name:         provider.CustomAPIVendorName,
 			Kind:         "api",
 			ModelAdapter: "manual",
 			Models: []profile.Model{{

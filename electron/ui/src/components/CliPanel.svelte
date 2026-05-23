@@ -10,6 +10,7 @@ import {
   store,
 } from "../lib/store.svelte";
   import type { CliDef } from "../global";
+  import CliIcon from "./CliIcon.svelte";
   import ListRow from "./ListRow.svelte";
   import SectionCard from "./SectionCard.svelte";
   import Select from "./Select.svelte";
@@ -33,6 +34,9 @@ import {
     {@const installed = Boolean(store.cliDetectedPath[cli.id])}
     {@const activeBinding = activeBindingForCli(cli.kind)}
     <ListRow title={cli.name} lines={rowLines(cli, installed)} linesNowrap muted={!installed}>
+      {#snippet leading()}
+        <CliIcon kind={cli.kind} />
+      {/snippet}
       {#snippet actions()}
         {#key `${cli.id}:${activeBinding}`}
           <Select

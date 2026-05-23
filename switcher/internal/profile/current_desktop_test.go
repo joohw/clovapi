@@ -8,9 +8,9 @@ import (
 
 func TestProfileForDesktopModelBinding(t *testing.T) {
 	s := &Store{
-		Active: map[string]string{"codex": "@model:自定义 API/gpt-5.5"},
+		Active: map[string]string{"codex": "@model:Custom API/gpt-5.5"},
 		List: []Profile{{
-			Name:         "自定义 API",
+			Name:         "Custom API",
 			Kind:         "api",
 			ModelAdapter: "manual",
 			Models: []Model{{
@@ -26,7 +26,7 @@ func TestProfileForDesktopModelBinding(t *testing.T) {
 	if !ok {
 		t.Fatal("desktop binding not resolved")
 	}
-	if p.Name != "@model:自定义 API/gpt-5.5" || p.Model != "gpt-5.5-upstream" || p.APIStyle != apistyle.OpenAIResponses || p.BaseURL != "https://example.test/v1" || p.APIKey != "secret" {
+	if p.Name != "@model:Custom API/gpt-5.5" || p.Model != "gpt-5.5-upstream" || p.APIStyle != apistyle.OpenAIResponses || p.BaseURL != "https://example.test/v1" || p.APIKey != "secret" {
 		t.Fatalf("resolved profile = %+v", p)
 	}
 	if len(p.Models) != 0 {

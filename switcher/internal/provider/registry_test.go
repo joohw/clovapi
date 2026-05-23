@@ -14,10 +14,10 @@ func TestRegistryMatchesDesktopFixedProviders(t *testing.T) {
 		}
 	}
 
-	if got := VendorNameFromProviderID("claude-code"); got != "Claude Code 订阅" {
+	if got := VendorNameFromProviderID("claude-code"); got != ClaudeCodeVendorName {
 		t.Fatalf("claude vendor = %q", got)
 	}
-	if got := ProviderIDFromVendorName("自定义 API"); got != "custom-api" {
+	if got := ProviderIDFromVendorName(CustomAPIVendorName); got != "custom-api" {
 		t.Fatalf("custom provider id = %q", got)
 	}
 	if !IsFixedProviderID("ollama") || IsFixedProviderID("unknown") {

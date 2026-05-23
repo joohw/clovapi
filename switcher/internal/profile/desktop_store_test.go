@@ -29,11 +29,11 @@ func TestLoadDesktopStoreV4WithProxyAndVendorModels(t *testing.T) {
 
 	writeStoreForTest(t, `{
   "version": 4,
-  "active": {"codex":"@model:自定义 API/gpt-5.5"},
+  "active": {"codex":"@model:Custom API/gpt-5.5"},
   "proxy": {"enabled": true, "host": "127.0.0.1", "port": 27483},
   "profiles": [
     {
-      "name": "自定义 API",
+      "name": "Custom API",
       "kind": "api",
       "model_adapter": "manual",
       "models": [
@@ -53,14 +53,14 @@ func TestLoadDesktopStoreV4WithProxyAndVendorModels(t *testing.T) {
 	if !s.Proxy.Enabled || s.Proxy.Port != 27483 || s.Proxy.Host != "127.0.0.1" {
 		t.Fatalf("proxy config not preserved: %+v", s.Proxy)
 	}
-	p, ok := s.Get("自定义 API")
+	p, ok := s.Get("Custom API")
 	if !ok {
 		t.Fatal("vendor profile missing")
 	}
 	if p.Kind != "api" || p.ModelAdapter != "manual" || len(p.Models) != 1 || p.Models[0].Model != "gpt-5.5" {
 		t.Fatalf("desktop profile shape not preserved: %+v", p)
 	}
-	if got := s.Active["codex"]; got != "@model:自定义 API/gpt-5.5" {
+	if got := s.Active["codex"]; got != "@model:Custom API/gpt-5.5" {
 		t.Fatalf("active binding = %q", got)
 	}
 }

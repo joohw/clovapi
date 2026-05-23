@@ -97,9 +97,12 @@ export type ProxyLogEntry = {
   request: {
     method: string;
     url: string;
+    proto?: string;
     headers: Record<string, string>;
     body: string;
   };
+  sessionId?: string;
+  sessionKind?: string;
   upstream: {
     method: string;
     url: string;
@@ -178,6 +181,8 @@ export type ModelTestEntry = {
   status: ModelTestStatus;
   summary: string;
   detail: string;
+  /** Unix timestamp (ms) when the test finished; used for 3h validity */
+  testedAt?: number;
 };
 
 export type ModelAdapterId = "manual" | "openai-compatible" | "ollama" | "subscription";

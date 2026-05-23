@@ -31,7 +31,7 @@
 <main class="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-5 py-5">
   <header class="mb-5 shrink-0">
     <h1 class="text-lg font-semibold tracking-tight">ClovAPI Switcher</h1>
-    <p class="mt-1 text-xs text-muted-foreground">本地代理 · 供应商 · CLI 应用</p>
+    <p class="mt-1 text-xs text-muted-foreground">一键管理本地所有 Agent 的 API，支持 ClaudeCli / CodexCli 订阅</p>
   </header>
 
   <Tabs.Root value={store.activeTab} onValueChange={onTabChange} class="flex min-h-0 flex-1 flex-col gap-4">

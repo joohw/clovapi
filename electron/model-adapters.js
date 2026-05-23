@@ -13,10 +13,10 @@ const {
 } = require("./claude-backend");
 
 const SUBSCRIPTION_VENDOR_DEFS = [
-  { subscription_provider_id: "claude-code", name: "Claude Code 订阅" },
-  { subscription_provider_id: "codex", name: "Codex 订阅" },
+  { subscription_provider_id: "claude-code", name: "Claude Subscription" },
+  { subscription_provider_id: "codex", name: "Codex Subscription" },
 ];
-const CUSTOM_API_PROFILE_NAME = "自定义 API";
+const CUSTOM_API_PROFILE_NAME = "Custom API";
 
 const ADAPTER_IDS = ["manual", "openai-compatible", "ollama", "subscription"];
 
@@ -460,6 +460,15 @@ async function testVendorModel(vendorInput, modelInput, options = {}) {
   throw new Error(`未知适配器: ${adapterId}`);
 }
 
+async function testVendorModelViaProxy(vendorInput, modelInput, options = {}) {
+  const { buildProxyTestProfile } = require("./proxy-ingress-cli");
+  const vendor = vendorToAdapterInput(vendorInput);
+  const adapterId = vendor.model_adapter;
+  const port = Number(options.port) || 27483;
+  const profile = await buildProxyTestProfile(vendorInput, modelInput, port);
+  return runHttpProbe(profile, { adapterId, viaProxy: true });
+}
+
 module.exports = {
   ADAPTER_IDS,
   ADAPTER_CATALOG,
@@ -468,6 +477,7 @@ module.exports = {
   vendorToAdapterInput,
   listVendorModels,
   testVendorModel,
+  testVendorModelViaProxy,
   testManualModel,
   testOpenAiCompatibleModel,
   testOllamaModel,

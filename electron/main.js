@@ -7,6 +7,7 @@ const subscriptionAuth = require("./subscription-auth");
 const subscriptionOAuthFlow = require("./subscription-oauth-flow");
 const { createGoProxyManager } = require("./proxy-manager");
 const proxyLogger = require("./proxy-logger");
+const callLogsStore = require("./call-logs-store");
 const { buildProxyStubProfile, buildIngressForBinding } = require("./proxy-ingress-cli");
 const modelAdapters = require("./model-adapters");
 const { sanitizeForIpc } = require("./ipc-utils");
@@ -450,9 +451,22 @@ ipcMain.handle("profiles:test", async (_event, payload) => {
       };
     }
 
-    const result = await modelAdapters.testVendorModel(hit.vendor, hit.model, {
-      buildSubscriptionProfile: (providerId) =>
-        subscriptionAuth.buildSubscriptionProfile(providerId, "opencode"),
+    const ensured = await proxyManager.ensureRunning();
+    if (!ensured.ok) {
+      return sanitizeForIpc({
+        ok: true,
+        passed: false,
+        summary: "测试失败",
+        error: ensured.error || "本地代理未启动",
+        text: ensured.error || "无法启动本地代理，测试请求未发出。",
+      });
+    }
+
+    const proxyPort = Number(payload?.proxy?.port) || Number(ensured.port) || 27483;
+    await profileStore.saveStore(store);
+
+    const result = await modelAdapters.testVendorModelViaProxy(hit.vendor, hit.model, {
+      port: proxyPort,
     });
     return sanitizeForIpc({
       ok: true,
@@ -671,6 +685,13 @@ ipcMain.handle("proxy-logs:list", async () => {
   } catch {
     requests = [];
   }
+  if (!requests.length) {
+    try {
+      requests = await callLogsStore.readCallLogs(200);
+    } catch {
+      requests = [];
+    }
+  }
   return { ok: true, requests, system };
 });
 
@@ -680,6 +701,11 @@ ipcMain.handle("proxy-logs:clear", async (_event, payload) => {
     proxyLogger.clearSystem();
   }
   if (scope === "calls" || scope === "all") {
+    try {
+      await callLogsStore.clearCallLogsFile();
+    } catch {
+      /* noop */
+    }
     try {
       const cfg = await proxyManager.loadProxyConfig();
       const status = await proxyManager.status();

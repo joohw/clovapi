@@ -6,7 +6,7 @@ const providerRegistry = require("./provider-registry");
 
 const STORE_VERSION = 4;
 const OLLAMA_PROFILE_NAME = "Ollama";
-const CUSTOM_API_PROFILE_NAME = "自定义 API";
+const CUSTOM_API_PROFILE_NAME = "Custom API";
 const MODEL_BINDING_PREFIX = "@model:";
 
 const { CLAUDE_SUBSCRIPTION_MODEL_FALLBACKS } = require("./claude-backend");
@@ -15,12 +15,12 @@ const { CODEX_SUBSCRIPTION_MODEL_FALLBACKS } = require("./codex-backend");
 const SUBSCRIPTION_VENDOR_DEFS = [
   {
     subscription_provider_id: "claude-code",
-    name: "Claude Code 订阅",
+    name: "Claude Subscription",
     models: [],
   },
   {
     subscription_provider_id: "codex",
-    name: "Codex 订阅",
+    name: "Codex Subscription",
     models: [],
   },
 ];

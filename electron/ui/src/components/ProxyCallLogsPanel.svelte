@@ -10,7 +10,7 @@
     store,
   } from "../lib/store.svelte";
   import {
-    formatProxyLogTime,
+    proxyLogCardTitle,
     proxyLogStatusClass,
     proxyLogSummary,
   } from "../lib/proxy-log-format";
@@ -65,8 +65,8 @@
       {:else}
         {#each store.proxyLogs as entry (entry.id)}
           <ListRow
-            title="{entry.request.method} {entry.request.url}"
-            lines={[entry.upstream.url, formatProxyLogTime(entry.startedAt)]}
+            title={proxyLogCardTitle(entry)}
+            linesNowrap
             onOpen={() => openProxyLog(entry.id)}
           >
             {#snippet actions()}

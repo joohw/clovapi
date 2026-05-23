@@ -594,3 +594,40 @@ var AdapterCatalog = []map[string]string{
 	{"id": "ollama", "label": "Ollama", "description": "拉取 GET /api/tags；测试走 OpenAI Chat HTTP 路径"},
 	{"id": "subscription", "label": "官方订阅", "description": "拉取官方 OAuth 模型表（Codex backend-api / Claude /v1/models）"},
 }
+
+type UIProviderDef struct {
+	ID                     string `json:"id"`
+	VendorName             string `json:"vendorName"`
+	Kind                   string `json:"kind"`
+	SubscriptionProviderID string `json:"subscriptionProviderId,omitempty"`
+	LocalProvider          string `json:"localProvider,omitempty"`
+}
+
+type VendorCatalogResult struct {
+	OK               bool              `json:"ok"`
+	FixedProviderIDs []string          `json:"fixedProviderIds,omitempty"`
+	Providers        []UIProviderDef   `json:"providers,omitempty"`
+	Adapters         []map[string]string `json:"adapters,omitempty"`
+	Error            string            `json:"error,omitempty"`
+}
+
+// VendorCatalog returns the fixed provider registry and model adapter catalog for the desktop UI.
+func VendorCatalog() VendorCatalogResult {
+	defs := provider.Registry()
+	providers := make([]UIProviderDef, 0, len(defs))
+	for _, d := range defs {
+		providers = append(providers, UIProviderDef{
+			ID:                     d.ID,
+			VendorName:             d.VendorName,
+			Kind:                   d.Kind,
+			SubscriptionProviderID: d.SubscriptionProviderID,
+			LocalProvider:          d.LocalProvider,
+		})
+	}
+	return VendorCatalogResult{
+		OK:               true,
+		FixedProviderIDs: provider.FixedProviderIDs(),
+		Providers:        providers,
+		Adapters:         AdapterCatalog,
+	}
+}

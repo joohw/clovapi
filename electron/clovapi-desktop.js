@@ -66,7 +66,11 @@ function testBinding(payload) {
 }
 
 function modelAdapters() {
-  return runDesktop(["vendor", "adapters"]);
+  return runDesktop(["vendor", "catalog"], { timeout: 10000 });
+}
+
+function vendorCatalog() {
+  return modelAdapters();
 }
 
 function authStatus() {
@@ -88,6 +92,7 @@ module.exports = {
   listVendorModels,
   testBinding,
   modelAdapters,
+  vendorCatalog,
   authStatus,
   authLogout,
 };

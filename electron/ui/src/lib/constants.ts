@@ -1,5 +1,3 @@
-import type { ModelAdapterDef } from "../global";
-
 export const TEST_STATUS_STORAGE_KEY = "clovapi-test-status-v1";
 export const MODEL_TEST_STORAGE_KEY = "clovapi-model-tests-v2";
 /** 模型连通性测试结果默认有效时长（3 小时） */
@@ -45,29 +43,6 @@ export const INTERNAL_PROFILE_PREFIX = "__";
 
 export const MODEL_ADAPTER_IDS = ["manual", "openai-compatible", "ollama", "subscription"] as const;
 
-export const DEFAULT_MODEL_ADAPTERS: ModelAdapterDef[] = [
-  {
-    id: "manual",
-    label: "Manual",
-    description: "No auto-fetch; add models manually under the provider",
-  },
-  {
-    id: "openai-compatible",
-    label: "OpenAI compatible",
-    description: "GET /v1/models (or /models)",
-  },
-  {
-    id: "ollama",
-    label: "Ollama",
-    description: "GET /api/tags, falls back to /v1/models",
-  },
-  {
-    id: "subscription",
-    label: "Official subscription",
-    description: "Fetch models via OAuth (Codex backend-api / Claude /v1/models)",
-  },
-];
-
 export const CUSTOM_API_PROFILE_NAME = "Custom API";
 
 export const OLLAMA_PROFILE_NAME = "Ollama";
@@ -75,13 +50,6 @@ export const OLLAMA_PROFILE_NAME = "Ollama";
 /** 固定四种供应商 ID（与代理路径 /{providerId}/… 一致），禁止动态注册。 */
 export const FIXED_PROVIDER_IDS = ["claude-code", "codex", "ollama", "custom-api"] as const;
 export type FixedProviderId = (typeof FIXED_PROVIDER_IDS)[number];
-
-export const BUILTIN_PROVIDERS = [
-  { id: "claude-code" as const, vendorName: "Claude Subscription", kind: "subscription" as const },
-  { id: "codex" as const, vendorName: "Codex Subscription", kind: "subscription" as const },
-  { id: "ollama" as const, vendorName: OLLAMA_PROFILE_NAME, kind: "local" as const },
-  { id: "custom-api" as const, vendorName: CUSTOM_API_PROFILE_NAME, kind: "api" as const },
-] as const;
 
 export const OLLAMA_DEFAULTS = {
   baseUrl: "http://127.0.0.1:11434/v1",

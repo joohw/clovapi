@@ -177,6 +177,14 @@ export type ModelAdapterDef = {
   description: string;
 };
 
+export type ProviderDef = {
+  id: string;
+  vendorName: string;
+  kind: VendorKind;
+  subscriptionProviderId?: string;
+  localProvider?: string;
+};
+
 /** OAuth 登录态（运行时从 auth 文件读取，不写入 profiles.json） */
 export type SubscriptionItem = {
   id: string;
@@ -250,5 +258,8 @@ type ListVendorModelsResult = {
 
 type ModelAdaptersResult = {
   ok?: boolean;
+  error?: string;
   adapters?: ModelAdapterDef[];
+  providers?: ProviderDef[];
+  fixedProviderIds?: string[];
 };

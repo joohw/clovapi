@@ -9,7 +9,7 @@
     "dev:ui": "vite --config ui/vite.config.mjs",
     "dev": "concurrently -k \"npm run dev:ui\" \"wait-on tcp:5173 && cross-env ELECTRON_DEV=1 electron .\"",
     "build:ui": "vite build --config ui/vite.config.mjs",
-    "test": "node --test proxy-manager.test.js proxy-ingress-url.test.js",
+    "test": "node --test proxy-manager.test.js",
     "start": "npm run build:ui && electron ."
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
-import { CUSTOM_PRESET_ID, DEFAULT_CLIS, DEFAULT_PRESETS } from "../constants";
-import type { CliDef, ModelTestEntry, Preset, ProxyLogEntry, ProxySystemLogEntry, SubscriptionItem, Vendor } from "../../global";
+import { CUSTOM_PRESET_ID, DEFAULT_CLIS, DEFAULT_PRESETS, FIXED_PROVIDER_IDS } from "../constants";
+import type { CliDef, ModelAdapterDef, ModelTestEntry, Preset, ProxyLogEntry, ProxySystemLogEntry, ProviderDef, SubscriptionItem, Vendor } from "../../global";
 
 export type TabId = "cli" | "profiles" | "call-logs" | "system-logs" | "settings";
 
@@ -46,4 +46,7 @@ export const store = $state({
   proxySystemLogSelectedId: null as string | null,
   vendorFetching: {} as Record<string, boolean>,
   profilesSelectedVendor: null as string | null,
+  modelAdapters: [] as ModelAdapterDef[],
+  providers: [] as ProviderDef[],
+  fixedProviderIds: [...FIXED_PROVIDER_IDS] as string[],
 });

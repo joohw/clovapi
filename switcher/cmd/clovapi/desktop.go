@@ -124,8 +124,18 @@ func cmdDesktopVendor() *cobra.Command {
 		Use:   "vendor",
 		Short: "Vendor operations for the desktop UI",
 	}
-	c.AddCommand(cmdDesktopVendorListModels(), cmdDesktopVendorAdapters())
+	c.AddCommand(cmdDesktopVendorListModels(), cmdDesktopVendorAdapters(), cmdDesktopVendorCatalog())
 	return c
+}
+
+func cmdDesktopVendorCatalog() *cobra.Command {
+	return &cobra.Command{
+		Use:   "catalog",
+		Short: "List fixed providers and model adapter catalog",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return writeDesktopJSON(desktop.VendorCatalog())
+		},
+	}
 }
 
 func cmdDesktopVendorListModels() *cobra.Command {
@@ -146,9 +156,10 @@ func cmdDesktopVendorAdapters() *cobra.Command {
 		Use:   "adapters",
 		Short: "List model adapter catalog",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			catalog := desktop.VendorCatalog()
 			return writeDesktopJSON(map[string]any{
-				"ok":       true,
-				"adapters": desktop.AdapterCatalog,
+				"ok":       catalog.OK,
+				"adapters": catalog.Adapters,
 			})
 		},
 	}

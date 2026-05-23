@@ -71,6 +71,39 @@ func streamFlushMaybe(w http.ResponseWriter) func() {
 	return func() {}
 }
 
+// ShouldPassthroughStreamingSSE mirrors FinalizeNonStreamProxyDownstream identity passthrough for streaming
+// openai-responses relays (Codex subscription): decode→IR→encode drops response.created and breaks Codex.
+func ShouldPassthroughStreamingSSE(ingress, egress apistyle.Style) bool {
+	if ingress != egress {
+		return false
+	}
+	return ingressStyleForResponse(ingress) == apistyle.OpenAIResponses
+}
+
+// PassthroughStreamingPlaintextSSE relays upstream SSE bytes verbatim after decompression.
+func PassthroughStreamingPlaintextSSE(ctx context.Context, plaintext io.Reader, w http.ResponseWriter) error {
+	flush := streamFlushMaybe(w)
+	buf := make([]byte, 16*1024)
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		n, readErr := plaintext.Read(buf)
+		if n > 0 {
+			if _, err := w.Write(buf[:n]); err != nil {
+				return err
+			}
+			flush()
+		}
+		if readErr != nil {
+			if errors.Is(readErr, io.EOF) {
+				return nil
+			}
+			return readErr
+		}
+	}
+}
+
 // TranscodePlaintextSSEToIngress converts egress-shaped SSE plaintext into ingress-shaped SSE (decoder -> IR -> encoder), mirroring Electron transformResponse.
 //
 // prependModel emits an initial message_start event like Electron eventsWithModel.
@@ -109,7 +142,7 @@ func TranscodePlaintextSSEToIngress(ctx context.Context, ingress, egress apistyl
 		return done, nil
 	}
 
-	if m := strings.TrimSpace(prependModelFromIR); m != "" {
+	if m := strings.TrimSpace(prependModelFromIR); m != "" && ingressStyleForResponse(ingress) != apistyle.OpenAIResponses {
 		term, err := emitEvent(ResponseEvent{Type: RespMessageStart, Role: string(RoleAssistant), Model: m})
 		if err != nil {
 			return err
@@ -152,11 +185,32 @@ func TranscodePlaintextSSEToIngress(ctx context.Context, ingress, egress apistyl
 		}
 	}
 
+	if !downstreamClosed {
+		for _, rec := range FlushSSEParseState(&parseSt) {
+			for _, ev := range DecodeSSEStreamRecord(egress, rec, &decSt) {
+				term, err := emitEvent(ev)
+				if err != nil {
+					return err
+				}
+				if term {
+					downstreamClosed = true
+				}
+			}
+		}
+	}
+
 	extras, err := enc.FinalizeClaudeUpstreamIdle()
 	if err != nil {
 		return err
 	}
 	if err := writeChunks(extras); err != nil {
+		return err
+	}
+	respExtras, err := enc.FinalizeOpenAIResponsesUpstreamIdle()
+	if err != nil {
+		return err
+	}
+	if err := writeChunks(respExtras); err != nil {
 		return err
 	}
 	tail, err := enc.FinalizeDrain()
@@ -193,7 +247,7 @@ func WriteSSEFromBufferedIR(ingress apistyle.Style, prependModelFromIR string, e
 		return done, nil
 	}
 
-	if m := strings.TrimSpace(prependModelFromIR); m != "" {
+	if m := strings.TrimSpace(prependModelFromIR); m != "" && ingressStyleForResponse(ingress) != apistyle.OpenAIResponses {
 		term, err := emitEvent(ResponseEvent{Type: RespMessageStart, Role: string(RoleAssistant), Model: m})
 		if err != nil {
 			return err
@@ -216,6 +270,13 @@ func WriteSSEFromBufferedIR(ingress apistyle.Style, prependModelFromIR string, e
 		return err
 	}
 	if err := writeChunks(extras); err != nil {
+		return err
+	}
+	respExtras, err := enc.FinalizeOpenAIResponsesUpstreamIdle()
+	if err != nil {
+		return err
+	}
+	if err := writeChunks(respExtras); err != nil {
 		return err
 	}
 	tail, err := enc.FinalizeDrain()

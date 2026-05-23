@@ -112,7 +112,7 @@ function buildProxyIngressBaseUrl(port, providerId, modelId, apiStyle) {
   const host = "127.0.0.1";
   const encModel = encodeURIComponent(String(modelId || "").trim());
   const style = String(apiStyle || "").trim().toLowerCase();
-  return `http://${host}:${Number(port) || 27483}/${providerId}/${encModel}/${style}`;
+  return `http://${host}:${Number(port) || 27483}/${providerId}/${encModel}/${style}/v1`;
 }
 
 function parseProxyIngressPath(pathname) {

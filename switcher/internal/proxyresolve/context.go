@@ -42,8 +42,8 @@ func JoinURL(base, pathSuffix string) string {
 }
 
 var (
-	// ErrSubscriptionUpstreamNotReady indicates subscription vendors still depend on Electron-side auth/session material.
-	ErrSubscriptionUpstreamNotReady = errors.New("subscription upstream is not wired in the Go resolver yet")
+	// ErrSubscriptionUpstreamNotReady indicates subscription OAuth credentials are missing or expired.
+	ErrSubscriptionUpstreamNotReady = errors.New("subscription credentials missing or expired")
 )
 
 // IngressContext captures normalized styles and binding upstream metadata for debugging.
@@ -67,7 +67,7 @@ func LooksLikeClaudeOAuthToken(apiKey string) bool {
 	return strings.Contains(strings.TrimSpace(apiKey), "sk-ant-oat")
 }
 
-func authScheme(style apistyle.Style, apiKey string) AuthSummary {
+func authScheme(style apistyle.Style, apiKey, source, accountID string) AuthSummary {
 	switch style {
 	case apistyle.Claude:
 		if LooksLikeClaudeOAuthToken(apiKey) {
@@ -75,6 +75,12 @@ func authScheme(style apistyle.Style, apiKey string) AuthSummary {
 		}
 		return AuthSummary{Scheme: "anthropic_api_key"}
 	case apistyle.OpenAIResponses:
+		if strings.TrimSpace(source) == "subscription:codex" {
+			if strings.TrimSpace(accountID) != "" {
+				return AuthSummary{Scheme: "responses_codex_subscription_headers"}
+			}
+			return AuthSummary{Scheme: "responses_codex_subscription_headers_incomplete"}
+		}
 		return AuthSummary{Scheme: "responses_codex_headers"}
 	default:
 		if strings.TrimSpace(apiKey) == "" {
@@ -116,6 +122,10 @@ func ResolveIngressContext(store *profile.Store, providerID, modelID, ingressAPI
 		if base == "" || key == "" {
 			return out, ErrSubscriptionUpstreamNotReady
 		}
+		if strings.TrimSpace(flat.SubscriptionProviderID) == provider.CodexProviderID &&
+			strings.TrimSpace(flat.AccountID) == "" {
+			return out, ErrSubscriptionUpstreamNotReady
+		}
 	}
 
 	effModel := strings.TrimSpace(flat.Model)
@@ -125,7 +135,8 @@ func ResolveIngressContext(store *profile.Store, providerID, modelID, ingressAPI
 	baseNorm := NormalizeBaseURL(flat.BaseURL)
 	egress := flat.APIStyle
 
-	pathSuffix := protocol.DefaultUpstreamPathSuffix(egress, sourceFromProfile(&flat))
+	src := sourceFromProfile(&flat)
+	pathSuffix := protocol.DefaultUpstreamPathSuffix(egress, src)
 	if len(pathSuffixHints) > 0 && strings.TrimSpace(pathSuffixHints[0]) != "" {
 		pathSuffix = pathSuffixHints[0]
 	}
@@ -136,9 +147,9 @@ func ResolveIngressContext(store *profile.Store, providerID, modelID, ingressAPI
 		EgressStyle:            egress,
 		PathSuffix:             pathSuffix,
 		BaseURLJoined:          JoinURL(baseNorm, pathSuffix),
-		Source:                 sourceFromProfile(&flat),
+		Source:                 src,
 		EffectiveUpstreamModel: effModel,
-		AuthSummary:            authScheme(egress, flat.APIKey),
+		AuthSummary:            authScheme(egress, flat.APIKey, src, flat.AccountID),
 	}
 	return out, nil
 }

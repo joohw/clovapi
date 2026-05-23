@@ -6,6 +6,7 @@ import {
   subscriptionProviderFromBinding,
   subscriptionProviderIdsForCli,
 } from "../helpers";
+import { t } from "../i18n";
 import { activeBindingForCli } from "./bindings";
 import { clearModelTest } from "./model-tests";
 import { runModelTest } from "./model-runner";
@@ -49,7 +50,7 @@ export async function cancelSubscriptionLogin(providerId: string) {
 export async function runSubscriptionLogin(providerId: string) {
   const bridge = window.clovapiSubscription;
   if (!bridge?.login) {
-    toast.error("当前环境不支持订阅登录");
+    toast.error(t("toast.subscriptionLoginUnsupported"));
     return;
   }
   if (isSubscriptionLogging(providerId)) return;
@@ -69,20 +70,20 @@ export async function runSubscriptionLogin(providerId: string) {
     return;
   }
   if (result?.cancelled) return;
-  toast.error(result?.error || "登录失败");
+  toast.error(result?.error || t("toast.loginFailed"));
 }
 
 export async function runSubscriptionTest(providerId: string) {
   const sub = subscriptionStatusForProvider(providerId);
   if (!sub?.loggedIn) {
-    toast.warning("请先完成登录后再测试。");
+    toast.warning(t("toast.loginBeforeTest"));
     return;
   }
   const vendor = getSubscriptionVendors(store.profiles).find(
     (item) => item.subscriptionProviderId === providerId,
   );
   if (!vendor?.models?.length) {
-    toast.error("未找到订阅供应商。");
+    toast.error(t("toast.subscriptionVendorMissing"));
     return;
   }
   await runModelTest(modelBindingValue(vendor.name, vendor.models[0].id));
@@ -91,13 +92,13 @@ export async function runSubscriptionTest(providerId: string) {
 export async function runSubscriptionLogout(providerId: string, label: string) {
   const bridge = window.clovapiSubscription;
   if (!bridge?.logout) return;
-  if (!window.confirm(`确定退出「${label}」？将删除本地 OAuth 凭据文件。`)) return;
+  if (!window.confirm(t("toast.logoutConfirm", { label }))) return;
   const previousVendor = getSubscriptionVendors(store.profiles).find(
     (item) => item.subscriptionProviderId === providerId,
   );
   const result = await bridge.logout(providerId);
   if (!result?.ok) {
-    toast.error(result?.error || "退出失败");
+    toast.error(result?.error || t("toast.logoutFailed"));
     await refreshSubscriptions();
     return;
   }
@@ -141,7 +142,7 @@ export async function runSubscriptionLogout(providerId: string, label: string) {
   }
   const saved = await persistProfiles();
   if (!saved?.ok) {
-    toast.error(saved?.error || "退出成功，但保存配置失败");
+    toast.error(saved?.error || t("toast.logoutSaveFailed"));
     return;
   }
   await refreshSubscriptions();
@@ -159,7 +160,7 @@ export function subscriptionVendorRows(): SubscriptionVendorRow[] {
         label: vendor.name,
         installed: false,
         loggedIn: false,
-        summary: "加载中…",
+        summary: t("common.loading"),
       } satisfies SubscriptionItem);
     const modelId = vendor.models[0]?.id || "default";
     return {

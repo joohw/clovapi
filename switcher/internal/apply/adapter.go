@@ -6,6 +6,7 @@ import (
 	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
+	"github.com/clovapi/switcher/internal/syslog"
 )
 
 // ProfileTarget writes one profile to on-disk config for a specific local CLI / agent.
@@ -100,7 +101,12 @@ func Apply(p profile.Profile) error {
 		}
 		return fmt.Errorf("cli %q does not support api style %q (allowed: %s)", p.CLI, p.APIStyle, joinComma(allowed))
 	}
-	return t.Apply(p)
+	if err := t.Apply(p); err != nil {
+		syslog.LogCLIApplyFailed(p.CLI, err)
+		return err
+	}
+	syslog.LogCLIApplied(p.CLI, p.BaseURL, p.Model, p.APIStyle)
+	return nil
 }
 
 // ResetDefault runs the registered target’s ResetDefault (clears relay bindings written by Apply).

@@ -12,6 +12,7 @@ import (
 
 	"github.com/clovapi/switcher/internal/apistyle"
 	cfgpkg "github.com/clovapi/switcher/internal/config"
+	"github.com/clovapi/switcher/internal/syslog"
 )
 
 func defaultProxyConfig() ProxyConfig {
@@ -149,9 +150,38 @@ func Save(s *Store) error {
 	}
 	if err := os.Rename(tmp, p); err != nil {
 		_ = os.Remove(tmp)
+		syslog.Write("stderr", fmt.Sprintf("[profiles] save failed: %v", err))
 		return err
 	}
+	syslog.Write("system", fmt.Sprintf("[profiles] saved %s — %s", p, s.LogSummary()))
 	return nil
+}
+
+func (s *Store) LogSummary() string {
+	userCount := 0
+	for _, prof := range s.List {
+		name := strings.TrimSpace(prof.Name)
+		if name != "" && !strings.HasPrefix(name, "__") {
+			userCount++
+		}
+	}
+	parts := make([]string, 0, len(s.Active))
+	for cli, binding := range s.Active {
+		value := strings.TrimSpace(binding)
+		if value != "" {
+			parts = append(parts, fmt.Sprintf("%s=%s", cli, value))
+		}
+	}
+	activeSummary := "none"
+	if len(parts) > 0 {
+		activeSummary = strings.Join(parts, ", ")
+	}
+	return fmt.Sprintf("%d vendors, active: %s", userCount, activeSummary)
+}
+
+// ProfilesPath returns the on-disk profiles.json path.
+func ProfilesPath() (string, error) {
+	return cfgpkg.ProfilesPath()
 }
 
 func (s *Store) Index(name string) int {

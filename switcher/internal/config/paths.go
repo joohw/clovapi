@@ -56,6 +56,15 @@ func CallLogsDBPath() (string, error) {
 	return filepath.Join(d, "call-logs.sqlite"), nil
 }
 
+// SystemLogsDBPath returns the SQLite database for persisted system logs.
+func SystemLogsDBPath() (string, error) {
+	d, err := CallLogsDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(d, "system-logs.sqlite"), nil
+}
+
 // CallLogsPath returns the default JSONL file for requests without a session id.
 func CallLogsPath() (string, error) {
 	d, err := CallLogsDir()

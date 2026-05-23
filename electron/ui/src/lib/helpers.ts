@@ -1,4 +1,10 @@
 import {
+  adapterMessageKey,
+  displayVendorName,
+  formatSubscriptionSummary,
+  t,
+} from "./i18n";
+import {
   API_STYLES,
   DEFAULT_MODEL_ADAPTERS,
   INTERNAL_PROFILE_PREFIX,
@@ -26,6 +32,11 @@ export function apiStylesForCli(kind: string): string[] {
   if (kind === "codex") return ["openai-responses"];
   if (kind === "opencode" || kind === "openclaw" || kind === "hermes") return ["openai-chat"];
   return [];
+}
+
+/** CLI ingress segment written into local proxy base URL (/{provider}/{model}/{style}). */
+export function defaultCliIngressStyle(kind: string): string {
+  return apiStylesForCli(kind)[0] || "openai-chat";
 }
 
 export function modelCompatibleWithCli(model: VendorModel, kind: string): boolean {
@@ -224,15 +235,17 @@ export function normalizeModelAdapter(
 }
 
 export function modelAdapterLabel(adapterId: string): string {
-  return DEFAULT_MODEL_ADAPTERS.find((item) => item.id === adapterId)?.label || adapterId || "—";
+  const keys = adapterMessageKey(adapterId);
+  if (keys.label) return t(keys.label);
+  return adapterId || "—";
 }
 
 export function vendorAdapterLine(vendor: Vendor): string {
   if (vendor.kind === "subscription") {
-    return "官方订阅 · OAuth 模型表";
+    return t("vendorKind.subscriptionOAuth");
   }
   if (isDefaultCustomApiProfile(vendor.name)) {
-    return "每条模型单独配置 API 地址";
+    return t("vendorKind.customPerModel");
   }
   return `${vendor.baseUrl} · ${modelAdapterLabel(vendor.modelAdapter)}`;
 }
@@ -260,13 +273,13 @@ export function mergeVendorModels(existing: VendorModel[], fetched: VendorModel[
 }
 
 export function vendorKindLabel(vendor: Vendor): string {
-  if (vendor.kind === "subscription") return "官方订阅";
+  if (vendor.kind === "subscription") return t("vendorKind.subscription");
   if (vendor.kind === "local") {
     const provider = vendor.localProvider || "ollama";
-    return provider === "ollama" ? "Ollama" : `本地 · ${provider}`;
+    return provider === "ollama" ? "Ollama" : t("vendorKind.local", { provider });
   }
-  if (isDefaultCustomApiProfile(vendor.name)) return CUSTOM_API_PROFILE_NAME;
-  return "API";
+  if (isDefaultCustomApiProfile(vendor.name)) return displayVendorName(vendor.name);
+  return t("vendorKind.api");
 }
 
 export function resolveVendorByName(vendors: Vendor[], name: string): Vendor | undefined {
@@ -289,13 +302,13 @@ export function vendorSummaryLine(
   ollamaInstalled = false,
 ): string {
   const count = vendor.models?.length || 0;
-  const models = `${count} 个模型`;
+  const models = t("vendorDetail.modelCount", { count });
   if (vendor.kind === "subscription") {
-    const status = subscription?.summary || "未登录";
+    const status = formatSubscriptionSummary(subscription?.summary || "");
     return `${status} · ${models}`;
   }
   if (isOllamaVendor(vendor)) {
-    const install = ollamaInstalled ? "已安装" : "未安装";
+    const install = ollamaInstalled ? t("vendorDetail.installed") : t("vendorDetail.notInstalled");
     return `${install} · ${models}`;
   }
   if (isDefaultCustomApiProfile(vendor.name)) {
@@ -308,23 +321,23 @@ export function modelBindingLabel(vendor: Vendor, model: VendorModel): string {
   const kind = vendorKindLabel(vendor);
   if (vendor.kind === "subscription") {
     const modelName = String(model.label || model.model || model.id || "").trim() || "—";
-    return `${vendor.name} · ${modelName}`;
+    return `${displayVendorName(vendor.name)} · ${modelName}`;
   }
   if (isDefaultCustomApiProfile(vendor.name)) {
-    const url = String(model.baseUrl || "").trim() || "未配置地址";
+    const url = String(model.baseUrl || "").trim() || t("vendorDetail.addressNotConfigured");
     return `${kind} · ${model.label || model.model} · ${url}`;
   }
-  return `${kind} · ${vendor.name} · ${model.label || model.model} · ${model.apiStyle}`;
+  return `${kind} · ${displayVendorName(vendor.name)} · ${model.label || model.model} · ${model.apiStyle}`;
 }
 
 function cliModelBindingLabel(vendor: Vendor, model: VendorModel): string {
-  const provider = String(vendor.name || "").trim() || "Provider";
+  const provider = displayVendorName(vendor.name) || "Provider";
   const modelName = String(model.label || model.model || model.id || "").trim() || "Model";
   return `${provider}/${modelName}`;
 }
 
 export function customApiModelLine(model: VendorModel): string {
-  const url = String(model.baseUrl || "").trim() || "未配置地址";
+  const url = String(model.baseUrl || "").trim() || t("vendorDetail.addressNotConfigured");
   return `${model.model} · ${model.apiStyle} · ${url}`;
 }
 
@@ -380,7 +393,10 @@ export function normalizePreset(input: Partial<Preset>): Preset {
 }
 
 export function subscriptionProviderLabel(providerId: string): string {
-  return SUBSCRIPTION_VENDOR_DEFS.find((item) => item.subscriptionProviderId === providerId)?.name || providerId;
+  const stored =
+    SUBSCRIPTION_VENDOR_DEFS.find((item) => item.subscriptionProviderId === providerId)?.name ||
+    providerId;
+  return displayVendorName(stored);
 }
 
 export function subscriptionStatusForVendor(
@@ -396,7 +412,7 @@ export function subscriptionStatusForVendor(
       label: vendor.name,
       installed: false,
       loggedIn: false,
-      summary: "加载中…",
+      summary: t("common.loading"),
     }
   );
 }
@@ -413,7 +429,7 @@ export function buildCliBindingOptions(
   vendors: Vendor[],
   subscriptions: SubscriptionItem[],
 ): CliBindingOption[] {
-  const options: CliBindingOption[] = [{ value: "", label: "默认" }];
+  const options: CliBindingOption[] = [{ value: "", label: t("common.default") }];
 
   for (const vendor of managedVendorList(vendors)) {
     for (const model of vendor.models || []) {
@@ -426,11 +442,14 @@ export function buildCliBindingOptions(
         }
         const sub = subscriptions.find((item) => item.id === providerId);
         const loggedIn = Boolean(sub?.loggedIn);
+        const vendorLabel = displayVendorName(vendor.name);
         options.push({
           value: modelBindingValue(vendor.name, model.id),
-          label: loggedIn ? cliModelBindingLabel(vendor, model) : `${vendor.name}（需先登录）`,
+          label: loggedIn
+            ? cliModelBindingLabel(vendor, model)
+            : t("binding.loginRequired", { vendor: vendorLabel }),
           disabled: !loggedIn,
-          hint: loggedIn ? undefined : `请先在 API 管理完成${vendor.name}登录`,
+          hint: loggedIn ? undefined : t("binding.loginHint", { vendor: vendorLabel }),
         });
         continue;
       }
@@ -487,7 +506,7 @@ export function formatTestBody(result: {
       /* fall through */
     }
   }
-  return "(无输出)";
+  return t("common.noOutput");
 }
 
 /** 去掉 Svelte 响应式 Proxy，供 Electron IPC 结构化克隆 */

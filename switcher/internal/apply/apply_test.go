@@ -162,6 +162,23 @@ func TestApplyCodex(t *testing.T) {
 	if root2["model"] != "deepseek-v4-pro" {
 		t.Fatalf("model: %v", root2["model"])
 	}
+
+	p3 := profile.Profile{
+		Name: "proxy", CLI: clikind.Codex, APIStyle: apistyle.OpenAIResponses,
+		BaseURL: "http://127.0.0.1:27483/codex/gpt-5.4/openai-responses",
+		APIKey:  "clovapi-local", Model: "gpt-5.4",
+	}
+	if err := Apply(p3); err != nil {
+		t.Fatal(err)
+	}
+	data3, _ := os.ReadFile(path)
+	var root3 map[string]any
+	_ = toml.Unmarshal(data3, &root3)
+	block3 := root3["model_providers"].(map[string]any)[CodexProviderID].(map[string]any)
+	wantProxy := "http://127.0.0.1:27483/codex/gpt-5.4/openai-responses/v1"
+	if block3["base_url"] != wantProxy {
+		t.Fatalf("proxy base_url = %v want %v", block3["base_url"], wantProxy)
+	}
 }
 
 func TestApplyOpenCode(t *testing.T) {

@@ -2,7 +2,7 @@ import { detectCliPath, detectOllamaInstalled, setRunning } from "./cli";
 import { loadModelTests } from "./model-tests";
 import { loadPresets } from "./presets";
 import { loadProfilesFromDisk } from "./profiles";
-import { refreshProxyStatus } from "./proxy";
+import { refreshProxyLogs, refreshProxyStatus } from "./proxy";
 import { refreshSubscriptions } from "./subscriptions";
 import { store } from "./state.svelte";
 
@@ -12,6 +12,7 @@ export async function initApp() {
   await loadProfilesFromDisk();
   await refreshSubscriptions();
   await refreshProxyStatus();
+  await refreshProxyLogs();
 
   const bridge = window.clovapiCli;
   if (bridge) {

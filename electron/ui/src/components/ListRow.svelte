@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { cn } from "$lib/utils.js";
+  import { i18n, t } from "../lib/i18n";
   import type { ModelTestStatus } from "../global";
 
   let {
@@ -50,6 +51,10 @@
       testStatus !== "pass" && testStatus !== "fail" && testStatus !== "testing" && "text-muted-foreground",
     ),
   );
+  const viewDetailsLabel = $derived.by(() => {
+    void i18n.locale;
+    return t("common.viewDetails");
+  });
 </script>
 
 {#snippet titleRow(clickable: boolean)}
@@ -115,7 +120,7 @@
       {/each}
       {#if testDetail && (testStatus === "pass" || testStatus === "fail")}
         <details class="group text-xs">
-          <summary class="cursor-pointer text-muted-foreground hover:text-foreground">查看详情</summary>
+          <summary class="cursor-pointer text-muted-foreground hover:text-foreground">{viewDetailsLabel}</summary>
           <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <pre
             class="mt-1.5 max-h-48 overflow-auto rounded-md border border-border bg-muted/40 p-2 font-mono text-[11px] leading-relaxed break-words whitespace-pre-wrap"

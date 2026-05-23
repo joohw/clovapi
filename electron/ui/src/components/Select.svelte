@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as Select from "$lib/components/ui/select/index.js";
   import { cn } from "$lib/utils.js";
+  import { i18n, t } from "../lib/i18n";
 
   export type SelectOption = {
     value: string;
@@ -13,7 +14,7 @@
     options = [],
     value = $bindable(""),
     disabled = false,
-    placeholder = "请选择",
+    placeholder,
     class: className = "",
     block = false,
     onchange,
@@ -27,8 +28,13 @@
     onchange?: (value: string) => void;
   } = $props();
 
+  const resolvedPlaceholder = $derived.by(() => {
+    void i18n.locale;
+    return placeholder ?? t("common.selectPlaceholder");
+  });
+
   const selectedOption = $derived(options.find((o) => o.value === value));
-  const triggerLabel = $derived(selectedOption?.label ?? placeholder);
+  const triggerLabel = $derived(selectedOption?.label ?? resolvedPlaceholder);
   const isPlaceholder = $derived(!selectedOption);
 
   function handleValueChange(next: string | undefined) {

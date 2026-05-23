@@ -78,6 +78,75 @@ func TestServerHealthAndModelsList(t *testing.T) {
 	}
 }
 
+func TestServerCodexModelsListProxiesOfficialShape(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/backend-api/codex/models" {
+			t.Fatalf("upstream path = %q", r.URL.Path)
+		}
+		if r.URL.Query().Get("client_version") != "0.130.0" {
+			t.Fatalf("query = %q", r.URL.RawQuery)
+		}
+		if got := r.Header.Get("chatgpt-account-id"); got != "acct-test" {
+			t.Fatalf("chatgpt-account-id = %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"models": []map[string]any{{
+				"slug":              "gpt-5.4",
+				"display_name":      "gpt-5.4",
+				"visibility":        "list",
+				"supported_in_api":  true,
+				"priority":          1,
+				"shell_type":        "shell_command",
+				"base_instructions": "test",
+			}},
+		})
+	}))
+	defer upstream.Close()
+
+	store := &profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:                   provider.CodexVendorName,
+			Kind:                   "subscription",
+			SubscriptionProviderID: provider.CodexProviderID,
+			APIStyle:               apistyle.OpenAIResponses,
+			BaseURL:                strings.TrimRight(upstream.URL, "/") + "/backend-api",
+			APIKey:                 "codex-token",
+			AccountID:              "acct-test",
+			Models: []profile.Model{{
+				ID:    "gpt-5.4",
+				Model: "gpt-5.4",
+			}},
+		}},
+	}
+
+	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
+	ts := httptest.NewServer(core.Server.Handler)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/codex/gpt-5.4/openai-responses/v1/models?client_version=0.130.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+	var body struct {
+		Models []struct {
+			Slug string `json:"slug"`
+		} `json:"models"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.Models) != 1 || body.Models[0].Slug != "gpt-5.4" {
+		t.Fatalf("body = %+v", body)
+	}
+}
+
 func fixtureDesktopCustomAPIStore() *profile.Store {
 	return &profile.Store{
 		Version: profile.StoreVersion,
@@ -788,6 +857,83 @@ func TestStreamSameOpenAIChatIngressUpstreamSSENormalized(t *testing.T) {
 	}
 	if !strings.Contains(bodyStr, "norm") || !strings.Contains(bodyStr, `[DONE]`) {
 		t.Fatalf("expected transcoded content and [DONE]: %s", bodyStr)
+	}
+	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "text/event-stream") {
+		t.Fatalf("want event-stream, ct=%s", resp.Header.Get("Content-Type"))
+	}
+}
+
+func TestStreamSameOpenAIResponsesIngressUpstreamSSEPassthrough(t *testing.T) {
+	const poisonMarker = `upstream-responses-id-exclusive-for-passthru-detection`
+	sseReply := strings.Join([]string{
+		`event: response.created`,
+		`data: {"type":"response.created","response":{"id":"` + poisonMarker + `","model":"gpt-5.4"}}`,
+		``,
+		`event: response.output_text.delta`,
+		`data: {"type":"response.output_text.delta","delta":"passthrough-ok"}`,
+		``,
+		`event: response.completed`,
+		`data: {"type":"response.completed","status":"completed"}`,
+		``,
+	}, "\n")
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/codex/responses" {
+			t.Errorf("upstream path=%q", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, sseReply)
+	}))
+	defer up.Close()
+
+	store := &profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:                   provider.CodexVendorName,
+			Kind:                   "subscription",
+			SubscriptionProviderID: provider.CodexProviderID,
+			APIStyle:               apistyle.OpenAIResponses,
+			BaseURL:                strings.TrimRight(up.URL, "/"),
+			APIKey:                 "oauth-token",
+			Model:                  "gpt-5.4",
+			Models: []profile.Model{{
+				ID:       "gpt-5.4",
+				Model:    "gpt-5.4",
+				APIStyle: apistyle.OpenAIResponses,
+				BaseURL:  strings.TrimRight(up.URL, "/"),
+				APIKey:   "oauth-token",
+			}},
+		}},
+	}
+
+	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
+	ts := httptest.NewServer(core.Server.Handler)
+	defer ts.Close()
+
+	payload := `{"model":"gpt-5.4","input":"ping","stream":true}`
+	resp, err := http.Post(ts.URL+"/codex/gpt-5.4/openai-responses/v1/responses", "application/json", strings.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status=%d body=%s", resp.StatusCode, raw)
+	}
+	bodyStr := string(raw)
+	if !strings.Contains(bodyStr, poisonMarker) {
+		t.Fatalf("expected upstream SSE passthrough, marker missing:\n%s", bodyStr)
+	}
+	if !strings.Contains(bodyStr, "event: response.created") || !strings.Contains(bodyStr, "passthrough-ok") {
+		t.Fatalf("expected full responses SSE sequence:\n%s", bodyStr)
+	}
+	createdIdx := strings.Index(bodyStr, "event: response.created")
+	deltaIdx := strings.Index(bodyStr, "event: response.output_text.delta")
+	if createdIdx < 0 || deltaIdx < 0 || createdIdx > deltaIdx {
+		t.Fatalf("response.created must precede output_text.delta:\n%s", bodyStr)
 	}
 	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "text/event-stream") {
 		t.Fatalf("want event-stream, ct=%s", resp.Header.Get("Content-Type"))

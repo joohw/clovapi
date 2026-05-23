@@ -20,6 +20,7 @@ type Profile struct {
 	APIStyle               apistyle.Style `json:"api_style"`
 	BaseURL                string         `json:"base_url"`
 	APIKey                 string         `json:"api_key"`
+	AccountID              string         `json:"account_id,omitempty"` // ChatGPT account id for Codex subscription upstream
 	Model                  string         `json:"model,omitempty"` // required for new profiles; used for probes and agent defaults
 	Models                 []Model        `json:"models,omitempty"`
 }

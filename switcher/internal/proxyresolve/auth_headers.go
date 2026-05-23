@@ -9,14 +9,22 @@ import (
 
 const claudeOAuthUserAgent = "claude-cli/2.1.75"
 
+// UpstreamAuth carries outbound credential metadata for upstream HTTP calls.
+type UpstreamAuth struct {
+	Style     apistyle.Style
+	APIKey    string
+	Source    string // e.g. subscription:codex
+	AccountID string // ChatGPT account id for Codex subscription upstream
+}
+
 // UpstreamAuthHeaders constructs provider auth headers (no Content-Type/body secrets).
 //
 // Mirrors the intent of electron/proxy-resolver buildUpstreamAuthHeaders; OAuth-ish Claude tokens
 // get Bearer + Claude Code beta knobs instead of raw x-api-key.
-func UpstreamAuthHeaders(style apistyle.Style, apiKey string) http.Header {
+func UpstreamAuthHeaders(a UpstreamAuth) http.Header {
 	h := http.Header{}
-	key := strings.TrimSpace(apiKey)
-	switch style {
+	key := strings.TrimSpace(a.APIKey)
+	switch a.Style {
 	case apistyle.Claude:
 		if key == "" {
 			return h
@@ -40,6 +48,11 @@ func UpstreamAuthHeaders(style apistyle.Style, apiKey string) http.Header {
 		}
 		h.Set("OpenAI-Beta", "responses=experimental")
 		h.Set("Originator", "clovapi")
+		if strings.TrimSpace(a.Source) == "subscription:codex" {
+			if accountID := strings.TrimSpace(a.AccountID); accountID != "" {
+				h.Set("chatgpt-account-id", accountID)
+			}
+		}
 		// Negotiate structured responses; streamed upstream bodies are decoded and transcoded by the relay when ingress requests stream:true.
 		h.Set("Accept", "application/json")
 		return h

@@ -12,6 +12,7 @@ import (
 type StreamIngressEncoder struct {
 	style         apistyle.Style
 	claude        *claudeStreamEncoder
+	responses     *responsesStreamEncoder
 	openAITerm    bool // whether openai-chat encoder halted (terminal error emitted)
 	openAIRole    bool
 	responsesDead bool // responses SSE error short-circuit
@@ -23,6 +24,9 @@ func NewStreamIngressEncoder(ingress apistyle.Style) *StreamIngressEncoder {
 	e := &StreamIngressEncoder{style: st}
 	if st == apistyle.Claude {
 		e.claude = newClaudeStreamEncoder()
+	}
+	if st == apistyle.OpenAIResponses {
+		e.responses = newResponsesStreamEncoder()
 	}
 	return e
 }
@@ -53,7 +57,7 @@ func (e *StreamIngressEncoder) FinalizeDrain() ([][]byte, error) {
 		if e.responsesDead {
 			return nil, nil
 		}
-		return [][]byte{formatOpenAISSEDone()}, nil
+		return nil, nil
 	default:
 		return nil, nil
 	}
@@ -65,6 +69,14 @@ func (e *StreamIngressEncoder) FinalizeClaudeUpstreamIdle() ([][]byte, error) {
 		return nil, nil
 	}
 	return e.claude.finishIfOpen()
+}
+
+// FinalizeOpenAIResponsesUpstreamIdle closes dangling Responses SSE blocks when upstream EOF arrives without terminal finish events.
+func (e *StreamIngressEncoder) FinalizeOpenAIResponsesUpstreamIdle() ([][]byte, error) {
+	if e.style != apistyle.OpenAIResponses || e.responses == nil || e.responsesDead {
+		return nil, nil
+	}
+	return e.responses.finishIfOpen()
 }
 
 func (e *StreamIngressEncoder) encodeOpenAIChat(ev ResponseEvent) ([][]byte, bool, error) {
@@ -143,6 +155,9 @@ func (e *StreamIngressEncoder) encodeOpenAIResponses(ev ResponseEvent) ([][]byte
 	if e.responsesDead {
 		return nil, true, nil
 	}
+	if e.responses == nil {
+		e.responses = newResponsesStreamEncoder()
+	}
 	switch ev.Type {
 	case RespError:
 		bb, err := formatOpenAIResponsesErrorSSE(ev.Message, ev.Code)
@@ -151,17 +166,12 @@ func (e *StreamIngressEncoder) encodeOpenAIResponses(ev ResponseEvent) ([][]byte
 		}
 		e.responsesDead = true
 		return [][]byte{bb}, true, nil
+	case RespMessageStart:
+		return e.responses.onMessageStart(ev.Model)
 	case RespTextDelta:
-		if strings.TrimSpace(ev.Text) == "" {
-			return nil, false, nil
-		}
-		db, err := formatOpenAIResponsesDeltaSSE(ev.Text)
-		if err != nil {
-			return nil, true, err
-		}
-		return [][]byte{db}, false, nil
+		return e.responses.onTextDelta(ev.Text)
 	case RespFinish:
-		return [][]byte{formatOpenAIResponsesCompletedSSE()}, false, nil
+		return e.responses.onFinish()
 	default:
 		return nil, false, nil
 	}
@@ -349,4 +359,228 @@ func (c *claudeStreamEncoder) finishIfOpen() ([][]byte, error) {
 		return [][]byte{b}, nil
 	}
 	return nil, nil
+}
+
+// ------ OpenAI Responses SSE encoder (Codex wire) ------
+
+type responsesStreamEncoder struct {
+	messageID string
+	model     string
+	started   bool
+	finished  bool
+	text      strings.Builder
+	seq       int
+}
+
+func newResponsesStreamEncoder() *responsesStreamEncoder {
+	return &responsesStreamEncoder{
+		messageID: "msg_" + strings.ToLower(strconv.FormatInt(time.Now().UnixMilli(), 36)),
+	}
+}
+
+func (r *responsesStreamEncoder) nextSeq() int {
+	r.seq++
+	return r.seq
+}
+
+func (r *responsesStreamEncoder) onMessageStart(model string) ([][]byte, bool, error) {
+	if strings.TrimSpace(model) != "" {
+		r.model = strings.TrimSpace(model)
+	}
+	if r.started {
+		return nil, false, nil
+	}
+	chunks, err := r.ensureStarted()
+	if err != nil {
+		return nil, true, err
+	}
+	return chunks, false, nil
+}
+
+func (r *responsesStreamEncoder) onTextDelta(text string) ([][]byte, bool, error) {
+	if strings.TrimSpace(text) == "" {
+		return nil, false, nil
+	}
+	started, err := r.ensureStarted()
+	if err != nil {
+		return nil, true, err
+	}
+	r.text.WriteString(text)
+	delta, err := formatOpenAIResponsesDeltaSSE(r.messageID, text, r.nextSeq())
+	if err != nil {
+		return nil, true, err
+	}
+	chunks := append([][]byte(nil), started...)
+	chunks = append(chunks, delta)
+	return chunks, false, nil
+}
+
+func (r *responsesStreamEncoder) onFinish() ([][]byte, bool, error) {
+	if r.finished {
+		return nil, false, nil
+	}
+	return r.closeStream()
+}
+
+func (r *responsesStreamEncoder) finishIfOpen() ([][]byte, error) {
+	if r.finished {
+		return nil, nil
+	}
+	if r.started || r.text.Len() > 0 {
+		chunks, _, err := r.closeStream()
+		return chunks, err
+	}
+	return nil, nil
+}
+
+func (r *responsesStreamEncoder) ensureStarted() ([][]byte, error) {
+	if r.started {
+		return nil, nil
+	}
+	r.started = true
+	model := strings.TrimSpace(r.model)
+	if model == "" {
+		model = "clovapi-proxy"
+	}
+	seq := r.nextSeq()
+	created, err := formatOpenAIResponsesEventSSE("response.created", map[string]any{
+		"type": "response.created",
+		"response": map[string]any{
+			"id":     "resp_" + r.messageID,
+			"object": "response",
+			"model":  model,
+			"status": "in_progress",
+			"output": []any{},
+		},
+		"sequence_number": seq,
+	})
+	if err != nil {
+		return nil, err
+	}
+	inProgress, err := formatOpenAIResponsesEventSSE("response.in_progress", map[string]any{
+		"type": "response.in_progress",
+		"response": map[string]any{
+			"id":     "resp_" + r.messageID,
+			"object": "response",
+			"model":  model,
+			"status": "in_progress",
+			"output": []any{},
+		},
+		"sequence_number": r.nextSeq(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	itemAdded, err := formatOpenAIResponsesEventSSE("response.output_item.added", map[string]any{
+		"type": "response.output_item.added",
+		"item": map[string]any{
+			"id":      r.messageID,
+			"type":    "message",
+			"status":  "in_progress",
+			"content": []any{},
+			"role":    string(RoleAssistant),
+		},
+		"output_index":    0,
+		"sequence_number": r.nextSeq(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	partAdded, err := formatOpenAIResponsesEventSSE("response.content_part.added", map[string]any{
+		"type":            "response.content_part.added",
+		"content_index":   0,
+		"item_id":         r.messageID,
+		"output_index":    0,
+		"sequence_number": r.nextSeq(),
+		"part": map[string]any{
+			"type":        "output_text",
+			"annotations": []any{},
+			"logprobs":    []any{},
+			"text":        "",
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return [][]byte{created, inProgress, itemAdded, partAdded}, nil
+}
+
+func (r *responsesStreamEncoder) closeStream() ([][]byte, bool, error) {
+	if r.finished {
+		return nil, false, nil
+	}
+	r.finished = true
+	model := strings.TrimSpace(r.model)
+	if model == "" {
+		model = "clovapi-proxy"
+	}
+	fullText := r.text.String()
+	chunks := make([][]byte, 0, 5)
+	textDone, err := formatOpenAIResponsesEventSSE("response.output_text.done", map[string]any{
+		"type":            "response.output_text.done",
+		"content_index":   0,
+		"item_id":         r.messageID,
+		"logprobs":        []any{},
+		"output_index":    0,
+		"sequence_number": r.nextSeq(),
+		"text":            fullText,
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	chunks = append(chunks, textDone)
+	partDone, err := formatOpenAIResponsesEventSSE("response.content_part.done", map[string]any{
+		"type":            "response.content_part.done",
+		"content_index":   0,
+		"item_id":         r.messageID,
+		"output_index":    0,
+		"sequence_number": r.nextSeq(),
+		"part": map[string]any{
+			"type":        "output_text",
+			"annotations": []any{},
+			"logprobs":    []any{},
+			"text":        fullText,
+		},
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	chunks = append(chunks, partDone)
+	itemDone, err := formatOpenAIResponsesEventSSE("response.output_item.done", map[string]any{
+		"type": "response.output_item.done",
+		"item": map[string]any{
+			"id":     r.messageID,
+			"type":   "message",
+			"status": "completed",
+			"content": []map[string]any{{
+				"type":        "output_text",
+				"annotations": []any{},
+				"logprobs":    []any{},
+				"text":        fullText,
+			}},
+			"role": string(RoleAssistant),
+		},
+		"output_index":    0,
+		"sequence_number": r.nextSeq(),
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	chunks = append(chunks, itemDone)
+	completed, err := formatOpenAIResponsesEventSSE("response.completed", map[string]any{
+		"type": "response.completed",
+		"response": map[string]any{
+			"id":     "resp_" + r.messageID,
+			"object": "response",
+			"model":  model,
+			"status": "completed",
+			"output": []any{},
+		},
+		"sequence_number": r.nextSeq(),
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	chunks = append(chunks, completed)
+	return chunks, false, nil
 }

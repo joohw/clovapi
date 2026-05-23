@@ -1,7 +1,8 @@
+import { t } from "./i18n";
 import type { ProxyLogEntry, ProxySystemLogEntry } from "../global";
 
 export function formatProxyLogTime(value: string): string {
-  if (!value) return "进行中";
+  if (!value) return t("callLogs.inProgress");
   try {
     return new Date(value).toLocaleTimeString();
   } catch {
@@ -45,12 +46,12 @@ export function proxyLogOverviewText(entry: ProxyLogEntry): string {
   const upstreamHeaders = proxyLogHeaderText(entry.upstream?.headers || {});
   const status = entry.upstream?.status ? String(entry.upstream.status) : "(pending)";
   return [
-    "── 入站 ──",
+    t("callLogs.inboundSection"),
     proxyLogInboundRequestLine(entry),
     "",
     inboundHeaders,
     "",
-    "── 上游 ──",
+    t("callLogs.upstreamSection"),
     `HTTP ${status}`,
     proxyLogUpstreamRequestLine(entry),
     "",
@@ -78,19 +79,19 @@ export function proxyLogStatusClass(status: number): string {
 
 export function proxyLogHeaderText(headers: Record<string, string>): string {
   const entries = Object.entries(headers || {});
-  if (!entries.length) return "(无)";
+  if (!entries.length) return t("common.none");
   return entries.map(([key, value]) => `${key}: ${value}`).join("\n");
 }
 
 export function proxyLogBodyText(body: string): string {
   const text = String(body || "");
-  if (!text) return "(空)";
+  if (!text) return t("common.empty");
   return text;
 }
 
 export function proxyLogSummary(entry: ProxyLogEntry): string {
   const status = entry.upstream.status ? String(entry.upstream.status) : "pending";
-  const duration = entry.completedAt ? `${entry.durationMs}ms` : "进行中";
+  const duration = entry.completedAt ? `${entry.durationMs}ms` : t("callLogs.inProgress");
   return `${entry.request.method} ${status} · ${duration}`;
 }
 
@@ -110,6 +111,6 @@ export function proxySystemLogStreamLabel(stream: string): string {
 
 export function proxySystemLogPreview(entry: ProxySystemLogEntry): string {
   const text = String(entry.message || "").replace(/\s+/g, " ").trim();
-  if (!text) return "(空)";
+  if (!text) return t("common.empty");
   return text.length > 120 ? `${text.slice(0, 120)}…` : text;
 }

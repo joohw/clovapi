@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { store } from "./state.svelte";
 import { toast } from "../toast";
 
@@ -40,7 +41,7 @@ export async function clearCallLogs() {
   if (!bridge?.clear) return;
   const result = await bridge.clear("calls");
   if (!result?.ok) {
-    toast.error(result?.error || "清空调用日志失败");
+    toast.error(result?.error || t("toast.proxyClearCallLogsFailed"));
     return;
   }
   store.proxyLogs = [];
@@ -52,7 +53,7 @@ export async function clearSystemLogs() {
   if (!bridge?.clear) return;
   const result = await bridge.clear("system");
   if (!result?.ok) {
-    toast.error(result?.error || "清空系统日志失败");
+    toast.error(result?.error || t("toast.proxyClearSystemLogsFailed"));
     return;
   }
   store.proxySystemLogs = [];
@@ -64,13 +65,13 @@ export async function runProxyHealthTest() {
 
   const bridge = window.clovapiProxy;
   if (!bridge?.health) {
-    toast.error("当前环境不支持代理 Health 测试");
+    toast.error(t("toast.proxyHealthUnsupported"));
     return;
   }
 
   store.proxyHealthTest = {
     status: "testing",
-    summary: "测试中…",
+    summary: t("common.testing"),
     detail: "",
   };
 
@@ -88,17 +89,17 @@ export async function runProxyHealthTest() {
       return;
     }
 
-    const reason = result?.error || "代理未响应 /health";
+    const reason = result?.error || t("toast.proxyNotRunning");
     store.proxyHealthTest = {
       status: "fail",
-      summary: `Health 失败 · ${reason}`,
+      summary: `Health failed · ${reason}`,
       detail: "",
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Health 测试失败";
+    const message = error instanceof Error ? error.message : t("toast.proxyHealthFailed");
     store.proxyHealthTest = {
       status: "fail",
-      summary: `测试失败 · ${message}`,
+      summary: `${t("modelTest.failed")} · ${message}`,
       detail: "",
     };
   }
@@ -107,12 +108,12 @@ export async function runProxyHealthTest() {
 export async function restartLocalProxy() {
   const bridge = window.clovapiProxy;
   if (!bridge?.stop || !bridge?.start) {
-    toast.error("当前环境不支持本地代理");
+    toast.error(t("toast.proxyUnsupported"));
     return;
   }
   await bridge.stop();
   const result = await bridge.start(store.proxyPort);
   await refreshProxyStatus();
-  if (result?.ok) toast.success("本地代理已重启");
-  else toast.error(result?.error || "本地代理重启失败");
+  if (result?.ok) toast.success(t("toast.proxyRestarted"));
+  else toast.error(result?.error || t("toast.proxyRestartFailed"));
 }

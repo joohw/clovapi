@@ -1,0 +1,231 @@
+package desktop
+
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	"github.com/clovapi/switcher/internal/clikind"
+	cfgpkg "github.com/clovapi/switcher/internal/config"
+	"github.com/clovapi/switcher/internal/profile"
+)
+
+type UIModel struct {
+	ID       string `json:"id"`
+	Label    string `json:"label"`
+	Model    string `json:"model"`
+	APIStyle string `json:"apiStyle"`
+	BaseURL  string `json:"baseUrl,omitempty"`
+	APIKey   string `json:"apiKey,omitempty"`
+}
+
+type UIVendor struct {
+	Name                   string    `json:"name"`
+	Kind                   string    `json:"kind"`
+	LocalProvider          string    `json:"localProvider,omitempty"`
+	SubscriptionProviderID string    `json:"subscriptionProviderId,omitempty"`
+	ModelAdapter           string    `json:"modelAdapter"`
+	BaseURL                string    `json:"baseUrl,omitempty"`
+	APIKey                 string    `json:"apiKey,omitempty"`
+	CLI                    string    `json:"cli,omitempty"`
+	Models                 []UIModel `json:"models"`
+}
+
+type UIProxyConfig struct {
+	Enabled bool   `json:"enabled"`
+	Host    string `json:"host"`
+	Port    int    `json:"port"`
+}
+
+type LoadResult struct {
+	OK       bool          `json:"ok"`
+	Path     string        `json:"path,omitempty"`
+	Version  int           `json:"version,omitempty"`
+	Active   map[string]string `json:"active,omitempty"`
+	Proxy    UIProxyConfig `json:"proxy,omitempty"`
+	Profiles []UIVendor    `json:"profiles,omitempty"`
+	Error    string        `json:"error,omitempty"`
+}
+
+type SaveInput struct {
+	Profiles []UIVendor          `json:"profiles"`
+	Active   map[string]string   `json:"active"`
+	Proxy    *UIProxyConfig      `json:"proxy"`
+}
+
+type SaveResult struct {
+	OK       bool          `json:"ok"`
+	Path     string        `json:"path,omitempty"`
+	Version  int           `json:"version,omitempty"`
+	Active   map[string]string `json:"active,omitempty"`
+	Proxy    UIProxyConfig `json:"proxy,omitempty"`
+	Profiles []UIVendor    `json:"profiles,omitempty"`
+	Error    string        `json:"error,omitempty"`
+}
+
+func vendorToUI(p profile.Profile) UIVendor {
+	models := make([]UIModel, 0, len(p.Models))
+	for _, m := range p.Models {
+		models = append(models, UIModel{
+			ID:       m.ID,
+			Label:    m.Label,
+			Model:    m.Model,
+			APIStyle: string(m.APIStyle),
+			BaseURL:  m.BaseURL,
+			APIKey:   m.APIKey,
+		})
+	}
+	adapter := strings.TrimSpace(p.ModelAdapter)
+	if adapter == "" {
+		adapter = "openai-compatible"
+	}
+	return UIVendor{
+		Name:                   p.Name,
+		Kind:                   p.Kind,
+		LocalProvider:          p.LocalProvider,
+		SubscriptionProviderID: p.SubscriptionProviderID,
+		ModelAdapter:           adapter,
+		BaseURL:                p.BaseURL,
+		APIKey:                 p.APIKey,
+		CLI:                    string(p.CLI),
+		Models:                 models,
+	}
+}
+
+func vendorFromUI(v UIVendor) profile.Profile {
+	models := make([]profile.Model, 0, len(v.Models))
+	for _, m := range v.Models {
+		models = append(models, profile.Model{
+			ID:       m.ID,
+			Label:    m.Label,
+			Model:    m.Model,
+			APIStyle: profile.NormalizeAPIStyle(m.APIStyle),
+			BaseURL:  m.BaseURL,
+			APIKey:   m.APIKey,
+		})
+	}
+	var cliKind clikind.Kind
+	if k, err := clikind.Parse(v.CLI); err == nil {
+		cliKind = k
+	}
+	return profile.NormalizeVendorProfile(profile.Profile{
+		Name:                   v.Name,
+		Kind:                   v.Kind,
+		LocalProvider:          v.LocalProvider,
+		SubscriptionProviderID: v.SubscriptionProviderID,
+		ModelAdapter:           v.ModelAdapter,
+		CLI:                    cliKind,
+		BaseURL:                v.BaseURL,
+		APIKey:                 v.APIKey,
+		Models:                 models,
+	}, 0)
+}
+
+func storeToUI(s *profile.Store) LoadResult {
+	path, _ := cfgpkg.ProfilesPath()
+	active := map[string]string{}
+	if s.Active != nil {
+		for k, v := range s.Active {
+			active[k] = v
+		}
+	}
+	profiles := make([]UIVendor, 0, len(s.List))
+	for _, p := range s.List {
+		if strings.HasPrefix(strings.TrimSpace(p.Name), "__") {
+			continue
+		}
+		profiles = append(profiles, vendorToUI(p))
+	}
+	return LoadResult{
+		OK:      true,
+		Path:    path,
+		Version: s.Version,
+		Active:  active,
+		Proxy: UIProxyConfig{
+			Enabled: s.Proxy.Enabled,
+			Host:    s.Proxy.Host,
+			Port:    s.Proxy.Port,
+		},
+		Profiles: profiles,
+	}
+}
+
+// LoadProfiles loads and normalizes profiles.json for the desktop UI.
+func LoadProfiles() LoadResult {
+	s, err := profile.LoadDesktop()
+	if err != nil {
+		return LoadResult{OK: false, Error: err.Error()}
+	}
+	changed := profile.EnsureDefaultOllamaProfile(s) || profile.SanitizeActiveBindings(s)
+	if changed {
+		if err := profile.SaveDesktop(s); err != nil {
+			return LoadResult{OK: false, Error: err.Error()}
+		}
+	}
+	return storeToUI(s)
+}
+
+// SaveProfiles merges UI payload into the on-disk store.
+func SaveProfiles(input SaveInput) SaveResult {
+	current, err := profile.LoadDesktop()
+	if err != nil {
+		return SaveResult{OK: false, Error: err.Error()}
+	}
+
+	incoming := make([]profile.Profile, 0, len(input.Profiles))
+	incomingNames := map[string]struct{}{}
+	for _, v := range input.Profiles {
+		p := vendorFromUI(v)
+		if !profile.IsAllowedStoreProfile(p) {
+			continue
+		}
+		incoming = append(incoming, p)
+		incomingNames[strings.ToLower(p.Name)] = struct{}{}
+	}
+
+	preserved := make([]profile.Profile, 0)
+	for _, p := range current.List {
+		name := strings.TrimSpace(p.Name)
+		if strings.HasPrefix(name, "__") {
+			if _, seen := incomingNames[strings.ToLower(name)]; !seen {
+				preserved = append(preserved, p)
+			}
+		}
+	}
+	current.List = append(incoming, preserved...)
+
+	if input.Active != nil {
+		current.Active = map[string]string{}
+		for k, v := range input.Active {
+			current.Active[k] = v
+		}
+	}
+	if input.Proxy != nil {
+		current.Proxy = profile.ProxyConfig{
+			Enabled: input.Proxy.Enabled,
+			Host:    strings.TrimSpace(input.Proxy.Host),
+			Port:    input.Proxy.Port,
+		}
+	}
+	if err := profile.SaveDesktop(current); err != nil {
+		return SaveResult{OK: false, Error: err.Error()}
+	}
+	out := storeToUI(current)
+	return SaveResult{
+		OK:       true,
+		Path:     out.Path,
+		Version:  out.Version,
+		Active:   out.Active,
+		Proxy:    out.Proxy,
+		Profiles: out.Profiles,
+	}
+}
+
+// ParseSaveInput decodes stdin JSON for profiles save.
+func ParseSaveInput(data []byte) (SaveInput, error) {
+	var input SaveInput
+	if err := json.Unmarshal(data, &input); err != nil {
+		return SaveInput{}, fmt.Errorf("parse save payload: %w", err)
+	}
+	return input, nil
+}

@@ -68,12 +68,6 @@ contextBridge.exposeInMainWorld("clovapiProxy", {
   stop() {
     return ipcRenderer.invoke("proxy:stop");
   },
-  ensureStub(cliKind, binding) {
-    return ipcRenderer.invoke("proxy:ensure-stub", { cliKind, binding });
-  },
-  buildIngress(cliKind, binding) {
-    return ipcRenderer.invoke("proxy:build-ingress", { cliKind, binding });
-  },
 });
 
 contextBridge.exposeInMainWorld("clovapiProxyLogs", {

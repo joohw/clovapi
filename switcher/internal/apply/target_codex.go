@@ -58,7 +58,7 @@ func (codexTarget) Apply(p profile.Profile) error {
 	}
 	mp[CodexProviderID] = map[string]any{
 		"name":                      "CLOVAPI relay",
-		"base_url":                  p.BaseURL,
+		"base_url":                  ensureWireV1BaseURL(p.BaseURL),
 		"wire_api":                  "responses",
 		"experimental_bearer_token": p.APIKey,
 	}

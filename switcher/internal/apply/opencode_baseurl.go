@@ -2,9 +2,9 @@ package apply
 
 import "strings"
 
-// ensureOpenCodeSDKBaseURL appends /v1 when missing so OpenCode @ai-sdk/* providers
-// (which use paths like /chat/completions, not /v1/chat/completions) hit clovapi ingress.
-func ensureOpenCodeSDKBaseURL(baseURL string) string {
+// ensureWireV1BaseURL appends /v1 when missing so wire clients that suffix paths
+// (e.g. Codex POST …/responses, OpenCode …/chat/completions) hit clovapi ingress at …/v1/….
+func ensureWireV1BaseURL(baseURL string) string {
 	b := strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if b == "" {
 		return b
@@ -13,4 +13,9 @@ func ensureOpenCodeSDKBaseURL(baseURL string) string {
 		return b
 	}
 	return b + "/v1"
+}
+
+// ensureOpenCodeSDKBaseURL is an alias kept for OpenCode call sites.
+func ensureOpenCodeSDKBaseURL(baseURL string) string {
+	return ensureWireV1BaseURL(baseURL)
 }

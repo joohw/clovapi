@@ -1,7 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { spawnSync } = require("node:child_process");
 const { configDir } = require("./profile-store");
+const { runClovapiArgs } = require("./clovapi-exec");
 
 function callLogsDir() {
   return path.join(configDir(), "call-logs");
@@ -11,32 +11,12 @@ function callLogsDBPath() {
   return path.join(callLogsDir(), "call-logs.sqlite");
 }
 
-function resolveClovapiExecutable() {
-  const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
-  const candidates = [
-    process.env.CLOVAPI_ELECTRON_CLI_PATH,
-    path.join(__dirname, "..", "switcher", exeName),
-    path.join(__dirname, "bin", exeName),
-  ].filter(Boolean);
-  for (const candidate of candidates) {
-    try {
-      if (candidate && fs.existsSync(candidate)) return candidate;
-    } catch {
-      /* ignore */
-    }
-  }
-  return "";
-}
-
 function readCallLogsViaCLI(limit = 200) {
-  const exe = resolveClovapiExecutable();
-  if (!exe) return [];
-  const result = spawnSync(
-    exe,
+  const result = runClovapiArgs(
     ["proxy", "logs", "list", "--json", "--limit", String(Number(limit) || 200)],
-    { encoding: "utf8", timeout: 8000, windowsHide: true },
+    { timeout: 8000 },
   );
-  if (result.error || result.status !== 0) return [];
+  if (!result.ok) return [];
   const raw = String(result.stdout || "").trim();
   if (!raw) return [];
   try {
@@ -56,13 +36,7 @@ async function readCallLogs(limit = 200) {
 }
 
 async function clearCallLogsFile() {
-  const exe = resolveClovapiExecutable();
-  if (!exe) return;
-  spawnSync(exe, ["proxy", "logs", "clear", "--yes"], {
-    encoding: "utf8",
-    timeout: 8000,
-    windowsHide: true,
-  });
+  runClovapiArgs(["proxy", "logs", "clear", "--yes"], { timeout: 8000 });
 }
 
 module.exports = {

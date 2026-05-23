@@ -169,3 +169,79 @@ func TestLooksLikeSSEWire(t *testing.T) {
 		t.Fatal("content-type should detect SSE")
 	}
 }
+
+func TestShouldPassthroughStreamingSSE(t *testing.T) {
+	t.Parallel()
+	if !protocol.ShouldPassthroughStreamingSSE(apistyle.OpenAIResponses, apistyle.OpenAIResponses) {
+		t.Fatal("openai-responses same-style streams should passthrough")
+	}
+	if protocol.ShouldPassthroughStreamingSSE(apistyle.OpenAIChat, apistyle.OpenAIChat) {
+		t.Fatal("openai-chat same-style streams should still transcode")
+	}
+	if protocol.ShouldPassthroughStreamingSSE(apistyle.OpenAIResponses, apistyle.OpenAIChat) {
+		t.Fatal("cross-style must not passthrough")
+	}
+}
+
+func TestTranscodeSSEOpenAIResponsesUpstreamToOpenAIResponsesDownstreamEmitsCreated(t *testing.T) {
+	t.Parallel()
+	sseWire := strings.Join([]string{
+		`event: response.created`,
+		`data: {"type":"response.created","response":{"model":"gpt-5.4"}}`,
+		``,
+		`event: response.output_text.delta`,
+		`data: {"type":"response.output_text.delta","delta":"ok"}`,
+		``,
+		`event: response.completed`,
+		`data: {"type":"response.completed","status":"completed"}`,
+		``,
+	}, "\n")
+	rr := httptest.NewRecorder()
+	if err := protocol.TranscodePlaintextSSEToIngress(context.Background(), apistyle.OpenAIResponses, apistyle.OpenAIResponses, "",
+		strings.NewReader(sseWire), rr); err != nil {
+		t.Fatal(err)
+	}
+	raw := rr.Body.String()
+	if !strings.Contains(raw, "event: response.created") {
+		t.Fatalf("missing response.created before deltas:\n%s", raw)
+	}
+	if !strings.Contains(raw, "event: response.output_item.added") || !strings.Contains(raw, "item_id") {
+		t.Fatalf("missing Codex item framing:\n%s", raw)
+	}
+	createdIdx := strings.Index(raw, "event: response.created")
+	itemIdx := strings.Index(raw, "event: response.output_item.added")
+	deltaIdx := strings.Index(raw, "event: response.output_text.delta")
+	if createdIdx < 0 || itemIdx < 0 || deltaIdx < 0 || !(createdIdx < itemIdx && itemIdx < deltaIdx) {
+		t.Fatalf("responses events out of order:\n%s", raw)
+	}
+	if !strings.Contains(raw, "ok") || !strings.Contains(raw, "event: response.completed") {
+		t.Fatalf("missing delta or completed:\n%s", raw)
+	}
+}
+
+func TestTranscodeSSEClaudeUpstreamToOpenAIResponsesDownstream(t *testing.T) {
+	t.Parallel()
+	sseWire := strings.Join([]string{
+		`event: message_start`,
+		`data: {"type":"message_start","message":{"model":"claude-sonnet-4-6"}}`,
+		``,
+		`event: content_block_delta`,
+		`data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"claude-ok"}}`,
+		``,
+		`event: message_stop`,
+		`data: {"type":"message_stop"}`,
+		``,
+	}, "\n")
+	rr := httptest.NewRecorder()
+	if err := protocol.TranscodePlaintextSSEToIngress(context.Background(), apistyle.OpenAIResponses, apistyle.Claude, "claude-sonnet-4-6",
+		strings.NewReader(sseWire), rr); err != nil {
+		t.Fatal(err)
+	}
+	raw := rr.Body.String()
+	if strings.Count(raw, "event: response.created") != 1 {
+		t.Fatalf("expected single response.created, got:\n%s", raw)
+	}
+	if !strings.Contains(raw, "event: response.output_item.added") || !strings.Contains(raw, "claude-ok") || !strings.Contains(raw, "event: response.completed") {
+		t.Fatalf("missing codex-compatible responses stream:\n%s", raw)
+	}
+}

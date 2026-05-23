@@ -68,28 +68,27 @@ func (s *Store) ProfileForModelBinding(binding string) (Profile, bool) {
 	}
 	vendorName := rest[:slash]
 	modelID := rest[slash+1:]
-	vendor, ok := s.Get(vendorName)
+	hit, ok := FindVendorModel(s, vendorName, modelID)
 	if !ok {
 		return Profile{}, false
 	}
-	for _, m := range vendor.Models {
-		id := strings.TrimSpace(m.ID)
-		if id == "" {
-			id = strings.TrimSpace(m.Model)
-		}
-		if id != modelID {
-			continue
-		}
-		p := vendor
-		p.Name = binding
-		p.Model = firstNonEmpty(m.Model, m.ID, vendor.Model)
-		p.APIStyle = firstStyle(m.APIStyle, vendor.APIStyle)
+	vendor := hit.Vendor
+	m := hit.Model
+	useModelConnection := strings.EqualFold(strings.TrimSpace(vendor.Name), CustomAPIProfileName)
+	p := vendor
+	p.Name = binding
+	p.Model = firstNonEmpty(m.Model, m.ID, vendor.Model)
+	p.APIStyle = firstStyle(m.APIStyle, vendor.APIStyle)
+	if useModelConnection {
 		p.BaseURL = firstNonEmpty(m.BaseURL, vendor.BaseURL)
 		p.APIKey = firstNonEmpty(m.APIKey, vendor.APIKey)
-		p.Models = nil
-		return p, strings.TrimSpace(p.BaseURL) != "" && p.APIStyle != ""
+	} else {
+		p.BaseURL = firstNonEmpty(m.BaseURL, vendor.BaseURL)
+		p.APIKey = firstNonEmpty(m.APIKey, vendor.APIKey)
 	}
-	return Profile{}, false
+	p.Models = nil
+	HydrateSubscriptionCredentials(&p)
+	return p, strings.TrimSpace(p.BaseURL) != "" && p.APIStyle != ""
 }
 
 func firstNonEmpty(values ...string) string {

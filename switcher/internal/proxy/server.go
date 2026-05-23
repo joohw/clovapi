@@ -18,6 +18,7 @@ import (
 	"github.com/clovapi/switcher/internal/protocol"
 	"github.com/clovapi/switcher/internal/provider"
 	"github.com/clovapi/switcher/internal/proxyresolve"
+	"github.com/clovapi/switcher/internal/syslog"
 )
 
 type Server struct {
@@ -77,6 +78,7 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
 	mux.HandleFunc("/__debug/call-log", s.handleDebugCallLog)
+	mux.HandleFunc("/__debug/system-log", s.handleDebugSystemLog)
 	mux.HandleFunc("/__debug/transform-request", s.handleDebugTransform)
 	mux.HandleFunc("/__debug/resolve-route", s.handleDebugResolveRoute)
 	mux.HandleFunc("/", s.handleProxy)
@@ -98,6 +100,26 @@ func (s *Server) ListenAndServe() error {
 
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.Server.Shutdown(ctx)
+}
+
+func (s *Server) handleDebugSystemLog(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead:
+		entries, err := syslog.List(0)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"entries": entries})
+	case http.MethodDelete:
+		if err := syslog.Clear(); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"ok": "cleared"})
+	default:
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "GET or DELETE only"})
+	}
 }
 
 func (s *Server) handleDebugCallLog(w http.ResponseWriter, r *http.Request) {
@@ -275,13 +297,13 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (r.Method == http.MethodGet || r.Method == http.MethodHead) && isModelsPath(ingress.PathSuffix) {
-		body := buildModelsListBody(ingress.APIStyle, ingress.ModelID)
-		trace.setUpstreamResponse(http.StatusOK, http.Header{"Content-Type": []string{"application/json"}}, []byte(body))
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if r.Method != http.MethodHead {
-			_, _ = w.Write([]byte(body))
+		store, err := s.loadStore()
+		if err != nil {
+			trace.setError("failed to load profiles store")
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load profiles store"})
+			return
 		}
+		s.serveIngressModels(w, r, trace, ingress, store)
 		return
 	}
 	if !shouldTransformProxyMethod(r.Method) {
@@ -337,7 +359,12 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	trace.setUpstreamRequest(upReq.Method, upReq.URL.String())
 
-	authHdr := proxyresolve.UpstreamAuthHeaders(route.EgressStyle, route.APIKey)
+	authHdr := proxyresolve.UpstreamAuthHeaders(proxyresolve.UpstreamAuth{
+		Style:     route.EgressStyle,
+		APIKey:    route.APIKey,
+		Source:    route.Source,
+		AccountID: route.AccountID,
+	})
 	for k, vv := range authHdr {
 		upReq.Header[k] = vv
 	}
@@ -387,8 +414,14 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(upResp.StatusCode)
 		var capture bytes.Buffer
 		tee := io.TeeReader(plaintextReader, &capture)
-		if err := protocol.TranscodePlaintextSSEToIngress(r.Context(), route.IngressStyle, route.EgressStyle, ir.Model, tee, w); err != nil {
-			trace.setError(err.Error())
+		var streamErr error
+		if protocol.ShouldPassthroughStreamingSSE(route.IngressStyle, route.EgressStyle) {
+			streamErr = protocol.PassthroughStreamingPlaintextSSE(r.Context(), tee, w)
+		} else {
+			streamErr = protocol.TranscodePlaintextSSEToIngress(r.Context(), route.IngressStyle, route.EgressStyle, ir.Model, tee, w)
+		}
+		if streamErr != nil {
+			trace.setError(streamErr.Error())
 		}
 		trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, capture.Bytes())
 		return
@@ -513,16 +546,6 @@ func (s *Server) upstreamHTTP() *http.Client {
 func isModelsPath(pathSuffix string) bool {
 	s := strings.TrimRight(strings.ToLower(strings.TrimSpace(pathSuffix)), "/")
 	return s == "/models" || s == "/v1/models"
-}
-
-func buildModelsListBody(apiStyle, modelID string) string {
-	id := strings.TrimSpace(modelID)
-	if strings.ToLower(strings.TrimSpace(apiStyle)) == "claude" {
-		data, _ := json.Marshal(map[string]any{"data": []map[string]string{{"type": "model", "id": id, "display_name": id}}})
-		return string(data)
-	}
-	data, _ := json.Marshal(map[string]any{"object": "list", "data": []map[string]string{{"id": id, "object": "model", "owned_by": "clovapi"}}})
-	return string(data)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

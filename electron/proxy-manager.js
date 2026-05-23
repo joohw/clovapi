@@ -1,6 +1,5 @@
 const { spawn } = require("node:child_process");
 const profileStore = require("./profile-store");
-const proxyLogger = require("./proxy-logger");
 
 const DEFAULT_PORT = 27483;
 const DEFAULT_HOST = "127.0.0.1";
@@ -287,15 +286,6 @@ function createGoProxyManager(deps) {
   }
 
   /** @param {string} exe @param {string[]} args */
-  function attachChildLogs(child) {
-    const onChunk = (/** @type {"stdout"|"stderr"} */ stream) => (/** @type {Buffer|string} */ chunk) => {
-      proxyLogger.pushProcChunks(stream, redactSecrets(chunk));
-    };
-    child.stdout?.on?.("data", onChunk("stdout"));
-    child.stderr?.on?.("data", onChunk("stderr"));
-  }
-
-  /** @param {ProxyBindConfig} cfg @param {string} exe */
   function spawnManaged(cfg, exe) {
     const { args } = buildProxyServeArgs(cfg);
     const child = spawnFn(exe, args, {
@@ -303,12 +293,6 @@ function createGoProxyManager(deps) {
       detached: false,
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    attachChildLogs(child);
-
-    child.on("error", (err) => {
-      proxyLogger.pushSystemLine("stderr", `[spawn] ${redactSecrets(err.message || String(err))}`);
     });
 
     child.on("close", () => {
@@ -394,7 +378,6 @@ function createGoProxyManager(deps) {
     }
     const pid = child.pid;
     managedChild = null;
-    proxyLogger.pushSystemLine("stderr", `[proxy-manager] stopping core (${reason || "shutdown"}, pid=${String(pid)})`);
     await killManagedSubtree(pid);
   }
 
@@ -424,10 +407,6 @@ function createGoProxyManager(deps) {
 
   /** @param {ProxyBindConfig} cfg @param {string} reason */
   async function replaceStaleExternalProxy(cfg, reason) {
-    proxyLogger.pushSystemLine(
-      "system",
-      `[proxy-manager] ${reason} (port ${Number(cfg?.port) || DEFAULT_PORT})`,
-    );
     await releaseBindPort(cfg, managedPidOrNull() ?? 0);
     await new Promise((resolve) => setTimeout(resolve, 280));
   }

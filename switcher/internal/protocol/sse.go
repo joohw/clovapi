@@ -42,6 +42,20 @@ func AppendParse(chunk []byte, st *SSEParseState) []SSERecord {
 	return out
 }
 
+// FlushSSEParseState emits one trailing SSE record when upstream plaintext EOF arrives without a final blank line.
+func FlushSSEParseState(st *SSEParseState) []SSERecord {
+	if st == nil || len(bytes.TrimSpace(st.buffer)) == 0 {
+		return nil
+	}
+	block := st.buffer
+	st.buffer = nil
+	rec, ok := parseSSEBlock(block)
+	if !ok {
+		return nil
+	}
+	return []SSERecord{rec}
+}
+
 func parseSSEBlock(block []byte) (SSERecord, bool) {
 	if len(bytes.TrimSpace(block)) == 0 {
 		return SSERecord{}, false
@@ -123,22 +137,53 @@ func formatOpenAIResponsesErrorSSE(message, code string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func formatOpenAIResponsesDeltaSSE(text string) ([]byte, error) {
-	payload := map[string]any{
-		"type":  "response.output_text.delta",
-		"delta": text,
-	}
+func formatOpenAIResponsesEventSSE(eventType string, payload map[string]any) ([]byte, error) {
 	b, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
 	}
 	var buf bytes.Buffer
-	buf.WriteString("event: response.output_text.delta\ndata: ")
+	buf.WriteString("event: ")
+	buf.WriteString(eventType)
+	buf.WriteString("\ndata: ")
 	buf.Write(b)
 	buf.WriteString("\n\n")
 	return buf.Bytes(), nil
 }
 
+func formatOpenAIResponsesCreatedSSE(model string) ([]byte, error) {
+	resp := map[string]any{
+		"id":     "resp_proxy",
+		"object": "response",
+		"status": "in_progress",
+		"output": []any{},
+	}
+	if m := strings.TrimSpace(model); m != "" {
+		resp["model"] = m
+	}
+	return formatOpenAIResponsesEventSSE("response.created", map[string]any{
+		"type":     "response.created",
+		"response": resp,
+	})
+}
+
+func formatOpenAIResponsesDeltaSSE(itemID, text string, sequenceNumber int) ([]byte, error) {
+	payload := map[string]any{
+		"type":            "response.output_text.delta",
+		"content_index":   0,
+		"delta":           text,
+		"item_id":         itemID,
+		"logprobs":        []any{},
+		"output_index":    0,
+		"sequence_number": sequenceNumber,
+	}
+	return formatOpenAIResponsesEventSSE("response.output_text.delta", payload)
+}
+
 func formatOpenAIResponsesCompletedSSE() []byte {
-	return []byte("event: response.completed\ndata: {\"type\":\"response.completed\",\"status\":\"completed\"}\n\n")
+	b, _ := formatOpenAIResponsesEventSSE("response.completed", map[string]any{
+		"type":   "response.completed",
+		"status": "completed",
+	})
+	return b
 }

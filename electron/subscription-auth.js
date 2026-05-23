@@ -74,16 +74,16 @@ function formatClaudeSubscriptionLabel(oauth) {
 }
 
 function summarizeStatus(providerId, loggedIn, data) {
-  if (!loggedIn) return "未登录";
+  if (!loggedIn) return "Not logged in";
   if (providerId === "claude-code") {
     const label = formatClaudeSubscriptionLabel(data?.claudeAiOauth);
-    return label ? `已登录 · ${label}` : "已登录";
+    return label ? `Logged in · ${label}` : "Logged in";
   }
   if (providerId === "codex") {
     const mode = String(data?.auth_mode || "").trim();
-    return mode ? `已登录 · ${mode}` : "已登录";
+    return mode ? `Logged in · ${mode}` : "Logged in";
   }
-  return "已登录";
+  return "Logged in";
 }
 
 function getProviderStatus(providerId, commandResolved) {
@@ -94,14 +94,14 @@ function getProviderStatus(providerId, commandResolved) {
   const authPath = cfg.authPath();
   const installed = Boolean(commandResolved?.exists);
   let loggedIn = false;
-  let summary = "未登录";
+  let summary = "Not logged in";
   if (installed && fs.existsSync(authPath)) {
     const data = readJsonFile(authPath);
     loggedIn =
       providerId === "claude-code" ? isClaudeCredentialsValid(data) : isCodexSubscriptionAuthValid(data);
     summary = summarizeStatus(providerId, loggedIn, data);
   } else if (!installed) {
-    summary = "CLI 未安装";
+    summary = "CLI not installed";
   }
 
   return {
@@ -254,18 +254,18 @@ function readCodexDefaultModel() {
 function buildCodexSubscriptionProfile(targetCli = "codex") {
   const data = readJsonFile(PROVIDERS.codex.authPath());
   if (!data) {
-    return { ok: false, error: "未检测到 Codex 订阅凭据，请先在 API 管理登录 Codex 订阅。" };
+    return { ok: false, error: "Codex subscription credentials not found. Log in under API first." };
   }
   if (!isCodexSubscriptionAuthValid(data)) {
-    return { ok: false, error: "Codex 订阅凭据无效或已过期，请重新登录。" };
+    return { ok: false, error: "Codex subscription credentials are invalid or expired. Log in again." };
   }
   const token = extractCodexAccessToken(data);
   if (!token) {
-    return { ok: false, error: "Codex 订阅凭据中缺少 access_token。" };
+    return { ok: false, error: "Codex subscription credentials are missing access_token." };
   }
   const accountId = readCodexAccountId(data);
   if (!accountId) {
-    return { ok: false, error: "Codex 订阅凭据中缺少 chatgpt account_id，请重新登录。" };
+    return { ok: false, error: "Codex subscription credentials are missing chatgpt account_id. Log in again." };
   }
   return {
     ok: true,
@@ -288,16 +288,16 @@ function buildSubscriptionProfile(providerId, targetCli) {
   if (providerId === "codex") {
     return buildCodexSubscriptionProfile(targetCli || "codex");
   }
-  return { ok: false, error: `未知订阅类型: ${providerId}` };
+  return { ok: false, error: `Unknown subscription provider: ${providerId}` };
 }
 
 function buildClaudeSubscriptionProfile(targetCli = "claude-code") {
   const data = readClaudeCredentialsData();
   if (!data) {
-    return { ok: false, error: "未检测到 Claude 订阅凭据，请先在 API 管理登录 Claude 订阅。" };
+    return { ok: false, error: "Claude subscription credentials not found. Log in under API first." };
   }
   if (!isClaudeCredentialsValid(data)) {
-    return { ok: false, error: "Claude 订阅凭据无效或已过期，请重新登录。" };
+    return { ok: false, error: "Claude subscription credentials are invalid or expired. Log in again." };
   }
   const token = String(data.claudeAiOauth?.accessToken || "").trim();
   return {

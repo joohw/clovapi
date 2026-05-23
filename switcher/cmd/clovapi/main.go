@@ -2,12 +2,15 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -17,6 +20,7 @@ import (
 	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 	coreproxy "github.com/clovapi/switcher/internal/proxy"
+	"github.com/clovapi/switcher/internal/syslog"
 	"github.com/clovapi/switcher/internal/testclient"
 )
 
@@ -38,7 +42,7 @@ func newRoot() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(cmdProfiles(), cmdSet(), cmdRemove(), cmdSwitch(), cmdProxy(), cmdReset())
+	root.AddCommand(cmdProfiles(), cmdSet(), cmdRemove(), cmdSwitch(), cmdProxy(), cmdReset(), cmdDesktop())
 	return root
 }
 
@@ -208,6 +212,7 @@ func cmdSwitch() *cobra.Command {
 	var directAPIKey string
 	var directModel string
 	var directAPIStyle string
+	var bindingFlag string
 	c := &cobra.Command{
 		Use:   "switch [PROFILE_NAME]",
 		Short: "Apply one saved profile to one CLI",
@@ -247,18 +252,29 @@ func cmdSwitch() *cobra.Command {
 				if profileArg != "" {
 					return fmt.Errorf("cannot use --reset with a profile name argument")
 				}
-				if strings.TrimSpace(directBaseURL) != "" {
-					return fmt.Errorf("cannot use --reset with --base-url")
+				if strings.TrimSpace(directBaseURL) != "" || strings.TrimSpace(bindingFlag) != "" {
+					return fmt.Errorf("cannot use --reset with --base-url or --binding")
 				}
 				if err := apply.ResetDefault(kind); err != nil {
 					return err
 				}
+				syslog.LogCLIReset(kind)
 				s.ClearActive(string(kind))
 				if err := profile.Save(s); err != nil {
 					return err
 				}
 				fmt.Printf("Reset %s to default (cleared clovapi relay bindings).\n", kind)
 				return nil
+			}
+
+			if strings.TrimSpace(bindingFlag) != "" {
+				if profileArg != "" {
+					return fmt.Errorf("cannot use profile name with --binding")
+				}
+				if strings.TrimSpace(directBaseURL) != "" {
+					return fmt.Errorf("cannot use --binding with --base-url")
+				}
+				return applyBindingSwitch(kind, bindingFlag)
 			}
 
 			if strings.TrimSpace(directBaseURL) != "" {
@@ -307,6 +323,7 @@ func cmdSwitch() *cobra.Command {
 	c.Flags().StringVar(&directAPIKey, "api-key", "clovapi-local", "API key written to CLI config when using --base-url")
 	c.Flags().StringVar(&directModel, "model", "", "Model id written to CLI config when using --base-url (required with --base-url)")
 	c.Flags().StringVar(&directAPIStyle, "api-style", "", "API style when using --base-url (default: openai-chat for opencode, claude for claude-code, etc.)")
+	c.Flags().StringVar(&bindingFlag, "binding", "", "Desktop @model:Vendor/model-id binding (computes local proxy ingress and applies)")
 	c.Aliases = []string{"use"}
 	return c
 }
@@ -568,11 +585,30 @@ func cmdProxy() *cobra.Command {
 				cfg.Port = port
 			}
 			server := coreproxy.NewServer(cfg)
+			syslog.LogProxyStarted(server.Config.Host, server.Config.Port)
 			fmt.Printf("clovapi core proxy listening on http://%s:%d\n", server.Config.Host, server.Config.Port)
-			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				return err
+
+			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
+
+			errCh := make(chan error, 1)
+			go func() {
+				errCh <- server.ListenAndServe()
+			}()
+
+			select {
+			case <-ctx.Done():
+				syslog.LogProxyStopped("signal")
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				_ = server.Shutdown(shutdownCtx)
+				return nil
+			case err := <-errCh:
+				if err != nil && err != http.ErrServerClosed {
+					return err
+				}
+				return nil
 			}
-			return nil
 		},
 	}
 	start.Flags().StringVar(&host, "host", "", "Host to listen on (default from profiles.json proxy.host)")
@@ -620,7 +656,124 @@ func cmdProxy() *cobra.Command {
 			return nil
 		},
 	}
-	c.AddCommand(start, status, config, cmdProxyLogs())
+	c.AddCommand(start, status, config, cmdProxyLogs(), cmdProxySyslogs())
+	return c
+}
+
+func cmdProxySyslogs() *cobra.Command {
+	var limit int
+	var jsonOut bool
+	var jsonPayload string
+	var yes bool
+
+	c := &cobra.Command{
+		Use:   "syslogs",
+		Short: "Read and append persisted system logs (SQLite)",
+		Long:  "System logs are stored in ~/.config/clovapi/call-logs/system-logs.sqlite.",
+	}
+
+	listCmd := &cobra.Command{
+		Use:   "list",
+		Short: "List recent system log entries",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			entries, err := syslog.List(limit)
+			if err != nil {
+				return err
+			}
+			if jsonOut {
+				data, err := json.MarshalIndent(entries, "", "  ")
+				if err != nil {
+					return err
+				}
+				fmt.Println(string(data))
+				return nil
+			}
+			if len(entries) == 0 {
+				fmt.Println("(no system logs)")
+				return nil
+			}
+			for _, entry := range entries {
+				fmt.Printf("%s  %s  [%s]  %s\n", entry.ID, entry.At, entry.Stream, entry.Message)
+			}
+			return nil
+		},
+	}
+	listCmd.Flags().IntVar(&limit, "limit", 0, "Max entries to show (0 = all)")
+	listCmd.Flags().BoolVar(&jsonOut, "json", false, "Output JSON")
+
+	appendCmd := &cobra.Command{
+		Use:   "append",
+		Short: "Append one or more system log entries from JSON",
+		Long:  "Pass JSON array via --json or stdin. Each item: {\"at\":\"...\",\"stream\":\"system\",\"message\":\"...\"}.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			raw := strings.TrimSpace(jsonPayload)
+			if raw == "" {
+				data, err := os.ReadFile("/dev/stdin")
+				if err != nil {
+					return err
+				}
+				raw = strings.TrimSpace(string(data))
+			}
+			if raw == "" {
+				return fmt.Errorf("system log JSON payload is required")
+			}
+			var entries []syslog.Entry
+			if err := json.Unmarshal([]byte(raw), &entries); err != nil {
+				return err
+			}
+			if len(entries) == 0 {
+				return nil
+			}
+			return syslog.Append(entries)
+		},
+	}
+	appendCmd.Flags().StringVar(&jsonPayload, "json", "", "JSON array of system log entries")
+
+	clearCmd := &cobra.Command{
+		Use:   "clear",
+		Short: "Clear persisted system logs",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !yes {
+				fmt.Print("Clear all persisted system logs? [y/N]: ")
+				reader := bufio.NewReader(os.Stdin)
+				line, err := reader.ReadString('\n')
+				if err != nil {
+					return err
+				}
+				line = strings.TrimSpace(strings.ToLower(line))
+				if line != "y" && line != "yes" {
+					fmt.Println("Aborted.")
+					return nil
+				}
+			}
+			if err := syslog.Clear(); err != nil {
+				return err
+			}
+			fmt.Println("System logs cleared.")
+			return nil
+		},
+	}
+	clearCmd.Flags().BoolVarP(&yes, "yes", "y", false, "Skip confirmation prompt")
+
+	logProfilesCmd := &cobra.Command{
+		Use:    "log-profiles",
+		Short:  "Write a system log entry summarizing current profiles.json",
+		Hidden: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			s, err := profile.Load()
+			if err != nil {
+				return err
+			}
+			path, err := profile.ProfilesPath()
+			if err != nil {
+				return err
+			}
+			syslog.Write("system", fmt.Sprintf("[profiles] saved %s — %s", path, s.LogSummary()))
+			return nil
+		},
+	}
+
+	c.AddCommand(listCmd, appendCmd, clearCmd, logProfilesCmd)
 	return c
 }
 

@@ -3,6 +3,7 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
+  import { i18n, t } from "../lib/i18n";
   import { closeModelDialog, saveModelFromDialog, store } from "../lib/store.svelte";
   import { CUSTOM_API_PROFILE_NAME } from "../lib/constants";
   import Select from "./Select.svelte";
@@ -18,6 +19,28 @@
     store.modelDialogVendorName.trim() === CUSTOM_API_PROFILE_NAME,
   );
 
+  const copy = $derived.by(() => {
+    void i18n.locale;
+    return {
+      editTitle: t("modelDialog.editTitle"),
+      addTitle: t("modelDialog.addTitle"),
+      customDesc: t("modelDialog.customDesc"),
+      defaultDesc: t("modelDialog.defaultDesc"),
+      displayName: t("modelDialog.displayName"),
+      upstreamModelId: t("modelDialog.upstreamModelId"),
+      apiStyle: t("modelDialog.apiStyle"),
+      apiUrl: t("profileDialog.apiUrl"),
+      cancel: t("common.cancel"),
+      save: t("common.save"),
+    };
+  });
+
+  const dialogTitle = $derived(
+    store.modelDialogMode === "edit" ? copy.editTitle : copy.addTitle,
+  );
+
+  const dialogDescription = $derived(isCustomApi ? copy.customDesc : copy.defaultDesc);
+
   function onOpenChange(open: boolean) {
     if (!open) closeModelDialog();
   }
@@ -32,22 +55,14 @@
   <Dialog.Content showCloseButton={false} class="sm:max-w-lg">
     <form class="flex flex-col gap-4" onsubmit={onSubmit}>
       <Dialog.Header>
-        <Dialog.Title>
-          {store.modelDialogMode === "edit" ? "编辑模型" : "添加模型"}
-        </Dialog.Title>
-        <Dialog.Description>
-          {#if isCustomApi}
-            自定义 API 表示来源类型；请为每条模型填写网关地址、Key、上游 model id 与 API 风格。
-          {:else}
-            模型绑定 API 风格与上游 model id。
-          {/if}
-        </Dialog.Description>
+        <Dialog.Title>{dialogTitle}</Dialog.Title>
+        <Dialog.Description>{dialogDescription}</Dialog.Description>
       </Dialog.Header>
 
       <div class="grid gap-4">
         {#if isCustomApi}
           <div class="grid gap-2">
-            <Label for="model-base-url">API 地址</Label>
+            <Label for="model-base-url">{copy.apiUrl}</Label>
             <Input
               id="model-base-url"
               bind:value={store.formModelBaseUrl}
@@ -61,22 +76,22 @@
           </div>
         {/if}
         <div class="grid gap-2">
-          <Label for="model-label">显示名称</Label>
+          <Label for="model-label">{copy.displayName}</Label>
           <Input id="model-label" bind:value={store.formModelLabel} required placeholder="GPT-4o Mini" />
         </div>
         <div class="grid gap-2">
-          <Label for="model-id">上游 model id</Label>
+          <Label for="model-id">{copy.upstreamModelId}</Label>
           <Input id="model-id" bind:value={store.formModelName} required placeholder="gpt-4o-mini" />
         </div>
         <div class="grid gap-2">
-          <Label for="model-api-style">API 风格</Label>
+          <Label for="model-api-style">{copy.apiStyle}</Label>
           <Select block bind:value={store.formModelApiStyle} options={apiStyleOptions} />
         </div>
       </div>
 
       <Dialog.Footer class="border-t border-border pt-4">
-        <Button type="button" variant="outline" onclick={() => closeModelDialog()}>取消</Button>
-        <Button type="submit">保存</Button>
+        <Button type="button" variant="outline" onclick={() => closeModelDialog()}>{copy.cancel}</Button>
+        <Button type="submit">{copy.save}</Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

@@ -10,6 +10,7 @@
     vendorKindLabel,
   } from "../lib/helpers";
   import { OLLAMA_PROFILE_NAME } from "../lib/constants";
+  import { displayVendorName, formatSubscriptionSummary, i18n, t } from "../lib/i18n";
   import type { ModelTestStatus, Vendor } from "../global";
   import {
     canFetchVendorModels,
@@ -43,6 +44,42 @@
     vendor.kind === "subscription" ? isSubscriptionLogging(vendor.subscriptionProviderId) : false,
   );
 
+  const copy = $derived.by(() => {
+    void i18n.locale;
+    return {
+      cancel: t("common.cancel"),
+      login: t("common.login"),
+      logout: t("common.logout"),
+      fetchModels: t("common.fetchModels"),
+      fetching: t("common.fetching"),
+      editConnection: t("vendorDetail.editConnection"),
+      addModel: t("common.addModel"),
+      edit: t("common.edit"),
+      test: t("common.test"),
+      testing: t("common.testing"),
+      delete: t("common.delete"),
+      loginFirst: t("subscription.loginFirst"),
+      testConnectivity: t("subscription.testConnectivity"),
+      emptyCustom: t("vendorDetail.emptyCustom"),
+      emptySubscriptionNeedLogin: t("vendorDetail.emptySubscriptionNeedLogin"),
+      emptySubscription: t("vendorDetail.emptySubscription"),
+      emptyMixed: t("vendorDetail.emptyMixed"),
+      installed: t("vendorDetail.installed"),
+      notInstalled: t("vendorDetail.notInstalled"),
+    };
+  });
+
+  const cardDescription = $derived.by(() => {
+    void i18n.locale;
+    if (vendor.kind === "subscription") {
+      return formatSubscriptionSummary(subscription?.summary || "");
+    }
+    if (isOllamaVendor(vendor)) {
+      return store.ollamaInstalled ? copy.installed : copy.notInstalled;
+    }
+    return vendorKindLabel(vendor);
+  });
+
   function modelTestStatus(value: string | undefined): "" | ModelTestStatus {
     if (value === "testing" || value === "pass" || value === "fail") return value;
     return "";
@@ -64,21 +101,12 @@
   const showFetchModels = $derived(canFetchVendorModels(vendor));
 </script>
 
-<SectionCard
-  title={vendor.name}
-  description={vendor.kind === "subscription"
-    ? subscription?.summary || "未登录"
-    : isOllamaVendor(vendor)
-      ? store.ollamaInstalled
-        ? "已安装"
-        : "未安装"
-      : vendorKindLabel(vendor)}
->
+<SectionCard title={displayVendorName(vendor.name)} description={cardDescription}>
   {#snippet actions()}
     {#if vendor.kind === "subscription" && subscription}
       {#if logging}
         <Button size="sm" variant="outline" onclick={() => void cancelSubscriptionLogin(subscription.id)}>
-          取消
+          {copy.cancel}
         </Button>
       {:else}
         <Button
@@ -86,16 +114,16 @@
           disabled={!subscription.installed}
           onclick={() => void runSubscriptionLogin(subscription.id)}
         >
-          登录
+          {copy.login}
         </Button>
       {/if}
       <Button
         size="sm"
         variant="outline"
         disabled={!subscription.loggedIn || logging}
-        onclick={() => void runSubscriptionLogout(subscription.id, subscription.label)}
+        onclick={() => void runSubscriptionLogout(subscription.id, displayVendorName(vendor.name))}
       >
-        退出
+        {copy.logout}
       </Button>
     {/if}
     {#if showFetchModels}
@@ -105,7 +133,7 @@
         disabled={store.running || isVendorFetching(vendor.name)}
         onclick={() => void fetchVendorModels(vendor.name)}
       >
-        {isVendorFetching(vendor.name) ? "拉取中…" : "拉取模型"}
+        {isVendorFetching(vendor.name) ? copy.fetching : copy.fetchModels}
       </Button>
     {/if}
     {#if vendor.kind === "local"}
@@ -115,7 +143,7 @@
         disabled={store.running}
         onclick={() => openProfileDialog("edit", OLLAMA_PROFILE_NAME)}
       >
-        编辑连接
+        {copy.editConnection}
       </Button>
     {/if}
     {#if canManuallyManageVendorModels(vendor)}
@@ -125,22 +153,22 @@
         disabled={store.running}
         onclick={() => openModelDialog("create", vendor.name)}
       >
-        添加模型
+        {copy.addModel}
       </Button>
     {/if}
   {/snippet}
   {#if !vendor.models?.length}
     <p class="px-4 py-6 text-center text-sm text-muted-foreground">
       {#if isCustomApi}
-        尚未添加模型，请点击上方「添加模型」。
+        {copy.emptyCustom}
       {:else if !canManuallyManageVendorModels(vendor)}
         {#if vendor.kind === "subscription" && subscription && !subscription.loggedIn && !logging}
-          尚未拉取模型，请先登录后再点击上方「拉取模型」。
+          {copy.emptySubscriptionNeedLogin}
         {:else}
-          尚未拉取模型，请点击上方「拉取模型」。
+          {copy.emptySubscription}
         {/if}
       {:else}
-        尚未添加模型。可拉取或手动添加。
+        {copy.emptyMixed}
       {/if}
     </p>
   {:else}
@@ -164,17 +192,17 @@
               disabled={store.running || testing}
               onclick={() => openModelDialog("edit", vendor.name, model.id)}
             >
-              编辑
+              {copy.edit}
             </Button>
           {/if}
           <Button
             size="sm"
             variant="outline"
             disabled={store.running || testing || (vendor.kind === "subscription" && (!subscription?.loggedIn || logging))}
-            title={vendor.kind === "subscription" && !subscription?.loggedIn ? "请先登录" : "测试连通性"}
+            title={vendor.kind === "subscription" && !subscription?.loggedIn ? copy.loginFirst : copy.testConnectivity}
             onclick={() => void runModelTest(binding)}
           >
-            {testing ? "测试中…" : "测试"}
+            {testing ? copy.testing : copy.test}
           </Button>
           {#if canManuallyManageVendorModels(vendor)}
             <Button
@@ -183,7 +211,7 @@
               disabled={store.running || testing}
               onclick={() => void removeVendorModel(vendor.name, model.id)}
             >
-              删除
+              {copy.delete}
             </Button>
           {/if}
         {/snippet}

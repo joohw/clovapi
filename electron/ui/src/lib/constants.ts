@@ -48,23 +48,23 @@ export const MODEL_ADAPTER_IDS = ["manual", "openai-compatible", "ollama", "subs
 export const DEFAULT_MODEL_ADAPTERS: ModelAdapterDef[] = [
   {
     id: "manual",
-    label: "手动维护",
-    description: "不自动拉取，在供应商下手动添加模型",
+    label: "Manual",
+    description: "No auto-fetch; add models manually under the provider",
   },
   {
     id: "openai-compatible",
-    label: "OpenAI 兼容",
-    description: "请求 GET /v1/models（或 /models）",
+    label: "OpenAI compatible",
+    description: "GET /v1/models (or /models)",
   },
   {
     id: "ollama",
     label: "Ollama",
-    description: "请求 GET /api/tags，失败时回退 /v1/models",
+    description: "GET /api/tags, falls back to /v1/models",
   },
   {
     id: "subscription",
-    label: "官方订阅",
-    description: "从官方 OAuth 拉取模型（Codex backend-api / Claude /v1/models）",
+    label: "Official subscription",
+    description: "Fetch models via OAuth (Codex backend-api / Claude /v1/models)",
   },
 ];
 

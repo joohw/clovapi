@@ -2,6 +2,7 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
   import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+  import { i18n, t } from "../lib/i18n";
   import {
     clearCallLogs,
     closeProxyLog,
@@ -25,6 +26,20 @@
   );
   const inLogDetail = $derived(Boolean(store.proxyLogSelectedId));
 
+  const copy = $derived.by(() => {
+    void i18n.locale;
+    return {
+      back: t("common.back"),
+      title: t("callLogs.title"),
+      description: t("callLogs.description"),
+      refresh: t("common.refresh"),
+      refreshing: t("common.refreshing"),
+      clear: t("common.clear"),
+      empty: t("callLogs.empty"),
+      details: t("common.details"),
+    };
+  });
+
   $effect(() => {
     if (store.proxyLogSelectedId && !selectedLog) {
       closeProxyLog();
@@ -36,16 +51,13 @@
   <div class="flex flex-col gap-4">
     <Button size="sm" variant="outline" class="w-fit" type="button" onclick={() => closeProxyLog()}>
       <ArrowLeftIcon class="size-4" />
-      返回
+      {copy.back}
     </Button>
     <ProxyLogDetailPanel entry={selectedLog} />
   </div>
 {:else}
   <div class="flex flex-col gap-4">
-    <SectionCard
-      title="调用日志"
-      description="记录本地代理收到的请求，以及发往上游后的原始响应片段。"
-    >
+    <SectionCard title={copy.title} description={copy.description}>
       {#snippet actions()}
         <Button
           size="sm"
@@ -53,15 +65,15 @@
           disabled={store.proxyLogsLoading}
           onclick={() => void refreshProxyLogs()}
         >
-          {store.proxyLogsLoading ? "刷新中…" : "刷新"}
+          {store.proxyLogsLoading ? copy.refreshing : copy.refresh}
         </Button>
         <Button size="sm" variant="outline" onclick={() => void clearCallLogs()}>
-          清空
+          {copy.clear}
         </Button>
       {/snippet}
 
       {#if !store.proxyLogs.length}
-        <p class="px-4 py-6 text-center text-sm text-muted-foreground">暂无调用日志。</p>
+        <p class="px-4 py-6 text-center text-sm text-muted-foreground">{copy.empty}</p>
       {:else}
         {#each store.proxyLogs as entry (entry.id)}
           <ListRow
@@ -74,7 +86,7 @@
                 {proxyLogSummary(entry)}
               </span>
               <Button size="sm" variant="outline" type="button" onclick={() => openProxyLog(entry.id)}>
-                详情
+                {copy.details}
                 <ChevronRightIcon class="size-4" />
               </Button>
             {/snippet}

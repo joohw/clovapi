@@ -1,4 +1,5 @@
 import { modelTestStatusKey, toIpcPayload } from "../helpers";
+import { t } from "../i18n";
 import { isModelTesting, setModelTestResult, setModelTestTesting } from "./model-tests";
 import { refreshProxyLogs } from "./proxy";
 import { store } from "./state.svelte";
@@ -10,7 +11,7 @@ export async function runModelTest(binding: string) {
 
   const bridge = window.clovapiProfiles;
   if (!bridge?.test) {
-    toast.error("当前环境不支持 API 测试");
+    toast.error(t("toast.apiTestUnsupported"));
     return;
   }
 
@@ -33,19 +34,22 @@ export async function runModelTest(binding: string) {
       ),
       new Promise<never>((_, reject) => {
         setTimeout(
-          () => reject(new Error(`测试超时（${TEST_UI_TIMEOUT_MS / 1000}s 无响应）`)),
+          () =>
+            reject(
+              new Error(t("modelTest.timeout", { seconds: TEST_UI_TIMEOUT_MS / 1000 })),
+            ),
           TEST_UI_TIMEOUT_MS,
         );
       }),
     ]);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "API 测试失败";
+    const message = error instanceof Error ? error.message : t("toast.apiTestFailed");
     setModelTestResult(statusKey, false, message, "");
     return;
   }
 
   const passed = Boolean(result?.passed);
-  const summary = result?.summary || (passed ? "测试成功" : "测试失败");
+  const summary = result?.summary || (passed ? t("modelTest.success") : t("modelTest.failed"));
 
   setModelTestResult(statusKey, passed, summary, "");
   void refreshProxyLogs();

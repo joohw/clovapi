@@ -47,22 +47,6 @@ type ProxyBridge = {
   health(): Promise<ProxyHealthResult>;
   start(port?: number): Promise<ProxyStatusResult>;
   stop(): Promise<{ ok?: boolean; error?: string }>;
-  ensureStub(cliKind: string, binding: string): Promise<{
-    ok?: boolean;
-    error?: string;
-    stubName?: string;
-    port?: number;
-    apiStyle?: string;
-  }>;
-  buildIngress(cliKind: string, binding: string): Promise<{
-    ok?: boolean;
-    error?: string;
-    baseUrl?: string;
-    model?: string;
-    modelId?: string;
-    apiStyle?: string;
-    port?: number;
-  }>;
 };
 
 type ProxyLogsBridge = {

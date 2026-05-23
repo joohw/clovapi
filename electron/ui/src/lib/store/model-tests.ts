@@ -1,5 +1,6 @@
 import { MODEL_TEST_STORAGE_KEY, MODEL_TEST_VALIDITY_MS, TEST_STATUS_STORAGE_KEY } from "../constants";
 import { modelTestStatusKey, parseModelBinding } from "../helpers";
+import { localeTag, t } from "../i18n";
 import { store } from "./state.svelte";
 import type { ModelTestEntry } from "../../global";
 
@@ -15,19 +16,19 @@ export function formatModelTestTime(testedAt: number): string {
   const date = new Date(testedAt);
   if (Number.isNaN(date.getTime())) return "";
   const now = new Date();
-  const time = date.toLocaleTimeString("zh-CN", {
+  const time = date.toLocaleTimeString(localeTag(), {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   });
   if (date.toDateString() === now.toDateString()) return time;
-  const day = date.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+  const day = date.toLocaleDateString(localeTag(), { month: "numeric", day: "numeric" });
   return `${day} ${time}`;
 }
 
 export function formatModelTestSummary(entry: ModelTestEntry): string {
   const summary = String(entry.summary || "").trim();
-  if (entry.status === "testing") return summary || "测试中…";
+  if (entry.status === "testing") return summary || t("common.testing");
   if (!isModelTestEntryValid(entry)) return "";
   const timeLabel = entry.testedAt ? formatModelTestTime(entry.testedAt) : "";
   if (!summary) return timeLabel;
@@ -85,7 +86,7 @@ export function loadModelTests(): Record<string, ModelTestEntry> {
     if (value === "pass" || value === "fail") {
       out[key] = {
         status: value,
-        summary: value === "pass" ? "测试成功" : "测试失败",
+        summary: value === "pass" ? t("modelTest.success") : t("modelTest.failed"),
         detail: "",
       };
     }
@@ -140,7 +141,7 @@ export function setModelTestTesting(key: string) {
   if (!k) return;
   store.modelTests[k] = {
     status: "testing",
-    summary: "测试中…",
+    summary: t("common.testing"),
     detail: "",
   };
 }
@@ -150,7 +151,7 @@ export function setModelTestResult(key: string, passed: boolean, summary: string
   if (!k) return;
   store.modelTests[k] = {
     status: passed ? "pass" : "fail",
-    summary: summary || (passed ? "测试成功" : "测试失败"),
+    summary: summary || (passed ? t("modelTest.success") : t("modelTest.failed")),
     detail: detail || "",
     testedAt: Date.now(),
   };

@@ -1,7 +1,9 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { Button } from "$lib/components/ui/button/index.js";
   import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
   import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+  import { i18n, t } from "../lib/i18n";
   import {
     clearSystemLogs,
     closeProxyLog,
@@ -26,10 +28,28 @@
   );
   const inLogDetail = $derived(Boolean(store.proxySystemLogSelectedId));
 
+  const copy = $derived.by(() => {
+    void i18n.locale;
+    return {
+      back: t("common.back"),
+      title: t("systemLogs.title"),
+      description: t("systemLogs.description"),
+      refresh: t("common.refresh"),
+      refreshing: t("common.refreshing"),
+      clear: t("common.clear"),
+      empty: t("systemLogs.empty"),
+      details: t("common.details"),
+    };
+  });
+
   $effect(() => {
     if (store.proxySystemLogSelectedId && !selectedLog) {
       closeProxyLog();
     }
+  });
+
+  onMount(() => {
+    void refreshProxyLogs();
   });
 </script>
 
@@ -37,13 +57,13 @@
   <div class="flex flex-col gap-4">
     <Button size="sm" variant="outline" class="w-fit" type="button" onclick={() => closeProxyLog()}>
       <ArrowLeftIcon class="size-4" />
-      返回
+      {copy.back}
     </Button>
     <ProxySystemLogDetailPanel entry={selectedLog} />
   </div>
 {:else}
   <div class="flex flex-col gap-4">
-    <SectionCard title="系统日志" description="记录代理启动、停止及进程调试输出。">
+    <SectionCard title={copy.title} description={copy.description}>
       {#snippet actions()}
         <Button
           size="sm"
@@ -51,15 +71,15 @@
           disabled={store.proxyLogsLoading}
           onclick={() => void refreshProxyLogs()}
         >
-          {store.proxyLogsLoading ? "刷新中…" : "刷新"}
+          {store.proxyLogsLoading ? copy.refreshing : copy.refresh}
         </Button>
         <Button size="sm" variant="outline" onclick={() => void clearSystemLogs()}>
-          清空
+          {copy.clear}
         </Button>
       {/snippet}
 
       {#if !store.proxySystemLogs.length}
-        <p class="px-4 py-6 text-center text-sm text-muted-foreground">暂无系统日志。</p>
+        <p class="px-4 py-6 text-center text-sm text-muted-foreground">{copy.empty}</p>
       {:else}
         {#each store.proxySystemLogs as entry (entry.id)}
           <ListRow
@@ -77,7 +97,7 @@
                 type="button"
                 onclick={() => openProxySystemLog(entry.id)}
               >
-                详情
+                {copy.details}
                 <ChevronRightIcon class="size-4" />
               </Button>
             {/snippet}

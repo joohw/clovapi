@@ -3,6 +3,7 @@ import { detectCliPath, detectOllamaInstalled } from "./cli";
 import { loadProfilesFromDisk } from "./profiles";
 import { refreshProxyLogs, refreshProxyStatus } from "./proxy";
 import { refreshSubscriptions } from "./subscriptions";
+import { t } from "../i18n";
 import { store, type TabId } from "./state.svelte";
 import { toast } from "../toast";
 
@@ -51,7 +52,7 @@ export function openProfilesVendor(vendorName: string) {
   if (!name) return;
   const vendor = resolveVendorByName(store.profiles, name);
   if (!vendor) {
-    toast.error("未找到该供应商。");
+    toast.error(t("toast.vendorNotFound"));
     store.profilesSelectedVendor = null;
     return;
   }

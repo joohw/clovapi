@@ -1,6 +1,8 @@
 package proxyresolve_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/clovapi/switcher/internal/apistyle"
@@ -31,6 +33,54 @@ func TestDefaultUpstreamCodexResponsesPath(t *testing.T) {
 	}
 	if got := protocol.DefaultUpstreamPathSuffix(apistyle.OpenAIResponses, "profile:x"); got != "/responses" {
 		t.Fatalf("%q", got)
+	}
+}
+
+func TestResolveIngressContextClaudeSubscriptionFromAuthFile(t *testing.T) {
+	dir := t.TempDir()
+	claudeDir := filepath.Join(dir, ".claude")
+	if err := os.MkdirAll(claudeDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	credsPath := filepath.Join(claudeDir, ".credentials.json")
+	if err := os.WriteFile(credsPath, []byte(`{
+  "claudeAiOauth": {
+    "accessToken": "sk-ant-oat-integration",
+    "expiresAt": 9999999999999
+  }
+}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	profile.SetClaudeCredentialsPathOverride(credsPath)
+	t.Cleanup(func() { profile.SetClaudeCredentialsPathOverride("") })
+
+	s := &profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:                   provider.ClaudeCodeVendorName,
+			Kind:                   "subscription",
+			SubscriptionProviderID: provider.ClaudeCodeProviderID,
+			APIStyle:               apistyle.Claude,
+			Models: []profile.Model{{
+				ID:       "claude-sonnet-4-6",
+				Model:    "claude-sonnet-4-6",
+				APIStyle: apistyle.Claude,
+			}},
+		}},
+	}
+	ctx, err := proxyresolve.ResolveIngressContext(s, "claude-code", "claude-sonnet-4-6", "claude")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ctx.Source != "subscription:claude-code" {
+		t.Fatalf("source = %q", ctx.Source)
+	}
+	if ctx.AuthSummary.Scheme != "anthropic_oauth_headers" {
+		t.Fatalf("auth scheme = %+v", ctx.AuthSummary)
+	}
+	wantURL := proxyresolve.JoinURL("https://api.anthropic.com", ctx.PathSuffix)
+	if ctx.BaseURLJoined != wantURL {
+		t.Fatalf("joined url got %q want %q", ctx.BaseURLJoined, wantURL)
 	}
 }
 

@@ -86,7 +86,8 @@ func BuildProxyIngressBaseURL(port int, providerID, modelID, apiStyle string) st
 	if port == 0 {
 		port = 27483
 	}
-	return "http://127.0.0.1:" + strconv.Itoa(port) + "/" + strings.TrimSpace(providerID) + "/" + url.PathEscape(strings.TrimSpace(modelID)) + "/" + strings.ToLower(strings.TrimSpace(apiStyle))
+	base := "http://127.0.0.1:" + strconv.Itoa(port) + "/" + strings.TrimSpace(providerID) + "/" + url.PathEscape(strings.TrimSpace(modelID)) + "/" + strings.ToLower(strings.TrimSpace(apiStyle))
+	return strings.TrimRight(base, "/") + "/v1"
 }
 
 // ModelBindingForProvider builds the persisted @model: vendor / wire id path token used by the desktop resolver.

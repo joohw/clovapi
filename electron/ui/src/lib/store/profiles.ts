@@ -10,6 +10,7 @@ import {
   resolveVendorByName,
 } from "../helpers";
 import { OLLAMA_DEFAULTS, OLLAMA_PROFILE_NAME } from "../constants";
+import { t } from "../i18n";
 import { toast } from "../toast";
 import { store } from "./state.svelte";
 import { clearModelBinding, clearVendorBindings } from "./bindings";
@@ -20,13 +21,13 @@ export { persistProfiles };
 export async function loadProfilesFromDisk() {
   const bridge = window.clovapiProfiles;
   if (!bridge?.load) {
-    toast.error("无法加载配置：桌面端未注入 profiles 接口，请重新安装或重启应用。");
+    toast.error(t("toast.profilesBridgeMissing"));
     return;
   }
 
   const result = await bridge.load();
   if (!result?.ok) {
-    toast.error(result?.error || "无法读取 profiles.json");
+    toast.error(result?.error || t("toast.profilesLoadFailed"));
     return;
   }
 
@@ -76,8 +77,8 @@ export function openModelDialog(mode: "create" | "edit", vendorName: string, mod
   if (vendor && !canManuallyManageVendorModels(vendor)) {
     toast.warning(
       isOllamaVendor(vendor)
-        ? "Ollama 仅支持拉取模型，不支持手动添加或编辑。"
-        : "官方订阅仅支持拉取模型，不支持手动添加或编辑。",
+        ? t("toast.ollamaManualOnly")
+        : t("toast.subscriptionManualOnly"),
     );
     return;
   }
@@ -106,7 +107,7 @@ export async function saveProfileFromDialog() {
   const baseUrl = store.formBaseUrl.trim() || OLLAMA_DEFAULTS.baseUrl;
   const apiKey = store.formApiKey.trim() || OLLAMA_DEFAULTS.apiKey;
   if (!baseUrl) {
-    toast.warning("请填写地址。");
+    toast.warning(t("toast.addressRequired"));
     return;
   }
 
@@ -129,7 +130,7 @@ export async function saveProfileFromDialog() {
 
   const saved = await persistProfiles();
   if (!saved?.ok) {
-    toast.error(saved?.error || "保存 profiles.json 失败");
+    toast.error(saved?.error || t("toast.profilesSaveFailed"));
     return;
   }
 
@@ -143,19 +144,19 @@ export async function saveModelFromDialog() {
   const baseUrl = store.formModelBaseUrl.trim();
   const apiKey = store.formModelApiKey.trim();
   if (!vendorName || !label || !model) {
-    toast.warning("请填写显示名称和上游 model id。");
+    toast.warning(t("toast.modelFieldsRequired"));
     return;
   }
 
   const vendor = resolveVendorByName(store.profiles, vendorName);
   if (!vendor) {
-    toast.error("未找到对应供应商。");
+    toast.error(t("toast.vendorNotFound"));
     return;
   }
 
   const isCustomApi = isDefaultCustomApiProfile(vendor.name);
   if (isCustomApi && (!baseUrl || !apiKey)) {
-    toast.warning("请填写该模型的 API 地址与 Key。");
+    toast.warning(t("toast.customApiModelFields"));
     return;
   }
 
@@ -163,14 +164,14 @@ export async function saveModelFromDialog() {
     (item) => item.name.toLowerCase() === vendor.name.toLowerCase() && item.kind === vendor.kind,
   );
   if (vendorIdx < 0) {
-    toast.error("未找到对应供应商。");
+    toast.error(t("toast.vendorNotFound"));
     return;
   }
   if (!canManuallyManageVendorModels(vendor)) {
     toast.warning(
       isOllamaVendor(vendor)
-        ? "Ollama 仅支持拉取模型，不支持手动添加或编辑。"
-        : "官方订阅仅支持拉取模型，不支持手动添加或编辑。",
+        ? t("toast.ollamaManualOnly")
+        : t("toast.subscriptionManualOnly"),
     );
     return;
   }
@@ -184,7 +185,7 @@ export async function saveModelFromDialog() {
     store.modelDialogMode === "create" &&
     models.some((item) => item.id.toLowerCase() === modelId.toLowerCase())
   ) {
-    toast.error(`模型 id「${modelId}」已存在，请修改显示名称。`);
+    toast.error(t("toast.modelIdExists", { id: modelId }));
     return;
   }
 
@@ -205,7 +206,7 @@ export async function saveModelFromDialog() {
 
   const saved = await persistProfiles();
   if (!saved?.ok) {
-    toast.error(saved?.error || "保存模型失败");
+    toast.error(saved?.error || t("toast.modelSaveFailed"));
     return;
   }
 
@@ -215,15 +216,15 @@ export async function saveModelFromDialog() {
 export async function removeProfile(profileName: string) {
   const key = String(profileName || "").trim();
   if (isDefaultOllamaProfile(key)) {
-    toast.warning("Ollama 为内置供应商，不可删除。");
+    toast.warning(t("toast.ollamaBuiltin"));
     return;
   }
   if (isBuiltinSubscriptionVendorName(key)) {
-    toast.warning("官方订阅为内置供应商，不可删除。");
+    toast.warning(t("toast.subscriptionBuiltin"));
     return;
   }
   if (isBuiltinCustomApiVendorName(key)) {
-    toast.warning("自定义 API 为内置供应商，不可删除。");
+    toast.warning(t("toast.customApiBuiltin"));
     return;
   }
   clearVendorBindings(key);
@@ -233,7 +234,7 @@ export async function removeProfile(profileName: string) {
   }
   const saved = await persistProfiles();
   if (!saved?.ok) {
-    toast.error(saved?.error || "保存 profiles.json 失败");
+    toast.error(saved?.error || t("toast.profilesSaveFailed"));
   }
 }
 
@@ -241,17 +242,17 @@ export async function removeVendorModel(vendorName: string, modelId: string) {
   const vendor = store.profiles.find((item) => item.name === vendorName);
   if (!vendor) return;
   if (isOllamaVendor(vendor)) {
-    toast.warning("Ollama 模型来自拉取列表，不支持手动删除。");
+    toast.warning(t("toast.ollamaNoManualDelete"));
     return;
   }
   if (vendor.kind === "subscription" && (vendor.models || []).length <= 1) {
-    toast.warning("官方订阅至少保留一个模型绑定项。");
+    toast.warning(t("toast.subscriptionKeepOne"));
     return;
   }
   clearModelBinding(vendorName, modelId);
   vendor.models = (vendor.models || []).filter((item) => item.id !== modelId);
   const saved = await persistProfiles();
   if (!saved?.ok) {
-    toast.error(saved?.error || "删除模型失败");
+    toast.error(saved?.error || t("toast.modelDeleteFailed"));
   }
 }

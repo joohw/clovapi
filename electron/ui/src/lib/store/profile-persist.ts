@@ -1,4 +1,5 @@
 import { normalizeVendor } from "../helpers";
+import { refreshProxyLogs } from "./proxy";
 import { store } from "./state.svelte";
 
 type PersistResult = Awaited<ReturnType<NonNullable<typeof window.clovapiProfiles>["save"]>>;
@@ -27,6 +28,7 @@ export async function persistProfiles() {
         store.proxyBaseUrl = `http://127.0.0.1:${store.proxyPort}`;
       }
       if (result.path) store.profilesPath = result.path;
+      void refreshProxyLogs();
     }
     return result;
   };

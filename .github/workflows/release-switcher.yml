@@ -101,7 +101,7 @@ jobs:
           aws --endpoint-url "${endpoint_url}" s3 cp dist/ "${target_prefix}/" --recursive
           printf "%s" "${version_tag}" > /tmp/latest.txt
           aws --endpoint-url "${endpoint_url}" s3 cp /tmp/latest.txt "s3://${R2_BUCKET}/${artifact_prefix}/latest.txt"
-          aws --endpoint-url "${endpoint_url}" s3 cp ../web/public/install.sh "s3://${R2_BUCKET}/install.sh"
+          aws --endpoint-url "${endpoint_url}" s3 cp ../landing/public/install.sh "s3://${R2_BUCKET}/install.sh"
 
   npm:
     runs-on: ubuntu-latest

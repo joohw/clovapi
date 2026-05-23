@@ -1,5 +1,18 @@
 /* 首页专用样式（避免写入 globals.css） */
 
+.useCaseShot {
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--card) 88%, var(--muted) 12%);
+}
+
+.useCaseShot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 /* 纯灰渐变背景：oklch 第二项为 chroma，全程为 0，避免任何色相 */
 .landingBackdrop {
   opacity: 0.62;
@@ -25,23 +38,30 @@
   );
 }
 
-/*
- * Dot Grid 质感（参考 React Bits DotGrid，仅用 CSS 点阵；无 WebGL/GSAP，避免眩目线条）
- */
-.landingDotGrid {
-  opacity: 0.72;
-  background-image: radial-gradient(oklch(0.36 0 0 / 0.17) 1.35px, transparent 1.35px);
-  background-size: 26px 26px;
-  background-position: 0 0;
-}
-
-:global(.dark) .landingDotGrid {
-  opacity: 0.68;
-  background-image: radial-gradient(oklch(0.58 0 0 / 0.2) 1.35px, transparent 1.35px);
-}
-
 .home :global(.btn:hover:not(:disabled)) {
   box-shadow: none;
+}
+
+.terminalCard {
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--card) 88%, var(--muted) 12%);
+}
+
+.terminalHeader {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  padding: 0.75rem 1rem;
+}
+
+.terminalDot {
+  display: block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--muted-foreground) 28%, transparent);
 }
 
 .providerStrip {

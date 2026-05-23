@@ -1,23 +1,13 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
-import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
+import { cookies, headers } from "next/headers";
 import { AppShell } from "@/components/app-shell";
 import { I18nProvider } from "@/components/i18n-provider";
+import { ServerScripts } from "@/components/server-scripts";
 import { ToastProvider } from "@/components/ui/toast-provider";
+import { resolveLanguage } from "@/i18n/resolve-language";
+import { LANG_STORAGE_KEY } from "@/i18n/config";
 import { DEFAULT_DESCRIPTION, HOME_TITLE, SITE_NAME, getPublicSiteUrlFromRequest } from "@/lib/site";
-import { THEME_STORAGE_KEY } from "@/lib/theme";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: HOME_TITLE,
@@ -37,8 +27,13 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const headerStore = await headers();
+  const cookieStore = await cookies();
   const host =
     headerStore.get("x-forwarded-host") || headerStore.get("host") || undefined;
+  const language = resolveLanguage({
+    cookie: cookieStore.get(LANG_STORAGE_KEY)?.value,
+    acceptLanguage: headerStore.get("accept-language"),
+  });
   const siteUrl = getPublicSiteUrlFromRequest(host);
   const jsonLd = {
     "@context": "https://schema.org",
@@ -62,31 +57,13 @@ export default async function RootLayout({
       },
     ],
   };
-  const themeBootScript = `(() => {
-    try {
-      const stored = localStorage.getItem("${THEME_STORAGE_KEY}");
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const isDark = stored === "dark" || (stored !== "light" && prefersDark);
-      const root = document.documentElement;
-      root.classList.toggle("dark", isDark);
-      root.style.colorScheme = isDark ? "dark" : "light";
-    } catch {}
-  })();`;
+  const jsonLdScript = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+
   return (
-    <html
-      lang="zh-CN"
-      suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang={language} suppressHydrationWarning className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <Script id="theme-boot-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeBootScript }} />
-        <Script
-          id="site-jsonld"
-          type="application/ld+json"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-        />
-        <I18nProvider>
+        <ServerScripts jsonLd={jsonLdScript} />
+        <I18nProvider language={language}>
           <ToastProvider>
             <AppShell>{children}</AppShell>
           </ToastProvider>

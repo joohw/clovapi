@@ -34,10 +34,7 @@ export function SiteHeader() {
   const headerLinks = useMemo<HeaderLink[]>(() => {
     return [
       { text: t("header.home"), to: "/" },
-      { text: t("header.docs"), to: "/docs" },
       { text: t("header.skill"), to: "/skill" },
-      { text: t("header.models"), to: "/models" },
-      { text: t("header.agents"), to: "/agents" },
     ];
   }, [t]);
 
@@ -72,7 +69,7 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/85">
       <div className="flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-5 sm:gap-6">
           <Link

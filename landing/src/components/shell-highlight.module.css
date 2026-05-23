@@ -2,24 +2,24 @@
   margin: 0;
   padding: 0;
   background: transparent !important;
-  font-size: 0.86rem;
-  line-height: 1.55;
+  font-size: inherit;
+  line-height: inherit;
   overflow-x: auto;
 }
 
 .wrap :global(pre.shiki code) {
   font-size: inherit;
   line-height: inherit;
+  font-family: inherit;
 }
 
 .fallback {
   margin: 0;
   padding: 0;
-  overflow-x: auto;
-  font-size: 0.86rem;
-  line-height: 1.55;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .fallback code {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: inherit;
 }

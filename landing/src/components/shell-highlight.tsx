@@ -2,22 +2,23 @@
 
 import { codeToHtml } from "shiki";
 import { useEffect, useState } from "react";
-import { useDocsDarkMode } from "./use-docs-dark-mode";
-import styles from "./docs-curl-highlight.module.css";
+import { useDarkMode } from "@/hooks/use-dark-mode";
+import styles from "./shell-highlight.module.css";
 
-type DocsCurlHighlightProps = {
+type ShellHighlightProps = {
   code: string;
+  className?: string;
 };
 
-export function DocsCurlHighlight({ code }: DocsCurlHighlightProps) {
-  const dark = useDocsDarkMode();
+export function ShellHighlight({ code, className }: ShellHighlightProps) {
+  const dark = useDarkMode();
   const [html, setHtml] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const out = await codeToHtml(code.trimEnd(), {
+        const out = await codeToHtml(code, {
           lang: "bash",
           theme: dark ? "one-dark-pro" : "one-light",
         });
@@ -33,11 +34,14 @@ export function DocsCurlHighlight({ code }: DocsCurlHighlightProps) {
 
   if (html == null) {
     return (
-      <pre className={styles.fallback}>
-        <code>{code}</code>
-      </pre>
+      <code className={`${styles.fallback} ${className ?? ""}`.trim()}>{code}</code>
     );
   }
 
-  return <div className={styles.wrap} dangerouslySetInnerHTML={{ __html: html }} />;
+  return (
+    <span
+      className={`${styles.wrap} ${className ?? ""}`.trim()}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
 }

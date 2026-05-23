@@ -11,8 +11,12 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
   async redirects() {
     return [
-      { source: "/about", destination: "/docs", permanent: true },
-      { source: "/pricing", destination: "/models", permanent: true },
+      { source: "/about", destination: "/", permanent: true },
+      { source: "/docs", destination: "/", permanent: true },
+      { source: "/docs/:path*", destination: "/", permanent: true },
+      { source: "/pricing", destination: "/", permanent: true },
+      { source: "/models", destination: "/", permanent: true },
+      { source: "/agents", destination: "/", permanent: true },
       { source: "/personal", destination: "/dashboard", permanent: true },
       { source: "/apikeys", destination: "/dashboard", permanent: true },
       { source: "/token", destination: "/dashboard", permanent: false },

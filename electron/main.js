@@ -17,8 +17,8 @@ app.commandLine.appendSwitch("enable-features", "OverlayScrollbar,FluentOverlayS
 let mainWindow = null;
 let runningProcess = null;
 const THEME_STORAGE_KEY = "clovapi-theme";
-/** Matches renderer `--bg-top` (title bar + gradient light end). */
-const WINDOW_BG_TOP = "#f8fafc";
+/** Matches renderer page background (title bar flash before paint). */
+const WINDOW_BG_TOP = "#FBF9F9";
 
 function forceLightModeForWindow(win) {
   if (!win || win.isDestroyed()) return;

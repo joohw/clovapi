@@ -1,5 +1,16 @@
 export const THEME_STORAGE_KEY = "clovapi-theme";
 
+export const THEME_BOOT_SCRIPT = `(() => {
+  try {
+    const stored = localStorage.getItem("${THEME_STORAGE_KEY}");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark = stored === "dark" || (stored !== "light" && prefersDark);
+    const root = document.documentElement;
+    root.classList.toggle("dark", isDark);
+    root.style.colorScheme = isDark ? "dark" : "light";
+  } catch {}
+})();`;
+
 export type ThemeMode = "light" | "dark";
 
 function getSystemPrefersDark() {

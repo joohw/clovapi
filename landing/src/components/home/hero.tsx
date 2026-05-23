@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { ClientDownloadButtons } from "@/components/home/client-download-buttons";
 import { ShellHighlight } from "@/components/shell-highlight";
 import { useToast } from "@/components/ui/toast-provider";
-import { USE_CASE_ZH_HEIGHT, USE_CASE_ZH_IMAGE, USE_CASE_ZH_WIDTH } from "@/lib/assets";
+import { getUseCaseImage } from "@/lib/assets";
 import { HOME_TITLE } from "@/lib/site";
 import styles from "@/app/page.module.css";
 
@@ -19,6 +19,7 @@ const WORKFLOW_LINES = [
 export function HomeHero() {
   const { t, i18n } = useTranslation();
   const { showError, showSuccess } = useToast();
+  const useCaseImage = getUseCaseImage(i18n.language);
 
   useEffect(() => {
     document.title = HOME_TITLE;
@@ -84,10 +85,11 @@ export function HomeHero() {
 
           <div className={`${styles.useCaseShot} min-w-0 w-full`}>
             <Image
-              src={USE_CASE_ZH_IMAGE}
+              key={useCaseImage.src}
+              src={useCaseImage.src}
               alt={t("home.useCaseAlt")}
-              width={USE_CASE_ZH_WIDTH}
-              height={USE_CASE_ZH_HEIGHT}
+              width={useCaseImage.width}
+              height={useCaseImage.height}
               priority
               unoptimized
               sizes="(min-width: 1024px) 42vw, 100vw"

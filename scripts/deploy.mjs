@@ -83,7 +83,7 @@ Options:
   --tag <tag>           Image tag (default: latest or DOCKER_IMAGE_TAG)
   --image <name>        Image name without registry (default: clovapi or DOCKER_IMAGE_NAME)
   --container <name>    Remote container name (default: clovapi)
-  --host-port <port>    Remote exposed frontend port (default: 3000)
+  --host-port <port>    Remote exposed frontend port (default: 27483)
   --pull-base           Ask docker build to pull newer base images (FROM ...); default is local-only
   --no-image-update     Skip local build/login/push and remote pull
   --dry-run             Print commands only, do not execute
@@ -149,7 +149,7 @@ async function main() {
   const repoRoot = process.cwd();
   const configPath = path.resolve(repoRoot, getArgValue("--config") || ".env.deploy");
   const envFilePath = path.resolve(repoRoot, getArgValue("--env-file") || ".env");
-  const dockerfilePath = path.resolve(repoRoot, "web/Dockerfile.frontend");
+  const dockerfilePath = path.resolve(repoRoot, "landing/Dockerfile.frontend");
 
   if (!fs.existsSync(dockerfilePath)) {
     throw new Error(`dockerfile not found: ${dockerfilePath}`);
@@ -180,8 +180,10 @@ async function main() {
     getArgValue("--host-port") ||
     deployEnv.REMOTE_FRONTEND_PORT ||
     deployEnv.REMOTE_HOST_PORT ||
-    "3000";
+    "27483";
   const skipImageUpdate = noImageUpdate || isTruthy(deployEnv.DEPLOY_SKIP_IMAGE_UPDATE);
+  /** Remote VPS is typically linux/amd64; Mac builds must cross-compile or the container crashes with "exec format error". */
+  const dockerPlatform = (deployEnv.DEPLOY_DOCKER_PLATFORM || "linux/amd64").trim();
   /** Prefer local base images (FROM ...) when networking to Docker Hub is flaky; override with --pull-base or DEPLOY_DOCKER_PULL_BASE=true */
   const pullBaseImages =
     hasFlag("--pull-base") || isTruthy(deployEnv.DEPLOY_DOCKER_PULL_BASE);
@@ -212,6 +214,7 @@ async function main() {
   console.log(`- container: ${containerName}`);
   console.log(`- ports: frontend ${frontendHostPort}->3000`);
   console.log(`- env file: ${path.relative(repoRoot, envFilePath)}`);
+  console.log(`- docker platform: ${dockerPlatform}`);
   console.log(`- image update: ${skipImageUpdate ? "disabled" : "enabled"}`);
   if (!skipImageUpdate) {
     console.log(`- docker build base images: ${pullBaseImages ? "pull from registry" : "local only (--pull=false)"}`);
@@ -225,8 +228,8 @@ async function main() {
     // 1. Build local docker image
     console.log("\n[1/6] Building local docker image...");
     const buildArgs = pullBaseImages
-      ? ["build", "--pull=true", "-f", dockerfilePath, "-t", imageRef, "."]
-      : ["build", "--pull=false", "-f", dockerfilePath, "-t", imageRef, "."];
+      ? ["build", "--platform", dockerPlatform, "--pull=true", "-f", dockerfilePath, "-t", imageRef, "."]
+      : ["build", "--platform", dockerPlatform, "--pull=false", "-f", dockerfilePath, "-t", imageRef, "."];
     await run("docker", buildArgs, { cwd: repoRoot });
 
     // 2. Login and push

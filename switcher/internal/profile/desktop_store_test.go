@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/clovapi/switcher/internal/apistyle"
+	"github.com/clovapi/switcher/internal/clikind"
 	cfgpkg "github.com/clovapi/switcher/internal/config"
 )
 
@@ -79,5 +81,25 @@ func TestEmptyStoreDefaultsToDesktopProxyConfig(t *testing.T) {
 	}
 	if !s.Proxy.Enabled || s.Proxy.Host != "127.0.0.1" || s.Proxy.Port != 27483 {
 		t.Fatalf("proxy default = %+v", s.Proxy)
+	}
+}
+
+func TestIngressStyleForCLI(t *testing.T) {
+	codexHit := VendorModelHit{
+		Vendor: Profile{Kind: "subscription", SubscriptionProviderID: "codex", APIStyle: apistyle.OpenAIResponses},
+		Model:  Model{ID: "gpt-5.4", Model: "gpt-5.4", APIStyle: apistyle.OpenAIResponses},
+	}
+	if got := IngressStyleForCLI(clikind.Hermes, codexHit); got != apistyle.OpenAIResponses {
+		t.Fatalf("hermes codex ingress = %q want openai-responses", got)
+	}
+	claudeHit := VendorModelHit{
+		Vendor: Profile{Kind: "subscription", SubscriptionProviderID: "claude-code", APIStyle: apistyle.Claude},
+		Model:  Model{ID: "claude-opus-4-7", Model: "claude-opus-4-7", APIStyle: apistyle.Claude},
+	}
+	if got := IngressStyleForCLI(clikind.Hermes, claudeHit); got != apistyle.Claude {
+		t.Fatalf("hermes claude ingress = %q want claude", got)
+	}
+	if got := IngressStyleForCLI(clikind.Codex, codexHit); got != apistyle.OpenAIResponses {
+		t.Fatalf("codex cli ingress = %q", got)
 	}
 }

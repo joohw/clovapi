@@ -839,7 +839,7 @@ func RemoveLocalProxyStubs(s *Store) {
 	s.List = filtered
 }
 
-// CliIngressStyle returns the API style segment for local proxy ingress paths.
+// CliIngressStyle returns the default API style segment for local proxy ingress paths.
 func CliIngressStyle(kind clikind.Kind) apistyle.Style {
 	switch kind {
 	case clikind.ClaudeCode, clikind.KimiCode:
@@ -848,6 +848,29 @@ func CliIngressStyle(kind clikind.Kind) apistyle.Style {
 		return apistyle.OpenAIResponses
 	default:
 		return apistyle.OpenAIChat
+	}
+}
+
+// IngressStyleForCLI picks proxy ingress style from CLI kind and vendor/model wire style.
+// Hermes agent runs gpt-5.x Codex subscription through /responses (codex_responses), not chat_completions.
+func IngressStyleForCLI(kind clikind.Kind, hit VendorModelHit) apistyle.Style {
+	modelStyle := firstStyle(hit.Model.APIStyle, hit.Vendor.APIStyle)
+	switch kind {
+	case clikind.ClaudeCode, clikind.KimiCode:
+		return apistyle.Claude
+	case clikind.Codex:
+		return apistyle.OpenAIResponses
+	default:
+		switch modelStyle {
+		case apistyle.Claude:
+			return apistyle.Claude
+		case apistyle.OpenAIResponses:
+			return apistyle.OpenAIResponses
+		case apistyle.Gemini:
+			return apistyle.Gemini
+		default:
+			return apistyle.OpenAIChat
+		}
 	}
 }
 

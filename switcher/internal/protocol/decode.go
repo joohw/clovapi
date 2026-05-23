@@ -66,9 +66,6 @@ func DecodeRequestClaude(body []byte) (Request, error) {
 	if v, ok := raw["stream"]; ok {
 		b := coerceBoolPreferTrueDefault(v)
 		streamPtr = &b
-	} else {
-		trueVal := true
-		streamPtr = &trueVal
 	}
 	msgsAny, _ := raw["messages"].([]any)
 	msgList, sys := PartitionSystemMessages(msgsAny, raw["system"])
@@ -101,9 +98,6 @@ func DecodeRequestOpenAIChat(body []byte) (Request, error) {
 	if v, ok := raw["stream"]; ok {
 		b := coerceBoolPreferTrueDefault(v)
 		streamPtr = &b
-	} else {
-		trueVal := true
-		streamPtr = &trueVal
 	}
 	msgsAny, _ := raw["messages"].([]any)
 	msgList, sys := PartitionSystemMessages(msgsAny, raw["system"])
@@ -145,9 +139,6 @@ func DecodeRequestOpenAIResponses(body []byte) (Request, error) {
 	if v, ok := raw["stream"]; ok {
 		b := coerceBoolPreferTrueDefault(v)
 		streamPtr = &b
-	} else {
-		trueVal := true
-		streamPtr = &trueVal
 	}
 
 	var maxTok *int

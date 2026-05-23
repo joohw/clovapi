@@ -140,7 +140,8 @@ func EncodeRequestOpenAIResponses(r Request) ([]byte, error) {
 	if r.MaxTokens != nil && !codex {
 		body["max_output_tokens"] = *r.MaxTokens
 	}
-	if r.Temperature != nil {
+	// Codex subscription /responses rejects temperature (and related sampling knobs).
+	if r.Temperature != nil && !codex {
 		body["temperature"] = *r.Temperature
 	}
 	return json.Marshal(body)

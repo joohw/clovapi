@@ -394,6 +394,13 @@ func resolveProfileForSwitch(s *profile.Store, kind clikind.Kind, profileName st
 }
 
 func applyProfileToCLI(s *profile.Store, kind clikind.Kind, p profile.Profile, label string) error {
+	activeLabel := strings.TrimSpace(label)
+	if activeLabel == "" {
+		activeLabel = strings.TrimSpace(p.Name)
+	}
+	if strings.HasPrefix(activeLabel, profile.ModelBindingPrefix) {
+		return applyBindingSwitch(kind, activeLabel)
+	}
 	if !apply.KindSupportsStyle(kind, p.APIStyle) {
 		return fmt.Errorf("cli %q does not support api_style %q (supported here: %s)", kind, p.APIStyle, styleChoices(kind))
 	}
@@ -402,7 +409,6 @@ func applyProfileToCLI(s *profile.Store, kind clikind.Kind, p profile.Profile, l
 	if err := apply.Apply(pc); err != nil {
 		return err
 	}
-	activeLabel := strings.TrimSpace(label)
 	if activeLabel == "" {
 		activeLabel = p.Name
 	}

@@ -75,7 +75,10 @@ async function runClovapiArgsAndWait(args: string[], options?: { silent?: boolea
       return { ok: false, code: result?.code, error: result?.error };
     }
     const code = result.code;
-    return { ok: code === 0 || code === null || code === undefined, code };
+    const stderr = String(result.stderr || "").trim();
+    const stdout = String(result.stdout || "").trim();
+    const ok = code === 0 || code === null || code === undefined;
+    return { ok, code, stderr, stdout, error: ok ? "" : stderr || stdout };
   } finally {
     setRunning(false);
   }
@@ -152,8 +155,10 @@ export async function runCliApply(cli: CliDef) {
     if (!exit?.ok) {
       const exitCode = exit && "code" in exit ? exit.code : undefined;
       const bridgeError = exit && "error" in exit ? String(exit.error || "").trim() : "";
+      const stderr = exit && "stderr" in exit ? String(exit.stderr || "").trim() : "";
       toast.error(
         bridgeError ||
+          stderr ||
           (exitCode != null
             ? t("toast.cliWriteFailed", { name: cli.name, code: String(exitCode) })
             : t("toast.cliWriteFailedGeneric")),

@@ -52,7 +52,7 @@ func MergeJSONSuccessHeaders(sanitized http.Header, body []byte) http.Header {
 
 // FinalizeNonStreamProxyDownstream decompresses upstream bodies and either passthrough-preserves ingress wire bytes or transcoding through the response IR bridge.
 //
-// Preconditions: callers must gate this helper for streaming=false client requests only; SSE upstream payloads are rejected (stream:true relays use transcoding separately).
+// Preconditions: callers must gate this helper for streaming=false client requests only; SSE upstream payloads are materialized into JSON for the ingress wire shape.
 func FinalizeNonStreamProxyDownstream(
 	ingress, egress apistyle.Style,
 	status int,
@@ -66,19 +66,21 @@ func FinalizeNonStreamProxyDownstream(
 	}
 
 	baseSanitized := SanitizeUpstreamResponseHeaders(upstream)
+	ctype := strings.ToLower(strings.TrimSpace(upstream.Get("Content-Type")))
+	sseWire := strings.Contains(ctype, "text/event-stream") || LooksLikeSSEWire(decodedPlain)
 
-	if ingress == egress {
+	if ingress == egress && !sseWire {
 		hdr := baseSanitized.Clone()
 		hdr.Set("Content-Length", strconv.Itoa(len(decodedPlain)))
 		return status, hdr, decodedPlain, nil
 	}
 
-	ctype := strings.ToLower(strings.TrimSpace(upstream.Get("Content-Type")))
-	if strings.Contains(ctype, "text/event-stream") {
-		return 0, nil, nil, ErrUpstreamSSEForNonStreamingClient
+	var ev []ResponseEvent
+	if sseWire {
+		ev = MaterializeSSEUpstreamEvents(egress, decodedPlain)
+	} else {
+		ev = MaterializePlainUpstreamEvents(egress, status, decodedPlain)
 	}
-
-	ev := MaterializePlainUpstreamEvents(egress, status, decodedPlain)
 	outJSON, encErr := EncodeNonStreamJSONResponseForStyle(ingress, ev)
 	if encErr != nil {
 		return 0, nil, nil, fmt.Errorf("encode ingress response: %w", encErr)
@@ -112,4 +114,32 @@ func MaterializePlainUpstreamEvents(egress apistyle.Style, status int, plain []b
 		}}
 	}
 	return ev
+}
+
+// MaterializeSSEUpstreamEvents parses a buffered upstream SSE plaintext body into response IR slices.
+func MaterializeSSEUpstreamEvents(egress apistyle.Style, plain []byte) []ResponseEvent {
+	if len(plain) == 0 {
+		return []ResponseEvent{{
+			Type:    RespError,
+			Message: "empty upstream SSE response",
+			Code:    UpstreamErrorCode,
+		}}
+	}
+	parseSt := SSEParseState{}
+	decSt := SSEUpstreamDecodeState{}
+	var events []ResponseEvent
+	for _, rec := range AppendParse(plain, &parseSt) {
+		events = append(events, DecodeSSEStreamRecord(egress, rec, &decSt)...)
+	}
+	for _, rec := range FlushSSEParseState(&parseSt) {
+		events = append(events, DecodeSSEStreamRecord(egress, rec, &decSt)...)
+	}
+	if len(events) == 0 {
+		return []ResponseEvent{{
+			Type:    RespError,
+			Message: "upstream SSE response contained no decodable events",
+			Code:    DecodeFailCode,
+		}}
+	}
+	return events
 }

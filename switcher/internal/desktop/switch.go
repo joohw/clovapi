@@ -46,8 +46,12 @@ func ApplyBinding(kind clikind.Kind, binding string) error {
 		return fmt.Errorf("unsupported vendor: %s", vendorName)
 	}
 
-	ingressStyle := profile.CliIngressStyle(kind)
-	pathModelID, modelWire := profile.ResolveWireModelForIngress(hit, modelID)
+	applyHit := hit
+	if kind == clikind.Hermes && len(hit.Vendor.Models) > 0 {
+		applyHit = profile.VendorModelHit{Vendor: hit.Vendor, Model: hit.Vendor.Models[0]}
+	}
+	ingressStyle := profile.IngressStyleForCLI(kind, applyHit)
+	pathModelID, modelWire := profile.ResolveWireModelForIngress(applyHit, applyHit.Model.ID)
 	port := s.Proxy.Port
 	if port == 0 {
 		port = 27483
@@ -55,12 +59,15 @@ func ApplyBinding(kind clikind.Kind, binding string) error {
 	baseURL := provider.BuildProxyIngressBaseURL(port, providerID, pathModelID, string(ingressStyle))
 
 	p := profile.Profile{
-		Name:     binding,
-		CLI:      kind,
-		BaseURL:  baseURL,
-		APIKey:   "clovapi-local",
-		Model:    modelWire,
-		APIStyle: ingressStyle,
+		Name:                   binding,
+		CLI:                    kind,
+		Kind:                   hit.Vendor.Kind,
+		SubscriptionProviderID: hit.Vendor.SubscriptionProviderID,
+		BaseURL:                baseURL,
+		APIKey:                 "clovapi-local",
+		Model:                  modelWire,
+		Models:                 hit.Vendor.Models,
+		APIStyle:               ingressStyle,
 	}
 	if !apply.KindSupportsStyle(kind, p.APIStyle) {
 		return fmt.Errorf("cli %q does not support api_style %q", kind, p.APIStyle)

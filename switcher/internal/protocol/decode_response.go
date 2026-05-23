@@ -85,6 +85,21 @@ type errorWire struct {
 	code    string
 }
 
+func responseDetailError(raw map[string]any) ([]ResponseEvent, bool) {
+	if raw == nil {
+		return nil, false
+	}
+	detail := strings.TrimSpace(fmt.Sprint(raw["detail"]))
+	if detail == "" || detail == "<nil>" {
+		return nil, false
+	}
+	return []ResponseEvent{{
+		Type:    RespError,
+		Message: detail,
+		Code:    "api_error",
+	}}, true
+}
+
 func envelopeError(v any) errorWire {
 	out := errorWire{}
 	if v == nil {
@@ -103,6 +118,9 @@ func envelopeError(v any) errorWire {
 func decodeOpenAIChatResponseJSON(raw map[string]any) []ResponseEvent {
 	if raw == nil {
 		raw = map[string]any{}
+	}
+	if ev, ok := responseDetailError(raw); ok {
+		return ev
 	}
 	if errObj := raw["error"]; errObj != nil {
 		em := envelopeError(errObj)
@@ -164,6 +182,9 @@ func coalesceFinishReasonOpenAIChat(choice map[string]any) string {
 func decodeOpenAIResponsesResponseJSON(raw map[string]any) []ResponseEvent {
 	if raw == nil {
 		raw = map[string]any{}
+	}
+	if ev, ok := responseDetailError(raw); ok {
+		return ev
 	}
 	if errObj := raw["error"]; errObj != nil {
 		em := envelopeError(errObj)

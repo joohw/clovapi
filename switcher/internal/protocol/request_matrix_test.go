@@ -153,13 +153,14 @@ func TestEncodeOpenAIResponsesAssistantHistoryUsesOutputText(t *testing.T) {
 
 func TestCodexSubscriptionSkipsMaxOutputTokens(t *testing.T) {
 	max := 64
+	temp := 0.3
 	ir := protocol.Request{
 		Model:       "gpt-5.4",
 		Messages:    []protocol.Message{{Role: protocol.RoleUser, Content: "hi"}},
 		Stream:      false,
 		MaxTokens:   &max,
 		Meta:        &protocol.Metadata{CodexSubscription: true},
-		Temperature: nil,
+		Temperature: &temp,
 	}
 	raw, err := protocol.EncodeRequestOpenAIResponses(ir)
 	if err != nil {
@@ -172,6 +173,38 @@ func TestCodexSubscriptionSkipsMaxOutputTokens(t *testing.T) {
 	if _, ok := m["max_output_tokens"]; ok {
 		t.Fatalf("max_output_tokens must be omitted for Codex subscription: %+v", m)
 	}
+	if _, ok := m["temperature"]; ok {
+		t.Fatalf("temperature must be omitted for Codex subscription: %+v", m)
+	}
+}
+
+func TestPrepareOpenAIChatToCodexSubscriptionOmitsTemperature(t *testing.T) {
+	body := []byte(`{
+		"model": "gpt-5.4",
+		"messages": [{"role": "user", "content": "title this chat"}],
+		"stream": false,
+		"temperature": 0.2,
+		"max_tokens": 32
+	}`)
+	up, _, _, err := protocol.PrepareUpstreamRequest(
+		apistyle.OpenAIChat,
+		apistyle.OpenAIResponses,
+		body,
+		protocol.UpstreamHints{Model: "gpt-5.4", Source: "subscription:codex"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(up, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := parsed["temperature"]; ok {
+		t.Fatalf("temperature must be omitted for Codex subscription: %+v", parsed)
+	}
+	if _, ok := parsed["max_output_tokens"]; ok {
+		t.Fatalf("max_output_tokens must be omitted for Codex subscription: %+v", parsed)
+	}
 }
 
 func TestPrepareMissingModelFails(t *testing.T) {
@@ -180,6 +213,29 @@ func TestPrepareMissingModelFails(t *testing.T) {
 		protocol.UpstreamHints{})
 	if err == nil || !strings.Contains(err.Error(), "missing model") {
 		t.Fatalf("expected missing model error, got %v", err)
+	}
+}
+
+func TestPrepareDefaultsStreamFalseWhenOmitted(t *testing.T) {
+	body := []byte(`{"model":"gpt-5.4","messages":[{"role":"user","content":"title this chat"}]}`)
+	up, ir, _, err := protocol.PrepareUpstreamRequest(
+		apistyle.OpenAIChat,
+		apistyle.OpenAIResponses,
+		body,
+		protocol.UpstreamHints{Model: "gpt-5.4", Source: "subscription:codex"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ir.Stream {
+		t.Fatalf("stream should default false when omitted, ir=%+v", ir)
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(up, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	if parsed["stream"] != false {
+		t.Fatalf("upstream stream = %#v, want false", parsed["stream"])
 	}
 }
 

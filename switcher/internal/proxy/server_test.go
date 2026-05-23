@@ -305,6 +305,25 @@ func wireClaudeUpstreamStore(base string) *profile.Store {
 	}
 }
 
+func wireResponsesUpstreamStore(base string) *profile.Store {
+	return &profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:     provider.CustomAPIVendorName,
+			Kind:     "api",
+			APIStyle: apistyle.OpenAIResponses,
+			BaseURL:  base,
+			APIKey:   "sk-test",
+			Model:    "gpt-parent",
+			Models: []profile.Model{{
+				ID:       "cross-model-id",
+				Model:    "gpt-wire",
+				APIStyle: apistyle.OpenAIResponses,
+			}},
+		}},
+	}
+}
+
 func TestCrossProtocolOpenAIIngressWithClaudeUpstreamTranscodesJSON(t *testing.T) {
 	var upstreamHits int
 	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -440,35 +459,54 @@ func TestCrossProtocolIngressDecompressesGzipUpstream(t *testing.T) {
 	}
 }
 
-func TestCrossProtocolSSEUpstreamRejectedForNonStreamClient(t *testing.T) {
+func TestCrossProtocolSSEUpstreamMaterializedForNonStreamClient(t *testing.T) {
+	sseReply := strings.Join([]string{
+		`event: response.output_text.delta`,
+		`data: {"type":"response.output_text.delta","delta":"Chat title"}`,
+		``,
+		`event: response.completed`,
+		`data: {"type":"response.completed","status":"completed"}`,
+		``,
+	}, "\n")
 	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-cache")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("event: hello\ndata: {}\n\n"))
+		_, _ = w.Write([]byte(sseReply))
 	}))
 	defer up.Close()
 
 	base := strings.TrimRight(up.URL, "/") + "/v1"
-	store := wireClaudeUpstreamStore(base)
+	store := wireResponsesUpstreamStore(base)
 
 	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
 
-	payload := `{"model":"cross-model-id","messages":[{"role":"user","content":"ping"}],"stream":false}`
+	payload := `{"model":"cross-model-id","messages":[{"role":"user","content":"title this chat"}],"stream":false}`
 	resp, err := http.Post(ts.URL+"/custom-api/cross-model-id/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusNotImplemented {
+	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status=%d body=%s", resp.StatusCode, body)
 	}
-	if !strings.Contains(string(body), "text/event-stream") {
-		t.Fatalf("unexpected error envelope %s", body)
+	if strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "text/event-stream") {
+		t.Fatalf("expected JSON downstream, ct=%s", resp.Header.Get("Content-Type"))
+	}
+	var wire map[string]any
+	if err := json.Unmarshal(body, &wire); err != nil {
+		t.Fatalf("expected JSON body, got %q: %v", body, err)
+	}
+	choices, ok := wire["choices"].([]any)
+	if !ok || len(choices) == 0 {
+		t.Fatalf("missing choices in %#v", wire)
+	}
+	msg, ok := choices[0].(map[string]any)["message"].(map[string]any)
+	if !ok || msg["content"] != "Chat title" {
+		t.Fatalf("unexpected assistant body %#v", wire)
 	}
 }
 

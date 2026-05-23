@@ -2,7 +2,13 @@ export {};
 
 type CliBridge = {
   run(command: string, cwd: string, env: Record<string, string>): Promise<unknown>;
-  runClovapi(args: string[], cwd: string): Promise<{ ok?: boolean; error?: string; code?: number | null }>;
+  runClovapi(args: string[], cwd: string): Promise<{
+    ok?: boolean;
+    error?: string;
+    code?: number | null;
+    stdout?: string;
+    stderr?: string;
+  }>;
   stop(): Promise<unknown>;
   state(): Promise<{ running?: boolean }>;
   defaultCwd(): Promise<{ cwd?: string }>;

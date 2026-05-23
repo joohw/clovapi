@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/clovapi/switcher/internal/apistyle"
@@ -105,6 +106,43 @@ func TestFinalizeCrossStylePropagatesUpstreamErrorShape(t *testing.T) {
 	}
 	if wire["choices"] != nil {
 		t.Fatalf("expected OpenAI-shaped error envelope, got %+v", wire)
+	}
+}
+
+func TestFinalizeNonStreamMaterializesUpstreamSSE(t *testing.T) {
+	t.Parallel()
+	sseReply := strings.Join([]string{
+		`event: response.output_text.delta`,
+		`data: {"type":"response.output_text.delta","delta":"Chat title"}`,
+		``,
+		`event: response.completed`,
+		`data: {"type":"response.completed","status":"completed"}`,
+		``,
+	}, "\n")
+	status, hdr, body, err := protocol.FinalizeNonStreamProxyDownstream(
+		apistyle.OpenAIChat,
+		apistyle.OpenAIResponses,
+		200,
+		http.Header{"Content-Type": {"text/event-stream; charset=utf-8"}},
+		[]byte(sseReply),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status != 200 {
+		t.Fatalf("status=%d", status)
+	}
+	if strings.Contains(strings.ToLower(hdr.Get("Content-Type")), "text/event-stream") {
+		t.Fatalf("expected JSON downstream headers, got %+v", hdr)
+	}
+	var wire map[string]any
+	if err := json.Unmarshal(body, &wire); err != nil {
+		t.Fatal(err)
+	}
+	choices := wire["choices"].([]any)
+	msg := choices[0].(map[string]any)["message"].(map[string]any)
+	if msg["content"] != "Chat title" {
+		t.Fatalf("content=%v", msg["content"])
 	}
 }
 

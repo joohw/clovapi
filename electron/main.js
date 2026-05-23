@@ -63,10 +63,14 @@ function createWindow() {
 }
 
 function emitOutput(type, chunk) {
+  const text = String(chunk ?? "");
+  if (process.env.ELECTRON_DEV === "1" && text) {
+    process.stdout.write(`[clovapi:${type}] ${text}`);
+  }
   if (!mainWindow || mainWindow.isDestroyed()) return;
   mainWindow.webContents.send("cli:output", {
     type,
-    data: String(chunk ?? "")
+    data: text
   });
 }
 
@@ -126,15 +130,23 @@ function spawnExecutableAndWait(executable, args, cwd) {
       stdio: ["ignore", "pipe", "pipe"],
     });
     runningProcess = child;
+    const stdoutChunks = [];
+    const stderrChunks = [];
     const cmdLine = `$ ${executable} ${args.join(" ")}`;
     emitOutput("system", `${cmdLine}\n`);
-    child.stdout.on("data", (chunk) => emitOutput("stdout", chunk));
-    child.stderr.on("data", (chunk) => emitOutput("stderr", chunk));
+    child.stdout.on("data", (chunk) => {
+      stdoutChunks.push(String(chunk ?? ""));
+      emitOutput("stdout", chunk);
+    });
+    child.stderr.on("data", (chunk) => {
+      stderrChunks.push(String(chunk ?? ""));
+      emitOutput("stderr", chunk);
+    });
     child.on("error", (error) => {
       const message = error.message || "Failed to start clovapi.";
       emitOutput("stderr", `${message}\n`);
       runningProcess = null;
-      resolve({ ok: false, error: message });
+      resolve({ ok: false, error: message, stdout: stdoutChunks.join(""), stderr: stderrChunks.join("") });
     });
     child.on("close", (code, signal) => {
       const exitLine = `[exit] code=${String(code)} signal=${String(signal)}`;
@@ -143,7 +155,13 @@ function spawnExecutableAndWait(executable, args, cwd) {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send("cli:exit", { code, signal });
       }
-      resolve({ ok: true, code, signal });
+      resolve({
+        ok: true,
+        code,
+        signal,
+        stdout: stdoutChunks.join(""),
+        stderr: stderrChunks.join(""),
+      });
     });
   });
 }
@@ -241,7 +259,13 @@ ipcMain.handle("cli:run-clovapi", async (_event, payload) => {
     if (!result.ok) {
       return { ok: false, error: result.error || "Failed to start clovapi." };
     }
-    return { ok: true, code: result.code ?? null, signal: result.signal ?? null };
+    return {
+      ok: true,
+      code: result.code ?? null,
+      signal: result.signal ?? null,
+      stdout: result.stdout ?? "",
+      stderr: result.stderr ?? "",
+    };
   } catch (error) {
     return {
       ok: false,

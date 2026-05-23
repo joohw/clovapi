@@ -9,6 +9,8 @@
     "dev:ui": "vite --config ui/vite.config.mjs",
     "dev": "concurrently -k \"npm run dev:ui\" \"wait-on tcp:5173 && cross-env ELECTRON_DEV=1 electron .\"",
     "build:ui": "vite build --config ui/vite.config.mjs",
+    "prepare:cli:darwin": "node scripts/prepare-darwin-cli.mjs",
+    "build:mac": "npm run build:ui && npm run prepare:cli:darwin && electron-builder --mac dmg",
     "test": "node --test proxy-manager.test.js",
     "start": "npm run build:ui && electron ."
   },
@@ -20,6 +22,7 @@
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
     "electron": "^42.0.1",
+    "electron-builder": "^26.8.1",
     "mode-watcher": "^1.1.0",
     "svelte": "^5.33.0",
     "svelte-sonner": "^1.1.1",
@@ -35,5 +38,44 @@
     "clovapi": "file:..",
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.3.0"
+  },
+  "build": {
+    "appId": "com.clovapi.switcher",
+    "productName": "ClovAPI Switcher",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!ui/**",
+      "!dist/**",
+      "!bin/**",
+      "!scripts/**",
+      "!**/*.test.js",
+      "!node_modules/clovapi/**"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "extraResources": [
+        {
+          "from": "bin/clovapi",
+          "to": "bin/clovapi"
+        }
+      ]
+    },
+    "dmg": {
+      "artifactName": "clovapi-desktop-darwin-universal.${ext}"
+    }
   }
 }

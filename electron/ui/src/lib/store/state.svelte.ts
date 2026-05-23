@@ -1,7 +1,7 @@
 import { CUSTOM_PRESET_ID, DEFAULT_CLIS, DEFAULT_PRESETS } from "../constants";
-import type { CliDef, ModelTestEntry, Preset, ProxyLogEntry, SubscriptionItem, Vendor } from "../../global";
+import type { CliDef, ModelTestEntry, Preset, ProxyLogEntry, ProxySystemLogEntry, SubscriptionItem, Vendor } from "../../global";
 
-export type TabId = "cli" | "profiles" | "logs" | "settings";
+export type TabId = "cli" | "profiles" | "call-logs" | "system-logs" | "settings";
 
 export const store = $state({
   activeTab: "cli" as TabId,
@@ -38,8 +38,10 @@ export const store = $state({
   proxyPort: 27483,
   proxyBaseUrl: "http://127.0.0.1:27483",
   proxyLogs: [] as ProxyLogEntry[],
+  proxySystemLogs: [] as ProxySystemLogEntry[],
   proxyLogsLoading: false,
   proxyLogSelectedId: null as string | null,
+  proxySystemLogSelectedId: null as string | null,
   vendorFetching: {} as Record<string, boolean>,
   profilesSelectedVendor: null as string | null,
 });

@@ -6,7 +6,7 @@
 
 Small cross-platform CLI that stores **CLI-bound upstream API profiles** (base URL, key, `api_style`, model) and **applies** them to coding-agent binaries you use — Claude Code, Codex, OpenCode, OpenClaw, Hermes, Kimi Code CLI, …  
 
-Flow: **`clovapi set --name …`** (save + probe) → **`clovapi switch --cli …`** or interactive **`clovapi switch`** (apply one CLI at a time).
+Flow: **`clovapi add --name …`** (save + probe) → **`clovapi switch --cli …`** or interactive **`clovapi switch`** (apply one CLI at a time).
 
 For **Claude Code**, env wiring matches community **cc-switch** / **ccswitch**; see **Compared with community cc-switch / ccswitch** below.
 
@@ -14,11 +14,11 @@ For **Claude Code**, env wiring matches community **cc-switch** / **ccswitch**; 
 
 | Command | Description |
 |--------|-------------|
-| `clovapi lit` | Show saved profiles, CLI ↔ API-style matrix, and last-applied CLIs (aliases: **`profiles`**, **`list`**, **`ls`**) |
-| `clovapi set --name NAME` | Save one upstream profile (CLI is chosen at switch time); connectivity test before persist (`--name` required, aliases: **`add`**, **`new`**) |
+| `clovapi list` | Show saved profiles, CLI ↔ API-style matrix, and last-applied CLIs (aliases: **`profiles`**, **`ls`**) |
+| `clovapi add --name NAME` | Save one upstream profile (CLI is chosen at switch time); connectivity test before persist (`--name` required, aliases: **`set`**, **`new`**) |
 | `clovapi remove <name>` | Remove one saved profile (aliases: **`rm`**, **`delete`**) |
 | `clovapi switch [--cli KIND] [PROFILE_NAME]` | Apply one profile to one CLI. Interactive flow: choose CLI first, then choose a profile for that CLI, or **`0)` reset this CLI only**. Alias **`use`** |
-| `clovapi test [PROFILE_NAME]` | Test connectivity for all saved profiles, or one profile by name |
+| `clovapi proxy` | Run and inspect the built-in local proxy core (`start`, `status`, `config`) |
 | `clovapi reset` | Clear all saved profiles and bindings (`--yes` / `-y` skips prompt) |
 
 ## Build
@@ -34,7 +34,7 @@ go build -o clovapi ./cmd/clovapi
 
 ```bash
 npm i -g @clovapi/cli
-clovapi version
+clovapi --help
 ```
 
 ### Homebrew (tap formula)
@@ -69,20 +69,7 @@ cd switcher && go test ./...
 
 State file: `profiles.json` (0600). It stores **`profiles`** (all saved rows) and **`active`** (last applied profile name per CLI).
 
-## API styles & CLI matrix
-
-Your **single `api_style`** must match each CLI you apply to:
-
-| CLI | `claude` | `openai-chat` | `openai-responses` | `gemini` |
-|-----|----------|----------------|---------------------|----------|
-| `claude-code` | yes | no | no | no |
-| `codex` | no | no | yes | no |
-| `opencode` | yes | yes | yes | yes |
-| `openclaw` | yes | yes | yes | yes |
-| `hermes` | yes | yes | yes | yes |
-| `kimi-code` | yes | yes | yes | yes |
-
-`clovapi switch` always targets a single CLI. Use `--cli` for non-interactive scripts; `switch --cli` rejects a mismatching style.
+`clovapi switch` always targets a single CLI. Use `--cli` for non-interactive scripts. Each CLI adapter picks the appropriate upstream API style internally — you do not need to match styles manually.
 
 ## Apply behavior (summary)
 
@@ -107,8 +94,8 @@ Paths expand correctly on Windows (user profile / AppData).
 
 | clovapi | Alias(es) | Similar to |
 |---------|-----------|------------|
-| `lit` | `profiles`, `list`, `ls` | `cc-switch list`, `ccswitch list` |
-| `set` | `add`, `new` | One-shot save of upstream binding |
+| `list` | `profiles`, `ls` | `cc-switch list`, `ccswitch list` |
+| `add` | `set`, `new` | One-shot save of upstream binding |
 | `switch [--cli …]` | `use …` | Apply one saved profile into one tool config |
 | `remove NAME` | `rm`, `delete` | Delete one saved profile |
 
@@ -149,10 +136,10 @@ Use API style **`claude`** and Anthropic base URL from DeepSeek docs:
 - **API key:** your DeepSeek key (prefer env `DEEPSEEK_API_KEY` or `CLOVAPI_API_KEY`, do not commit keys)
 - **Model (required):** e.g. `deepseek-v4-flash` or `deepseek-v4-pro` via `--model` (also prompted if omitted)
 
-Connectivity check (same as `clovapi test`): **`POST …/v1/messages`** with your model (Anthropic headers). If that returns **404** on the Messages path, **`set` / `test` retry** **`POST https://<same-host>/v1/chat/completions`** with **Bearer** the same key (unified gateways).
+Connectivity check (during `clovapi add`): **`POST …/v1/messages`** with your model (Anthropic headers). If that returns **404** on the Messages path, **`add` retries** **`POST https://<same-host>/v1/chat/completions`** with **Bearer** the same key (unified gateways).
 
 ```bash
-clovapi set --api-style claude \
+clovapi add --api-style claude \
   --name deepseek-claude \
   --base-url https://api.deepseek.com/anthropic \
   --model deepseek-v4-flash \
@@ -168,7 +155,7 @@ Use **`codex`** + **`openai-responses`** (legacy **`openai`** is accepted and st
 ```bash
 export DEEPSEEK_API_KEY="..."   # do not paste keys into chat logs
 
-clovapi set --api-style openai-responses \
+clovapi add --api-style openai-responses \
   --name deepseek-codex \
   --base-url https://api.deepseek.com/v1 \
   --model deepseek-v4-pro \
@@ -181,4 +168,4 @@ clovapi switch --cli codex
 
 ### Still seeing 401 or auth conflict?
 
-After **`go build`**, run **`clovapi switch --cli claude-code`** again (with **`clovapi set`** already saved). Open **`%USERPROFILE%\.claude\settings.json`**: you should see **`env.ANTHROPIC_AUTH_TOKEN`** (and **`ANTHROPIC_BASE_URL`**) but **no `env.ANTHROPIC_API_KEY`**. Remove duplicate credentials from **system/user environment variables** if you set them globally (`setx` / System Properties).
+After **`go build`**, run **`clovapi switch --cli claude-code`** again (with **`clovapi add`** already saved). Open **`%USERPROFILE%\.claude\settings.json`**: you should see **`env.ANTHROPIC_AUTH_TOKEN`** (and **`ANTHROPIC_BASE_URL`**) but **no `env.ANTHROPIC_API_KEY`**. Remove duplicate credentials from **system/user environment variables** if you set them globally (`setx` / System Properties).

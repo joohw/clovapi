@@ -4,6 +4,8 @@ const test = require("node:test");
 const {
   createGoProxyManager,
   buildProxyServeArgs,
+  normalizeBindHost,
+  healthClientHost,
   reachableLoopbackHost,
   healthUrl,
   redactSecrets,
@@ -18,11 +20,27 @@ test("buildProxyServeArgs — argv tokens fixed", () => {
 
 test("reachableLoopbackHost — bind-all maps to localhost health", () => {
   assert.equal(reachableLoopbackHost("0.0.0.0"), "127.0.0.1");
+  assert.equal(reachableLoopbackHost("::"), "127.0.0.1");
+});
+
+test("normalizeBindHost — strips accidental URL scheme and port", () => {
+  assert.equal(normalizeBindHost("http://127.0.0.1:8080"), "127.0.0.1");
+  assert.equal(normalizeBindHost("[::1]:27483"), "::1");
+});
+
+test("healthUrl — brackets IPv6 loopback for fetch()", () => {
+  const u = new URL(healthUrl({ host: "::1", port: 4000 }));
+  assert.equal(u.hostname, "[::1]");
+  assert.equal(u.port, "4000");
 });
 
 test("healthUrl — probes loopback host for [::]", () => {
   const u = new URL(healthUrl({ host: "::", port: 4000 }));
   assert.equal(u.hostname, "127.0.0.1");
+});
+
+test("healthUrl — rejects malformed host before fetch", () => {
+  assert.throws(() => healthUrl({ host: "not a host", port: 4000 }), /invalid proxy health URL/);
 });
 
 test("redactSecrets masks bearer-ish tokens", () => {

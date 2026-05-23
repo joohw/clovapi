@@ -13,7 +13,7 @@
     "deploy": "node scripts/deploy.mjs",
     "switcher:test": "go -C switcher test ./...",
     "switcher:build": "go -C switcher build -o clovapi ./cmd/clovapi",
-    "switcher:build:versioned": "go -C switcher build -ldflags \"-X main.version=dev-local -X main.commit=local -X main.date=local\" -o clovapi ./cmd/clovapi",
+    "switcher:install": "npm run switcher:build && sh -c 'target=$(command -v clovapi); test -n \"$target\" || exit 1; rm -f \"$target\"; cp switcher/clovapi \"$target\" && chmod +x \"$target\" && echo Installed to \"$target\"'",
     "switcher:npm:pack": "cd switcher/npm && npm pack --dry-run"
   }
 }

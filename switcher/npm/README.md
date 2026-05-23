@@ -4,7 +4,7 @@ Install `clovapi` as a global npm command:
 
 ```bash
 npm i -g @clovapi/cli
-clovapi version
+clovapi --help
 ```
 
 The package downloads platform binaries and verifies SHA256 checksums.

@@ -1,15 +1,14 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button/index.js";
   import { sortedClisForDisplay } from "../lib/helpers";
-  import {
-    activeBindingForCli,
-    buildCliBindingOptions,
-    canApplyCliBinding,
-    cliApplyTitle,
-    onCliBindingChange,
-    runCliApply,
-    store,
-  } from "../lib/store.svelte";
+import {
+  activeBindingForCli,
+  buildCliBindingOptions,
+  cliApplyTitle,
+  onCliBindingChange,
+  runCliApply,
+  store,
+} from "../lib/store.svelte";
   import type { CliDef } from "../global";
   import ListRow from "./ListRow.svelte";
   import SectionCard from "./SectionCard.svelte";
@@ -35,17 +34,17 @@
     {@const activeBinding = activeBindingForCli(cli.kind)}
     <ListRow title={cli.name} lines={rowLines(cli, installed)} linesNowrap muted={!installed}>
       {#snippet actions()}
-        <Select
-          options={bindingOptions(cli)}
-          value={activeBinding}
-          disabled={!installed || store.running}
-          onchange={(v) => void onCliBindingChange(cli, v)}
-        />
+        {#key `${cli.id}:${activeBinding}`}
+          <Select
+            options={bindingOptions(cli)}
+            value={activeBinding}
+            disabled={!installed || store.running}
+            onchange={(v) => void onCliBindingChange(cli, v)}
+          />
+        {/key}
         <Button
           size="sm"
-          disabled={!installed ||
-            store.running ||
-            !canApplyCliBinding(activeBinding, store.clovapiAvailable, store.subscriptions, store.profiles)}
+          disabled={!installed || store.running || !store.clovapiAvailable || !activeBinding}
           title={cliApplyTitle(cli)}
           onclick={() => void runCliApply(cli)}
         >

@@ -6,7 +6,7 @@
 
 小型跨平台 CLI：**保存按 CLI 维度的上游 API 配置**（Base URL、密钥、`api_style`、模型），并**写入**你使用的各类编程 Agent 二进制对应的配置——Claude Code、Codex、OpenCode、OpenClaw、Hermes、Kimi Code CLI 等。
 
-流程：**`clovapi set --name …`**（保存并探测连通性）→ **`clovapi switch --cli …`** 或交互式 **`clovapi switch`**（每次下发到单一 CLI 配置）。
+流程：**`clovapi add --name …`**（保存并探测连通性）→ **`clovapi switch --cli …`** 或交互式 **`clovapi switch`**（每次下发到单一 CLI 配置）。
 
 **Claude Code** 的环境变量写法与社区 **cc-switch** / **ccswitch** 一致；详见下文 **与社区 cc-switch / ccswitch 的对比**。
 
@@ -14,11 +14,11 @@
 
 | 命令 | 说明 |
 |------|------|
-| `clovapi lit` | 展示已保存的 profiles、CLI ↔ API 形态矩阵、上次下发的 CLI（别名：**`profiles`**、**`list`**、**`ls`**） |
-| `clovapi set --name NAME` | 保存一个上游 profile（CLI 在 switch 时再选择）；持久化前先测连通（`--name` 必填，别名：**`add`**、**`new`**） |
+| `clovapi list` | 展示已保存的 profiles、CLI ↔ API 形态矩阵、上次下发的 CLI（别名：**`profiles`**、**`ls`**） |
+| `clovapi add --name NAME` | 保存一个上游 profile（CLI 在 switch 时再选择）；持久化前先测连通（`--name` 必填，别名：**`set`**、**`new`**） |
 | `clovapi remove <name>` | 删除一条已保存 profile（别名：**`rm`**、**`delete`**） |
 | `clovapi switch [--cli KIND] [PROFILE_NAME]` | 将某个 profile 应用到某一 CLI（`--cli` 或交互选择）。交互流程：先选 CLI，再选 profile，或 **`0)` 仅重置该 CLI**。别名 **`use`** |
-| `clovapi test [PROFILE_NAME]` | 测试所有 profile 或指定 profile 的连通性 |
+| `clovapi proxy` | 运行并查看内置本地代理核心（`start`、`status`、`config`） |
 | `clovapi reset` | 清空所有 profile 与绑定记录（**`--yes`** / **`-y`** 跳过确认） |
 
 ## 构建
@@ -34,7 +34,7 @@ go build -o clovapi ./cmd/clovapi
 
 ```bash
 npm i -g @clovapi/cli
-clovapi version
+clovapi --help
 ```
 
 ### Homebrew（tap formula）
@@ -69,20 +69,7 @@ cd switcher && go test ./...
 
 状态文件：`profiles.json`（权限 0600）。内含 **`profiles`**（全部保存配置）和 **`active`**（每个 CLI 上次下发的 profile 名）。
 
-## API 形态与 CLI 对照表
-
-你的 **`api_style` 只能有一份**，且必须与目标 CLI 匹配：
-
-| CLI | `claude` | `openai-chat` | `openai-responses` | `gemini` |
-|-----|----------|----------------|---------------------|----------|
-| `claude-code` | 是 | 否 | 否 | 否 |
-| `codex` | 否 | 否 | 是 | 否 |
-| `opencode` | 是 | 是 | 是 | 是 |
-| `openclaw` | 是 | 是 | 是 | 是 |
-| `hermes` | 是 | 是 | 是 | 是 |
-| `kimi-code` | 是 | 是 | 是 | 是 |
-
-`clovapi switch` 始终只针对单一 CLI。脚本场景用 `--cli` 指定目标；**`switch --cli`** 会在风格不匹配时拒绝执行。
+`clovapi switch` 始终只针对单一 CLI。脚本场景用 `--cli` 指定目标。各 CLI 适配器会在内部自动选择最合适的上游 API 形态，无需手动对照风格表。
 
 ## 下发行为摘要
 
@@ -107,8 +94,8 @@ cd switcher && go test ./...
 
 | clovapi | 别名 | 类似 |
 |---------|------|------|
-| `lit` | `profiles`、`list`、`ls` | `cc-switch list`、`ccswitch list` |
-| `set` | `add`、`new` | 一次性保存上游绑定 |
+| `list` | `profiles`、`ls` | `cc-switch list`、`ccswitch list` |
+| `add` | `set`、`new` | 一次性保存上游绑定 |
 | `switch [--cli …]` | `use …` | 将单个 profile 推入单一工具 |
 | `remove NAME` | `rm`、`delete` | 删除单条 profile |
 
@@ -140,10 +127,10 @@ cd switcher && go test ./...
 - **API key：** DeepSeek 密钥（建议用环境变量 `DEEPSEEK_API_KEY` 或 `CLOVAPI_API_KEY`，勿提交密钥）
 - **模型（必填）：** 例如 `deepseek-v4-flash` 或 `deepseek-v4-pro`，通过 `--model` 指定（省略时会提示输入）
 
-连通性检测（与 `clovapi test` 相同）：对 **`POST …/v1/messages`** 携带模型（Anthropic 头）。若 Messages 路径返回 **404**，**`set` / `test`** 会改用 **`POST https://<同一主机>/v1/chat/completions`**，**Bearer** 为同一密钥（统一网关场景）。
+连通性检测（`clovapi add` 保存时）：对 **`POST …/v1/messages`** 携带模型（Anthropic 头）。若 Messages 路径返回 **404**，**`add`** 会改用 **`POST https://<同一主机>/v1/chat/completions`**，**Bearer** 为同一密钥（统一网关场景）。
 
 ```bash
-clovapi set --api-style claude \
+clovapi add --api-style claude \
   --name deepseek-claude \
   --base-url https://api.deepseek.com/anthropic \
   --model deepseek-v4-flash \
@@ -159,7 +146,7 @@ clovapi switch --cli claude-code
 ```bash
 export DEEPSEEK_API_KEY="..."   # 勿把密钥粘贴到聊天记录
 
-clovapi set --api-style openai-responses \
+clovapi add --api-style openai-responses \
   --name deepseek-codex \
   --base-url https://api.deepseek.com/v1 \
   --model deepseek-v4-pro \
@@ -172,4 +159,4 @@ clovapi switch --cli codex
 
 ### 仍出现 401 或认证冲突？
 
-在 **`go build`** 之后，再次运行 **`clovapi switch --cli claude-code`**（前提是已执行 **`clovapi set`**）。打开 **`%USERPROFILE%\.claude\settings.json`**：应能看到 **`env.ANTHROPIC_AUTH_TOKEN`**（以及 **`ANTHROPIC_BASE_URL`**），且**不应出现 `env.ANTHROPIC_API_KEY`**。若在系统/用户环境变量里全局设置过凭据（`setx` / 系统属性），请移除重复项。
+在 **`go build`** 之后，再次运行 **`clovapi switch --cli claude-code`**（前提是已执行 **`clovapi add`**）。打开 **`%USERPROFILE%\.claude\settings.json`**：应能看到 **`env.ANTHROPIC_AUTH_TOKEN`**（以及 **`ANTHROPIC_BASE_URL`**），且**不应出现 `env.ANTHROPIC_API_KEY`**。若在系统/用户环境变量里全局设置过凭据（`setx` / 系统属性），请移除重复项。

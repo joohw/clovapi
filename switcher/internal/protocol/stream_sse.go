@@ -15,6 +15,27 @@ func IngressUsesClaudeSSEWire(ingress apistyle.Style, wantsStream bool) bool {
 	return wantsStream && ingress == apistyle.Claude
 }
 
+// LooksLikeSSEWire reports whether a plaintext prefix resembles SSE framing (event:/data:/id:/retry:).
+// Codex subscription upstream often omits Content-Type: text/event-stream while still streaming SSE.
+func LooksLikeSSEWire(prefix []byte) bool {
+	s := strings.TrimLeft(string(prefix), " \t\r\n")
+	if s == "" {
+		return false
+	}
+	return strings.HasPrefix(s, "event:") ||
+		strings.HasPrefix(s, "data:") ||
+		strings.HasPrefix(s, "id:") ||
+		strings.HasPrefix(s, "retry:")
+}
+
+// UpstreamResponseLooksLikeSSE combines Content-Type with optional body-prefix heuristics.
+func UpstreamResponseLooksLikeSSE(contentType string, bodyPrefix []byte) bool {
+	if strings.Contains(strings.ToLower(strings.TrimSpace(contentType)), "text/event-stream") {
+		return true
+	}
+	return LooksLikeSSEWire(bodyPrefix)
+}
+
 // MergeSSEProxyDownstreamHeaders overlays canonical SSE framing headers atop sanitized upstream metadata (Electron transformResponse SSE branch).
 func MergeSSEProxyDownstreamHeaders(baseSanitized http.Header) http.Header {
 	out := http.Header{}

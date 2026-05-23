@@ -101,16 +101,33 @@ func EncodeRequestOpenAIChat(r Request) ([]byte, error) {
 func EncodeRequestOpenAIResponses(r Request) ([]byte, error) {
 	input := make([]map[string]any, 0, len(r.Messages))
 	for _, m := range r.Messages {
+		content := strings.TrimSpace(m.Content)
+		if content == "" {
+			continue
+		}
+		role := strings.ToLower(strings.TrimSpace(string(m.Role)))
+		if role == "" {
+			role = string(RoleUser)
+		}
 		item := map[string]any{
-			"type":    "message",
-			"role":    string(m.Role),
-			"content": []map[string]any{{"type": "input_text", "text": m.Content}},
+			"type": "message",
+			"role": role,
+			"content": []map[string]any{{
+				"type": responsesMessageContentType(m.Role),
+				"text": content,
+			}},
 		}
 		input = append(input, item)
 	}
-	instructions := ""
+	instructions := CollectSystemPrompt(r)
 	if r.Meta != nil {
-		instructions = strings.TrimSpace(r.Meta.Instructions)
+		if extra := strings.TrimSpace(r.Meta.Instructions); extra != "" {
+			if instructions != "" {
+				instructions = instructions + "\n\n" + extra
+			} else {
+				instructions = extra
+			}
+		}
 	}
 	body := map[string]any{
 		"model":        r.Model,
@@ -127,6 +144,15 @@ func EncodeRequestOpenAIResponses(r Request) ([]byte, error) {
 		body["temperature"] = *r.Temperature
 	}
 	return json.Marshal(body)
+}
+
+func responsesMessageContentType(role Role) string {
+	switch strings.ToLower(strings.TrimSpace(string(role))) {
+	case string(RoleAssistant):
+		return "output_text"
+	default:
+		return "input_text"
+	}
 }
 
 // EncodeRequestGemini uses the OpenAI Chat wire shape (Electron gemini encoder re-exports openai-chat).

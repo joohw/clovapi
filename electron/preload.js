@@ -77,8 +77,8 @@ contextBridge.exposeInMainWorld("clovapiProxyLogs", {
   list() {
     return ipcRenderer.invoke("proxy-logs:list");
   },
-  clear() {
-    return ipcRenderer.invoke("proxy-logs:clear");
+  clear(scope) {
+    return ipcRenderer.invoke("proxy-logs:clear", { scope });
   },
 });
 

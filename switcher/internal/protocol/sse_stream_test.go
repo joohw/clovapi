@@ -144,3 +144,28 @@ func TestTranscodeSSE_drainsPlaintextAfterClaudeIngressTerminal(t *testing.T) {
 		t.Fatalf("expected normal transcoded prelude: %q", raw)
 	}
 }
+
+func TestLooksLikeSSEWire(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		in   string
+		want bool
+	}{
+		{"event: response.created\n", true},
+		{"\r\nevent: hello\n", true},
+		{"data: {}\n", true},
+		{`{"error":"nope"}`, false},
+		{"", false},
+	}
+	for _, tc := range cases {
+		if got := protocol.LooksLikeSSEWire([]byte(tc.in)); got != tc.want {
+			t.Fatalf("LooksLikeSSEWire(%q) = %v want %v", tc.in, got, tc.want)
+		}
+	}
+	if !protocol.UpstreamResponseLooksLikeSSE("", []byte("event: x\n")) {
+		t.Fatal("prefix heuristic should detect SSE without content-type")
+	}
+	if !protocol.UpstreamResponseLooksLikeSSE("text/event-stream", nil) {
+		t.Fatal("content-type should detect SSE")
+	}
+}

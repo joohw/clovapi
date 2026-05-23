@@ -8,20 +8,57 @@ const DEFAULT_HOST = "127.0.0.1";
 /** @typedef {{ host: string; port: number }} ProxyBindConfig */
 
 /** @param {unknown} bindHost */
-function reachableLoopbackHost(bindHost) {
-  const raw = String(bindHost || "").trim();
-  const h = raw.toLowerCase();
+function normalizeBindHost(bindHost) {
+  let raw = String(bindHost || "").trim();
   if (!raw) return DEFAULT_HOST;
-  if (h === "0.0.0.0" || h === "::" || h === "[::]" || h === "::ffff:0.0.0.0") {
-    return "127.0.0.1";
+
+  try {
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) {
+      raw = new URL(raw).hostname || DEFAULT_HOST;
+    }
+  } catch {
+    raw = raw.replace(/^https?:\/\//i, "").split("/")[0] || DEFAULT_HOST;
   }
-  return raw;
+
+  if (raw.startsWith("[")) {
+    const match = raw.match(/^\[([^\]]+)\](?::\d+)?$/);
+    if (match) raw = match[1];
+  } else if (!raw.includes("::")) {
+    const colon = raw.indexOf(":");
+    if (colon > 0 && /^\d+$/.test(raw.slice(colon + 1))) {
+      raw = raw.slice(0, colon);
+    }
+  }
+
+  const h = raw.toLowerCase();
+  if (h === "0.0.0.0" || h === "::" || h === "::ffff:0.0.0.0") {
+    return DEFAULT_HOST;
+  }
+  return raw || DEFAULT_HOST;
+}
+
+/** Host suitable for http://… health probes (brackets IPv6 literals). */
+function healthClientHost(bindHost) {
+  const host = normalizeBindHost(bindHost);
+  const h = host.toLowerCase();
+  if (h === "0.0.0.0" || h === "::" || h === "::ffff:0.0.0.0") {
+    return DEFAULT_HOST;
+  }
+  if (host.includes(":") && !host.startsWith("[")) {
+    return `[${host}]`;
+  }
+  return host;
+}
+
+/** @param {unknown} bindHost @deprecated use normalizeBindHost */
+function reachableLoopbackHost(bindHost) {
+  return healthClientHost(bindHost);
 }
 
 /** @param {ProxyBindConfig} cfg */
 function buildProxyServeArgs(cfg) {
-  const host = String(cfg.host || DEFAULT_HOST).trim() || DEFAULT_HOST;
-  const port = Number(cfg.port) || DEFAULT_PORT;
+  const host = normalizeBindHost(cfg?.host);
+  const port = Number(cfg?.port) || DEFAULT_PORT;
   const args = ["proxy", "serve", "--host", host, "--port", String(port)];
   return { host, port, args };
 }
@@ -29,8 +66,16 @@ function buildProxyServeArgs(cfg) {
 /** @param {ProxyBindConfig} cfg */
 function healthUrl(cfg) {
   const { host, port } = buildProxyServeArgs(cfg);
-  const clientHost = reachableLoopbackHost(host);
-  return `http://${clientHost}:${port}/health`;
+  const clientHost = healthClientHost(host);
+  const url = `http://${clientHost}:${port}/health`;
+  // Fail fast with a clear error instead of fetch() rejecting opaque URL errors.
+  try {
+    // eslint-disable-next-line no-new
+    new URL(url);
+  } catch {
+    throw new Error(`invalid proxy health URL: ${url}`);
+  }
+  return url;
 }
 
 /** @param {string | Buffer} text */
@@ -51,10 +96,21 @@ function redactSecrets(text) {
 
 /** @type {(url: string) => Promise<{ ok: boolean; body?: unknown; error?: string }>} */
 async function defaultFetchHealth(url) {
+  const target = String(url || "").trim();
+  if (!target) {
+    return { ok: false, error: "proxy health URL is empty" };
+  }
+  try {
+    // eslint-disable-next-line no-new
+    new URL(target);
+  } catch {
+    return { ok: false, error: `invalid proxy health URL: ${target}` };
+  }
+
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), 2500);
   try {
-    const res = await fetch(url, { signal: ac.signal });
+    const res = await fetch(target, { signal: ac.signal });
     const raw = await res.text();
     let json = null;
     try {
@@ -130,7 +186,7 @@ function createGoProxyManager(deps) {
   /** @param {ProxyBindConfig} cfg */
   function snapshotBaseUrls(cfg) {
     const bind = buildProxyServeArgs(cfg);
-    const loop = reachableLoopbackHost(bind.host);
+    const loop = healthClientHost(bind.host);
     return {
       host: bind.host,
       port: bind.port,
@@ -186,7 +242,7 @@ function createGoProxyManager(deps) {
     attachChildLogs(child);
 
     child.on("error", (err) => {
-      proxyLogger.pushProcLine("stderr", `[spawn] ${redactSecrets(err.message || String(err))}`);
+      proxyLogger.pushSystemLine("stderr", `[spawn] ${redactSecrets(err.message || String(err))}`);
     });
 
     child.on("close", () => {
@@ -257,7 +313,7 @@ function createGoProxyManager(deps) {
     }
     const pid = child.pid;
     managedChild = null;
-    proxyLogger.pushProcLine("stderr", `[proxy-manager] stopping core (${reason || "shutdown"}, pid=${String(pid)})`);
+    proxyLogger.pushSystemLine("stderr", `[proxy-manager] stopping core (${reason || "shutdown"}, pid=${String(pid)})`);
     await killManagedSubtree(pid);
   }
 
@@ -497,6 +553,8 @@ module.exports = {
   DEFAULT_PORT,
   DEFAULT_HOST,
   buildProxyServeArgs,
+  normalizeBindHost,
+  healthClientHost,
   reachableLoopbackHost,
   healthUrl,
   redactSecrets,

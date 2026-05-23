@@ -25,7 +25,7 @@ export async function fetchVendorModels(vendorName: string) {
 
   let vendor = resolveVendorByName(store.profiles, name);
   if (!vendor) {
-    toast.error("?????????");
+    toast.error("未找到对应供应商。");
     return;
   }
 
@@ -39,7 +39,7 @@ export async function fetchVendorModels(vendorName: string) {
     vendorIdx = store.profiles.length - 1;
     const saved = await persistProfiles();
     if (!saved?.ok) {
-      toast.error(saved?.error || "?????????");
+      toast.error(saved?.error || "保存供应商配置失败");
       store.profiles.splice(vendorIdx, 1);
       return;
     }
@@ -51,13 +51,13 @@ export async function fetchVendorModels(vendorName: string) {
     );
   }
   if (!canFetchVendorModels(vendor)) {
-    toast.warning("?????????????????????????????");
+    toast.warning("当前适配器为手动维护，请在编辑供应商中切换适配器后再拉取。");
     return;
   }
 
   const bridge = window.clovapiProfiles;
   if (!bridge?.listModels) {
-    toast.error("????????????");
+    toast.error("当前环境不支持拉取模型。");
     return;
   }
 
@@ -65,7 +65,7 @@ export async function fetchVendorModels(vendorName: string) {
   try {
     const result = await bridge.listModels(name);
     if (!result?.ok) {
-      toast.error(result?.error || "??????");
+      toast.error(result?.error || "拉取模型失败");
       return;
     }
 
@@ -74,14 +74,14 @@ export async function fetchVendorModels(vendorName: string) {
     } else {
       const fetched = (result.models || []).map(normalizeVendorModel);
       if (!fetched.length) {
-        toast.warning(result.message || "????????");
+        toast.warning(result.message || "未拉取到任何模型");
         return;
       }
       const merged = mergeVendorModels(vendor.models || [], fetched);
       store.profiles[vendorIdx] = { ...vendor, models: merged };
       const saved = await persistProfiles();
       if (!saved?.ok) {
-        toast.error(saved?.error || "????????");
+        toast.error(saved?.error || "保存模型列表失败");
         return;
       }
     }
@@ -89,7 +89,7 @@ export async function fetchVendorModels(vendorName: string) {
     clearVendorModelTests(name);
 
     const count = (result.models || []).length;
-    toast.success(`??? \${count} ???`);
+    toast.success(`已拉取 ${count} 个模型`);
   } finally {
     delete store.vendorFetching[name];
   }

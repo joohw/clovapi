@@ -3,7 +3,8 @@
   import * as Tabs from "$lib/components/ui/tabs/index.js";
   import CliPanel from "./components/CliPanel.svelte";
   import ProfilesPanel from "./components/ProfilesPanel.svelte";
-  import ProxyLogsPanel from "./components/ProxyLogsPanel.svelte";
+  import ProxyCallLogsPanel from "./components/ProxyCallLogsPanel.svelte";
+  import ProxySystemLogsPanel from "./components/ProxySystemLogsPanel.svelte";
   import SettingsPanel from "./components/SettingsPanel.svelte";
   import ProfileDialog from "./components/ProfileDialog.svelte";
   import ModelDialog from "./components/ModelDialog.svelte";
@@ -15,7 +16,13 @@
   });
 
   function onTabChange(value: string) {
-    if (value === "cli" || value === "profiles" || value === "logs" || value === "settings") {
+    if (
+      value === "cli" ||
+      value === "profiles" ||
+      value === "call-logs" ||
+      value === "system-logs" ||
+      value === "settings"
+    ) {
       setActiveTab(value as TabId);
     }
   }
@@ -29,9 +36,10 @@
 
   <Tabs.Root value={store.activeTab} onValueChange={onTabChange} class="flex min-h-0 flex-1 flex-col gap-4">
     <Tabs.List>
-      <Tabs.Trigger value="cli">客户端管理</Tabs.Trigger>
+      <Tabs.Trigger value="cli">Agent 管理</Tabs.Trigger>
       <Tabs.Trigger value="profiles">API 管理</Tabs.Trigger>
-      <Tabs.Trigger value="logs">代理日志</Tabs.Trigger>
+      <Tabs.Trigger value="call-logs">调用日志</Tabs.Trigger>
+      <Tabs.Trigger value="system-logs">系统日志</Tabs.Trigger>
       <Tabs.Trigger value="settings">设置</Tabs.Trigger>
     </Tabs.List>
 
@@ -41,8 +49,11 @@
     <Tabs.Content value="profiles" class="min-h-0 outline-none">
       <ProfilesPanel />
     </Tabs.Content>
-    <Tabs.Content value="logs" class="min-h-0 outline-none">
-      <ProxyLogsPanel />
+    <Tabs.Content value="call-logs" class="min-h-0 outline-none">
+      <ProxyCallLogsPanel />
+    </Tabs.Content>
+    <Tabs.Content value="system-logs" class="min-h-0 outline-none">
+      <ProxySystemLogsPanel />
     </Tabs.Content>
     <Tabs.Content value="settings" class="min-h-0 outline-none">
       <SettingsPanel />

@@ -195,7 +195,7 @@ func TestApplyOpenCode(t *testing.T) {
 		t.Fatalf("npm: %v", cv["npm"])
 	}
 	opts := cv["options"].(map[string]any)
-	if opts["baseURL"] != "https://gw" || opts["apiKey"] != "k2" {
+	if opts["baseURL"] != "https://gw/v1" || opts["apiKey"] != "k2" {
 		t.Fatalf("%v", opts)
 	}
 	if root["model"] != "clovapi/gpt-4o-mini" {

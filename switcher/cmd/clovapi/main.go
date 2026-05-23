@@ -20,12 +20,6 @@ import (
 	"github.com/clovapi/switcher/internal/testclient"
 )
 
-var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
-)
-
 func main() {
 	if err := newRoot().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -35,19 +29,22 @@ func main() {
 
 func newRoot() *cobra.Command {
 	root := &cobra.Command{
-		Use:           "clovapi",
-		Short:         fmt.Sprintf("clovapi %s — One unified upstream API config → apply to Claude Code, Codex, OpenCode, OpenClaw, Hermes, Kimi Code CLI", version),
+		Use:   "clovapi",
+		Short: "One Uniform API for Agents",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(cmdProfiles(), cmdSet(), cmdRemove(), cmdSwitch(), cmdProxy(), cmdTest(), cmdReset())
+	root.AddCommand(cmdProfiles(), cmdSet(), cmdRemove(), cmdSwitch(), cmdProxy(), cmdReset())
 	return root
 }
 
 func cmdProfiles() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "lit",
+		Use:   "list",
 		Short: "Show saved profiles",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s, err := profile.Load()
@@ -76,7 +73,7 @@ func cmdProfiles() *cobra.Command {
 			return nil
 		},
 	}
-	c.Aliases = []string{"profiles", "list", "ls"}
+	c.Aliases = []string{"profiles", "ls"}
 	return c
 }
 
@@ -625,59 +622,6 @@ func cmdProxy() *cobra.Command {
 	}
 	c.AddCommand(start, status, config)
 	return c
-}
-
-func cmdTest() *cobra.Command {
-	return &cobra.Command{
-		Use:   "test [PROFILE_NAME]",
-		Short: "Test connectivity for all saved profiles or one profile",
-		Args:  cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			s, err := profile.Load()
-			if err != nil {
-				return err
-			}
-			var list []profile.Profile
-			if len(args) == 1 {
-				p, ok := s.Get(args[0])
-				if !ok {
-					return fmt.Errorf("profile %q not found", args[0])
-				}
-				list = []profile.Profile{p}
-			} else {
-				if len(s.List) == 0 {
-					return fmt.Errorf("no saved profile — run: clovapi add --name <name>")
-				}
-				list = append(list, s.List...)
-			}
-			var failed int
-			for _, p := range list {
-				label := strings.TrimSpace(p.Name)
-				if label == "" {
-					label = string(p.CLI)
-				}
-				if label == "" {
-					label = "unnamed"
-				}
-				cliShow := string(p.CLI)
-				if cliShow == "" {
-					cliShow = "—"
-				}
-				fmt.Printf("Testing %q (%s / %s)... ", label, cliShow, p.APIStyle)
-				if err := testclient.Probe(p.APIStyle, p.BaseURL, p.APIKey, p.Model); err != nil {
-					fmt.Println("FAIL")
-					fmt.Fprintf(os.Stderr, "  %v\n", err)
-					failed++
-					continue
-				}
-				fmt.Println("OK")
-			}
-			if failed > 0 {
-				return fmt.Errorf("%d profile(s) failed", failed)
-			}
-			return nil
-		},
-	}
 }
 
 func apiStyleChoices() string {

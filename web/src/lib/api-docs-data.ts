@@ -20,7 +20,7 @@ clovapi 用于把一份上游 API 配置，快速下发到不同 coding agent CL
 ### npm
 \`\`\`bash
 npm i -g @clovapi/cli
-clovapi version
+clovapi --help
 \`\`\`
 
 ### Homebrew
@@ -36,7 +36,7 @@ winget install Clovapi.Clovapi
 ## 2) 保存一个 profile
 
 \`\`\`bash
-clovapi set --name deepseek-claude \\
+clovapi add --name deepseek-claude \\
   --api-style claude \\
   --base-url https://api.deepseek.com/anthropic \\
   --model deepseek-v4-flash \\
@@ -52,21 +52,21 @@ clovapi switch --cli claude-code deepseek-claude
 ## 4) 查看当前状态
 
 \`\`\`bash
-clovapi profiles
+clovapi list
 \`\`\`
 `,
   },
   {
     slug: "profiles",
     title: "Profile 管理",
-    description: "set / profiles / remove / test",
+    description: "add / list / remove",
     content: `
 # Profile 管理
 
 ## 新增或更新
 
 \`\`\`bash
-clovapi set --name my-openai \\
+clovapi add --name my-openai \\
   --api-style openai-responses \\
   --base-url https://api.openai.com/v1 \\
   --model gpt-4.1-mini \\
@@ -78,32 +78,22 @@ clovapi set --name my-openai \\
 ## 列出与查看绑定
 
 \`\`\`bash
-clovapi profiles
+clovapi list
 \`\`\`
 
-输出包含：
-- 已保存 profiles
-- 每个 CLI 支持的 api style
-- 每个 CLI 最后一次应用的是哪个 profile
+输出包含已保存的 profiles 列表。
 
 ## 删除 profile
 
 \`\`\`bash
 clovapi remove my-openai
 \`\`\`
-
-## 连通性测试
-
-\`\`\`bash
-clovapi test
-clovapi test my-openai
-\`\`\`
 `,
   },
   {
     slug: "switch",
     title: "切换到各 CLI",
-    description: "switch 与风格匹配规则",
+    description: "switch 与 CLI 下发",
     content: `
 # 切换与下发
 
@@ -121,22 +111,9 @@ clovapi switch
 
 流程是：先选 CLI，再选 profile；也可以在菜单中只重置当前 CLI。
 
-## 风格匹配原则
-
-profile 的 \`api_style\` 必须与目标 CLI 支持范围匹配，不匹配会被拒绝。
-
-常见示例：
-- \`claude-code\` 只接受 \`claude\`
-- \`codex\` 走 \`openai-responses\`
-- \`opencode/openclaw/hermes/kimi-code\` 支持范围更广
-
 ## 验证是否生效
 
-\`\`\`bash
-clovapi profiles
-\`\`\`
-
-确认 active 绑定后，再到目标 CLI 执行一次请求验证即可。
+切换完成后，在目标 CLI 中执行一次请求验证即可。
 `,
   },
   {
@@ -148,10 +125,10 @@ clovapi profiles
 
 ## 401 / 403
 
-1. 先执行：
+1. 重新保存 profile 以触发连通性检测：
 
 \`\`\`bash
-clovapi test <profile-name>
+clovapi add --name <profile-name> ...
 \`\`\`
 
 2. 检查：

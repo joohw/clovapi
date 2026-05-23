@@ -65,7 +65,7 @@ func (openCodeTarget) Apply(p profile.Profile) error {
 		if o, ok := ent["options"].(map[string]any); ok && o != nil {
 			opts = o
 		}
-		opts["baseURL"] = p.BaseURL
+		opts["baseURL"] = ensureOpenCodeSDKBaseURL(p.BaseURL)
 		opts["apiKey"] = p.APIKey
 		ent["options"] = opts
 		prov["anthropic"] = ent
@@ -88,7 +88,7 @@ func (openCodeTarget) Apply(p profile.Profile) error {
 		if o, ok := ent["options"].(map[string]any); ok && o != nil {
 			opts = o
 		}
-		opts["baseURL"] = p.BaseURL
+		opts["baseURL"] = ensureOpenCodeSDKBaseURL(p.BaseURL)
 		opts["apiKey"] = p.APIKey
 		ent["options"] = opts
 		prov["gemini"] = ent
@@ -165,7 +165,7 @@ func openCodeRelayEntry(p profile.Profile, npm, modelSeg string) map[string]any 
 		"npm":  npm,
 		"name": "CLOVAPI relay",
 		"options": map[string]any{
-			"baseURL": p.BaseURL,
+			"baseURL": ensureOpenCodeSDKBaseURL(p.BaseURL),
 			"apiKey":  p.APIKey,
 		},
 		"models": map[string]any{

@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -25,6 +26,7 @@ type Server struct {
 	// HTTPClient performs upstream calls when serving matching ingress/egress requests; defaults in NewServer (2-minute timeout).
 	HTTPClient *http.Client
 	Server     *http.Server
+	CallLogs   *CallLogStore
 }
 
 type Health struct {
@@ -61,6 +63,7 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 	s := &Server{
 		Config:        cfg,
 		ProfileLoader: profile.Load,
+		CallLogs:      NewCallLogStore(defaultCallLogMax),
 		HTTPClient: &http.Client{
 			Timeout: 2 * time.Minute,
 			Transport: &http.Transport{
@@ -72,6 +75,7 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
+	mux.HandleFunc("/__debug/call-log", s.handleDebugCallLog)
 	mux.HandleFunc("/__debug/transform-request", s.handleDebugTransform)
 	mux.HandleFunc("/__debug/resolve-route", s.handleDebugResolveRoute)
 	mux.HandleFunc("/", s.handleProxy)
@@ -93,6 +97,18 @@ func (s *Server) ListenAndServe() error {
 
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.Server.Shutdown(ctx)
+}
+
+func (s *Server) handleDebugCallLog(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead:
+		writeJSON(w, http.StatusOK, map[string]any{"entries": s.CallLogs.List()})
+	case http.MethodDelete:
+		s.CallLogs.Clear()
+		writeJSON(w, http.StatusOK, map[string]string{"ok": "cleared"})
+	default:
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "GET or DELETE only"})
+	}
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -217,17 +233,22 @@ func countWireArray(v any) int {
 }
 
 func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
+	trace := startRequestTrace(s.CallLogs, r)
+	defer trace.finish()
+
 	path := r.URL.EscapedPath()
 	if path == "" {
 		path = r.URL.Path
 	}
 	ingress, ok := provider.ParseProxyIngressPath(path)
 	if !ok {
+		trace.setError("invalid path; use /{providerId}/{modelId}/{apiStyle}/v1/...")
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "invalid path; use /{providerId}/{modelId}/{apiStyle}/v1/..."})
 		return
 	}
 	if (r.Method == http.MethodGet || r.Method == http.MethodHead) && isModelsPath(ingress.PathSuffix) {
 		body := buildModelsListBody(ingress.APIStyle, ingress.ModelID)
+		trace.setUpstreamResponse(http.StatusOK, http.Header{"Content-Type": []string{"application/json"}}, []byte(body), false)
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		if r.Method != http.MethodHead {
@@ -236,12 +257,14 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !shouldTransformProxyMethod(r.Method) {
+		trace.setError("method not supported for proxy route")
 		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not supported for proxy route"})
 		return
 	}
 
 	store, err := s.loadStore()
 	if err != nil {
+		trace.setError("failed to load profiles store")
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load profiles store"})
 		return
 	}
@@ -249,42 +272,51 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	route, err := proxyresolve.ResolveForwardRoute(store, ingress.ProviderID, ingress.ModelID, ingress.APIStyle)
 	if err != nil {
 		if errors.Is(err, proxyresolve.ErrSubscriptionUpstreamNotReady) {
+			trace.setError("subscription upstream requires Desktop auth/session wiring")
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "subscription upstream requires Desktop auth/session wiring"})
 			return
 		}
+		trace.setError(err.Error())
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
 	if route.APIKey == "" {
+		trace.setError("resolved profile has no upstream credentials")
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "resolved profile has no upstream credentials"})
 		return
 	}
 
 	contentType := strings.ToLower(strings.TrimSpace(r.Header.Get("Content-Type")))
 	if contentType != "" && !strings.Contains(contentType, "json") {
+		trace.setError("Content-Type must be application/json")
 		writeJSON(w, http.StatusUnsupportedMediaType, map[string]string{"error": "Content-Type must be application/json"})
 		return
 	}
 
 	payload, err := io.ReadAll(io.LimitReader(r.Body, 1<<24))
 	if err != nil {
+		trace.setError("read request body")
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "read request body"})
 		return
 	}
 	_ = r.Body.Close()
+	trace.setRequestBody(payload)
 
 	hints := protocol.UpstreamHints{Model: route.EffectiveModel, Source: route.Source}
 	upJSON, ir, _, err := protocol.PrepareUpstreamRequest(route.IngressStyle, route.EgressStyle, payload, hints)
 	if err != nil {
+		trace.setError(err.Error())
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 	upReq, err := http.NewRequestWithContext(r.Context(), r.Method, route.UpstreamURL, bytes.NewReader(upJSON))
 	if err != nil {
+		trace.setError("invalid upstream URL")
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "invalid upstream URL"})
 		return
 	}
+	trace.setUpstreamRequest(upReq.Method, upReq.URL.String())
 
 	authHdr := proxyresolve.UpstreamAuthHeaders(route.EgressStyle, route.APIKey)
 	for k, vv := range authHdr {
@@ -296,6 +328,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 
 	upResp, err := s.upstreamHTTP().Do(upReq)
 	if err != nil {
+		trace.setError("upstream request failed")
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "upstream request failed"})
 		return
 	}
@@ -315,9 +348,16 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	defer upstreamCloser()
 
 	ctypeLower := strings.ToLower(strings.TrimSpace(upResp.Header.Get("Content-Type")))
-	streamingSSE := ir.Stream && strings.Contains(ctypeLower, "text/event-stream")
+	streamingSSE := false
+	if ir.Stream {
+		buf := bufio.NewReader(plaintextReader)
+		plaintextReader = buf
+		peek, _ := buf.Peek(512)
+		streamingSSE = protocol.UpstreamResponseLooksLikeSSE(ctypeLower, peek)
+	}
 
 	if streamingSSE {
+		trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, nil, true)
 		baseSan := protocol.SanitizeUpstreamResponseHeaders(upResp.Header.Clone())
 		streamHdr := protocol.MergeSSEProxyDownstreamHeaders(baseSan)
 		for k, vv := range streamHdr {
@@ -333,9 +373,11 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 
 	upBody, err := io.ReadAll(io.LimitReader(plaintextReader, protocol.MaxDownstreamWireBytes))
 	if err != nil {
+		trace.setError("read upstream response")
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "read upstream response"})
 		return
 	}
+	trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, upBody, false)
 
 	upStatus := upResp.StatusCode
 	if ir.Stream && upStatus >= 400 {

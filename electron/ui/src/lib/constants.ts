@@ -83,7 +83,6 @@ export const BUILTIN_PROVIDERS = [
 
 export const OLLAMA_DEFAULTS = {
   baseUrl: "http://127.0.0.1:11434/v1",
-  model: "llama3.2",
   apiStyle: "openai-chat",
   apiKey: "ollama",
 } as const;

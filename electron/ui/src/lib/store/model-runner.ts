@@ -32,7 +32,7 @@ export async function runModelTest(binding: string) {
       ),
       new Promise<never>((_, reject) => {
         setTimeout(
-          () => reject(new Error(`测试超时（\${TEST_UI_TIMEOUT_MS / 1000}s 无响应）`)),
+          () => reject(new Error(`测试超时（${TEST_UI_TIMEOUT_MS / 1000}s 无响应）`)),
           TEST_UI_TIMEOUT_MS,
         );
       }),

@@ -125,6 +125,35 @@ function startChildProcess(command, options = {}) {
   return child;
 }
 
+/** Spawn clovapi (or any executable) and resolve when the child exits. */
+function spawnExecutableAndWait(executable, args, cwd) {
+  return new Promise((resolve) => {
+    const child = spawn(executable, args, {
+      cwd,
+      env: process.env,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    runningProcess = child;
+    emitOutput("system", `$ ${executable} ${args.join(" ")}\n`);
+    child.stdout.on("data", (chunk) => emitOutput("stdout", chunk));
+    child.stderr.on("data", (chunk) => emitOutput("stderr", chunk));
+    child.on("error", (error) => {
+      emitOutput("stderr", `${error.message}\n`);
+      runningProcess = null;
+      resolve({ ok: false, error: error.message || "Failed to start clovapi." });
+    });
+    child.on("close", (code, signal) => {
+      emitOutput("system", `\n[exit] code=${String(code)} signal=${String(signal)}\n`);
+      runningProcess = null;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("cli:exit", { code, signal });
+      }
+      resolve({ ok: true, code, signal });
+    });
+  });
+}
+
 function resolveCommandPath(command) {
   const resolver = process.platform === "win32" ? "where" : "which";
   return new Promise((resolve) => {
@@ -214,12 +243,15 @@ ipcMain.handle("cli:run-clovapi", async (_event, payload) => {
   const cwdInput = String(payload?.cwd || "").trim();
   const cwd = cwdInput || process.cwd();
   try {
-    startChildProcess("", { cwd, env: process.env, executable, args });
-    return { ok: true };
+    const result = await spawnExecutableAndWait(executable, args, cwd);
+    if (!result.ok) {
+      return { ok: false, error: result.error || "Failed to start clovapi." };
+    }
+    return { ok: true, code: result.code ?? null, signal: result.signal ?? null };
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Failed to start clovapi."
+      error: error instanceof Error ? error.message : "Failed to start clovapi.",
     };
   }
 });
@@ -414,7 +446,7 @@ ipcMain.handle("profiles:test", async (_event, payload) => {
         passed: false,
         summary: "测试失败",
         error: `未找到模型: ${binding}`,
-        text: `未在供应商配置中找到该模型（${binding}）。请先拉取或添加模型；无需在「客户端管理」中绑定即可测试。`,
+        text: `未在供应商配置中找到该模型（${binding}）。请先拉取或添加模型；无需在「Agent 管理」中绑定即可测试。`,
       };
     }
 
@@ -567,7 +599,8 @@ ipcMain.handle("subscription:logout", async (_event, payload) => {
 ipcMain.handle("proxy:status", async () => {
   try {
     const cfg = await proxyManager.loadProxyConfig();
-    return { ok: true, ...proxyManager.status(), config: cfg };
+    const status = await proxyManager.status();
+    return { ok: true, ...status, config: cfg };
   } catch (error) {
     return {
       ok: false,
@@ -600,12 +633,55 @@ ipcMain.handle("proxy:stop", async () => {
 });
 
 ipcMain.handle("proxy-logs:list", async () => {
-  return { ok: true, entries: proxyLogger.list() };
+  const system = proxyLogger.listSystem();
+  let requests = [];
+  try {
+    const cfg = await proxyManager.loadProxyConfig();
+    const status = await proxyManager.status();
+    if (status.running) {
+      const host = require("./proxy-manager").healthClientHost(cfg.host);
+      const port = Number(cfg.port) || 27483;
+      const url = `http://${host}:${port}/__debug/call-log`;
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), 2500);
+      try {
+        const res = await fetch(url, { signal: ac.signal });
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json?.entries)) {
+            requests = json.entries;
+          }
+        }
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+  } catch {
+    requests = [];
+  }
+  return { ok: true, requests, system };
 });
 
-ipcMain.handle("proxy-logs:clear", async () => {
-  proxyLogger.clear();
-  return { ok: true, entries: [] };
+ipcMain.handle("proxy-logs:clear", async (_event, payload) => {
+  const scope = String(payload?.scope || "all").trim().toLowerCase();
+  if (scope === "system" || scope === "all") {
+    proxyLogger.clearSystem();
+  }
+  if (scope === "calls" || scope === "all") {
+    try {
+      const cfg = await proxyManager.loadProxyConfig();
+      const status = await proxyManager.status();
+      if (status.running) {
+        const host = require("./proxy-manager").healthClientHost(cfg.host);
+        const port = Number(cfg.port) || 27483;
+        const url = `http://${host}:${port}/__debug/call-log`;
+        await fetch(url, { method: "DELETE" }).catch(() => {});
+      }
+    } catch {
+      /* noop */
+    }
+  }
+  return { ok: true, requests: [], system: [] };
 });
 
 ipcMain.handle("proxy:build-ingress", async (_event, payload) => {
@@ -620,11 +696,14 @@ ipcMain.handle("proxy:build-ingress", async (_event, payload) => {
       return ensured;
     }
     const store = await profileStore.loadStore();
+    if (binding.startsWith(profileStore.MODEL_BINDING_PREFIX)) {
+      store.active[cliKind] = binding;
+    }
     const ingress = await buildIngressForBinding(cliKind, ensured.port, binding, store);
     const stubName = `__local_proxy_${cliKind}__`;
     const before = store.profiles.length;
     store.profiles = store.profiles.filter((p) => String(p.name || "") !== stubName);
-    if (store.profiles.length < before) {
+    if (store.profiles.length < before || binding.startsWith(profileStore.MODEL_BINDING_PREFIX)) {
       await profileStore.saveStore(store);
     }
     return {

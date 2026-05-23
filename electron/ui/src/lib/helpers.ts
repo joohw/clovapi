@@ -117,14 +117,7 @@ export function getOllamaVendor(vendors: Vendor[]): Vendor {
     modelAdapter: "ollama",
     baseUrl: OLLAMA_DEFAULTS.baseUrl,
     apiKey: OLLAMA_DEFAULTS.apiKey,
-    models: [
-      {
-        id: "default",
-        label: "Llama 3.2",
-        model: OLLAMA_DEFAULTS.model,
-        apiStyle: OLLAMA_DEFAULTS.apiStyle,
-      },
-    ],
+    models: [],
   });
 }
 

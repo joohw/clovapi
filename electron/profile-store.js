@@ -105,15 +105,12 @@ function normalizeVendorProfile(p, index = 0) {
   const kind = normalizeProfileKind(p?.kind);
   const localProvider = String(p?.local_provider || "").trim();
   let models = normalizeVendorModels(p);
-  if (kind === "local" && !models.length) {
-    models = [normalizeModelEntry({ id: "default", label: "Llama 3.2", model: "llama3.2", api_style: "openai-chat" }, 0)];
-  }
   const topModel = String(p?.model || "").trim();
   const apiStyle = normalizeApiStyle(
     p?.api_style ?? p?.apiStyle ?? models[0]?.api_style ?? models[0]?.apiStyle,
   );
   let aggregateModel = topModel || (models[0]?.model || "");
-  if (kind === "subscription" && !models.length) {
+  if ((kind === "subscription" || kind === "local") && !models.length) {
     aggregateModel = "";
   }
   return {
@@ -476,9 +473,6 @@ function removeVendorModel(store, vendorName, modelId) {
     (p) => String(p.name || "").toLowerCase() === String(vendorName || "").trim().toLowerCase(),
   );
   if (!vendor) return false;
-  if (isDefaultOllamaProfileName(vendor.name) && (vendor.models || []).length <= 1) {
-    return false;
-  }
   if (vendor.kind === "subscription" && (vendor.models || []).length <= 1) {
     return false;
   }
@@ -596,6 +590,38 @@ function ensureDefaultSubscriptionVendors(store) {
   return changed;
 }
 
+function isOllamaBuiltinPlaceholderModel(entry) {
+  const id = String(entry?.id || "").trim().toLowerCase();
+  const model = String(entry?.model || "").trim();
+  const label = String(entry?.label || "").trim();
+  if (id === "default") return true;
+  return id === "llama3.2" && model === "llama3.2" && label === "Llama 3.2";
+}
+
+function pruneOllamaBuiltinPlaceholderModels(store) {
+  const profile = store.profiles.find(
+    (p) => String(p.name || "").toLowerCase() === OLLAMA_PROFILE_NAME.toLowerCase(),
+  );
+  if (!profile || !Array.isArray(profile.models)) return false;
+  const before = profile.models.length;
+  const kept = [];
+  for (const raw of profile.models) {
+    const entry = normalizeModelEntry(raw);
+    if (isOllamaBuiltinPlaceholderModel(entry)) {
+      const binding = `${MODEL_BINDING_PREFIX}${OLLAMA_PROFILE_NAME}/${entry.id}`;
+      for (const [cli, activeName] of Object.entries(store.active || {})) {
+        if (String(activeName) === binding) delete store.active[cli];
+      }
+      continue;
+    }
+    kept.push(entry);
+  }
+  if (kept.length === before) return false;
+  profile.models = kept;
+  if (!kept.length) profile.model = "";
+  return true;
+}
+
 function defaultOllamaStoreProfile() {
   return normalizeVendorProfile({
     name: OLLAMA_PROFILE_NAME,
@@ -604,7 +630,7 @@ function defaultOllamaStoreProfile() {
     model_adapter: "ollama",
     base_url: "http://127.0.0.1:11434/v1",
     api_key: "ollama",
-    models: [{ id: "default", label: "Llama 3.2", model: "llama3.2", api_style: "openai-chat" }],
+    models: [],
   });
 }
 
@@ -723,14 +749,11 @@ function ensureDefaultOllamaProfile(store) {
       profile.api_key = defaults.api_key;
       changed = true;
     }
-    if (!profile.models?.length) {
-      profile.models = defaults.models;
-      changed = true;
-    }
     if (String(profile.model_adapter || "") !== "ollama") {
       profile.model_adapter = "ollama";
       changed = true;
     }
+    if (pruneOllamaBuiltinPlaceholderModels(store)) changed = true;
   }
   if (ensureDefaultCustomApiVendor(store)) changed = true;
   return changed;

@@ -27,7 +27,7 @@ export {
   removeVendorModel,
 } from "./profiles";
 export { canFetchVendorModels, isVendorFetching, fetchVendorModels } from "./vendor-models";
-export { refreshProxyStatus, refreshProxyLogs, clearProxyLogs, restartLocalProxy } from "./proxy";
+export { refreshProxyStatus, refreshProxyLogs, clearCallLogs, clearSystemLogs, restartLocalProxy } from "./proxy";
 export { loadPresets, applyPresetToForm, applyPresetToModelForm } from "./presets";
 export {
   setActiveTab,
@@ -35,6 +35,7 @@ export {
   closeProfilesVendor,
   openProxyLog,
   closeProxyLog,
+  openProxySystemLog,
 } from "./navigation";
 export {
   subscriptionStatusForProvider,

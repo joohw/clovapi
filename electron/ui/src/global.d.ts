@@ -2,7 +2,7 @@ export {};
 
 type CliBridge = {
   run(command: string, cwd: string, env: Record<string, string>): Promise<unknown>;
-  runClovapi(args: string[], cwd: string): Promise<{ ok?: boolean; error?: string }>;
+  runClovapi(args: string[], cwd: string): Promise<{ ok?: boolean; error?: string; code?: number | null }>;
   stop(): Promise<unknown>;
   state(): Promise<{ running?: boolean }>;
   defaultCwd(): Promise<{ cwd?: string }>;
@@ -57,7 +57,7 @@ type ProxyBridge = {
 
 type ProxyLogsBridge = {
   list(): Promise<ProxyLogsResult>;
-  clear(): Promise<ProxyLogsResult>;
+  clear(scope?: "calls" | "system" | "all"): Promise<ProxyLogsResult>;
 };
 
 type ProxyConfig = {
@@ -100,10 +100,18 @@ export type ProxyLogEntry = {
   error?: string;
 };
 
+export type ProxySystemLogEntry = {
+  id: string;
+  at: string;
+  stream: string;
+  message: string;
+};
+
 type ProxyLogsResult = {
   ok?: boolean;
   error?: string;
-  entries?: ProxyLogEntry[];
+  requests?: ProxyLogEntry[];
+  system?: ProxySystemLogEntry[];
 };
 
 type BuildProfileResult = {

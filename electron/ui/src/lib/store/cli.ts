@@ -14,6 +14,10 @@ import type { CliDef } from "../../global";
 
 export { activeBindingForCli };
 
+function installedCli(cli: CliDef): boolean {
+  return Boolean(store.cliDetectedPath[cli.id]);
+}
+
 export function setRunning(running: boolean) {
   store.running = running;
 }
@@ -43,74 +47,58 @@ export async function detectCliPath() {
   store.cliDetectedPath = next;
 }
 
-async function runClovapiArgs(args: string[]) {
+async function runClovapiArgsAndWait(args: string[]) {
   const bridge = window.clovapiCli;
   if (!bridge?.runClovapi) {
     toast.error("当前环境无法调用 clovapi");
     return { ok: false };
   }
-  const cwdRes = await bridge.defaultCwd().catch(() => ({ cwd: "" }));
-  const result = await bridge.runClovapi(args, cwdRes.cwd || "");
-  if (!result?.ok) {
-    toast.error(result?.error || "clovapi 启动失败");
-    setRunning(false);
-    return result;
-  }
+
   setRunning(true);
-  return result;
-}
-
-function waitForCliExit() {
-  const bridge = window.clovapiCli;
-  if (!bridge?.onExit) {
-    return Promise.resolve({ ok: true, code: 0 });
+  try {
+    const cwdRes = await bridge.defaultCwd().catch(() => ({ cwd: "" }));
+    const result = await bridge.runClovapi(args, cwdRes.cwd || "");
+    if (!result?.ok) {
+      toast.error(result?.error || "clovapi 启动失败");
+      return { ok: false, code: result?.code };
+    }
+    const code = result.code;
+    return { ok: code === 0 || code === null || code === undefined, code };
+  } finally {
+    setRunning(false);
   }
-  return new Promise<{ ok: boolean; code?: number | null }>((resolve) => {
-    const off = bridge.onExit((payload) => {
-      if (typeof off === "function") off();
-      const code = payload?.code;
-      resolve({ ok: code === 0 || code === null, code });
-    });
-  });
-}
-
-async function runClovapiArgsAndWait(args: string[]) {
-  const started = await runClovapiArgs(args);
-  if (!started?.ok) return started;
-  const exit = await waitForCliExit();
-  setRunning(false);
-  return exit;
 }
 
 export async function runCliApply(cli: CliDef) {
-  const binding = activeBindingForCli(cli.kind);
+  let binding = activeBindingForCli(cli.kind);
 
   if (!store.clovapiAvailable) {
     toast.error("未找到 clovapi CLI，请先构建 switcher/clovapi 或安装到 PATH");
     return;
   }
 
-  if (!binding) {
-    const exit = await runClovapiArgsAndWait(["switch", "--cli", cli.kind, "--reset"]);
-    if (!exit?.ok) {
-      toast.error("恢复默认失败");
-      return;
-    }
-    delete store.active[cli.kind];
-    const saved = await persistProfiles();
-    if (!saved?.ok) {
-      toast.error("保存配置失败");
-      return;
-    }
-    toast.success("已恢复默认");
+  if (!installedCli(cli)) {
+    toast.error(`${cli.name} 未安装，无法应用`);
     return;
   }
+
+  if (store.running) {
+    toast.info("上一条命令仍在执行，请稍候");
+    return;
+  }
+
+  if (!binding) {
+    toast.error("请先选择模型方案。");
+    return;
+  }
+
+  toast.info(`正在应用 ${cli.name}…`);
 
   if (isSubscriptionBinding(binding, store.profiles)) {
     const providerId = subscriptionProviderFromBinding(binding, store.profiles);
     const sub = subscriptionStatusForProvider(providerId);
     if (!sub?.loggedIn) {
-      toast.warning(`请先在 API 管理 → \${subscriptionProviderLabel(providerId)} 中完成登录。`);
+      toast.warning(`请先在 API 管理 → ${subscriptionProviderLabel(providerId)} 中完成登录。`);
       return;
     }
   }
@@ -119,12 +107,24 @@ export async function runCliApply(cli: CliDef) {
     if (binding.startsWith("__local_proxy_")) {
       toast.error("当前绑定已失效，请重新在下拉框选择模型方案后再点「应用」。");
     } else if (binding) {
-      toast.error(`无效或已删除的方案「\${binding}」，请重新选择。`);
+      toast.error(`无效或已删除的方案「${binding}」，请重新选择。`);
     } else {
       toast.error("请先选择模型方案。");
     }
     delete store.active[cli.kind];
     await persistProfiles();
+    return;
+  }
+
+  store.active[cli.kind] = binding;
+  const primed = await persistProfiles();
+  if (!primed?.ok) {
+    toast.error(primed?.error || "保存绑定失败");
+    return;
+  }
+  binding = activeBindingForCli(cli.kind);
+  if (!binding || !isValidModelBinding(binding)) {
+    toast.error("所选模型绑定无效或已失效，请重新选择后再应用。");
     return;
   }
 
@@ -179,7 +179,7 @@ export async function runCliApply(cli: CliDef) {
     const exitCode = exit && "code" in exit ? exit.code : undefined;
     toast.error(
       exitCode != null
-        ? `写入 \${cli.name} 配置失败（clovapi 退出码 \${exitCode}）`
+        ? `写入 ${cli.name} 配置失败（clovapi 退出码 ${exitCode}）`
         : "写入 CLI 配置失败",
     );
     return;
@@ -197,7 +197,7 @@ export async function runCliApply(cli: CliDef) {
 export function cliApplyTitle(cli: CliDef): string {
   const binding = activeBindingForCli(cli.kind);
   if (!store.clovapiAvailable) return "需要安装 clovapi CLI";
-  if (!String(binding || "").trim()) return "恢复 CLI 默认配置（清除 clovapi 代理绑定）";
+  if (!String(binding || "").trim()) return "请先选择模型方案";
   if (!store.proxyRunning) return "本地代理未运行，应用时将自动启动";
   if (
     isSubscriptionBinding(binding, store.profiles) &&

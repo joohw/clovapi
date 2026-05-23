@@ -22,7 +22,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+      - -s -w
 
 archives:
   - id: default
@@ -51,7 +51,7 @@ brews:
     description: "CLI profile switcher for coding agents"
     license: "MIT"
     test: |
-      system "#{bin}/clovapi", "version"
+      system "#{bin}/clovapi", "--help"
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"

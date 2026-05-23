@@ -122,8 +122,8 @@
   <SectionCard
     title="模型列表"
     description={isCustomApi
-      ? "每条模型自带 API 地址与 Key；可在客户端管理中选择并应用。"
-      : "每个模型对应一个 @model 绑定，可在客户端管理中选择并应用。"}
+      ? "每条模型自带 API 地址与 Key；可在 Agent 管理中选择并应用。"
+      : "每个模型对应一个 @model 绑定，可在 Agent 管理中选择并应用。"}
   >
     {#if !vendor.models?.length}
       <p class="px-4 py-6 text-center text-sm text-muted-foreground">

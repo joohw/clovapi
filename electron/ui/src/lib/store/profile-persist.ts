@@ -1,26 +1,36 @@
 import { normalizeVendor } from "../helpers";
 import { store } from "./state.svelte";
 
+type PersistResult = Awaited<ReturnType<NonNullable<typeof window.clovapiProfiles>["save"]>>;
+
+let persistTail: Promise<PersistResult | undefined> = Promise.resolve(undefined);
+
 export async function persistProfiles() {
-  const bridge = window.clovapiProfiles;
-  if (!bridge?.save) return { ok: false, error: "Profile bridge unavailable" };
-  const result = await bridge.save({
-    profiles: store.profiles,
-    active: store.active,
-    proxy: {
-      enabled: true,
-      host: "127.0.0.1",
-      port: store.proxyPort,
-    },
-  });
-  if (result?.ok) {
-    store.profiles = (result.profiles || []).map(normalizeVendor);
-    store.active = result.active && typeof result.active === "object" ? result.active : {};
-    if (result.proxy) {
-      store.proxyPort = Number(result.proxy.port) || 27483;
-      store.proxyBaseUrl = `http://127.0.0.1:${store.proxyPort}`;
+  const run = async (): Promise<PersistResult | undefined> => {
+    const bridge = window.clovapiProfiles;
+    if (!bridge?.save) return { ok: false, error: "Profile bridge unavailable" };
+    const payload = {
+      profiles: store.profiles,
+      active: { ...store.active },
+      proxy: {
+        enabled: true,
+        host: "127.0.0.1",
+        port: store.proxyPort,
+      },
+    };
+    const result = await bridge.save(payload);
+    if (result?.ok) {
+      store.profiles = (result.profiles || []).map(normalizeVendor);
+      store.active = result.active && typeof result.active === "object" ? { ...result.active } : {};
+      if (result.proxy) {
+        store.proxyPort = Number(result.proxy.port) || 27483;
+        store.proxyBaseUrl = `http://127.0.0.1:${store.proxyPort}`;
+      }
+      if (result.path) store.profilesPath = result.path;
     }
-    if (result.path) store.profilesPath = result.path;
-  }
-  return result;
+    return result;
+  };
+
+  persistTail = persistTail.then(run, run);
+  return persistTail;
 }

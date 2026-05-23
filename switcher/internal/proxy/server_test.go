@@ -573,6 +573,82 @@ func TestStreamClaudeIngressViaOpenAIResponsesUpstreamSSE(t *testing.T) {
 	}
 }
 
+func TestStreamOpenAIChatIngressViaResponsesUpstreamSSEWithoutContentType(t *testing.T) {
+	var upstreamBody []byte
+	sseReply := strings.Join([]string{
+		`event: response.created`,
+		`data: {"type":"response.created","response":{"model":"gpt-wire"}}`,
+		``,
+		`event: response.output_text.delta`,
+		`data: {"type":"response.output_text.delta","delta":"codex-style"}`,
+		``,
+		`event: response.completed`,
+		`data: {"type":"response.completed","status":"completed"}`,
+		``,
+	}, "\n")
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upstreamBody, _ = io.ReadAll(io.LimitReader(r.Body, 1<<20))
+		if r.URL.Path != "/codex/responses" {
+			t.Errorf("upstream path=%q", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, sseReply)
+	}))
+	defer up.Close()
+
+	store := &profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:                   provider.CodexVendorName,
+			Kind:                   "subscription",
+			SubscriptionProviderID: provider.CodexProviderID,
+			APIStyle:               apistyle.OpenAIResponses,
+			BaseURL:                strings.TrimRight(up.URL, "/"),
+			APIKey:                 "oauth-token",
+			Model:                  "gpt-5.4",
+			Models: []profile.Model{{
+				ID:       "gpt-5.4",
+				Model:    "gpt-5.4",
+				APIStyle: apistyle.OpenAIResponses,
+				BaseURL:  strings.TrimRight(up.URL, "/"),
+				APIKey:   "oauth-token",
+			}},
+		}},
+	}
+
+	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
+	ts := httptest.NewServer(core.Server.Handler)
+	defer ts.Close()
+
+	payload := `{"model":"gpt-5.4","messages":[{"role":"user","content":"ping"}],"stream":true}`
+	resp, err := http.Post(ts.URL+"/codex/gpt-5.4/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status=%d body=%s upstream=%q", resp.StatusCode, raw, upstreamBody)
+	}
+	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "text/event-stream") {
+		t.Fatalf("want event-stream downstream, ct=%s body=%s upstream=%q", resp.Header.Get("Content-Type"), raw, upstreamBody)
+	}
+	bodyStr := string(raw)
+	if strings.Contains(bodyStr, "decode_failed") {
+		t.Fatalf("unexpected decode failure:\n%s", bodyStr)
+	}
+	if !strings.Contains(bodyStr, `"object":"chat.completion.chunk"`) || !strings.Contains(bodyStr, "codex-style") {
+		t.Fatalf("unexpected sse body:\n%s", bodyStr)
+	}
+	if !strings.Contains(string(upstreamBody), `"stream":true`) {
+		t.Fatalf("upstream should receive streaming request: %s", upstreamBody)
+	}
+}
+
 func TestStreamOpenAIChatIngressViaClaudeUpstreamGzipSSE(t *testing.T) {
 	var upstreamBody []byte
 	sseReply := strings.Join([]string{

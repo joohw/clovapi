@@ -22,24 +22,41 @@ export async function refreshProxyLogs() {
   store.proxyLogsLoading = true;
   try {
     const result = await bridge.list();
-    if (result?.ok && Array.isArray(result.entries)) {
-      store.proxyLogs = result.entries;
+    if (result?.ok) {
+      if (Array.isArray(result.requests)) {
+        store.proxyLogs = result.requests;
+      }
+      if (Array.isArray(result.system)) {
+        store.proxySystemLogs = result.system;
+      }
     }
   } finally {
     store.proxyLogsLoading = false;
   }
 }
 
-export async function clearProxyLogs() {
+export async function clearCallLogs() {
   const bridge = window.clovapiProxyLogs;
   if (!bridge?.clear) return;
-  const result = await bridge.clear();
+  const result = await bridge.clear("calls");
   if (!result?.ok) {
-    toast.error(result?.error || "清空代理日志失败");
+    toast.error(result?.error || "清空调用日志失败");
     return;
   }
   store.proxyLogs = [];
   store.proxyLogSelectedId = null;
+}
+
+export async function clearSystemLogs() {
+  const bridge = window.clovapiProxyLogs;
+  if (!bridge?.clear) return;
+  const result = await bridge.clear("system");
+  if (!result?.ok) {
+    toast.error(result?.error || "清空系统日志失败");
+    return;
+  }
+  store.proxySystemLogs = [];
+  store.proxySystemLogSelectedId = null;
 }
 
 export async function restartLocalProxy() {

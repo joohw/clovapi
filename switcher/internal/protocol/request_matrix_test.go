@@ -108,6 +108,49 @@ func TestSystemHoistOpenAIChatToClaude(t *testing.T) {
 	}
 }
 
+func TestEncodeOpenAIResponsesAssistantHistoryUsesOutputText(t *testing.T) {
+	body := []byte(`{
+		"model": "gpt-5.4",
+		"messages": [
+		  {"role": "user", "content": "hello"},
+		  {"role": "assistant", "content": "hi there"},
+		  {"role": "user", "content": "again"}
+		],
+		"stream": false
+	}`)
+	up, _, _, err := protocol.PrepareUpstreamRequest(
+		apistyle.OpenAIChat,
+		apistyle.OpenAIResponses,
+		body,
+		protocol.UpstreamHints{Model: "gpt-5.4", Source: "subscription:codex"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(up, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	inp, ok := parsed["input"].([]any)
+	if !ok || len(inp) != 3 {
+		t.Fatalf("expected 3 input messages, got %#v", parsed["input"])
+	}
+	assistant := inp[1].(map[string]any)
+	content, ok := assistant["content"].([]any)
+	if !ok || len(content) == 0 {
+		t.Fatalf("assistant content missing: %#v", assistant)
+	}
+	part := content[0].(map[string]any)
+	if part["type"] != "output_text" {
+		t.Fatalf("assistant content type = %#v, want output_text", part["type"])
+	}
+	user := inp[0].(map[string]any)
+	userContent := user["content"].([]any)[0].(map[string]any)
+	if userContent["type"] != "input_text" {
+		t.Fatalf("user content type = %#v, want input_text", userContent["type"])
+	}
+}
+
 func TestCodexSubscriptionSkipsMaxOutputTokens(t *testing.T) {
 	max := 64
 	ir := protocol.Request{

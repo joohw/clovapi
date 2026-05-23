@@ -17,6 +17,8 @@
 one-api
 new-api
 /__debug_bin*
+switcher/clovapi
+electron/bin/
 
 # Runtime data
 upload

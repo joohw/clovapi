@@ -4,6 +4,14 @@
 
 ## 站点
 - 主页: /
+- 支持的 Agent: /agents
+- 配置教程: /guides
+- Claude Code 第三方 API: /guides/claude-code-third-party-api
+- Claude Code + DeepSeek: /guides/claude-code-deepseek
+- Claude Code + OpenRouter: /guides/claude-code-openrouter
+- Claude Code + SiliconFlow: /guides/claude-code-siliconflow
+- Codex 第三方 API: /guides/codex-third-party-api
+- 与 cc-switch 对比: /compare/cc-switch
 - 机器可读站点地图: /sitemap.xml
 - 本文件: /llms.txt
 
@@ -11,10 +19,20 @@
 - Agent Skill（Markdown）: /skill?format=md
 - Agent Skill（人类可读入口）: /skill
 
+## 支持的 Agent CLI
+- Claude Code（anthropic /v1/messages）
+- Codex（openai-responses /v1/responses）
+- OpenCode、OpenClaw、Hermes、Kimi Code CLI
+
 ## CLI 工作流
 - 安装: npm i -g @clovapi/cli
 - 保存 profile: clovapi add --name <NAME>
 - 下发到 CLI: clovapi switch --cli <KIND> [PROFILE]
+
+## 常见问题
+- clovapi 面向编程 Agent CLI 的上游 API 配置，不是通用 API 网关
+- 官方订阅与第三方 API 可统一 add / switch
+- 相比 cc-switch，clovapi 支持多 CLI 与 API 形态自动映射
 
 ## 抓取
 - robots.txt: /robots.txt

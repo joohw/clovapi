@@ -1,6 +1,8 @@
 const zhCN = {
   header: {
     home: "首页",
+    agents: "Agent",
+    guides: "教程",
     skill: "Skill",
     backHome: "返回首页",
     github: "GitHub",
@@ -77,6 +79,43 @@ const zhCN = {
     },
     footerTagline: "开源 CLI · 轻松管理 Agent API",
     footerCopyright: "© 2026 clovapi",
+  },
+  agents: {
+    indexTitle: "支持的编程 Agent",
+    indexSubtitle: "clovapi 为各 Agent CLI 自动匹配上游 API 形态，一行 switch 写入配置。",
+    pageTitle: "管理 {{name}} 的 API 上游",
+    pageSubtitle: "用 clovapi add 保存 profile，再用 clovapi switch 一键切换 {{name}} 的官方订阅或第三方 API。",
+    apiStyleTitle: "自动匹配的 API 形态",
+    apiStyleSubtitle: "switch 到 {{name}} 时，clovapi 会自动选择该 CLI 需要的上游协议。",
+    moreAgentsTitle: "其他支持的 Agent",
+    compareLink: "clovapi 与 cc-switch 对比 →",
+    guidesTitle: "相关教程",
+  },
+  guides: {
+    indexTitle: "配置教程",
+    indexSubtitle: "分步指南：Claude Code / Codex 接入第三方 API 与常见上游（DeepSeek、OpenRouter、SiliconFlow）。",
+    tipsLabel: "提示",
+  },
+  compare: {
+    title: "clovapi vs cc-switch",
+    subtitle: "两者都帮助切换 Claude Code 的上游 API。clovapi 额外覆盖多 CLI 与 Codex 官方订阅。",
+    feature: "功能",
+    yes: "支持",
+    no: "—",
+    rows: {
+      multiCli: "多 CLI（Codex、OpenCode 等）",
+      codex: "Codex 官方订阅",
+      apiStyle: "API 形态自动映射",
+      claudeCode: "Claude Code 环境变量切换",
+      openSource: "开源",
+      desktop: "桌面客户端",
+    },
+    whenClovapiTitle: "什么时候选 clovapi？",
+    whenClovapiBody:
+      "你需要在 Claude Code、Codex、OpenCode 等多个 Agent 之间切换上游，或希望 switch 时自动匹配 anthropic / openai-responses 等协议形态。",
+    whenCcSwitchTitle: "什么时候选 cc-switch？",
+    whenCcSwitchBody: "你只用 Claude Code，且已有 cc-switch 工作流，不需要 Codex 或多 CLI 支持。",
+    agentsLink: "查看支持的 Agent 列表 →",
   },
   skill: {
     agentHintTitle: "安装 ClovAPI Skill",

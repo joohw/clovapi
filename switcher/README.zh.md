@@ -2,6 +2,8 @@
 
 **语言 / Language:** [English](README.md) · 中文
 
+**官网：** https://clovapi.com — [支持的 Agent](https://clovapi.com/agents) · [配置教程](https://clovapi.com/guides) · [Agent Skill](https://clovapi.com/skill)
+
 ---
 
 小型跨平台 CLI：**保存按 CLI 维度的上游 API 配置**（Base URL、密钥、`api_style`、模型），并**写入**你使用的各类编程 Agent 二进制对应的配置——Claude Code、Codex、OpenCode、OpenClaw、Hermes、Kimi Code CLI 等。

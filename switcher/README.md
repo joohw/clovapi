@@ -2,6 +2,8 @@
 
 **Language / 语言:** English · [中文](README.zh.md)
 
+**Website / 官网:** https://clovapi.com — [agents](https://clovapi.com/agents) · [guides](https://clovapi.com/guides) · [Agent Skill](https://clovapi.com/skill)
+
 ---
 
 Small cross-platform CLI that stores **CLI-bound upstream API profiles** (base URL, key, `api_style`, model) and **applies** them to coding-agent binaries you use — Claude Code, Codex, OpenCode, OpenClaw, Hermes, Kimi Code CLI, …  

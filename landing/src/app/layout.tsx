@@ -6,20 +6,13 @@ import { ServerScripts } from "@/components/server-scripts";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { resolveLanguage } from "@/i18n/resolve-language";
 import { LANG_STORAGE_KEY } from "@/i18n/config";
-import { DEFAULT_DESCRIPTION, HOME_TITLE, SITE_NAME, getPublicSiteUrlFromRequest } from "@/lib/site";
+import { buildBaseJsonLdGraph, buildPageMetadata } from "@/lib/seo";
+import { getPublicSiteUrlFromRequest } from "@/lib/site";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: HOME_TITLE,
-  description: DEFAULT_DESCRIPTION,
-  icons: {
-    icon: [
-      { url: "/clover-light.svg", media: "(prefers-color-scheme: light)", type: "image/svg+xml" },
-      { url: "/clover.svg", media: "(prefers-color-scheme: dark)", type: "image/svg+xml" },
-    ],
-    shortcut: "/clover-light.svg",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata("home");
+}
 
 export default async function RootLayout({
   children,
@@ -35,28 +28,7 @@ export default async function RootLayout({
     acceptLanguage: headerStore.get("accept-language"),
   });
   const siteUrl = getPublicSiteUrlFromRequest(host);
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        "@id": `${siteUrl}/#organization`,
-        name: SITE_NAME,
-        url: siteUrl,
-        description: DEFAULT_DESCRIPTION,
-        logo: `${siteUrl}/clover-light.svg`,
-      },
-      {
-        "@type": "WebSite",
-        "@id": `${siteUrl}/#website`,
-        url: siteUrl,
-        name: SITE_NAME,
-        description: DEFAULT_DESCRIPTION,
-        publisher: { "@id": `${siteUrl}/#organization` },
-        inLanguage: ["zh-CN", "en"],
-      },
-    ],
-  };
+  const jsonLd = buildBaseJsonLdGraph({ siteUrl, language });
   const jsonLdScript = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
 
   return (

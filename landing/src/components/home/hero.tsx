@@ -7,7 +7,7 @@ import { ClientDownloadButtons } from "@/components/home/client-download-buttons
 import { ShellHighlight } from "@/components/shell-highlight";
 import { useToast } from "@/components/ui/toast-provider";
 import { getUseCaseImage } from "@/lib/assets";
-import { HOME_TITLE } from "@/lib/site";
+import { getHomeTitle } from "@/lib/seo-data";
 import styles from "@/app/page.module.css";
 
 const WORKFLOW_LINES = [
@@ -22,8 +22,9 @@ export function HomeHero() {
   const useCaseImage = getUseCaseImage(i18n.language);
 
   useEffect(() => {
-    document.title = HOME_TITLE;
-  }, [i18n.language]);
+    const language = i18n.resolvedLanguage?.startsWith("en") ? "en" : "zh-CN";
+    document.title = getHomeTitle(language);
+  }, [i18n.language, i18n.resolvedLanguage]);
 
   async function copyWorkflow() {
     const text = WORKFLOW_LINES.map((line) => `$ ${line.text}`).join("\n");

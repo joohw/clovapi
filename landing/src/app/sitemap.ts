@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
+import { AGENT_PAGES } from "@/lib/seo-data";
+import { GUIDE_PAGES } from "@/lib/guides-data";
 import { getPublicSiteUrlFromRequest } from "@/lib/site";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -8,8 +10,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     headerStore.get("x-forwarded-host") || headerStore.get("host") || undefined;
   const siteUrl = getPublicSiteUrlFromRequest(host);
   const lastModified = new Date();
-  return [
+
+  const entries: MetadataRoute.Sitemap = [
     { url: `${siteUrl}/`, changeFrequency: "weekly", priority: 1, lastModified },
+    { url: `${siteUrl}/agents`, changeFrequency: "weekly", priority: 0.9, lastModified },
+    { url: `${siteUrl}/guides`, changeFrequency: "weekly", priority: 0.9, lastModified },
+    { url: `${siteUrl}/compare/cc-switch`, changeFrequency: "monthly", priority: 0.85, lastModified },
     { url: `${siteUrl}/skill`, changeFrequency: "weekly", priority: 0.8, lastModified },
   ];
+
+  for (const agent of AGENT_PAGES) {
+    entries.push({
+      url: `${siteUrl}/agents/${agent.slug}`,
+      changeFrequency: "monthly",
+      priority: agent.slug === "claude-code" || agent.slug === "codex" ? 0.9 : 0.75,
+      lastModified,
+    });
+  }
+
+  for (const guide of GUIDE_PAGES) {
+    entries.push({
+      url: `${siteUrl}/guides/${guide.slug}`,
+      changeFrequency: "monthly",
+      priority: guide.priority,
+      lastModified,
+    });
+  }
+
+  return entries;
 }

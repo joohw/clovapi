@@ -1,6 +1,8 @@
 const en = {
   header: {
     home: "Home",
+    agents: "Agents",
+    guides: "Guides",
     skill: "Skill",
     backHome: "Back to home",
     github: "GitHub",
@@ -77,6 +79,44 @@ const en = {
     },
     footerTagline: "Open-source CLI · Manage agent APIs with ease",
     footerCopyright: "© 2026 clovapi",
+  },
+  agents: {
+    indexTitle: "Supported coding agents",
+    indexSubtitle: "clovapi maps the right upstream API format per agent CLI — apply with one switch command.",
+    pageTitle: "Manage {{name}} API upstream",
+    pageSubtitle:
+      "Save profiles with clovapi add, then apply with clovapi switch for {{name}} — official subscriptions or third-party APIs.",
+    apiStyleTitle: "Automatic API format",
+    apiStyleSubtitle: "When switching to {{name}}, clovapi picks the upstream protocol that CLI expects.",
+    moreAgentsTitle: "Other supported agents",
+    compareLink: "clovapi vs cc-switch →",
+    guidesTitle: "Related guides",
+  },
+  guides: {
+    indexTitle: "Setup guides",
+    indexSubtitle: "Step-by-step: third-party APIs for Claude Code & Codex — DeepSeek, OpenRouter, SiliconFlow, and more.",
+    tipsLabel: "Tip",
+  },
+  compare: {
+    title: "clovapi vs cc-switch",
+    subtitle: "Both help switch Claude Code upstream APIs. clovapi also covers multiple CLIs and Codex subscriptions.",
+    feature: "Feature",
+    yes: "Yes",
+    no: "—",
+    rows: {
+      multiCli: "Multi-CLI (Codex, OpenCode, etc.)",
+      codex: "Codex official subscription",
+      apiStyle: "Automatic API-style mapping",
+      claudeCode: "Claude Code env-var switching",
+      openSource: "Open source",
+      desktop: "Desktop app",
+    },
+    whenClovapiTitle: "When to choose clovapi",
+    whenClovapiBody:
+      "You switch upstreams across Claude Code, Codex, OpenCode, and other agents, or want automatic anthropic / openai-responses mapping at switch time.",
+    whenCcSwitchTitle: "When to choose cc-switch",
+    whenCcSwitchBody: "You only use Claude Code and already rely on cc-switch — no Codex or multi-CLI needs.",
+    agentsLink: "Browse supported agents →",
   },
   skill: {
     agentHintTitle: "Install ClovAPI Skill",

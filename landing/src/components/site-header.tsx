@@ -34,6 +34,8 @@ export function SiteHeader() {
   const headerLinks = useMemo<HeaderLink[]>(() => {
     return [
       { text: t("header.home"), to: "/" },
+      { text: t("header.agents"), to: "/agents" },
+      { text: t("header.guides"), to: "/guides" },
       { text: t("header.skill"), to: "/skill" },
     ];
   }, [t]);

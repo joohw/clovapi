@@ -34,6 +34,15 @@ export function HomeFooter() {
         </div>
 
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          <a href="/agents" className="text-muted-foreground hover:text-foreground">
+            {t("header.agents")}
+          </a>
+          <a href="/guides" className="text-muted-foreground hover:text-foreground">
+            {t("header.guides")}
+          </a>
+          <a href="/compare/cc-switch" className="text-muted-foreground hover:text-foreground">
+            cc-switch
+          </a>
           <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
             GitHub
           </a>

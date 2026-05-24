@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/clikind"
@@ -53,7 +52,7 @@ func (openClawTarget) Apply(p profile.Profile) error {
 	modelsRoot["mode"] = "merge"
 	provs := ensureSubMap(modelsRoot, "providers")
 	provs[openclawRelayID] = map[string]any{
-		"baseUrl": strings.TrimRight(strings.TrimSpace(p.BaseURL), "/"),
+		"baseUrl": openclawWireBaseURL(p.BaseURL, p.APIStyle),
 		"apiKey":  p.APIKey,
 		"api":     openclawAPIAdapter(p.APIStyle),
 		"models": []any{

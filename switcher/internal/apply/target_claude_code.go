@@ -45,7 +45,7 @@ func (claudeCodeTarget) Apply(p profile.Profile) error {
 	}
 	delete(env, "ANTHROPIC_API_KEY")
 	env["ANTHROPIC_AUTH_TOKEN"] = p.APIKey
-	env["ANTHROPIC_BASE_URL"] = p.BaseURL
+	env["ANTHROPIC_BASE_URL"] = ensureAnthropicWireBaseURL(p.BaseURL)
 	if m := strings.TrimSpace(p.Model); m != "" {
 		root["model"] = m
 		env["ANTHROPIC_MODEL"] = m

@@ -65,7 +65,7 @@ func (openCodeTarget) Apply(p profile.Profile) error {
 		if o, ok := ent["options"].(map[string]any); ok && o != nil {
 			opts = o
 		}
-		opts["baseURL"] = ensureOpenCodeSDKBaseURL(p.BaseURL)
+		opts["baseURL"] = ensureAnthropicWireBaseURL(p.BaseURL)
 		opts["apiKey"] = p.APIKey
 		ent["options"] = opts
 		prov["anthropic"] = ent

@@ -105,6 +105,7 @@ func ModelBindingForProvider(providerID, modelID string) string {
 }
 
 func ParseProxyIngressPath(pathname string) (Ingress, bool) {
+	pathname = normalizeProxyIngressPath(pathname)
 	parts := strings.Split(strings.TrimPrefix(pathname, "/"), "/")
 	if len(parts) < 4 || strings.ToLower(parts[3]) != "v1" {
 		return Ingress{}, false
@@ -129,4 +130,15 @@ func ParseProxyIngressPath(pathname string) (Ingress, bool) {
 		pathSuffix = "/" + strings.Join(parts[4:], "/")
 	}
 	return Ingress{ProviderID: providerID, ModelID: modelID, APIStyle: strings.ToLower(apiStyle), PathSuffix: pathSuffix}, true
+}
+
+// normalizeProxyIngressPath collapses /v1/v1/ from Anthropic clients whose base URL already ends with /v1.
+func normalizeProxyIngressPath(pathname string) string {
+	for strings.Contains(pathname, "/v1/v1/") {
+		pathname = strings.ReplaceAll(pathname, "/v1/v1/", "/v1/")
+	}
+	if strings.HasSuffix(pathname, "/v1/v1") {
+		pathname = strings.TrimSuffix(pathname, "/v1")
+	}
+	return pathname
 }

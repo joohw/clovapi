@@ -150,11 +150,31 @@ func Save(s *Store) error {
 	}
 	if err := os.Rename(tmp, p); err != nil {
 		_ = os.Remove(tmp)
-		syslog.Write("stderr", fmt.Sprintf("[profiles] save failed: %v", err))
+		syslog.Write("stderr", fmt.Sprintf("profiles save failed: %v", err))
 		return err
 	}
-	syslog.Write("system", fmt.Sprintf("[profiles] saved %s — %s", p, s.LogSummary()))
+	syslog.Write("system", s.LogSavedMessage())
 	return nil
+}
+
+func (s *Store) LogSavedMessage() string {
+	if s == nil {
+		return "profiles saved vendors=0 bindings=0"
+	}
+	vendors := 0
+	bindings := 0
+	for _, prof := range s.List {
+		name := strings.TrimSpace(prof.Name)
+		if name != "" && !strings.HasPrefix(name, "__") {
+			vendors++
+		}
+	}
+	for _, binding := range s.Active {
+		if strings.TrimSpace(binding) != "" {
+			bindings++
+		}
+	}
+	return fmt.Sprintf("profiles saved vendors=%d bindings=%d", vendors, bindings)
 }
 
 func (s *Store) LogSummary() string {

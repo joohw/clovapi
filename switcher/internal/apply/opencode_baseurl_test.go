@@ -37,3 +37,19 @@ func TestEnsureOpenCodeSDKBaseURL(t *testing.T) {
 		}
 	}
 }
+
+func TestEnsureAnthropicWireBaseURL(t *testing.T) {
+	tests := []struct {
+		in, want string
+	}{
+		{"https://api.anthropic.com", "https://api.anthropic.com"},
+		{"https://api.anthropic.com/v1", "https://api.anthropic.com"},
+		{"http://127.0.0.1:27483/codex/gpt-5.4/claude/v1", "http://127.0.0.1:27483/codex/gpt-5.4/claude"},
+		{"", ""},
+	}
+	for _, tc := range tests {
+		if got := ensureAnthropicWireBaseURL(tc.in); got != tc.want {
+			t.Fatalf("ensureAnthropicWireBaseURL(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}

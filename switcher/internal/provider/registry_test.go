@@ -47,4 +47,12 @@ func TestProxyIngressURLAndParser(t *testing.T) {
 	if _, ok := ParseProxyIngressPath("/claude-code/opus/claude/messages"); ok {
 		t.Fatalf("path without /v1 must not parse")
 	}
+
+	ingress2, ok := ParseProxyIngressPath("/codex/gpt-5.4/claude/v1/v1/messages")
+	if !ok {
+		t.Fatalf("expected valid ingress for double /v1 path")
+	}
+	if ingress2.PathSuffix != "/messages" || ingress2.ProviderID != "codex" {
+		t.Fatalf("unexpected ingress after dedupe: %+v", ingress2)
+	}
 }

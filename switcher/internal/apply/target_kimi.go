@@ -56,7 +56,7 @@ func (kimiTarget) Apply(p profile.Profile) error {
 	provs := ensureSubMap(root, "providers")
 	provs["clovapi"] = map[string]any{
 		"type":     kimiProviderType(p.APIStyle),
-		"base_url": strings.TrimRight(strings.TrimSpace(p.BaseURL), "/"),
+		"base_url": kimiWireBaseURL(p.BaseURL, p.APIStyle),
 		"api_key":  p.APIKey,
 	}
 

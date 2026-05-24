@@ -105,7 +105,7 @@ func Apply(p profile.Profile) error {
 		syslog.LogCLIApplyFailed(p.CLI, err)
 		return err
 	}
-	syslog.LogCLIApplied(p.CLI, p.BaseURL, p.Model, p.APIStyle)
+	syslog.LogCLIApplied(p.CLI, p.Model, p.APIStyle)
 	return nil
 }
 

@@ -459,7 +459,7 @@ func cmdProxySyslogs() *cobra.Command {
 				return nil
 			}
 			for _, entry := range entries {
-				fmt.Printf("%s  %s  [%s]  %s\n", entry.ID, entry.At, entry.Stream, entry.Message)
+				fmt.Println(syslog.FormatListLine(entry))
 			}
 			return nil
 		},
@@ -530,11 +530,7 @@ func cmdProxySyslogs() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			path, err := profile.ProfilesPath()
-			if err != nil {
-				return err
-			}
-			syslog.Write("system", fmt.Sprintf("[profiles] saved %s — %s", path, s.LogSummary()))
+			syslog.Write("system", s.LogSavedMessage())
 			return nil
 		},
 	}

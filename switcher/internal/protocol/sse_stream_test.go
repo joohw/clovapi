@@ -102,6 +102,42 @@ func TestTranscodeSSEOpenAIResponsesUpstreamToClaudeDownstream(t *testing.T) {
 	}
 }
 
+func TestTranscodeSSEOpenAIResponsesDoneDoesNotDuplicateDeltas(t *testing.T) {
+	t.Parallel()
+	sseWire := strings.Join([]string{
+		`event: response.created`,
+		`data: {"type":"response.created","response":{"model":"gpt-5.4"}}`,
+		"",
+		`event: response.output_text.delta`,
+		`data: {"type":"response.output_text.delta","delta":"你"}`,
+		"",
+		`event: response.output_text.delta`,
+		`data: {"type":"response.output_text.delta","delta":"好"}`,
+		"",
+		`event: response.output_text.done`,
+		`data: {"type":"response.output_text.done","text":"你好"}`,
+		"",
+		`event: response.completed`,
+		`data: {"type":"response.completed","status":"completed","response":{"usage":{"input_tokens":1,"output_tokens":2}}}`,
+		"",
+	}, "\n")
+	rr := httptest.NewRecorder()
+	if err := protocol.TranscodePlaintextSSEToIngress(context.Background(), apistyle.Claude, apistyle.OpenAIResponses, "gpt-5.4",
+		strings.NewReader(sseWire), rr); err != nil {
+		t.Fatal(err)
+	}
+	raw := rr.Body.String()
+	if strings.Count(raw, `"text":"你"`) != 1 {
+		t.Fatalf("expected single 你 delta, got:\n%s", raw)
+	}
+	if strings.Count(raw, `"text":"好"`) != 1 {
+		t.Fatalf("expected single 好 delta, got:\n%s", raw)
+	}
+	if strings.Count(raw, `"text":"你好"`) != 0 {
+		t.Fatalf("done/completed must not re-emit accumulated text:\n%s", raw)
+	}
+}
+
 type countReader struct {
 	r io.Reader
 	n int64

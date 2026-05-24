@@ -219,11 +219,7 @@ func hermesWireBaseURL(baseURL, apiMode string) string {
 		return b
 	}
 	if strings.EqualFold(strings.TrimSpace(apiMode), "anthropic_messages") {
-		low := strings.ToLower(b)
-		if strings.HasSuffix(low, "/v1") {
-			return strings.TrimRight(b[:len(b)-3], "/")
-		}
-		return b
+		return ensureAnthropicWireBaseURL(b)
 	}
 	return ensureWireV1BaseURL(b)
 }

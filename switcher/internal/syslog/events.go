@@ -8,13 +8,12 @@ import (
 	"github.com/clovapi/switcher/internal/clikind"
 )
 
-func LogCLIApplied(kind clikind.Kind, baseURL, model string, style apistyle.Style) {
+func LogCLIApplied(kind clikind.Kind, model string, style apistyle.Style) {
 	Write(
 		"system",
 		fmt.Sprintf(
-			"[cli] applied %s base_url=%s model=%q api_style=%s",
+			"apply %s model=%s style=%s",
 			kind,
-			strings.TrimSpace(baseURL),
 			strings.TrimSpace(model),
 			style,
 		),
@@ -22,18 +21,18 @@ func LogCLIApplied(kind clikind.Kind, baseURL, model string, style apistyle.Styl
 }
 
 func LogCLIReset(kind clikind.Kind) {
-	Write("system", fmt.Sprintf("[cli] reset %s to default", kind))
+	Write("system", fmt.Sprintf("reset %s", kind))
 }
 
 func LogCLIApplyFailed(kind clikind.Kind, err error) {
 	if err == nil {
 		return
 	}
-	Write("stderr", fmt.Sprintf("[cli] apply %s failed: %v", kind, err))
+	Write("stderr", fmt.Sprintf("apply %s failed: %v", kind, err))
 }
 
 func LogProxyStarted(host string, port int) {
-	Write("stdout", fmt.Sprintf("clovapi core proxy listening on http://%s:%d", host, port))
+	Write("stdout", fmt.Sprintf("proxy listen %s:%d", strings.TrimSpace(host), port))
 }
 
 func LogProxyStopped(reason string) {
@@ -41,5 +40,5 @@ func LogProxyStopped(reason string) {
 	if reason == "" {
 		reason = "shutdown"
 	}
-	Write("stderr", fmt.Sprintf("[proxy] stopping core (%s)", reason))
+	Write("stderr", fmt.Sprintf("proxy stop %s", reason))
 }

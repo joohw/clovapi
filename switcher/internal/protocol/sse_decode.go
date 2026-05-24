@@ -10,8 +10,9 @@ import (
 
 // SSEUpstreamDecodeState tracks partial decoder state across SSE records (Electron async generator locals).
 type SSEUpstreamDecodeState struct {
-	OpenAIChatStarted bool
-	ResponsesStarted  bool
+	OpenAIChatStarted     bool
+	ResponsesStarted      bool
+	ResponsesHasTextDelta bool // incremental output_text.delta already forwarded
 }
 
 // DecodeSSEStreamRecord maps one parsed SSE wire record into normalized ResponseEvent slices using egress SSE semantics (Electron decodeSseStream per style).
@@ -26,7 +27,7 @@ func DecodeSSEStreamRecord(egress apistyle.Style, rec SSERecord, st *SSEUpstream
 	case apistyle.OpenAIChat:
 		return decodeOpenAIChatSSERecord(rec, &st.OpenAIChatStarted)
 	case apistyle.OpenAIResponses:
-		return decodeOpenAIResponsesSSERecord(rec, &st.ResponsesStarted)
+		return decodeOpenAIResponsesSSERecord(rec, st)
 	default:
 		return nil
 	}
@@ -150,7 +151,10 @@ func decodeOpenAIChatSSERecord(rec SSERecord, started *bool) []ResponseEvent {
 	return out
 }
 
-func decodeOpenAIResponsesSSERecord(rec SSERecord, started *bool) []ResponseEvent {
+func decodeOpenAIResponsesSSERecord(rec SSERecord, st *SSEUpstreamDecodeState) []ResponseEvent {
+	if st == nil {
+		st = &SSEUpstreamDecodeState{}
+	}
 	if strings.TrimSpace(rec.Data) == "[DONE]" {
 		return []ResponseEvent{{Type: RespFinish, Reason: "completed"}}
 	}
@@ -174,8 +178,8 @@ func decodeOpenAIResponsesSSERecord(rec SSERecord, started *bool) []ResponseEven
 	if failed := responsesIsFailed(payload, recordType); failed != nil {
 		return []ResponseEvent{*failed}
 	}
-	if !*started && (strings.Contains(recordType, "response") || payload["response"] != nil) {
-		*started = true
+	if !st.ResponsesStarted && (strings.Contains(recordType, "response") || payload["response"] != nil) {
+		st.ResponsesStarted = true
 		model := strings.TrimSpace(fmt.Sprint(payload["model"]))
 		if rm, ok := payload["response"].(map[string]any); ok && rm != nil && strings.TrimSpace(fmt.Sprint(rm["model"])) != "" {
 			model = strings.TrimSpace(fmt.Sprint(rm["model"]))
@@ -185,6 +189,7 @@ func decodeOpenAIResponsesSSERecord(rec SSERecord, started *bool) []ResponseEven
 	if strings.Contains(recordType, "output_text.delta") || strings.Contains(recordType, "text.delta") {
 		txt := responsesExtractDeltaText(payload)
 		if txt != "" {
+			st.ResponsesHasTextDelta = true
 			out = append(out, ResponseEvent{Type: RespTextDelta, Text: txt})
 		}
 	}
@@ -196,15 +201,18 @@ func decodeOpenAIResponsesSSERecord(rec SSERecord, started *bool) []ResponseEven
 		if txt == "" {
 			txt = strings.TrimSpace(responsesExtractResponseText(payload))
 		}
-		if txt != "" {
+		// Responses API repeats accumulated text on done; skip when deltas were already streamed.
+		if txt != "" && !st.ResponsesHasTextDelta {
 			out = append(out, ResponseEvent{Type: RespTextDelta, Text: txt})
 		}
 	}
 	if strings.Contains(recordType, "completed") || strings.TrimSpace(fmt.Sprint(payload["status"])) == "completed" {
-		if resp := payload["response"]; resp != nil {
-			txt := strings.TrimSpace(responsesExtractResponseText(resp))
-			if txt != "" {
-				out = append(out, ResponseEvent{Type: RespTextDelta, Text: txt})
+		if !st.ResponsesHasTextDelta {
+			if resp := payload["response"]; resp != nil {
+				txt := strings.TrimSpace(responsesExtractResponseText(resp))
+				if txt != "" {
+					out = append(out, ResponseEvent{Type: RespTextDelta, Text: txt})
+				}
 			}
 		}
 		if inTok, outTok, ok := sseUsageTokens(responsesUsageMap(payload)); ok {

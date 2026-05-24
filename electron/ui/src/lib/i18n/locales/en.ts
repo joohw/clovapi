@@ -133,7 +133,7 @@ const en = {
     description: "Written by the clovapi core (CLI switch, profile saves, proxy lifecycle) to system-logs.sqlite.",
     empty: "No system logs yet.",
     message: "Message",
-    messageDesc: "Raw stdout / stderr lines.",
+    messageDesc: "Single-line system events (CLI apply, profile saves, proxy lifecycle).",
   },
   profileDialog: {
     title: "Edit Ollama",

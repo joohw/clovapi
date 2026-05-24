@@ -131,7 +131,7 @@ const zh = {
     description: "由 clovapi 内核写入（CLI switch、profiles 保存、代理启停），持久化到 system-logs.sqlite。",
     empty: "暂无系统日志。",
     message: "消息内容",
-    messageDesc: "原始 stdout / stderr 行。",
+    messageDesc: "单行系统事件（CLI 应用、profiles 保存、代理启停）。",
   },
   profileDialog: {
     title: "编辑 Ollama",

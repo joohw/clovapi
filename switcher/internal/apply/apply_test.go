@@ -2,13 +2,16 @@ package apply
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
+	"github.com/clovapi/switcher/internal/provider"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -110,6 +113,42 @@ func TestApplyClaudeCode(t *testing.T) {
 	}
 	if root["model"] != "deepseek-v4-flash" {
 		t.Fatalf("top-level model: %v", root["model"])
+	}
+}
+
+func TestApplyClaudeCodeProxyIngressStripsV1(t *testing.T) {
+	_ = testHome(t)
+	proxyBase := provider.BuildProxyIngressBaseURL(27483, provider.CodexProviderID, "gpt-5.4", "claude")
+	p := profile.Profile{
+		Name:     "@model:Codex Subscription/gpt-5.4",
+		CLI:      clikind.ClaudeCode,
+		APIStyle: apistyle.Claude,
+		BaseURL:  proxyBase,
+		APIKey:   "clovapi-local",
+		Model:    "gpt-5.4",
+	}
+	if err := Apply(p); err != nil {
+		t.Fatal(err)
+	}
+	path, err := ClaudeSettingsPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var root map[string]any
+	if err := json.Unmarshal(data, &root); err != nil {
+		t.Fatal(err)
+	}
+	env := root["env"].(map[string]any)
+	want := ensureAnthropicWireBaseURL(proxyBase)
+	if env["ANTHROPIC_BASE_URL"] != want {
+		t.Fatalf("ANTHROPIC_BASE_URL = %q want %q (no double /v1 for Anthropic SDK)", env["ANTHROPIC_BASE_URL"], want)
+	}
+	if strings.HasSuffix(strings.TrimSpace(fmt.Sprint(env["ANTHROPIC_BASE_URL"])), "/v1") {
+		t.Fatalf("ANTHROPIC_BASE_URL must not end with /v1: %q", env["ANTHROPIC_BASE_URL"])
 	}
 }
 

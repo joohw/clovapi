@@ -106,11 +106,15 @@ export function proxySystemLogStreamLabel(stream: string): string {
   const s = String(stream || "").toLowerCase();
   if (s === "stderr") return "ERR";
   if (s === "stdout") return "OUT";
-  return String(stream || "SYS").toUpperCase();
+  return "SYS";
 }
 
-export function proxySystemLogPreview(entry: ProxySystemLogEntry): string {
+export function proxySystemLogTitle(entry: ProxySystemLogEntry): string {
   const text = String(entry.message || "").replace(/\s+/g, " ").trim();
   if (!text) return t("common.empty");
-  return text.length > 120 ? `${text.slice(0, 120)}…` : text;
+  return text;
+}
+
+export function proxySystemLogSummary(entry: ProxySystemLogEntry): string {
+  return `${proxySystemLogStreamLabel(entry.stream)} · ${formatProxyLogTime(entry.at)}`;
 }

@@ -12,10 +12,9 @@
     store,
   } from "../lib/store.svelte";
   import {
-    formatProxyLogTime,
-    proxySystemLogPreview,
     proxySystemLogStreamClass,
-    proxySystemLogStreamLabel,
+    proxySystemLogSummary,
+    proxySystemLogTitle,
   } from "../lib/proxy-log-format";
   import ListRow from "./ListRow.svelte";
   import ProxySystemLogDetailPanel from "./ProxySystemLogDetailPanel.svelte";
@@ -83,13 +82,13 @@
       {:else}
         {#each store.proxySystemLogs as entry (entry.id)}
           <ListRow
-            title={proxySystemLogPreview(entry)}
-            lines={[proxySystemLogStreamLabel(entry.stream), formatProxyLogTime(entry.at)]}
+            title={proxySystemLogTitle(entry)}
+            linesNowrap
             onOpen={() => openProxySystemLog(entry.id)}
           >
             {#snippet actions()}
               <span class={`shrink-0 text-xs ${proxySystemLogStreamClass(entry.stream)}`}>
-                {proxySystemLogStreamLabel(entry.stream)}
+                {proxySystemLogSummary(entry)}
               </span>
               <Button
                 size="sm"

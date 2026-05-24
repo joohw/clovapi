@@ -27,7 +27,7 @@ func TestApplyKimiClaudeSubscriptionIngress(t *testing.T) {
 	if err := Apply(p); err != nil {
 		t.Fatal(err)
 	}
-	assertKimiProviderConfig(t, wantBase, "anthropic", "claude-sonnet-4-6")
+	assertKimiProviderConfig(t, ensureAnthropicWireBaseURL(wantBase), "anthropic", "claude-sonnet-4-6")
 }
 
 func TestApplyKimiCodexSubscriptionIngress(t *testing.T) {
@@ -44,7 +44,7 @@ func TestApplyKimiCodexSubscriptionIngress(t *testing.T) {
 	if err := Apply(p); err != nil {
 		t.Fatal(err)
 	}
-	assertKimiProviderConfig(t, wantBase, "anthropic", "gpt-5.4")
+	assertKimiProviderConfig(t, ensureAnthropicWireBaseURL(wantBase), "anthropic", "gpt-5.4")
 }
 
 func assertKimiProviderConfig(t *testing.T, wantBase, wantType, wantModel string) {

@@ -239,6 +239,31 @@ func TestPrepareDefaultsStreamFalseWhenOmitted(t *testing.T) {
 	}
 }
 
+func TestClaudeSubscriptionOAuthCapsMaxTokens(t *testing.T) {
+	body := []byte(`{
+	  "model": "claude-sonnet-4-6",
+	  "messages": [{"role":"user","content":"hi"}],
+	  "max_tokens": 16384,
+	  "stream": true
+	}`)
+	payload, _, _, err := protocol.PrepareUpstreamRequest(
+		apistyle.Claude,
+		apistyle.Claude,
+		body,
+		protocol.UpstreamHints{Model: "claude-sonnet-4-6", Source: "subscription:claude-code"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(payload, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := parsed["max_tokens"].(float64); int(got) != 8192 {
+		t.Fatalf("max_tokens = %v want 8192 for Claude subscription OAuth", parsed["max_tokens"])
+	}
+}
+
 func TestClaudeSubscriptionOAuthPrependsBootstrap(t *testing.T) {
 	body := []byte(`{
 	  "model": "claude-opus-4-7",

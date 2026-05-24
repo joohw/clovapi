@@ -47,9 +47,6 @@ func ApplyBinding(kind clikind.Kind, binding string) error {
 	}
 
 	applyHit := hit
-	if kind == clikind.Hermes && len(hit.Vendor.Models) > 0 {
-		applyHit = profile.VendorModelHit{Vendor: hit.Vendor, Model: hit.Vendor.Models[0]}
-	}
 	ingressStyle := profile.IngressStyleForCLI(kind, applyHit)
 	pathModelID, modelWire := profile.ResolveWireModelForIngress(applyHit, applyHit.Model.ID)
 	port := s.Proxy.Port

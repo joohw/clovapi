@@ -16,12 +16,18 @@ const (
 
 var (
 	claudeCredentialsPathOverride string
+	claudeKeychainLookupDisabled  bool
 	codexHomeOverride             string
 )
 
 // SetClaudeCredentialsPathOverride pins Claude OAuth file path (tests only).
 func SetClaudeCredentialsPathOverride(path string) {
 	claudeCredentialsPathOverride = strings.TrimSpace(path)
+}
+
+// SetClaudeKeychainLookupDisabled disables macOS keychain fallback (tests only).
+func SetClaudeKeychainLookupDisabled(disabled bool) {
+	claudeKeychainLookupDisabled = disabled
 }
 
 // SetCodexHomeOverride pins Codex home directory (tests only).
@@ -103,18 +109,39 @@ func claudeSubscriptionCredentialsValid(oauth *struct {
 }
 
 func loadClaudeSubscriptionCredentials() (subscriptionCredentials, bool) {
-	path, err := claudeCredentialsPath()
-	if err != nil {
-		return subscriptionCredentials{}, false
-	}
-	var raw claudeCredentialsFile
-	if !readJSONFile(path, &raw) || !claudeSubscriptionCredentialsValid(raw.ClaudeAiOauth) {
+	raw, ok := loadClaudeCredentialsDocument()
+	if !ok {
 		return subscriptionCredentials{}, false
 	}
 	return subscriptionCredentials{
 		BaseURL: anthropicOAuthBaseURL,
 		APIKey:  strings.TrimSpace(raw.ClaudeAiOauth.AccessToken),
 	}, true
+}
+
+func loadClaudeCredentialsDocument() (claudeCredentialsFile, bool) {
+	path, err := claudeCredentialsPath()
+	if err == nil {
+		var raw claudeCredentialsFile
+		if readJSONFile(path, &raw) && claudeSubscriptionCredentialsValid(raw.ClaudeAiOauth) {
+			return raw, true
+		}
+	}
+	return loadClaudeCredentialsFromKeychain()
+}
+
+// ClaudeAuthRoot returns the Claude OAuth document for desktop auth status.
+func ClaudeAuthRoot() (map[string]any, bool) {
+	raw, ok := loadClaudeCredentialsDocument()
+	if !ok || raw.ClaudeAiOauth == nil {
+		return nil, false
+	}
+	o := raw.ClaudeAiOauth
+	out := map[string]any{
+		"accessToken": strings.TrimSpace(o.AccessToken),
+		"expiresAt":   o.ExpiresAt,
+	}
+	return map[string]any{"claudeAiOauth": out}, true
 }
 
 func codexSubscriptionCredentialsValid(tokens *struct {

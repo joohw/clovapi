@@ -76,7 +76,7 @@ func TestTranscodeSSEOpenAIResponsesUpstreamToClaudeDownstream(t *testing.T) {
 		`data: {"type":"response.output_text.delta","delta":"你好"}`,
 		"",
 		`event: response.completed`,
-		`data: {"type":"response.completed","status":"completed"}`,
+		`data: {"type":"response.completed","status":"completed","response":{"usage":{"input_tokens":12,"output_tokens":3}}}`,
 		"",
 	}, "\n")
 	rr := httptest.NewRecorder()
@@ -90,6 +90,15 @@ func TestTranscodeSSEOpenAIResponsesUpstreamToClaudeDownstream(t *testing.T) {
 	}
 	if !strings.Contains(raw, "你好") || !strings.Contains(raw, "event: message_stop") {
 		t.Fatalf("missing unicode or stop framing: %q", raw)
+	}
+	if strings.Contains(raw, `"stop_reason":"completed"`) {
+		t.Fatalf("claude ingress must map codex completed → end_turn:\n%s", raw)
+	}
+	if !strings.Contains(raw, `"stop_reason":"end_turn"`) {
+		t.Fatalf("missing end_turn stop_reason:\n%s", raw)
+	}
+	if !strings.Contains(raw, `"output_tokens":3`) {
+		t.Fatalf("message_delta must carry usage.output_tokens from upstream:\n%s", raw)
 	}
 }
 
@@ -193,7 +202,7 @@ func TestTranscodeSSEOpenAIResponsesUpstreamToOpenAIResponsesDownstreamEmitsCrea
 		`data: {"type":"response.output_text.delta","delta":"ok"}`,
 		``,
 		`event: response.completed`,
-		`data: {"type":"response.completed","status":"completed"}`,
+		`data: {"type":"response.completed","status":"completed","response":{"usage":{"input_tokens":12,"output_tokens":3}}}`,
 		``,
 	}, "\n")
 	rr := httptest.NewRecorder()

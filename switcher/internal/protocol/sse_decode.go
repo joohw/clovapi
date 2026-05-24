@@ -65,6 +65,9 @@ func decodeClaudeStreamPayload(payload map[string]any) []ResponseEvent {
 			out = append(out, ResponseEvent{Type: RespTextDelta, Text: text})
 		}
 	case "message_delta":
+		if inTok, outTok, ok := sseUsageTokens(payload["usage"]); ok {
+			out = append(out, ResponseEvent{Type: RespUsage, InputTokens: inTok, OutputTokens: outTok})
+		}
 		if dm, ok := payload["delta"].(map[string]any); ok && dm != nil {
 			if sr := strings.TrimSpace(fmt.Sprint(dm["stop_reason"])); sr != "" {
 				out = append(out, ResponseEvent{Type: RespFinish, Reason: sr})
@@ -204,9 +207,43 @@ func decodeOpenAIResponsesSSERecord(rec SSERecord, started *bool) []ResponseEven
 				out = append(out, ResponseEvent{Type: RespTextDelta, Text: txt})
 			}
 		}
+		if inTok, outTok, ok := sseUsageTokens(responsesUsageMap(payload)); ok {
+			out = append(out, ResponseEvent{Type: RespUsage, InputTokens: inTok, OutputTokens: outTok})
+		}
 		out = append(out, ResponseEvent{Type: RespFinish, Reason: "completed"})
 	}
 	return out
+}
+
+func responsesUsageMap(payload map[string]any) any {
+	if payload == nil {
+		return nil
+	}
+	if um := payload["usage"]; um != nil {
+		return um
+	}
+	if rsp, ok := payload["response"].(map[string]any); ok && rsp != nil {
+		return rsp["usage"]
+	}
+	return nil
+}
+
+func sseUsageTokens(usageAny any) (inTok, outTok int, ok bool) {
+	um, okMap := usageAny.(map[string]any)
+	if !okMap || um == nil {
+		return 0, 0, false
+	}
+	if n, okIn := coerceIntPointer(um["input_tokens"]); okIn {
+		inTok = *n
+	} else if n, okIn := coerceIntPointer(um["prompt_tokens"]); okIn {
+		inTok = *n
+	}
+	if n, okOut := coerceIntPointer(um["output_tokens"]); okOut {
+		outTok = *n
+	} else if n, okOut := coerceIntPointer(um["completion_tokens"]); okOut {
+		outTok = *n
+	}
+	return inTok, outTok, inTok != 0 || outTok != 0
 }
 
 func responsesIsFailed(payload map[string]any, recordType string) *ResponseEvent {

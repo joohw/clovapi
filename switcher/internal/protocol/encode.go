@@ -10,11 +10,18 @@ import (
 
 const claudeOAuthSystemBootstrap = "You are Claude Code, Anthropic's official CLI for Claude."
 
+// claudeOAuthMaxOutputTokens caps subscription OAuth output budget so large agent
+// contexts (tools + system) do not trip Anthropic rate limits on max_tokens=16384.
+const claudeOAuthMaxOutputTokens = 8192
+
 // EncodeRequestClaude maps IR to Anthropic Messages API JSON.
 func EncodeRequestClaude(r Request) ([]byte, error) {
 	maxTok := 1024
 	if r.MaxTokens != nil {
 		maxTok = *r.MaxTokens
+	}
+	if r.Meta != nil && r.Meta.SubscriptionClaudeOAuth && maxTok > claudeOAuthMaxOutputTokens {
+		maxTok = claudeOAuthMaxOutputTokens
 	}
 	cm := ClaudeAPIMessages(r.Messages)
 	payload := map[string]any{

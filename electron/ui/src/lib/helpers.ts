@@ -29,7 +29,8 @@ import type {
 export function apiStylesForCli(kind: string): string[] {
   if (kind === "claude-code" || kind === "kimi-code") return ["claude"];
   if (kind === "codex") return ["openai-responses"];
-  if (kind === "opencode" || kind === "openclaw" || kind === "hermes") return ["openai-chat"];
+  if (kind === "hermes") return ["claude"];
+  if (kind === "opencode" || kind === "openclaw") return ["openai-chat"];
   return [];
 }
 

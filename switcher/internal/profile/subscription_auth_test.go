@@ -60,7 +60,11 @@ func TestProfileForModelBindingClaudeSubscriptionFromAuthFile(t *testing.T) {
 
 func TestProfileForModelBindingClaudeSubscriptionMissingAuth(t *testing.T) {
 	SetClaudeCredentialsPathOverride(filepath.Join(t.TempDir(), "missing.json"))
-	t.Cleanup(func() { SetClaudeCredentialsPathOverride("") })
+	SetClaudeKeychainLookupDisabled(true)
+	t.Cleanup(func() {
+		SetClaudeCredentialsPathOverride("")
+		SetClaudeKeychainLookupDisabled(false)
+	})
 
 	s := &Store{
 		List: []Profile{{

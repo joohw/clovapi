@@ -117,3 +117,13 @@ For request structs that are parsed from client JSON and then re-marshaled to up
   - field absent in client JSON => `nil` => omitted on marshal;
   - field explicitly set to zero/false => non-`nil` pointer => must still be sent upstream.
 - Avoid using non-pointer scalars with `omitempty` for optional request parameters, because zero values (`0`, `0.0`, `false`) will be silently dropped during marshal.
+
+### Rule 7: Hermes Adapter Tests — Exercise the Real `hermes` CLI
+
+Hermes configuration and proxy ingress must be validated against **actual `hermes` subprocess HTTP calls**, not by asserting YAML fields or synthetic JSON bodies in isolation.
+
+- **Do:** apply clovapi `Apply` output, run `hermes chat -q … -Q --accept-hooks --yolo --max-turns 1`, and assert the recorded request path/body (see `switcher/internal/apply/target_hermes_integration_test.go`).
+- **Do:** treat [Hermes Agent transport rules](https://github.com/NousResearch/hermes-agent) as source of truth — e.g. `anthropic_messages` clients append `/v1/messages`, so clovapi must **not** suffix `/v1` on Anthropic-style custom provider base URLs.
+- **Don't:** add Hermes tests that only read `~/.hermes/config.yaml` or mock request matrices without invoking the CLI.
+
+When Hermes behavior is unclear, inspect the installed agent (`hermes dump`, `~/.hermes/hermes-agent/hermes_cli/runtime_provider.py`) before changing ingress style or base URL shaping.

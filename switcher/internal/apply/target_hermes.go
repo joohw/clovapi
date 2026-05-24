@@ -68,8 +68,8 @@ func (hermesTarget) Apply(p profile.Profile) error {
 		modelObj["default"] = modelID
 		modelObj["provider"] = prov
 		if prov == "custom" {
-			baseURL := ensureWireV1BaseURL(p.BaseURL)
 			apiMode := hermesAPIMode(p.APIStyle)
+			baseURL := hermesWireBaseURL(p.BaseURL, apiMode)
 			modelObj["base_url"] = baseURL
 			modelObj["api_key"] = p.APIKey
 			if apiMode != "" {
@@ -133,6 +133,10 @@ func (hermesTarget) ResetDefault() error {
 // hermesSubscriptionProvider returns a native Hermes OAuth provider when clovapi
 // would otherwise write subscription upstream URLs as provider=custom.
 func hermesSubscriptionProvider(p profile.Profile) string {
+	// Desktop ApplyBinding always targets the local proxy; clovapi holds subscription auth there.
+	if hermesProxyBaseURL(p.BaseURL) {
+		return ""
+	}
 	if strings.EqualFold(strings.TrimSpace(p.Kind), "subscription") {
 		switch strings.TrimSpace(p.SubscriptionProviderID) {
 		case provider.CodexProviderID:
@@ -154,8 +158,11 @@ func hermesSubscriptionProvider(p profile.Profile) string {
 	return ""
 }
 
-// hermesWireModelID returns the first vendor model id for Hermes defaults (Hermes uses list order, not binding-specific ids).
+// hermesWireModelID returns the bound model id for Hermes defaults.
 func hermesWireModelID(p profile.Profile) string {
+	if id := profileModelSegment(strings.TrimSpace(p.Model)); id != "" {
+		return id
+	}
 	if len(p.Models) > 0 {
 		m := p.Models[0]
 		if id := profileModelSegment(strings.TrimSpace(m.Model)); id != "" {
@@ -163,18 +170,19 @@ func hermesWireModelID(p profile.Profile) string {
 		}
 		return profileModelSegment(m.ID)
 	}
-	return profileModelSegment(p.Model)
+	return ""
 }
 
-func hermesUsesCustomProxyProvider(p profile.Profile) bool {
-	if hermesSubscriptionProvider(p) != "" {
-		return false
-	}
-	base := strings.ToLower(strings.TrimSpace(p.BaseURL))
+func hermesProxyBaseURL(baseURL string) bool {
+	base := strings.ToLower(strings.TrimSpace(baseURL))
 	if base == "" {
 		return false
 	}
 	return strings.Contains(base, "127.0.0.1") || strings.Contains(base, "localhost")
+}
+
+func hermesUsesCustomProxyProvider(p profile.Profile) bool {
+	return hermesProxyBaseURL(p.BaseURL)
 }
 
 func hermesInferenceProvider(st apistyle.Style) string {
@@ -200,6 +208,24 @@ func hermesAPIMode(st apistyle.Style) string {
 	default:
 		return "chat_completions"
 	}
+}
+
+// hermesWireBaseURL shapes custom provider base_url the way Hermes SDKs append paths:
+// anthropic_messages → Anthropic client adds /v1/messages (ingress …/claude/v1/messages);
+// codex_responses / chat_completions → OpenAI client adds /responses or /chat/completions under …/v1.
+func hermesWireBaseURL(baseURL, apiMode string) string {
+	b := strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	if b == "" {
+		return b
+	}
+	if strings.EqualFold(strings.TrimSpace(apiMode), "anthropic_messages") {
+		low := strings.ToLower(b)
+		if strings.HasSuffix(low, "/v1") {
+			return strings.TrimRight(b[:len(b)-3], "/")
+		}
+		return b
+	}
+	return ensureWireV1BaseURL(b)
 }
 
 func upsertHermesCustomProvider(root map[string]any, baseURL, apiKey, modelID, apiMode string, catalog []profile.Model) {

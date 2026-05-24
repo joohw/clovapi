@@ -852,7 +852,7 @@ func CliIngressStyle(kind clikind.Kind) apistyle.Style {
 }
 
 // IngressStyleForCLI picks proxy ingress style from CLI kind and vendor/model wire style.
-// Hermes agent runs gpt-5.x Codex subscription through /responses (codex_responses), not chat_completions.
+// Hermes custom provider uses anthropic_messages against the local proxy; clovapi transcodes to upstream wire.
 func IngressStyleForCLI(kind clikind.Kind, hit VendorModelHit) apistyle.Style {
 	modelStyle := firstStyle(hit.Model.APIStyle, hit.Vendor.APIStyle)
 	switch kind {
@@ -860,6 +860,8 @@ func IngressStyleForCLI(kind clikind.Kind, hit VendorModelHit) apistyle.Style {
 		return apistyle.Claude
 	case clikind.Codex:
 		return apistyle.OpenAIResponses
+	case clikind.Hermes:
+		return apistyle.Claude
 	default:
 		switch modelStyle {
 		case apistyle.Claude:

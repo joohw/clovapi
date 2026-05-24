@@ -189,6 +189,11 @@ func AuthStatus() AuthStatusResult {
 		if data, ok := readAuthJSON(authPath); ok {
 			item.LoggedIn = providerLoggedIn(cfg.ID, data)
 			item.Summary = summarizeAuthStatus(cfg.ID, item.LoggedIn, data)
+		} else if cfg.ID == provider.ClaudeCodeProviderID {
+			if data, ok := profile.ClaudeAuthRoot(); ok {
+				item.LoggedIn = providerLoggedIn(cfg.ID, data)
+				item.Summary = summarizeAuthStatus(cfg.ID, item.LoggedIn, data)
+			}
 		}
 		items = append(items, item)
 	}

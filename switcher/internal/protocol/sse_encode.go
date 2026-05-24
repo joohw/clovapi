@@ -197,10 +197,13 @@ func sseOrDefault(s, fallback string) string {
 // ------ Claude SSE encoder ------
 
 type claudeStreamEncoder struct {
-	messageID string
-	model     string
-	started   bool
-	blockOpen bool
+	messageID    string
+	model        string
+	started      bool
+	blockOpen    bool
+	inputTokens  int
+	outputTokens int
+	hasUsage     bool
 }
 
 func newClaudeStreamEncoder() *claudeStreamEncoder {
@@ -245,17 +248,22 @@ func (c *claudeStreamEncoder) feed(ev ResponseEvent) (chunks [][]byte, done bool
 			return nil, true, ferr
 		}
 		return append(chunks, delta), false, nil
+	case RespUsage:
+		if ev.InputTokens != 0 {
+			c.inputTokens = ev.InputTokens
+		}
+		if ev.OutputTokens != 0 {
+			c.outputTokens = ev.OutputTokens
+		}
+		c.hasUsage = c.hasUsage || ev.InputTokens != 0 || ev.OutputTokens != 0
+		return nil, false, nil
 	case RespFinish:
 		cs, ierr := c.ensureStarted()
 		if ierr != nil {
 			return nil, true, ierr
 		}
 		chunks := append([][]byte(nil), cs...)
-		stop := strings.TrimSpace(ev.Reason)
-		if stop == "" {
-			stop = "end_turn"
-		}
-		closeChunks, cerr := c.closeBlocks(stop)
+		closeChunks, cerr := c.closeBlocks(finishClaudeNormalize(ev.Reason))
 		if cerr != nil {
 			return nil, true, cerr
 		}
@@ -303,10 +311,17 @@ func (c *claudeStreamEncoder) closeBlocks(reason string) ([][]byte, error) {
 	}
 	ch = append(ch, b3)
 
-	b4, err := formatClaudeSSE("message_delta", map[string]any{
+	deltaPayload := map[string]any{
 		"type":  "message_delta",
 		"delta": map[string]any{"stop_reason": strings.TrimSpace(reason)},
-	})
+	}
+	if c.hasUsage {
+		deltaPayload["usage"] = map[string]any{"output_tokens": c.outputTokens}
+	} else {
+		// Hermes Anthropic SDK reads usage.output_tokens from message_delta.
+		deltaPayload["usage"] = map[string]any{"output_tokens": 0}
+	}
+	b4, err := formatClaudeSSE("message_delta", deltaPayload)
 	if err != nil {
 		return nil, err
 	}

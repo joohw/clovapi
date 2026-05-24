@@ -227,14 +227,29 @@ Codex 订阅在 Harbor 里用 `CODEX_AUTH_JSON_PATH=~/.codex/auth.json` 或 `COD
 
 与 Harbor 适配器对照阅读的开源 clone（`ref/` 已在 `.gitignore` 中）：
 
-| 目录 | 上游 |
-|------|------|
-| `ref/harbor` | harbor-framework/harbor |
-| `ref/claude-code` | source map 还原（CLI 本体闭源） |
-| `ref/codexcli` | openai/codex |
-| `ref/gemini-cli` | google-gemini/gemini-cli |
-| `ref/opencode` | anomalyco/opencode |
-| `ref/openhands`、`ref/mini-swe-agent`、`ref/hermes-agent` 等 | 见 `ref/` 目录 |
+| 目录 | 上游 | 说明 |
+|------|------|------|
+| `ref/harbor` | [harbor-framework/harbor](https://github.com/harbor-framework/harbor) | 基准框架 |
+| `ref/claude-code` | source map 还原 | CLI 本体闭源 |
+| `ref/claude-code-official` | [anthropics/claude-code](https://github.com/anthropics/claude-code) | 仅插件 |
+| `ref/claude-agent-sdk` | [anthropics/claude-agent-sdk](https://github.com/anthropics/claude-agent-sdk) | 官方 programmatic SDK |
+| `ref/codexcli` | [openai/codex](https://github.com/openai/codex) | |
+| `ref/gemini-cli` | [google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) | |
+| `ref/amazon-q-cli` | [aws/amazon-q-developer-cli](https://github.com/aws/amazon-q-developer-cli) | Harbor 未内置 |
+| `ref/opencode` | [anomalyco/opencode](https://github.com/anomalyco/opencode) | |
+| `ref/openhands` | [OpenHands/OpenHands](https://github.com/OpenHands/OpenHands) | 全栈版 |
+| `ref/openhands-sdk` | [OpenHands/software-agent-sdk](https://github.com/OpenHands/software-agent-sdk) | Harbor `openhands-sdk` |
+| `ref/nemo-agent-toolkit` | [NVIDIA/NeMo-Agent-Toolkit](https://github.com/NVIDIA/NeMo-Agent-Toolkit) | Harbor `nemo-agent` |
+| `ref/mini-swe-agent` | [SWE-agent/mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) | |
+| `ref/swe-agent` | [SWE-agent/SWE-agent](https://github.com/SWE-agent/SWE-agent) | |
+| `ref/agentless` | [OpenAutoCoder/Agentless](https://github.com/OpenAutoCoder/Agentless) | SWE-bench 无 agent 基线 |
+| `ref/cline` | [cline/cline](https://github.com/cline/cline) | |
+| `ref/roo-code` | [RooCodeInc/Roo-Code](https://github.com/RooCodeInc/Roo-Code) | Cline fork |
+| `ref/pi` | [earendil-works/pi](https://github.com/earendil-works/pi) | monorepo |
+| `ref/pi-terminal-bench` | [badlogic/pi-terminal-bench](https://github.com/badlogic/pi-terminal-bench) | Pi 的 Harbor 适配 |
+| `ref/hermes-agent`、`ref/kimi-cli`、`ref/openclaw`、`ref/goose`、`ref/qwen-code`、`ref/trae-agent`、`ref/aider` 等 | 见 [`agent-repos.zh.md`](agent-repos.zh.md) | |
+
+`ref/` 已在 `.gitignore` 中；完整仓库列表与一键 clone 脚本见 [`agent-repos.zh.md`](agent-repos.zh.md)。
 
 ## 延伸阅读
 

@@ -234,19 +234,29 @@ For Codex subscription in Harbor, use `CODEX_AUTH_JSON_PATH=~/.codex/auth.json` 
 
 Open-source agent repos cloned for reading alongside Harbor adapters:
 
-| Directory | Upstream |
-|-----------|----------|
-| `ref/harbor` | [harbor-framework/harbor](https://github.com/harbor-framework/harbor) |
-| `ref/claude-code` | Source-map restore (CLI body is proprietary) |
-| `ref/claude-code-official` | [anthropics/claude-code](https://github.com/anthropics/claude-code) (plugins) |
-| `ref/codexcli` | [openai/codex](https://github.com/openai/codex) |
-| `ref/gemini-cli` | [google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) |
-| `ref/opencode` | [anomalyco/opencode](https://github.com/anomalyco/opencode) |
-| `ref/openhands` | [OpenHands/OpenHands](https://github.com/OpenHands/OpenHands) |
-| `ref/mini-swe-agent` | [SWE-agent/mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) |
-| `ref/hermes-agent`, `ref/kimi-cli`, `ref/openclaw`, … | See `ref/` |
+| Directory | Upstream | Notes |
+|-----------|----------|-------|
+| `ref/harbor` | [harbor-framework/harbor](https://github.com/harbor-framework/harbor) | Benchmark harness |
+| `ref/claude-code` | Source-map restore | CLI body is proprietary |
+| `ref/claude-code-official` | [anthropics/claude-code](https://github.com/anthropics/claude-code) | Plugins only |
+| `ref/claude-agent-sdk` | [anthropics/claude-agent-sdk](https://github.com/anthropics/claude-agent-sdk) | Official programmatic SDK |
+| `ref/codexcli` | [openai/codex](https://github.com/openai/codex) | |
+| `ref/gemini-cli` | [google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) | |
+| `ref/amazon-q-cli` | [aws/amazon-q-developer-cli](https://github.com/aws/amazon-q-developer-cli) | Not in Harbor |
+| `ref/opencode` | [anomalyco/opencode](https://github.com/anomalyco/opencode) | |
+| `ref/openhands` | [OpenHands/OpenHands](https://github.com/OpenHands/OpenHands) | Full stack |
+| `ref/openhands-sdk` | [OpenHands/software-agent-sdk](https://github.com/OpenHands/software-agent-sdk) | Harbor `openhands-sdk` |
+| `ref/nemo-agent-toolkit` | [NVIDIA/NeMo-Agent-Toolkit](https://github.com/NVIDIA/NeMo-Agent-Toolkit) | Harbor `nemo-agent` |
+| `ref/mini-swe-agent` | [SWE-agent/mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) | |
+| `ref/swe-agent` | [SWE-agent/SWE-agent](https://github.com/SWE-agent/SWE-agent) | |
+| `ref/agentless` | [OpenAutoCoder/Agentless](https://github.com/OpenAutoCoder/Agentless) | SWE-bench baseline |
+| `ref/cline` | [cline/cline](https://github.com/cline/cline) | |
+| `ref/roo-code` | [RooCodeInc/Roo-Code](https://github.com/RooCodeInc/Roo-Code) | Cline fork |
+| `ref/pi` | [earendil-works/pi](https://github.com/earendil-works/pi) | Monorepo |
+| `ref/pi-terminal-bench` | [badlogic/pi-terminal-bench](https://github.com/badlogic/pi-terminal-bench) | Pi Harbor adapter |
+| `ref/hermes-agent`, `ref/kimi-cli`, `ref/openclaw`, `ref/goose`, `ref/qwen-code`, `ref/trae-agent`, `ref/aider` | See `ref/` | |
 
-`ref/` is gitignored; refresh with shallow clones as needed.
+`ref/` is gitignored; refresh with shallow clones as needed. Full repo list and one-shot clone script: [`agent-repos.md`](agent-repos.md).
 
 ## Further reading
 

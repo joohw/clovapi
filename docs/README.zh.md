@@ -88,6 +88,31 @@ cd switcher && go test ./...
 
 本模块内 **`go test ./...`** 可通过；真实上游调用需在本地配置密钥。
 
+## 相关链接
+
+### Agent 配置切换
+
+- [CC Switch（CCSwitch）](https://github.com/farion1231/cc-switch) — 桌面版 All-in-One Agent API 切换（Claude Code、Codex、OpenCode、OpenClaw 等）
+- [cc-switch-cli](https://github.com/saladday/cc-switch-cli) — CC Switch 的 CLI fork
+- [cc-switch](https://github.com/HoBeedzc/cc-switch) — 社区 Claude Code profile 切换（npm）
+- [ccswitch](https://github.com/huangdijia/ccswitch) — 社区 Claude Code 配置切换
+
+### 系统提示与工具变更追踪
+
+- [cchistory](https://github.com/badlogic/cchistory) — 提取并对比不同 Claude Code 版本的 system prompt 与 tool 定义
+- [claude-code-changelog](https://github.com/marckrenn/claude-code-changelog) — 社区维护的 Claude Code prompt / feature flag 演进追踪
+
+### 评测与 Agent 生态
+
+- [Harbor](https://github.com/harbor-framework/harbor) — Terminal-Bench 官方 harness
+- [Terminal-Bench](https://www.tbench.ai/) — 终端 Agent 基准数据集
+- [Harbor 与各 Agent 的 API 控制](harbor-agents.zh.md) · [Agent 仓库索引](agent-repos.zh.md)
+
+### 上游模型与套餐
+
+- [OpenCode](https://github.com/anomalyco/opencode) — 开源 Agent IDE/CLI（[配置文档](https://opencode.ai/docs/config)）
+- [OpenRouter](https://openrouter.ai/) — 聚合多家模型与免费/折扣套餐的 API 网关
+
 ## DeepSeek + Claude Code（Anthropic 兼容）
 
 使用 API 形态 **`claude`**，Base URL 以 DeepSeek 文档为准：

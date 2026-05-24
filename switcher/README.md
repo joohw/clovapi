@@ -17,7 +17,7 @@ For **Claude Code**, env wiring matches community **cc-switch** / **ccswitch**; 
 | `clovapi list` | Show saved profiles, CLI ↔ API-style matrix, and last-applied CLIs (aliases: **`profiles`**, **`ls`**) |
 | `clovapi add --name NAME` | Save one upstream profile (CLI is chosen at switch time); connectivity test before persist (`--name` required, aliases: **`set`**, **`new`**) |
 | `clovapi remove <name>` | Remove one saved profile (aliases: **`rm`**, **`delete`**) |
-| `clovapi switch [--cli KIND] [PROFILE_NAME]` | Apply one profile to one CLI. Interactive flow: choose CLI first, then choose a profile for that CLI, or **`0)` reset this CLI only**. Alias **`use`** |
+| `clovapi switch [--cli KIND] [VENDOR/MODEL]` | Apply a vendor model binding to one CLI (`--vendor` + `--model`, or interactive vendor → model). Alias **`use`** |
 | `clovapi proxy` | Run and inspect the built-in local proxy core (`start`, `status`, `config`) |
 | `clovapi reset` | Clear all saved profiles and bindings (`--yes` / `-y` skips prompt) |
 
@@ -108,6 +108,31 @@ Paths expand correctly on Windows (user profile / AppData).
 | **clovapi** | `%APPDATA%\clovapi\profiles.json` (Windows) / `~/.config/clovapi/profiles.json` (Unix) — `profiles` array + `active` map |
 
 `go test ./...` in this module passes; real upstream calls need your key locally.
+
+## Related links
+
+### Agent profile switching
+
+- [CC Switch (CCSwitch)](https://github.com/farion1231/cc-switch) — desktop all-in-one Agent API switcher (Claude Code, Codex, OpenCode, OpenClaw, …)
+- [cc-switch-cli](https://github.com/saladday/cc-switch-cli) — CLI fork of CC Switch
+- [cc-switch](https://github.com/HoBeedzc/cc-switch) — community Claude Code profile switcher (npm)
+- [ccswitch](https://github.com/huangdijia/ccswitch) — community Claude Code config switcher
+
+### System prompt & tool change tracking
+
+- [cchistory](https://github.com/badlogic/cchistory) — extract and diff Claude Code system prompts and tool definitions across versions
+- [claude-code-changelog](https://github.com/marckrenn/claude-code-changelog) — community-maintained Claude Code prompt / feature-flag evolution
+
+### Benchmarks & agent ecosystem
+
+- [Harbor](https://github.com/harbor-framework/harbor) — official Terminal-Bench harness
+- [Terminal-Bench](https://www.tbench.ai/) — terminal agent benchmark dataset
+- [Harbor & agent API control](../docs/harbor-agents.md) · [Agent repo index](../docs/agent-repos.md)
+
+### Upstream models & plans
+
+- [OpenCode](https://github.com/anomalyco/opencode) — open-source agent IDE/CLI ([config docs](https://opencode.ai/docs/config))
+- [OpenRouter](https://openrouter.ai/) — multi-provider API gateway with free and discounted model tiers
 
 ## Release pipeline
 

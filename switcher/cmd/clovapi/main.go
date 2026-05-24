@@ -59,22 +59,33 @@ func cmdProfiles() *cobra.Command {
 				return err
 			}
 			if len(s.List) > 0 {
-				fmt.Println("Name            CLI             Style      Model                 Base URL")
-				fmt.Println("----------------+----------------+----------+----------------------+---------------------------")
+				fmt.Println("Vendor          Kind           Models  Default model")
+				fmt.Println("---------------+--------------+-------+----------------------")
 				for _, p := range s.List {
-					mod := truncate(p.Model, 20)
-					if mod == "" {
-						mod = "—"
+					if !profile.IsAllowedUserVendorProfile(p) {
+						continue
 					}
-					cliCol := string(p.CLI)
-					if cliCol == "" {
-						cliCol = "—"
+					kindCol := strings.TrimSpace(p.Kind)
+					if kindCol == "" {
+						kindCol = "—"
+					}
+					modelCount := len(p.Models)
+					defModel := truncate(p.Model, 20)
+					if defModel == "" && modelCount > 0 {
+						defModel = truncate(p.Models[0].ID, 20)
+					}
+					if defModel == "" {
+						defModel = "—"
 					}
 					nm := truncate(p.Name, 15)
-					if nm == "" {
-						nm = "—"
+					fmt.Printf("%-15s %-14s %-7d %s\n", nm, kindCol, modelCount, defModel)
+				}
+				if len(s.Active) > 0 {
+					fmt.Println()
+					fmt.Println("Active bindings:")
+					for cli, binding := range s.Active {
+						fmt.Printf("  %s -> %s\n", cli, binding)
 					}
-					fmt.Printf("%-15s %-15s %-10s %-21s %s\n", nm, cliCol, p.APIStyle, mod, truncate(p.BaseURL, 26))
 				}
 			}
 			return nil
@@ -91,8 +102,8 @@ func cmdSet() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "add",
 		Short: "Save one API profile (flags or prompts); connectivity test before save",
-		Long: "Writes one profile under profiles list (name, api_style, base URL, key, model).\n" +
-			"Use `clovapi switch --cli <kind>` to apply it into local CLI config.",
+		Long: "Writes one vendor model under profiles list (name, api_style, base URL, key, model).\n" +
+			"Prefer configuring vendors in the desktop app; use `clovapi switch --cli <kind>` to pick vendor and model.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			sc := bufio.NewScanner(os.Stdin)
 			name = strings.TrimSpace(name)
@@ -213,18 +224,22 @@ func cmdSwitch() *cobra.Command {
 	var resetFlag bool
 	var directBaseURL string
 	var directAPIKey string
-	var directModel string
 	var directAPIStyle string
 	var bindingFlag string
+	var vendorFlag string
+	var modelFlag string
 	c := &cobra.Command{
-		Use:   "switch [PROFILE_NAME]",
-		Short: "Apply one saved profile to one CLI",
-		Long: "By default, switch uses that CLI's active profile; if absent, it uses the first profile for that CLI.\n" +
-			"Optional PROFILE_NAME selects a profile by name from the profiles list.\n\n" +
-			"Interactive mode (no --cli): pick CLI from PATH, then choose a profile or reset **that** CLI only.",
+		Use:   "switch [VENDOR/MODEL]",
+		Short: "Apply a vendor model binding to one CLI",
+		Long: "Applies a @model:Vendor/model-id binding through the local proxy.\n\n" +
+			"Non-interactive examples:\n" +
+			"  clovapi switch --cli codex --vendor \"Codex Subscription\" --model gpt-5.5\n" +
+			"  clovapi switch --cli codex \"Codex Subscription/gpt-5.5\"\n" +
+			"  clovapi switch --cli codex --binding \"@model:Codex Subscription/gpt-5.5\"\n\n" +
+			"Interactive mode (no vendor/model): pick CLI, vendor, then model.",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			sc := bufio.NewScanner(os.Stdin)
+			sc := newSwitchScanner()
 			s, err := profile.Load()
 			if err != nil {
 				return err
@@ -246,187 +261,24 @@ func cmdSwitch() *cobra.Command {
 				kind = k
 			}
 
-			profileArg := ""
+			positional := ""
 			if len(args) >= 1 {
-				profileArg = strings.TrimSpace(args[0])
+				positional = strings.TrimSpace(args[0])
 			}
 
-			if resetFlag {
-				if profileArg != "" {
-					return fmt.Errorf("cannot use --reset with a profile name argument")
-				}
-				if strings.TrimSpace(directBaseURL) != "" || strings.TrimSpace(bindingFlag) != "" {
-					return fmt.Errorf("cannot use --reset with --base-url or --binding")
-				}
-				if err := apply.ResetDefault(kind); err != nil {
-					return err
-				}
-				syslog.LogCLIReset(kind)
-				s.ClearActive(string(kind))
-				if err := profile.Save(s); err != nil {
-					return err
-				}
-				fmt.Printf("Reset %s to default (cleared clovapi relay bindings).\n", kind)
-				return nil
-			}
-
-			if strings.TrimSpace(bindingFlag) != "" {
-				if profileArg != "" {
-					return fmt.Errorf("cannot use profile name with --binding")
-				}
-				if strings.TrimSpace(directBaseURL) != "" {
-					return fmt.Errorf("cannot use --binding with --base-url")
-				}
-				return applyBindingSwitch(kind, bindingFlag)
-			}
-
-			if strings.TrimSpace(directBaseURL) != "" {
-				if profileArg != "" {
-					return fmt.Errorf("cannot use profile name with --base-url (pass --model and optional --api-style instead)")
-				}
-				return applyDirectToCLI(kind, directBaseURL, directAPIKey, directModel, directAPIStyle)
-			}
-
-			if kindStr == "" && profileArg == "" {
-				picked, err := promptProfileActionForCLI(sc, kind, s)
-				if err != nil {
-					return err
-				}
-				if picked.reset {
-					if err := apply.ResetDefault(kind); err != nil {
-						return err
-					}
-					s.ClearActive(string(kind))
-					if err := profile.Save(s); err != nil {
-						return err
-					}
-					fmt.Printf("Reset %s to default (cleared clovapi relay bindings).\n", kind)
-					return nil
-				}
-				return applyProfileToCLI(s, kind, picked.profile, picked.label)
-			}
-
-			p, ok := resolveProfileForSwitch(s, kind, profileArg)
-			if profileArg != "" && !ok {
-				return fmt.Errorf("profile %q not found", profileArg)
-			}
-			if !ok {
-				return fmt.Errorf("no saved compatible profile for %s — run: clovapi add --name <name>", kind)
-			}
-			label := p.Name
-			if strings.TrimSpace(profileArg) != "" {
-				label = profileArg
-			}
-			return applyProfileToCLI(s, kind, p, label)
+			return runSwitch(sc, s, kind, resetFlag, bindingFlag, vendorFlag, modelFlag, directBaseURL, directAPIKey, modelFlag, directAPIStyle, positional)
 		},
 	}
 	c.Flags().StringVar(&cliStr, "cli", "", "Target CLI (omit to prompt): claude-code|codex|opencode|openclaw|hermes|kimi-code")
 	c.Flags().BoolVar(&resetFlag, "reset", false, "Clear clovapi relay bindings for this CLI only (use with --cli)")
-	c.Flags().StringVar(&directBaseURL, "base-url", "", "Apply endpoint directly (desktop local proxy); do not use a saved profile or __local_proxy_* stub")
+	c.Flags().StringVar(&vendorFlag, "vendor", "", "Vendor name (e.g. Codex Subscription, Custom API)")
+	c.Flags().StringVar(&modelFlag, "model", "", "Model id (with --vendor, or required with --base-url)")
+	c.Flags().StringVar(&directBaseURL, "base-url", "", "Apply a custom endpoint directly (bypasses vendor bindings)")
 	c.Flags().StringVar(&directAPIKey, "api-key", "clovapi-local", "API key written to CLI config when using --base-url")
-	c.Flags().StringVar(&directModel, "model", "", "Model id written to CLI config when using --base-url (required with --base-url)")
 	c.Flags().StringVar(&directAPIStyle, "api-style", "", "API style when using --base-url (default: openai-chat for opencode, claude for claude-code, etc.)")
-	c.Flags().StringVar(&bindingFlag, "binding", "", "Desktop @model:Vendor/model-id binding (computes local proxy ingress and applies)")
+	c.Flags().StringVar(&bindingFlag, "binding", "", "Model binding (@model:Vendor/model-id)")
 	c.Aliases = []string{"use"}
 	return c
-}
-
-func applyDirectToCLI(kind clikind.Kind, baseURL, apiKey, model, styleStr string) error {
-	mod := strings.TrimSpace(model)
-	if mod == "" {
-		return fmt.Errorf("--model is required with --base-url")
-	}
-	st, err := apistyle.Parse(strings.TrimSpace(styleStr))
-	if err != nil {
-		if strings.TrimSpace(styleStr) != "" {
-			return err
-		}
-		switch kind {
-		case clikind.ClaudeCode, clikind.KimiCode:
-			st = apistyle.Claude
-		case clikind.Codex:
-			st = apistyle.OpenAIResponses
-		default:
-			st = apistyle.OpenAIChat
-		}
-	}
-	key := strings.TrimSpace(apiKey)
-	if key == "" {
-		key = "clovapi-local"
-	}
-	p := profile.Profile{
-		Name:     "__direct__",
-		CLI:      kind,
-		BaseURL:  strings.TrimSpace(baseURL),
-		APIKey:   key,
-		Model:    mod,
-		APIStyle: st,
-	}
-	if !apply.KindSupportsStyle(kind, p.APIStyle) {
-		return fmt.Errorf("cli %q does not support api_style %q (supported here: %s)", kind, p.APIStyle, styleChoices(kind))
-	}
-	if err := apply.Apply(p); err != nil {
-		return err
-	}
-	fmt.Printf("Applied direct endpoint to %s (model %q)\n", kind, mod)
-	return nil
-}
-
-func resolveProfileForSwitch(s *profile.Store, kind clikind.Kind, profileName string) (profile.Profile, bool) {
-	if strings.TrimSpace(profileName) != "" {
-		p, ok := s.Get(strings.TrimSpace(profileName))
-		if !ok {
-			return profile.Profile{}, false
-		}
-		if (p.CLI != "" && p.CLI != kind) || !apply.KindSupportsStyle(kind, p.APIStyle) {
-			return profile.Profile{}, false
-		}
-		return p, true
-	}
-	if p, ok := s.ActiveForCLI(string(kind)); ok {
-		if (p.CLI == "" || p.CLI == kind) && apply.KindSupportsStyle(kind, p.APIStyle) {
-			return p, true
-		}
-	}
-	for _, p := range s.List {
-		if (p.CLI == "" || p.CLI == kind) && apply.KindSupportsStyle(kind, p.APIStyle) {
-			return p, true
-		}
-	}
-	return profile.Profile{}, false
-}
-
-func applyProfileToCLI(s *profile.Store, kind clikind.Kind, p profile.Profile, label string) error {
-	activeLabel := strings.TrimSpace(label)
-	if activeLabel == "" {
-		activeLabel = strings.TrimSpace(p.Name)
-	}
-	if strings.HasPrefix(activeLabel, profile.ModelBindingPrefix) {
-		return applyBindingSwitch(kind, activeLabel)
-	}
-	if !apply.KindSupportsStyle(kind, p.APIStyle) {
-		return fmt.Errorf("cli %q does not support api_style %q (supported here: %s)", kind, p.APIStyle, styleChoices(kind))
-	}
-	pc := p
-	pc.CLI = kind
-	if err := apply.Apply(pc); err != nil {
-		return err
-	}
-	if activeLabel == "" {
-		activeLabel = p.Name
-	}
-	if strings.TrimSpace(activeLabel) == "" {
-		activeLabel = string(kind)
-	}
-	// Desktop local-proxy stubs use __local_proxy_*; do not overwrite UI @model: bindings in active.
-	if !strings.HasPrefix(strings.TrimSpace(p.Name), "__local_proxy_") {
-		s.SetActive(string(kind), activeLabel)
-	}
-	if err := profile.Save(s); err != nil {
-		return err
-	}
-	fmt.Printf("Applied profile %q to %s\n", activeLabel, kind)
-	return nil
 }
 
 // promptCLIPick asks which agent CLI to target (no reset option — reset comes after selection).
@@ -465,69 +317,6 @@ func promptCLIPick(sc *bufio.Scanner) (clikind.Kind, error) {
 		return installed[n-1], nil
 	}
 	return clikind.Parse(line)
-}
-
-type interactivePick struct {
-	label   string
-	profile profile.Profile
-	reset   bool
-}
-
-func promptProfileActionForCLI(sc *bufio.Scanner, kind clikind.Kind, s *profile.Store) (interactivePick, error) {
-	var picks []interactivePick
-	fmt.Println()
-	fmt.Printf("Choose profile for %s:\n", kind)
-	fmt.Println("  0) reset this CLI to default (clear clovapi relay bindings)")
-	for _, p := range s.List {
-		if p.CLI != "" && p.CLI != kind {
-			continue
-		}
-		if !apply.KindSupportsStyle(kind, p.APIStyle) {
-			continue
-		}
-		name := strings.TrimSpace(p.Name)
-		if name == "" {
-			name = string(kind)
-		}
-		fmt.Printf("  %d) %s  (api_style=%s, model=%s)\n", len(picks)+1, name, p.APIStyle, modelShow(p.Model))
-		picks = append(picks, interactivePick{
-			label:   name,
-			profile: p,
-		})
-	}
-	if len(picks) == 0 {
-		return interactivePick{}, fmt.Errorf("no compatible profile for %s — run `clovapi add --name <name>` first", kind)
-	}
-	fmt.Print("Enter number or name: ")
-	if !sc.Scan() {
-		return interactivePick{}, fmt.Errorf("read profile: %w", sc.Err())
-	}
-	line := strings.TrimSpace(sc.Text())
-	if line == "" {
-		return interactivePick{}, fmt.Errorf("profile selection is required")
-	}
-	if n, err := strconv.Atoi(line); err == nil {
-		if n == 0 {
-			return interactivePick{reset: true}, nil
-		}
-		if n < 1 || n > len(picks) {
-			return interactivePick{}, fmt.Errorf("choose 0–%d", len(picks))
-		}
-		return picks[n-1], nil
-	}
-	for _, p := range picks {
-		if strings.EqualFold(strings.TrimSpace(p.label), line) {
-			return p, nil
-		}
-	}
-	return interactivePick{}, fmt.Errorf("unknown profile %q", line)
-}
-
-func modelShow(m string) string {
-	if strings.TrimSpace(m) == "" {
-		return "—"
-	}
-	return m
 }
 
 func cmdReset() *cobra.Command {

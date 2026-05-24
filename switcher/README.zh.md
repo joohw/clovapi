@@ -17,7 +17,7 @@
 | `clovapi list` | 展示已保存的 profiles、CLI ↔ API 形态矩阵、上次下发的 CLI（别名：**`profiles`**、**`ls`**） |
 | `clovapi add --name NAME` | 保存一个上游 profile（CLI 在 switch 时再选择）；持久化前先测连通（`--name` 必填，别名：**`set`**、**`new`**） |
 | `clovapi remove <name>` | 删除一条已保存 profile（别名：**`rm`**、**`delete`**） |
-| `clovapi switch [--cli KIND] [PROFILE_NAME]` | 将某个 profile 应用到某一 CLI（`--cli` 或交互选择）。交互流程：先选 CLI，再选 profile，或 **`0)` 仅重置该 CLI**。别名 **`use`** |
+| `switch [--cli KIND] [VENDOR/MODEL]` | 将某个 vendor 下的模型绑定应用到某一 CLI（`--vendor` + `--model`，或交互式选 vendor → model）。别名 **`use`** |
 | `clovapi proxy` | 运行并查看内置本地代理核心（`start`、`status`、`config`） |
 | `clovapi reset` | 清空所有 profile 与绑定记录（**`--yes`** / **`-y`** 跳过确认） |
 
@@ -67,9 +67,15 @@ cd switcher && go test ./...
 - **Unix**（macOS/Linux）：`$XDG_CONFIG_HOME/clovapi` 或 `~/.config/clovapi`
 - **Windows**：`%APPDATA%\clovapi`
 
-状态文件：`profiles.json`（权限 0600）。内含 **`profiles`**（全部保存配置）和 **`active`**（每个 CLI 上次下发的 profile 名）。
+状态文件：`profiles.json`（权限 0600）。内含 **`profiles`**（vendor 与模型列表）和 **`active`**（每个 CLI 的 `@model:Vendor/model-id` 绑定）。
 
-`clovapi switch` 始终只针对单一 CLI。脚本场景用 `--cli` 指定目标。各 CLI 适配器会在内部自动选择最合适的上游 API 形态，无需手动对照风格表。
+`clovapi switch` 始终只针对单一 CLI。交互流程：**选 CLI → 选 vendor → 选 model**。脚本示例：
+
+```bash
+clovapi switch --cli codex --vendor "Codex Subscription" --model gpt-5.5
+clovapi switch --cli codex "Codex Subscription/gpt-5.5"
+clovapi switch --cli codex   # 无参数时复用 active 绑定，或进入交互选择
+```
 
 ## 下发行为摘要
 
@@ -108,6 +114,31 @@ cd switcher && go test ./...
 | **clovapi** | Windows：`%APPDATA%\clovapi\profiles.json`；Unix：`~/.config/clovapi/profiles.json`——`profiles` 数组 + `active` 映射 |
 
 本模块内 **`go test ./...`** 可通过；真实上游调用需在本地配置密钥。
+
+## 相关链接
+
+### Agent 配置切换
+
+- [CC Switch（CCSwitch）](https://github.com/farion1231/cc-switch) — 桌面版 All-in-One Agent API 切换（Claude Code、Codex、OpenCode、OpenClaw 等）
+- [cc-switch-cli](https://github.com/saladday/cc-switch-cli) — CC Switch 的 CLI fork
+- [cc-switch](https://github.com/HoBeedzc/cc-switch) — 社区 Claude Code profile 切换（npm）
+- [ccswitch](https://github.com/huangdijia/ccswitch) — 社区 Claude Code 配置切换
+
+### 系统提示与工具变更追踪
+
+- [cchistory](https://github.com/badlogic/cchistory) — 提取并对比不同 Claude Code 版本的 system prompt 与 tool 定义
+- [claude-code-changelog](https://github.com/marckrenn/claude-code-changelog) — 社区维护的 Claude Code prompt / feature flag 演进追踪
+
+### 评测与 Agent 生态
+
+- [Harbor](https://github.com/harbor-framework/harbor) — Terminal-Bench 官方 harness
+- [Terminal-Bench](https://www.tbench.ai/) — 终端 Agent 基准数据集
+- [Harbor 与各 Agent 的 API 控制](../docs/harbor-agents.zh.md) · [Agent 仓库索引](../docs/agent-repos.zh.md)
+
+### 上游模型与套餐
+
+- [OpenCode](https://github.com/anomalyco/opencode) — 开源 Agent IDE/CLI（[配置文档](https://opencode.ai/docs/config)）
+- [OpenRouter](https://openrouter.ai/) — 聚合多家模型与免费/折扣套餐的 API 网关
 
 ## 发布流水线
 

@@ -8,12 +8,6 @@ import (
 	"github.com/clovapi/switcher/internal/apistyle"
 )
 
-const claudeOAuthSystemBootstrap = "You are Claude Code, Anthropic's official CLI for Claude."
-
-// claudeOAuthMaxOutputTokens caps subscription OAuth output budget so large agent
-// contexts (tools + system) do not trip Anthropic rate limits on max_tokens=16384.
-const claudeOAuthMaxOutputTokens = 8192
-
 // EncodeRequestClaude maps IR to Anthropic Messages API JSON.
 func EncodeRequestClaude(r Request) ([]byte, error) {
 	maxTok := 1024
@@ -33,15 +27,19 @@ func EncodeRequestClaude(r Request) ([]byte, error) {
 	if r.Temperature != nil {
 		payload["temperature"] = *r.Temperature
 	}
+	if tools := claudeToolsPayload(r.Tools); len(tools) > 0 {
+		payload["tools"] = tools
+	}
 	system := CollectSystemPrompt(r)
 	if r.Meta != nil && r.Meta.SubscriptionClaudeOAuth {
-		if system != "" {
+		system = stripClaudeOAuthBillingText(system)
+		if system != "" && !strings.Contains(system, claudeOAuthSystemBootstrap) {
 			system = claudeOAuthSystemBootstrap + "\n\n" + system
-		} else {
+		} else if system == "" {
 			system = claudeOAuthSystemBootstrap
 		}
-	}
-	if system != "" {
+		applyClaudeOAuthBilling(payload, system)
+	} else if system != "" {
 		payload["system"] = system
 	}
 	return json.Marshal(payload)

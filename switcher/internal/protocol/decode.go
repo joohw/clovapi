@@ -69,6 +69,7 @@ func DecodeRequestClaude(body []byte) (Request, error) {
 	}
 	msgsAny, _ := raw["messages"].([]any)
 	msgList, sys := PartitionSystemMessages(msgsAny, raw["system"])
+	tools, _ := mapClaudeTools(raw["tools"])
 	var meta *Metadata
 	if sys != "" {
 		meta = &Metadata{System: sys}
@@ -85,7 +86,9 @@ func DecodeRequestClaude(body []byte) (Request, error) {
 			tempPtr = &f
 		}
 	}
-	return NewRequest(jsonStringField(raw, "model"), msgList, streamDefault(streamPtr), maxTok, tempPtr, meta), nil
+	req := NewRequest(jsonStringField(raw, "model"), msgList, streamDefault(streamPtr), maxTok, tempPtr, meta)
+	req.Tools = tools
+	return req, nil
 }
 
 // DecodeRequestOpenAIChat decodes OpenAI Chat Completions JSON body to IR.

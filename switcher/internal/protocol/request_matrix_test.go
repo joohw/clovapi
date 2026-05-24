@@ -2,6 +2,7 @@ package protocol_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -283,8 +284,26 @@ func TestClaudeSubscriptionOAuthPrependsBootstrap(t *testing.T) {
 	if err := json.Unmarshal(payload, &parsed); err != nil {
 		t.Fatal(err)
 	}
-	sys, ok := parsed["system"].(string)
-	if !ok || !strings.Contains(sys, "Claude Code") {
-		t.Fatalf("expected oauth bootstrap fragment in system field, got %#v", parsed["system"])
+	sysBlocks, ok := parsed["system"].([]any)
+	if !ok || len(sysBlocks) == 0 {
+		t.Fatalf("expected oauth system blocks, got %#v", parsed["system"])
+	}
+	first, _ := sysBlocks[0].(map[string]any)
+	if !strings.Contains(fmt.Sprint(first["text"]), "x-anthropic-billing-header") {
+		t.Fatalf("billing header must be first system block, got %#v", sysBlocks)
+	}
+	foundBootstrap := false
+	for _, blk := range sysBlocks {
+		m, _ := blk.(map[string]any)
+		if strings.Contains(fmt.Sprint(m["text"]), "Claude Code") {
+			foundBootstrap = true
+		}
+	}
+	if !foundBootstrap {
+		t.Fatalf("expected oauth bootstrap fragment in system blocks, got %#v", sysBlocks)
+	}
+	meta, ok := parsed["metadata"].(map[string]any)
+	if !ok || strings.TrimSpace(fmt.Sprint(meta["user_id"])) == "" {
+		t.Fatalf("expected metadata.user_id for oauth billing, got %#v", parsed["metadata"])
 	}
 }

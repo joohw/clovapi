@@ -8,6 +8,8 @@
 
 **其他语言：** [English — canonical](../../switcher/README.md) · [Documentation index（文档索引）](README.md)
 
+**参考笔记：** [Harbor 与各 Agent 的 API 控制](harbor-agents.zh.md) · [English](harbor-agents.md)
+
 ## 命令
 
 | 命令 | 说明 |

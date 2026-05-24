@@ -63,6 +63,7 @@ func runKimiSubscriptionBindingTest(t *testing.T, providerID, vendorName, modelI
 			APIStyle:               subscriptionAPIStyle(providerID),
 			BaseURL:                strings.TrimRight(up.URL, "/"),
 			APIKey:                 "oauth-token",
+			AccountID:              codexTestAccountID(providerID),
 			Model:                  modelID,
 			Models: []profile.Model{{
 				ID:       modelID,
@@ -108,6 +109,13 @@ func subscriptionAPIStyle(providerID string) apistyle.Style {
 	}
 }
 
+func codexTestAccountID(providerID string) string {
+	if providerID == provider.CodexProviderID {
+		return "test-acct"
+	}
+	return ""
+}
+
 func parseTestServerPort(t *testing.T, rawURL string) int {
 	t.Helper()
 	u, err := url.Parse(rawURL)
@@ -125,6 +133,10 @@ func writeDesktopProfilesForTest(t *testing.T, dir string, port int, vendorName,
 	t.Helper()
 	path := filepath.Join(dir, "profiles.json")
 	style := string(subscriptionAPIStyle(providerID))
+	accountField := ""
+	if providerID == provider.CodexProviderID {
+		accountField = `"account_id": "test-acct",`
+	}
 	payload := fmt.Sprintf(`{
   "version": 4,
   "proxy": {"enabled": true, "host": "127.0.0.1", "port": %d},
@@ -133,13 +145,14 @@ func writeDesktopProfilesForTest(t *testing.T, dir string, port int, vendorName,
       "name": %q,
       "kind": "subscription",
       "subscription_provider_id": %q,
+      %s
       "model_adapter": "subscription",
       "models": [
         {"id": %q, "model": %q, "api_style": %q}
       ]
     }
   ]
-}`, port, vendorName, providerID, modelID, modelID, style)
+}`, port, vendorName, providerID, accountField, modelID, modelID, style)
 	if err := os.WriteFile(path, []byte(payload), 0o600); err != nil {
 		t.Fatal(err)
 	}

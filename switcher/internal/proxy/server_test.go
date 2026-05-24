@@ -712,6 +712,7 @@ func TestStreamOpenAIChatIngressViaResponsesUpstreamSSEWithoutContentType(t *tes
 			APIStyle:               apistyle.OpenAIResponses,
 			BaseURL:                strings.TrimRight(up.URL, "/"),
 			APIKey:                 "oauth-token",
+			AccountID:              "test-acct",
 			Model:                  "gpt-5.4",
 			Models: []profile.Model{{
 				ID:       "gpt-5.4",
@@ -932,6 +933,7 @@ func TestStreamSameOpenAIResponsesIngressUpstreamSSEPassthrough(t *testing.T) {
 			APIStyle:               apistyle.OpenAIResponses,
 			BaseURL:                strings.TrimRight(up.URL, "/"),
 			APIKey:                 "oauth-token",
+			AccountID:              "test-acct",
 			Model:                  "gpt-5.4",
 			Models: []profile.Model{{
 				ID:       "gpt-5.4",
@@ -1015,6 +1017,7 @@ func TestKimiCodexSubscriptionClaudeIngressDefaultsStreamTrueWhenOmitted(t *test
 			APIStyle:               apistyle.OpenAIResponses,
 			BaseURL:                strings.TrimRight(up.URL, "/"),
 			APIKey:                 "oauth-token",
+			AccountID:              "test-acct",
 			Model:                  "gpt-5.4",
 			Models: []profile.Model{{
 				ID:       "gpt-5.4",

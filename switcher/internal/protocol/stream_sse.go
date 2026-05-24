@@ -74,10 +74,7 @@ func streamFlushMaybe(w http.ResponseWriter) func() {
 // ShouldPassthroughStreamingSSE mirrors FinalizeNonStreamProxyDownstream identity passthrough for streaming
 // openai-responses relays (Codex subscription): decode→IR→encode drops response.created and breaks Codex.
 func ShouldPassthroughStreamingSSE(ingress, egress apistyle.Style) bool {
-	if ingress != egress {
-		return false
-	}
-	return ingressStyleForResponse(ingress) == apistyle.OpenAIResponses
+	return ShouldPassthroughOpenAIResponsesWire(ingress, egress)
 }
 
 // PassthroughStreamingPlaintextSSE relays upstream SSE bytes verbatim after decompression.

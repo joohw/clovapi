@@ -977,3 +977,74 @@ func TestStreamSameOpenAIResponsesIngressUpstreamSSEPassthrough(t *testing.T) {
 		t.Fatalf("want event-stream, ct=%s", resp.Header.Get("Content-Type"))
 	}
 }
+
+func TestKimiCodexSubscriptionClaudeIngressDefaultsStreamTrueWhenOmitted(t *testing.T) {
+	var upstreamBody []byte
+	sseReply := strings.Join([]string{
+		`event: response.output_text.delta`,
+		`data: {"type":"response.output_text.delta","delta":"ok"}`,
+		``,
+		`event: response.completed`,
+		`data: {"type":"response.completed","status":"completed"}`,
+		``,
+	}, "\n")
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upstreamBody, _ = io.ReadAll(io.LimitReader(r.Body, 1<<20))
+		if r.URL.Path != "/codex/responses" {
+			t.Errorf("upstream path=%q", r.URL.Path)
+		}
+		var parsed map[string]any
+		if err := json.Unmarshal(upstreamBody, &parsed); err != nil {
+			t.Fatal(err)
+		}
+		if parsed["stream"] != true {
+			t.Fatalf("upstream stream = %v want true", parsed["stream"])
+		}
+		w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, sseReply)
+	}))
+	defer up.Close()
+
+	store := &profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:                   provider.CodexVendorName,
+			Kind:                   "subscription",
+			SubscriptionProviderID: provider.CodexProviderID,
+			APIStyle:               apistyle.OpenAIResponses,
+			BaseURL:                strings.TrimRight(up.URL, "/"),
+			APIKey:                 "oauth-token",
+			Model:                  "gpt-5.4",
+			Models: []profile.Model{{
+				ID:       "gpt-5.4",
+				Model:    "gpt-5.4",
+				APIStyle: apistyle.OpenAIResponses,
+				BaseURL:  strings.TrimRight(up.URL, "/"),
+				APIKey:   "oauth-token",
+			}},
+		}},
+	}
+
+	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
+	ts := httptest.NewServer(core.Server.Handler)
+	defer ts.Close()
+
+	payload := `{"model":"gpt-5.4","max_tokens":16,"messages":[{"role":"user","content":"."}]}`
+	resp, err := http.Post(ts.URL+"/codex/gpt-5.4/claude/v1/messages", "application/json", strings.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status=%d body=%s upstream=%s", resp.StatusCode, raw, upstreamBody)
+	}
+	if !strings.Contains(string(raw), "content_block_delta") {
+		t.Fatalf("expected claude sse downstream:\n%s", raw)
+	}
+}

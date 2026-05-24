@@ -2,15 +2,12 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -40,9 +37,15 @@ func newRoot() *cobra.Command {
 		},
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if shouldSkipAutoProxy(cmd) {
+				return nil
+			}
+			return ensureProxyRunning()
+		},
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(cmdProfiles(), cmdSet(), cmdRemove(), cmdSwitch(), cmdProxy(), cmdReset(), cmdDesktop())
+	root.AddCommand(cmdProfiles(), cmdSet(), cmdRemove(), cmdSwitch(), cmdProxy(), cmdReset(), cmdDesktop(), cmdHiddenProxyDaemon())
 	return root
 }
 
@@ -575,46 +578,14 @@ func cmdProxy() *cobra.Command {
 		Long:  "The proxy is the headless core used by the desktop shell. It listens on /{providerId}/{modelId}/{apiStyle}/v1/...",
 	}
 	start := &cobra.Command{
-		Use:     "start",
-		Aliases: []string{"serve", "run"},
-		Short:   "Start the local proxy in the foreground",
+		Use:   "start",
+		Short: "Start the local proxy in the background (no-op if already running)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			s, err := profile.Load()
+			cfg, err := resolveProxyConfig(host, port)
 			if err != nil {
 				return err
 			}
-			cfg := s.Proxy
-			if strings.TrimSpace(host) != "" {
-				cfg.Host = strings.TrimSpace(host)
-			}
-			if port != 0 {
-				cfg.Port = port
-			}
-			server := coreproxy.NewServer(cfg)
-			syslog.LogProxyStarted(server.Config.Host, server.Config.Port)
-			fmt.Printf("clovapi core proxy listening on http://%s:%d\n", server.Config.Host, server.Config.Port)
-
-			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-			defer stop()
-
-			errCh := make(chan error, 1)
-			go func() {
-				errCh <- server.ListenAndServe()
-			}()
-
-			select {
-			case <-ctx.Done():
-				syslog.LogProxyStopped("signal")
-				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				_ = server.Shutdown(shutdownCtx)
-				return nil
-			case err := <-errCh:
-				if err != nil && err != http.ErrServerClosed {
-					return err
-				}
-				return nil
-			}
+			return runProxyStart(cfg, true)
 		},
 	}
 	start.Flags().StringVar(&host, "host", "", "Host to listen on (default from profiles.json proxy.host)")

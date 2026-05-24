@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -67,11 +68,41 @@ func TestProbeClaudeMessagesPOST(t *testing.T) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if body["stream"] != true {
+			http.Error(w, `{"error":{"message":"Stream must be set to true"}}`, http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
 		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("event: message_stop\ndata: {}\n\n"))
 	}))
 	t.Cleanup(srv.Close)
 
 	if err := Probe(apistyle.Claude, srv.URL, "sk-test", "claude-3-5-sonnet-20241022"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestProbeClaudeRequiresStream(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if body["stream"] != true {
+			http.Error(w, `{"error":{"message":"Stream must be set to true"}}`, http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("event: ping\ndata: {}\n\n"))
+	}))
+	t.Cleanup(srv.Close)
+
+	if err := Probe(apistyle.Claude, srv.URL, "sk-test", "gpt-5.4"); err != nil {
 		t.Fatal(err)
 	}
 }

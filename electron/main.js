@@ -88,9 +88,11 @@ function resolveBundledCliPath() {
 }
 
 async function resolveClovapiExecutable() {
+  const bundled = resolveBundledCliPath();
+  if (bundled) return bundled;
   const system = await resolveCommandPath("clovapi");
   if (system.exists) return system.path;
-  return resolveBundledCliPath();
+  return "";
 }
 
 const proxyManager = createGoProxyManager({ resolveExecutable: resolveClovapiExecutable });

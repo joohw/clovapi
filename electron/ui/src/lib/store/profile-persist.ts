@@ -6,11 +6,15 @@ type PersistResult = Awaited<ReturnType<NonNullable<typeof window.clovapiProfile
 
 let persistTail: Promise<PersistResult | undefined> = Promise.resolve(undefined);
 
+function cloneForIpc<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export async function persistProfiles() {
   const run = async (): Promise<PersistResult | undefined> => {
     const bridge = window.clovapiProfiles;
     if (!bridge?.save) return { ok: false, error: "Profile bridge unavailable" };
-    const payload = {
+    const payload = cloneForIpc({
       profiles: store.profiles,
       active: { ...store.active },
       proxy: {
@@ -18,7 +22,7 @@ export async function persistProfiles() {
         host: "127.0.0.1",
         port: store.proxyPort,
       },
-    };
+    });
     const result = await bridge.save(payload);
     if (result?.ok) {
       store.profiles = (result.profiles || []).map(normalizeVendor);

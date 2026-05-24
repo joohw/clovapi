@@ -22,9 +22,8 @@ var errAnthropicMessagesNotFound = errors.New("anthropic messages not found")
 const probeOutputTokens = 16
 
 // Probe checks reachability for style using base_url, api_key, and model (all required).
-// OpenAI Chat / Responses use their respective POST endpoints; Claude uses Anthropic Messages,
-// with a same-host OpenAI chat fallback when Messages returns 404 (unified gateways).
-// Gemini uses OpenAI-compatible POST …/chat/completions (typical for gateways exposing Gemini).
+// Probes use streaming requests to match agent CLIs and subscription upstreams (e.g. Codex /responses).
+// Claude uses Anthropic Messages with a same-host OpenAI chat fallback when Messages returns 404.
 func Probe(style apistyle.Style, baseURL, apiKey, model string) error {
 	base := strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if base == "" {
@@ -74,6 +73,7 @@ func probeAnthropicMessagesPOST(base, apiKey, model string) error {
 	payload := map[string]any{
 		"model":      model,
 		"max_tokens": probeOutputTokens,
+		"stream":     true,
 		"messages":   []any{map[string]any{"role": "user", "content": "."}},
 	}
 	raw, err := json.Marshal(payload)
@@ -92,15 +92,7 @@ func probeAnthropicMessagesPOST(base, apiKey, model string) error {
 	if err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		return nil
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		return fmt.Errorf("%w: HTTP %s: %s", errAnthropicMessagesNotFound, resp.Status, strings.TrimSpace(string(body)))
-	}
-	return fmt.Errorf("HTTP %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	return readProbeResponse(resp)
 }
 
 func joinV1Path(base, rest string) string {
@@ -117,6 +109,7 @@ func probeOpenAIChatPOST(base, apiKey, model string) error {
 		"model":      model,
 		"messages":   []any{map[string]any{"role": "user", "content": "."}},
 		"max_tokens": probeOutputTokens,
+		"stream":     true,
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -133,12 +126,7 @@ func probeOpenAIChatPOST(base, apiKey, model string) error {
 	if err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		return nil
-	}
-	return fmt.Errorf("HTTP %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	return readProbeResponse(resp)
 }
 
 func probeOpenAIResponsesPOST(base, apiKey, model string) error {
@@ -147,6 +135,7 @@ func probeOpenAIResponsesPOST(base, apiKey, model string) error {
 		"model":             model,
 		"input":             ".",
 		"max_output_tokens": probeOutputTokens,
+		"stream":            true,
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -163,10 +152,17 @@ func probeOpenAIResponsesPOST(base, apiKey, model string) error {
 	if err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
+	return readProbeResponse(resp)
+}
+
+func readProbeResponse(resp *http.Response) error {
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("%w: HTTP %s: %s", errAnthropicMessagesNotFound, resp.Status, strings.TrimSpace(string(body)))
 	}
 	return fmt.Errorf("HTTP %s: %s", resp.Status, strings.TrimSpace(string(body)))
 }

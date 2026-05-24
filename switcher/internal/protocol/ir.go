@@ -50,7 +50,7 @@ type Request struct {
 	Meta        *Metadata `json:"metadata,omitempty"`
 }
 
-// NewRequest returns defaults matching OpenAI-compatible clients (stream defaults false when unset at JSON layer).
+// NewRequest returns defaults matching agent CLIs (stream defaults true when unset at JSON layer).
 func NewRequest(model string, messages []Message, streamDefaultTrue bool, max *int, temp *float64, meta *Metadata) Request {
 	return Request{
 		Model:       strings.TrimSpace(model),

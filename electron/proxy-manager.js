@@ -55,11 +55,16 @@ function reachableLoopbackHost(bindHost) {
 }
 
 /** @param {ProxyBindConfig} cfg */
-function buildProxyServeArgs(cfg) {
+function buildProxyStartArgs(cfg) {
   const host = normalizeBindHost(cfg?.host);
   const port = Number(cfg?.port) || DEFAULT_PORT;
-  const args = ["proxy", "serve", "--host", host, "--port", String(port)];
+  const args = ["proxy", "start", "--host", host, "--port", String(port)];
   return { host, port, args };
+}
+
+/** @param {ProxyBindConfig} cfg */
+function buildProxyServeArgs(cfg) {
+  return buildProxyStartArgs(cfg);
 }
 
 /** @param {ProxyBindConfig} cfg */
@@ -299,6 +304,36 @@ function createGoProxyManager(deps) {
     throw new Error(lastErr);
   }
 
+  /** @param {string} exe @param {ProxyBindConfig} cfg */
+  function launchProxyDaemon(exe, cfg) {
+    const { args } = buildProxyStartArgs(cfg);
+    return new Promise((resolve, reject) => {
+      const child = spawnFn(exe, args, {
+        env: process.env,
+        windowsHide: true,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      let errText = "";
+      child.stderr?.on("data", (chunk) => {
+        errText += String(chunk || "");
+      });
+      child.on("error", (error) => {
+        reject(error);
+      });
+      child.on("close", (code) => {
+        if (code === 0) {
+          resolve();
+          return;
+        }
+        reject(
+          new Error(
+            redactSecrets(errText.trim() || `proxy start exited with code ${String(code)}`),
+          ),
+        );
+      });
+    });
+  }
+
   /** @param {string} exe @param {string[]} args */
   function spawnManaged(cfg, exe) {
     const { args } = buildProxyServeArgs(cfg);
@@ -501,64 +536,19 @@ function createGoProxyManager(deps) {
       };
     }
 
-    const child = spawnManaged(merged, exe);
-    managedChild = child;
-
     try {
+      await launchProxyDaemon(exe, merged);
       await waitForHealthy(merged);
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
       const hc = await fetchHealth(healthUrl(merged));
-
-      const stillUs = Boolean(managedChild && managedChild === child);
-      const ourPid = child.pid;
-      const oursAlive =
-        Boolean(
-          stillUs &&
-            managedChild &&
-            managedChild.pid === ourPid &&
-            !managedChild.killed &&
-            managedChild.exitCode === null,
-        );
-
-      if (hc.ok === true && !oursAlive) {
-        await stopManaged("bind-race-or-external");
+      if (hc.ok === true) {
         const external = await acceptExternalProxy(merged, urls);
-        if (external) return external;
-        await replaceStaleExternalProxy(
-          merged,
-          "replacing stale external proxy after bind race",
-        );
+        if (external) return { ...external, alreadyRunning: false };
       }
-
-      if (hc.ok === true && oursAlive) {
-        return {
-          ok: true,
-          alreadyRunning: false,
-          running: true,
-          managed: true,
-          pid: ourPid ?? null,
-          port: urls.port,
-          host: urls.host,
-          baseUrl: urls.baseUrl,
-        };
-      }
-
-      await stopManaged("startup-failed");
-
-      const post = await fetchHealth(healthUrl(merged));
-      if (post.ok) {
-        const external = await acceptExternalProxy(merged, urls);
-        if (external) return external;
-        await replaceStaleExternalProxy(
-          merged,
-          "replacing stale external proxy after startup failure",
-        );
-      }
-
       return {
         ok: false,
-        running: false,
+        running: Boolean(hc.ok),
         managed: false,
         pid: null,
         port: urls.port,
@@ -568,15 +558,19 @@ function createGoProxyManager(deps) {
       };
     }
 
+    const external = await acceptExternalProxy(merged, urls);
+    if (external) {
+      return { ...external, alreadyRunning: false };
+    }
     return {
-      ok: true,
-      alreadyRunning: false,
+      ok: false,
       running: true,
-      managed: true,
-      pid: managedChild?.pid ?? null,
+      managed: false,
+      pid: null,
       port: urls.port,
       host: urls.host,
       baseUrl: urls.baseUrl,
+      error: "proxy started but call-log support probe failed",
     };
   }
 

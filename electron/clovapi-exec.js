@@ -23,6 +23,13 @@ function resolveClovapiExecutable(options = {}) {
       /* ignore */
     }
   }
+  for (const candidate of buildBundledCandidates(options.extraCandidates)) {
+    try {
+      if (candidate && fs.existsSync(candidate)) return candidate;
+    } catch {
+      /* ignore */
+    }
+  }
   try {
     const resolver = process.platform === "win32" ? "where" : "which";
     const result = spawnSync(resolver, [exeName], {
@@ -40,13 +47,6 @@ function resolveClovapiExecutable(options = {}) {
     }
   } catch {
     /* ignore */
-  }
-  for (const candidate of buildBundledCandidates(options.extraCandidates)) {
-    try {
-      if (candidate && fs.existsSync(candidate)) return candidate;
-    } catch {
-      /* ignore */
-    }
   }
   return "";
 }

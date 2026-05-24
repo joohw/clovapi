@@ -102,4 +102,10 @@ func TestIngressStyleForCLI(t *testing.T) {
 	if got := IngressStyleForCLI(clikind.Codex, codexHit); got != apistyle.OpenAIResponses {
 		t.Fatalf("codex cli ingress = %q", got)
 	}
+	if got := IngressStyleForCLI(clikind.KimiCode, codexHit); got != apistyle.Claude {
+		t.Fatalf("kimi codex ingress = %q want claude", got)
+	}
+	if got := IngressStyleForCLI(clikind.KimiCode, claudeHit); got != apistyle.Claude {
+		t.Fatalf("kimi claude ingress = %q want claude", got)
+	}
 }

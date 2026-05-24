@@ -5,6 +5,7 @@
   import {
     activeBindingForCli,
     buildCliBindingOptions,
+    canApplyCliBinding,
     cliApplyTitle,
     onCliBindingChange,
     runCliApply,
@@ -58,7 +59,16 @@
         {/key}
         <Button
           size="sm"
-          disabled={!installed || store.running || !store.clovapiAvailable || !activeBinding}
+          disabled={
+            !installed ||
+            store.running ||
+            !canApplyCliBinding(
+              activeBinding,
+              store.clovapiAvailable,
+              store.subscriptions,
+              store.profiles,
+            )
+          }
           title={cliApplyTitle(cli)}
           onclick={() => void runCliApply(cli)}
         >

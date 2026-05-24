@@ -1,5 +1,17 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
+/** IPC uses structured clone; strip Svelte proxies and other non-cloneable values. */
+function cloneForIpc(value) {
+  if (value === undefined) return undefined;
+  return JSON.parse(
+    JSON.stringify(value, (_key, val) => {
+      if (typeof val === "bigint") return val.toString();
+      if (val instanceof Error) return val.message;
+      return val;
+    }),
+  );
+}
+
 contextBridge.exposeInMainWorld("clovapiCli", {
   run(command, cwd, env) {
     return ipcRenderer.invoke("cli:run", { command, cwd, env });
@@ -84,7 +96,7 @@ contextBridge.exposeInMainWorld("clovapiProfiles", {
     return ipcRenderer.invoke("profiles:load");
   },
   save(payload) {
-    return ipcRenderer.invoke("profiles:save", payload);
+    return ipcRenderer.invoke("profiles:save", cloneForIpc(payload));
   },
   test(payload) {
     const body =
@@ -96,7 +108,7 @@ contextBridge.exposeInMainWorld("clovapiProfiles", {
             active: payload?.active,
             proxy: payload?.proxy,
           };
-    return ipcRenderer.invoke("profiles:test", body);
+    return ipcRenderer.invoke("profiles:test", cloneForIpc(body));
   },
   listModels(vendorName) {
     return ipcRenderer.invoke("profiles:list-models", { vendorName });

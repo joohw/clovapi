@@ -68,9 +68,16 @@ func TestPrepareRequestConversionMatrix(t *testing.T) {
 						t.Fatalf("expected messages[] for openai-chat egress: %#v", parsed)
 					}
 				case apistyle.OpenAIResponses:
-					inp, ok := parsed["input"].([]any)
-					if !ok || len(inp) == 0 {
-						t.Fatalf("expected input[] for responses egress: %#v", parsed)
+					if ingress == egress {
+						inp, ok := parsed["input"].(string)
+						if !ok || inp != "hello" {
+							t.Fatalf("expected passthrough string input for responses identity relay: %#v", parsed["input"])
+						}
+					} else {
+						inp, ok := parsed["input"].([]any)
+						if !ok || len(inp) == 0 {
+							t.Fatalf("expected input[] for responses egress: %#v", parsed)
+						}
 					}
 				}
 			})
@@ -217,7 +224,7 @@ func TestPrepareMissingModelFails(t *testing.T) {
 	}
 }
 
-func TestPrepareDefaultsStreamFalseWhenOmitted(t *testing.T) {
+func TestPrepareDefaultsStreamTrueWhenOmitted(t *testing.T) {
 	body := []byte(`{"model":"gpt-5.4","messages":[{"role":"user","content":"title this chat"}]}`)
 	up, ir, _, err := protocol.PrepareUpstreamRequest(
 		apistyle.OpenAIChat,
@@ -228,15 +235,15 @@ func TestPrepareDefaultsStreamFalseWhenOmitted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ir.Stream {
-		t.Fatalf("stream should default false when omitted, ir=%+v", ir)
+	if !ir.Stream {
+		t.Fatalf("stream should default true when omitted, ir=%+v", ir)
 	}
 	var parsed map[string]any
 	if err := json.Unmarshal(up, &parsed); err != nil {
 		t.Fatal(err)
 	}
-	if parsed["stream"] != false {
-		t.Fatalf("upstream stream = %#v, want false", parsed["stream"])
+	if parsed["stream"] != true {
+		t.Fatalf("upstream stream = %#v, want true", parsed["stream"])
 	}
 }
 

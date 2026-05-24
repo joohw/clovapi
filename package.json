@@ -6,14 +6,12 @@
     "ssh2": "^1.17.0"
   },
   "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "dev:web": "npm --prefix web run dev",
-    "dev:desktop": "npm -C electron run dev",
-    "desktop:install": "npm -C electron install",
+    "dev": "npm run switcher:build && npm -C electron run dev",
     "deploy": "node scripts/deploy.mjs",
     "switcher:test": "go -C switcher test ./...",
     "switcher:build": "go -C switcher build -o clovapi ./cmd/clovapi",
-    "switcher:install": "npm run switcher:build && sh -c 'target=$(command -v clovapi); test -n \"$target\" || exit 1; rm -f \"$target\"; cp switcher/clovapi \"$target\" && chmod +x \"$target\" && echo Installed to \"$target\"' && mkdir -p electron/bin && cp switcher/clovapi electron/bin/clovapi && chmod +x electron/bin/clovapi && echo Installed to electron/bin/clovapi",
+    "switcher:install": "npm run switcher:build && mkdir -p electron/bin && cp switcher/clovapi electron/bin/clovapi && chmod +x electron/bin/clovapi && echo Installed local clovapi to switcher/clovapi and electron/bin/clovapi",
+    "switcher:install-global": "npm run switcher:build && sh -c 'target=$(command -v clovapi); test -n \"$target\" || exit 1; rm -f \"$target\"; cp switcher/clovapi \"$target\" && chmod +x \"$target\" && echo Installed to \"$target\"' && npm run switcher:install",
     "desktop:build:mac": "npm -C electron run build:mac",
     "switcher:npm:pack": "cd switcher/npm && npm pack --dry-run"
   }

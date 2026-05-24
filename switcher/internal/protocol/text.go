@@ -144,7 +144,7 @@ func filterNonEmpty(in []string) []string {
 
 func streamDefault(ptr *bool) bool {
 	if ptr == nil {
-		return false
+		return true
 	}
 	return *ptr
 }

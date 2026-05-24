@@ -11,9 +11,9 @@ const {
   redactSecrets,
 } = require("./proxy-manager");
 
-test("buildProxyServeArgs — argv tokens fixed", () => {
+test("buildProxyStartArgs — argv tokens fixed", () => {
   const { args, host, port } = buildProxyServeArgs({ host: "127.0.0.1", port: 1234 });
-  assert.deepEqual(args, ["proxy", "serve", "--host", "127.0.0.1", "--port", "1234"]);
+  assert.deepEqual(args, ["proxy", "start", "--host", "127.0.0.1", "--port", "1234"]);
   assert.equal(host, "127.0.0.1");
   assert.equal(port, 1234);
 });
@@ -66,7 +66,7 @@ test("start — external proxy: no spawn when /health OK", async () => {
   assert.strictEqual(st.pid, null);
 });
 
-test("start — invokes spawnFn with proxy serve argv", async () => {
+test("start — invokes spawnFn with proxy start argv", async () => {
   let sawSpawn = false;
   class FakeProcess extends EventEmitter {
     stdout = new EventEmitter();
@@ -91,11 +91,14 @@ test("start — invokes spawnFn with proxy serve argv", async () => {
       tick += 1;
       return { ok: tick >= 3, body: tick >= 3 ? { ok: true, service: "clovapi-core-proxy" } : {} };
     },
+    fetchCallLogSupport: async () => ({ ok: true, supports: true }),
     spawnFn(executable, args) {
       sawSpawn = true;
       assert.equal(executable, "/opt/bin/clovapi");
-      assert.deepEqual(args, ["proxy", "serve", "--host", "127.0.0.1", "--port", "58901"]);
-      queueMicrotask(() => fakeChild.emit("spawn"));
+      assert.deepEqual(args, ["proxy", "start", "--host", "127.0.0.1", "--port", "58901"]);
+      queueMicrotask(() => {
+        fakeChild.emit("close", 0, null);
+      });
       return /** @type {any} */ (fakeChild);
     },
   });
@@ -103,7 +106,7 @@ test("start — invokes spawnFn with proxy serve argv", async () => {
   const st = await mgr.start({ port: 58901 });
   assert.ok(sawSpawn);
   assert.equal(st.ok, true);
-  assert.equal(st.managed, true);
-  assert.strictEqual(st.pid, 42_001);
-  fakeChild.emit("close", 0, null);
+  assert.equal(st.managed, false);
+  assert.equal(st.external, true);
+  assert.strictEqual(st.pid, null);
 });

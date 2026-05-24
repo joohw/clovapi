@@ -217,6 +217,7 @@ const zh = {
     cliWriteFailed: "写入 {name} 配置失败（clovapi 退出码 {code}）",
     cliWriteFailedGeneric: "写入 CLI 配置失败",
     applySuccess: "应用成功",
+    resetSuccess: "已恢复默认配置",
   },
   cliApply: {
     needClovapi: "需要安装 clovapi CLI",
@@ -224,6 +225,7 @@ const zh = {
     proxyAutoStart: "本地代理未运行，应用时将自动启动",
     needSubscriptionLogin: "请先在 API 管理完成订阅供应商登录",
     ready: "通过本地代理应用绑定",
+    resetReady: "恢复 CLI 默认配置（清除 clovapi 中继）",
   },
 } satisfies MessageTree;
 

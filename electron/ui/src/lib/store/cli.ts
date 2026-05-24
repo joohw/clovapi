@@ -102,8 +102,42 @@ export async function runCliApply(cli: CliDef) {
     return;
   }
 
+  const toastId = `cli-apply-${cli.id}`;
+  await refreshProxyStatus();
+
   if (!binding) {
-    toast.error(t("toast.selectBinding"));
+    toast.loading(t("toast.applying", { name: cli.name }), { id: toastId });
+    try {
+      const exit = await runClovapiArgsAndWait(["switch", "--cli", cli.kind, "--reset"], {
+        silent: true,
+      });
+      if (!exit?.ok) {
+        const exitCode = exit && "code" in exit ? exit.code : undefined;
+        const bridgeError = exit && "error" in exit ? String(exit.error || "").trim() : "";
+        const stderr = exit && "stderr" in exit ? String(exit.stderr || "").trim() : "";
+        toast.error(
+          bridgeError ||
+            stderr ||
+            (exitCode != null
+              ? t("toast.cliWriteFailed", { name: cli.name, code: String(exitCode) })
+              : t("toast.cliWriteFailedGeneric")),
+          { id: toastId },
+        );
+        return;
+      }
+      delete store.active[cli.kind];
+      const saved = await persistProfiles();
+      if (!saved?.ok) {
+        toast.error(saved?.error || t("toast.profilesSaveFailed"), { id: toastId });
+        return;
+      }
+      toast.success(t("toast.resetSuccess"), { id: toastId });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t("toast.cliWriteFailedGeneric");
+      toast.error(message, { id: toastId });
+    } finally {
+      void refreshProxyLogs();
+    }
     return;
   }
 
@@ -141,12 +175,9 @@ export async function runCliApply(cli: CliDef) {
     return;
   }
 
-  const toastId = `cli-apply-${cli.id}`;
   toast.loading(t("toast.applying", { name: cli.name }), { id: toastId });
 
   try {
-    await refreshProxyStatus();
-
     const exit = await runClovapiArgsAndWait(
       ["switch", "--cli", cli.kind, "--binding", binding],
       { silent: true },
@@ -185,7 +216,7 @@ export async function runCliApply(cli: CliDef) {
 export function cliApplyTitle(cli: CliDef): string {
   const binding = activeBindingForCli(cli.kind);
   if (!store.clovapiAvailable) return t("cliApply.needClovapi");
-  if (!String(binding || "").trim()) return t("cliApply.selectBinding");
+  if (!String(binding || "").trim()) return t("cliApply.resetReady");
   if (!store.proxyRunning) return t("cliApply.proxyAutoStart");
   if (
     isSubscriptionBinding(binding, store.profiles) &&

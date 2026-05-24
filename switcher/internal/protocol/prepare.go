@@ -9,6 +9,9 @@ import (
 
 // PrepareUpstreamRequest mirrors electron/protocol/pipeline.prepareUpstreamRequest for JSON bodies.
 func PrepareUpstreamRequest(ingress, egress apistyle.Style, body []byte, hints UpstreamHints) (upstreamJSON []byte, ir Request, pathSuffix string, err error) {
+	if ShouldPassthroughOpenAIResponsesWire(ingress, egress) {
+		return preparePassthroughOpenAIResponsesRequest(body, hints)
+	}
 	ir, err = DecodeRequestForStyle(ingress, body)
 	if err != nil {
 		return nil, Request{}, "", err

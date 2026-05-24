@@ -220,6 +220,7 @@ const en = {
     cliWriteFailed: "Failed to write {name} config (clovapi exit {code})",
     cliWriteFailedGeneric: "Failed to write CLI config",
     applySuccess: "Applied successfully",
+    resetSuccess: "Reset to default",
   },
   cliApply: {
     needClovapi: "Install clovapi CLI first",
@@ -227,6 +228,7 @@ const en = {
     proxyAutoStart: "Local proxy is stopped — it will start on apply",
     needSubscriptionLogin: "Log in to subscription providers under API first",
     ready: "Apply binding via local proxy",
+    resetReady: "Reset CLI to default (clear clovapi relay)",
   },
 } as const;
 

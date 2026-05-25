@@ -97,7 +97,7 @@
           "to": "bin/clovapi.exe"
         }
       ],
-      "artifactName": "clovapi-desktop-win-${arch}.${ext}"
+      "artifactName": "clovapi-desktop-windows-${arch}.${ext}"
     }
   }
 }

@@ -144,13 +144,32 @@ clovapi switch --cli codex   # 无参数时复用 active 绑定，或进入交�
 
 ## 发布流水线
 
-`switcher` 采用 GitHub Releases 作为单一产物源：
+打 `vX.Y.Z` tag 触发 `.github/workflows/release-switcher.yml`：
 
-- 打 `vX.Y.Z` tag 触发 `.github/workflows/release-switcher.yml`。
-- `switcher/.goreleaser.yaml` 产出 darwin/linux/windows 压缩包与 `checksums.txt`。
-- npm 包（`switcher/npm`）安装时下载对应压缩包并校验 SHA256。
-- 配置 `HOMEBREW_TAP_GITHUB_TOKEN` 时，GoReleaser 自动更新 `joohw/homebrew-tap`。
-- 配置 `WINGET_CREATE_TOKEN` 时，workflow 调用 `wingetcreate` 自动提交 winget 更新 PR。
+| 产物 | 构建 | R2 路径（公开域名 `downloads.clovapi.com`） |
+|------|------|---------------------------------------------|
+| CLI 压缩包 | GoReleaser | `/clovapi/vX.Y.Z/*`、`/clovapi/latest.txt` |
+| install.sh | 同上 | `/install.sh`、`/clovapi/install.sh` |
+| macOS Desktop | electron-builder (macOS runner) | `/desktop/latest/clovapi-desktop-darwin-universal.dmg` |
+| Windows Desktop | electron-builder (Windows runner) | `/desktop/latest/clovapi-desktop-windows-x64.exe` |
+
+GitHub Actions Secrets（Cloudflare R2）：
+
+- `R2_ACCOUNT_ID`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`、`R2_BUCKET`
+- `R2_ARTIFACT_PREFIX`（可选，默认 `clovapi`）
+
+R2 bucket 需绑定自定义域名（如 `downloads.clovapi.com`）并开启 Public Access。
+
+本地手动上传（需配置上述 env）：
+
+```bash
+export R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... R2_BUCKET=...
+./scripts/r2-publish.sh cli --tag v0.1.12 --dist switcher/dist
+./scripts/r2-publish.sh install-sh --file landing/public/install.sh
+./scripts/r2-publish.sh desktop --tag v0.1.12 --file electron/dist/clovapi-desktop-darwin-universal.dmg --name clovapi-desktop-darwin-universal.dmg
+```
+
+其它：`npm i -g @clovapi/cli`、`clovapi update`、install.sh 均优先从 R2 下载；GitHub Releases 为 fallback。
 
 ## DeepSeek + Claude Code（Anthropic 兼容）
 

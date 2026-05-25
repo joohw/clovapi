@@ -138,22 +138,21 @@ Paths expand correctly on Windows (user profile / AppData).
 
 ## Release pipeline
 
-`switcher` is released from a single source of truth: GitHub Releases.
+Tag `vX.Y.Z` triggers `.github/workflows/release-switcher.yml`. With Cloudflare R2 secrets configured, artifacts are mirrored to `https://downloads.clovapi.com`:
 
-- Tag `vX.Y.Z` to trigger `.github/workflows/release-switcher.yml`.
-- `switcher/.goreleaser.yaml` builds darwin/linux/windows archives and `checksums.txt`.
-- Release workflow can upload archives, `checksums.txt`, and `latest.txt` to Cloudflare R2 (when R2 secrets are set).
-- npm package (`switcher/npm`) prefers the R2 mirror at install time, then falls back to GitHub Releases.
-- Homebrew formula is updated through GoReleaser to `joohw/homebrew-tap` when `HOMEBREW_TAP_GITHUB_TOKEN` is set.
-- winget submit is driven by `wingetcreate` when `WINGET_CREATE_TOKEN` is set.
+| Artifact | R2 path |
+|----------|---------|
+| CLI archives + `checksums.txt` | `/clovapi/vX.Y.Z/` |
+| CLI latest pointer | `/clovapi/latest.txt` |
+| install script | `/install.sh`, `/clovapi/install.sh` |
+| macOS desktop | `/desktop/latest/clovapi-desktop-darwin-universal.dmg` |
+| Windows desktop | `/desktop/latest/clovapi-desktop-windows-x64.exe` |
 
-Cloudflare R2 secrets used by workflow:
+GitHub Actions secrets: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, optional `R2_ARTIFACT_PREFIX` (default `clovapi`).
 
-- `R2_ACCOUNT_ID`
-- `R2_ACCESS_KEY_ID`
-- `R2_SECRET_ACCESS_KEY`
-- `R2_BUCKET`
-- `R2_ARTIFACT_PREFIX` (optional, defaults to `clovapi`)
+Local upload: `./scripts/r2-publish.sh` (see `switcher/README.zh.md`).
+
+`npm i -g @clovapi/cli`, `clovapi update`, and `landing/public/install.sh` prefer R2; GitHub Releases is the fallback. Homebrew and winget jobs run when their tokens are set.
 
 ## DeepSeek + Claude Code (Anthropic-compatible)
 

@@ -14,6 +14,9 @@ on:
 permissions:
   contents: write
 
+env:
+  R2_PUBLIC_BASE_URL: https://downloads.clovapi.com
+
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
@@ -61,47 +64,191 @@ jobs:
             echo "publish=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Setup Python
+      - name: Resolve release tag
+        id: release_tag
         if: ${{ steps.r2_gate.outputs.publish == 'true' }}
+        working-directory: .
+        env:
+          RELEASE_INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_NAME:-}" == v* ]]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "${RELEASE_INPUT_VERSION:-}" ]]; then
+            echo "tag=v${RELEASE_INPUT_VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Python
+        if: ${{ steps.r2_gate.outputs.publish == 'true' && steps.release_tag.outputs.tag != '' }}
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
       - name: Install awscli
-        if: ${{ steps.r2_gate.outputs.publish == 'true' }}
+        if: ${{ steps.r2_gate.outputs.publish == 'true' && steps.release_tag.outputs.tag != '' }}
         run: pip install --upgrade awscli
 
-      - name: Upload release artifacts to Cloudflare R2
-        if: ${{ steps.r2_gate.outputs.publish == 'true' }}
+      - name: Upload CLI artifacts to Cloudflare R2
+        if: ${{ steps.r2_gate.outputs.publish == 'true' && steps.release_tag.outputs.tag != '' }}
+        working-directory: .
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: auto
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           R2_ARTIFACT_PREFIX: ${{ secrets.R2_ARTIFACT_PREFIX }}
-          RELEASE_INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
           set -euo pipefail
+          chmod +x scripts/r2-publish.sh
+          ./scripts/r2-publish.sh cli --tag "${{ steps.release_tag.outputs.tag }}" --dist switcher/dist
+          ./scripts/r2-publish.sh install-sh --file landing/public/install.sh
 
-          version_tag=""
-          if [[ "${GITHUB_REF_NAME:-}" == v* ]]; then
-            version_tag="${GITHUB_REF_NAME}"
-          elif [[ -n "${RELEASE_INPUT_VERSION:-}" ]]; then
-            version_tag="v${RELEASE_INPUT_VERSION}"
+  desktop-mac:
+    runs-on: macos-latest
+    needs: goreleaser
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Decide R2 publish
+        id: r2_gate
+        run: |
+          if [ -n "${{ secrets.R2_ACCOUNT_ID }}" ] && [ -n "${{ secrets.R2_ACCESS_KEY_ID }}" ] && [ -n "${{ secrets.R2_SECRET_ACCESS_KEY }}" ] && [ -n "${{ secrets.R2_BUCKET }}" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
           else
-            echo "No tag/input version found, skip R2 upload."
-            exit 0
+            echo "publish=false" >> "$GITHUB_OUTPUT"
           fi
 
-          artifact_prefix="${R2_ARTIFACT_PREFIX:-clovapi}"
-          endpoint_url="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-          target_prefix="s3://${R2_BUCKET}/${artifact_prefix}/${version_tag}"
+      - name: Setup Go
+        if: steps.r2_gate.outputs.publish == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: switcher/go.mod
 
-          aws --endpoint-url "${endpoint_url}" s3 cp dist/ "${target_prefix}/" --recursive
-          printf "%s" "${version_tag}" > /tmp/latest.txt
-          aws --endpoint-url "${endpoint_url}" s3 cp /tmp/latest.txt "s3://${R2_BUCKET}/${artifact_prefix}/latest.txt"
-          aws --endpoint-url "${endpoint_url}" s3 cp ../landing/public/install.sh "s3://${R2_BUCKET}/install.sh"
+      - name: Setup Node
+        if: steps.r2_gate.outputs.publish == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: electron/package-lock.json
+
+      - name: Sync desktop version from tag
+        if: steps.r2_gate.outputs.publish == 'true'
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: node scripts/sync-desktop-version.mjs
+
+      - name: Build macOS desktop
+        if: steps.r2_gate.outputs.publish == 'true'
+        working-directory: electron
+        run: |
+          npm ci
+          npm run build:mac
+
+      - name: Setup Python
+        if: steps.r2_gate.outputs.publish == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install awscli
+        if: steps.r2_gate.outputs.publish == 'true'
+        run: pip install --upgrade awscli
+
+      - name: Upload macOS desktop to R2
+        if: steps.r2_gate.outputs.publish == 'true'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ARTIFACT_PREFIX: ${{ secrets.R2_ARTIFACT_PREFIX }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/r2-publish.sh
+          ./scripts/r2-publish.sh desktop \
+            --tag "${GITHUB_REF_NAME}" \
+            --file electron/dist/clovapi-desktop-darwin-universal.dmg \
+            --name clovapi-desktop-darwin-universal.dmg
+
+  desktop-win:
+    runs-on: windows-latest
+    needs: goreleaser
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Decide R2 publish
+        id: r2_gate
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.R2_ACCOUNT_ID }}" ] && [ -n "${{ secrets.R2_ACCESS_KEY_ID }}" ] && [ -n "${{ secrets.R2_SECRET_ACCESS_KEY }}" ] && [ -n "${{ secrets.R2_BUCKET }}" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Go
+        if: steps.r2_gate.outputs.publish == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: switcher/go.mod
+
+      - name: Setup Node
+        if: steps.r2_gate.outputs.publish == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: electron/package-lock.json
+
+      - name: Sync desktop version from tag
+        if: steps.r2_gate.outputs.publish == 'true'
+        shell: bash
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: node scripts/sync-desktop-version.mjs
+
+      - name: Build Windows desktop
+        if: steps.r2_gate.outputs.publish == 'true'
+        working-directory: electron
+        shell: bash
+        run: |
+          npm ci
+          npm run build:win
+
+      - name: Setup Python
+        if: steps.r2_gate.outputs.publish == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install awscli
+        if: steps.r2_gate.outputs.publish == 'true'
+        shell: bash
+        run: pip install --upgrade awscli
+
+      - name: Upload Windows desktop to R2
+        if: steps.r2_gate.outputs.publish == 'true'
+        shell: bash
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ARTIFACT_PREFIX: ${{ secrets.R2_ARTIFACT_PREFIX }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/r2-publish.sh
+          ./scripts/r2-publish.sh desktop \
+            --tag "${GITHUB_REF_NAME}" \
+            --file electron/dist/clovapi-desktop-windows-x64.exe \
+            --name clovapi-desktop-windows-x64.exe
 
   npm:
     runs-on: ubuntu-latest

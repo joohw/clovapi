@@ -29,7 +29,7 @@ export function CompareCcSwitchContent() {
 
   return (
     <div className="page-wrap relative">
-      <div className="relative z-[1] mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14">
+      <div className="page-content page-content--with-bottom relative z-[1] mx-auto max-w-6xl px-5 sm:px-6">
         <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{t("compare.title")}</h1>
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">{t("compare.subtitle")}</p>
 

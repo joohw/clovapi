@@ -28,7 +28,7 @@ export function AgentGuideContent({ agent }: AgentGuideContentProps) {
 
   return (
     <div className="page-wrap relative">
-      <div className="relative z-[1] mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14">
+      <div className="page-content page-content--with-bottom relative z-[1] mx-auto max-w-6xl px-5 sm:px-6">
         <nav className="text-sm text-muted-foreground">
           <Link href="/agents" className="hover:text-foreground">
             {t("agents.indexTitle")}

@@ -24,7 +24,7 @@ export function GuidePageContent({ slug }: GuideContentProps) {
 
   return (
     <div className="page-wrap relative">
-      <article className="relative z-[1] mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14">
+      <article className="page-content page-content--with-bottom relative z-[1] mx-auto max-w-6xl px-5 sm:px-6">
         <nav className="text-sm text-muted-foreground">
           <Link href="/guides" className="hover:text-foreground">
             {t("guides.indexTitle")}

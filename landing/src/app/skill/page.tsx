@@ -32,7 +32,7 @@ export default function SkillPage() {
 
   return (
     <div className="page-wrap flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-1 flex-col gap-4 px-4 pb-4 pt-4 sm:px-6 sm:pb-6 sm:pt-6">
+      <div className="page-content mx-auto flex w-full max-w-6xl min-w-0 flex-1 flex-col gap-4 px-4 pb-4 sm:px-6 sm:pb-6">
         <section className="panel">
           <div className="panel-body">
             <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">

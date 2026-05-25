@@ -37,7 +37,7 @@ export function HomeHero() {
   }
 
   return (
-    <section className="relative z-[1] px-5 pb-12 pt-6 sm:px-6 sm:pb-16 sm:pt-10 md:pt-14">
+    <section className="page-content relative z-[1] px-5 pb-12 sm:px-6 sm:pb-16">
       <div className="mx-auto max-w-6xl">
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-10">
           <div className="min-w-0 max-w-xl lg:max-w-none">

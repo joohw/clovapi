@@ -10,6 +10,8 @@
   --card: oklch(1 0 0);
   --border: oklch(0.922 0 0);
   --app-primary-surface-bg: var(--card);
+  --layout-page-inset: clamp(0.4rem, 1.25vw, 0.85rem);
+  --main-padding-top: 1.5rem;
   --app-header-height: 3.5rem;
   --app-header-float-top: 1.25rem;
   --app-header-float-gap: 0rem;
@@ -325,6 +327,33 @@ a:visited {
 
 .page-wrap {
   width: 100%;
+}
+
+/* Match rssany page title rhythm: main padding below the site header, then title block. */
+.page-content {
+  padding-top: calc(var(--main-padding-top) * 2);
+}
+
+@media (min-width: 640px) {
+  .page-content {
+    padding-top: calc(var(--main-padding-top) * 2.25);
+  }
+}
+
+@media (min-width: 768px) {
+  .page-content {
+    padding-top: calc(var(--main-padding-top) * 2.5);
+  }
+}
+
+.page-content--with-bottom {
+  padding-bottom: calc(var(--main-padding-top) * 2);
+}
+
+@media (min-width: 640px) {
+  .page-content--with-bottom {
+    padding-bottom: calc(var(--main-padding-top) * 2.33);
+  }
 }
 
 .panel {

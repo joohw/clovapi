@@ -27,7 +27,7 @@ export function HomeHero() {
   }, [i18n.language, i18n.resolvedLanguage]);
 
   async function copyWorkflow() {
-    const text = WORKFLOW_LINES.map((line) => `$ ${line.text}`).join("\n");
+    const text = WORKFLOW_LINES.map((line) => (line.prompt ? `$ ${line.text}` : line.text)).join("\n");
     try {
       await navigator.clipboard.writeText(text);
       showSuccess(t("home.copySuccess"));
@@ -37,11 +37,11 @@ export function HomeHero() {
   }
 
   return (
-    <section className="page-content relative z-[1] px-5 pb-12 sm:px-6 sm:pb-16">
+    <section className="relative z-[1] px-5 pb-14 pt-16 sm:px-6 sm:pb-20 sm:pt-20 md:pb-24 md:pt-28 lg:pt-32">
       <div className="mx-auto max-w-6xl">
-        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-10">
+        <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-14">
           <div className="min-w-0 max-w-xl lg:max-w-none">
-            <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            <h1 className="text-balance text-4xl font-bold leading-[1.35] tracking-tight text-foreground sm:text-5xl sm:leading-[1.4]">
               {t("home.title")}
             </h1>
 
@@ -51,7 +51,7 @@ export function HomeHero() {
 
             <ClientDownloadButtons className="mt-6" />
 
-            <div className={`${styles.terminalCard} mt-8`}>
+            <div className={`${styles.terminalCard} mt-10 sm:mt-12`}>
               <div className={styles.terminalHeader}>
                 <div className="flex gap-1.5" aria-hidden>
                   <span className={styles.terminalDot} />
@@ -71,11 +71,20 @@ export function HomeHero() {
               <div className="space-y-1.5 p-4 font-mono text-sm leading-relaxed sm:p-5 sm:text-[0.95rem]">
                 {WORKFLOW_LINES.map((line) => (
                   <div key={line.text} className="flex gap-2">
-                    <span className="shrink-0 text-foreground/70">$</span>
-                    <ShellHighlight
-                      code={line.text}
-                      className="min-w-0 break-all text-foreground [&_pre]:whitespace-pre-wrap [&_pre]:break-all"
-                    />
+                    {line.prompt ? (
+                      <>
+                        <span className="shrink-0 text-foreground/70">$</span>
+                        <ShellHighlight
+                          code={line.text}
+                          className="min-w-0 break-all text-foreground [&_pre]:whitespace-pre-wrap [&_pre]:break-all"
+                        />
+                      </>
+                    ) : (
+                      <ShellHighlight
+                        code={line.text}
+                        className="min-w-0 break-all text-muted-foreground [&_pre]:whitespace-pre-wrap [&_pre]:break-all"
+                      />
+                    )}
                   </div>
                 ))}
               </div>

@@ -1,6 +1,6 @@
 export const SITE_NAME = "clovapi";
 
-export const SITE_TAGLINE = "轻松管理 Agent API";
+export const SITE_TAGLINE = "内置本地代理 · 轻松管理 Agent API";
 
 export function normalizePath(path: string): string {
   if (!path) return "/";
@@ -18,8 +18,8 @@ export function getPublicSiteUrlFromRequest(host?: string): string {
 }
 
 /** @deprecated Use getHomeTitle from @/lib/seo for localized titles. */
-export const HOME_TITLE = "Claude Code / Codex API 一键切换 · CLOVAPI";
+export const HOME_TITLE = "内置本地代理 · Agent CLI API 切换 · clovapi";
 
 /** @deprecated Use buildPageMetadata from @/lib/seo. */
 export const DEFAULT_DESCRIPTION =
-  "开源 CLI 与桌面客户端：统一管理 Claude Code、Codex、OpenCode 等编程 Agent 的上游 API。支持官方订阅与第三方接口，clovapi add 保存、switch 一键写入配置。";
+  "开源 CLI 与桌面客户端，以内置本地代理为核心：switch 后 Agent 统一走 localhost，由代理完成上游路由与 API 形态转码。add 保存 profile，switch 一键应用。";

@@ -5,12 +5,14 @@ import { useTranslation } from "react-i18next";
 import { ClientDownloadButtons } from "@/components/home/client-download-buttons";
 
 const COMPARE_ROWS = [
-  { key: "multiCli", clovapi: true, ccSwitch: false },
-  { key: "codex", clovapi: true, ccSwitch: false },
-  { key: "apiStyle", clovapi: true, ccSwitch: false },
+  { key: "localProxyCore", clovapi: true, ccSwitch: false },
+  { key: "multiCli", clovapi: true, ccSwitch: true },
+  { key: "codex", clovapi: true, ccSwitch: true },
+  { key: "apiStyle", clovapi: true, ccSwitch: true },
   { key: "claudeCode", clovapi: true, ccSwitch: true },
   { key: "openSource", clovapi: true, ccSwitch: true },
-  { key: "desktop", clovapi: true, ccSwitch: false },
+  { key: "desktop", clovapi: true, ccSwitch: true },
+  { key: "mcpSkills", clovapi: false, ccSwitch: true },
 ] as const;
 
 function CellValue({ value }: { value: boolean }) {

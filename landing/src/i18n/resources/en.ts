@@ -15,7 +15,7 @@ const en = {
   home: {
     title: "Manage agent APIs with ease",
     subtitle:
-      "Supports Claude Code and Codex official subscriptions plus third-party APIs — apply profiles to agent CLIs with one switch.",
+      "Built around a local proxy: after switch, agent requests go through localhost while clovapi routes upstream and transcodes API formats.",
     quickStart: "Quick start",
     quickStartHint:
       "The added API profile is served to your target Agent CLI via the local proxy",
@@ -77,7 +77,7 @@ const en = {
         description: "GenerateContent · Google Gemini API for Gemini-based CLIs and toolchains.",
       },
     },
-    footerTagline: "Open-source CLI · Manage agent APIs with ease",
+    footerTagline: "Built-in local proxy · Manage agent APIs with ease",
     footerCopyright: "© 2026 clovapi",
   },
   agents: {
@@ -99,23 +99,27 @@ const en = {
   },
   compare: {
     title: "clovapi vs cc-switch",
-    subtitle: "Both help switch Claude Code upstream APIs. clovapi also covers multiple CLIs and Codex subscriptions.",
+    subtitle:
+      "Both offer desktop apps and multi-CLI support. clovapi is built around a local proxy that transcodes API formats via localhost at switch time.",
     feature: "Feature",
     yes: "Yes",
     no: "—",
     rows: {
+      localProxyCore: "Built-in local proxy (core architecture)",
       multiCli: "Multi-CLI (Codex, OpenCode, etc.)",
       codex: "Codex official subscription",
-      apiStyle: "Automatic API-style mapping",
-      claudeCode: "Claude Code env-var switching",
+      apiStyle: "Automatic API-format transcoding",
+      claudeCode: "Claude Code config switching",
       openSource: "Open source",
       desktop: "Desktop app",
+      mcpSkills: "MCP / Skills / Prompts sync",
     },
     whenClovapiTitle: "When to choose clovapi",
     whenClovapiBody:
-      "You switch upstreams across Claude Code, Codex, OpenCode, and other agents, or want automatic anthropic / openai-responses mapping at switch time.",
+      "You want switch to route through a built-in local proxy that transcodes anthropic / openai-responses / gemini in one place, or prefer a lightweight Go CLI with an optional desktop app.",
     whenCcSwitchTitle: "When to choose cc-switch",
-    whenCcSwitchBody: "You only use Claude Code and already rely on cc-switch — no Codex or multi-CLI needs.",
+    whenCcSwitchBody:
+      "You need MCP/Skills/Prompts sync across CLIs, Gemini CLI support, or a fuller desktop ops panel (session search, cloud sync, optional proxy takeover).",
     agentsLink: "Browse supported agents →",
   },
   skill: {

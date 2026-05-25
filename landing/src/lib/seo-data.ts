@@ -38,9 +38,9 @@ export const SEO_COPY: Record<
 > = {
   "zh-CN": {
     home: {
-      title: "Claude Code / Codex API 一键切换 · clovapi 开源 CLI",
+      title: "内置本地代理 · Agent CLI API 切换 · clovapi",
       description:
-        "开源 CLI 与桌面客户端：统一管理 Claude Code、Codex、OpenCode 等编程 Agent 的上游 API。支持官方订阅与第三方接口，clovapi add 保存、switch 一键写入配置。",
+        "开源 CLI 与桌面客户端，以内置本地代理为核心：switch 后 Claude Code、Codex、OpenCode 等 Agent 统一走 localhost，由代理完成上游路由与 API 形态转码。add 保存 profile，switch 一键应用。",
       ogImage: "/use-case-zh.png",
     },
     skill: {
@@ -49,32 +49,32 @@ export const SEO_COPY: Record<
       ogImage: "/use-case-zh.png",
     },
     agents: {
-      title: "支持的编程 Agent · clovapi API 切换",
+      title: "支持的编程 Agent · clovapi 本地代理切换",
       description:
-        "clovapi 支持 Claude Code、Codex、OpenCode、OpenClaw、Hermes、Kimi Code CLI 等 Agent。查看各 CLI 的上游 API 形态与 switch 命令。",
+        "clovapi 经内置本地代理为 Claude Code、Codex、OpenCode、OpenClaw、Hermes、Kimi Code CLI 等 Agent 提供上游 API。查看各 CLI 的 API 形态与 switch 命令。",
       ogImage: "/use-case-zh.png",
     },
     compareCcSwitch: {
-      title: "clovapi vs cc-switch · 编程 Agent API 切换对比",
+      title: "clovapi vs cc-switch · Agent CLI API 切换对比",
       description:
-        "对比 clovapi 与 cc-switch：多 CLI 支持、Codex 官方订阅、API 形态自动映射与开源跨平台安装方式。",
+        "两者均支持桌面端与多 Agent CLI。clovapi 以内置本地代理为核心，switch 时经 localhost 完成 API 形态转码；cc-switch 侧重 GUI 统一管理、MCP/Skills 同步与可选代理接管。",
       ogImage: "/use-case-zh.png",
     },
     guides: {
-      title: "Claude Code / Codex API 配置教程 · clovapi",
+      title: "Claude Code / Codex API 配置教程 · clovapi 本地代理",
       description:
-        "分步教程：Claude Code 接入 DeepSeek、OpenRouter、SiliconFlow 与第三方 API，以及 Codex CLI 上游配置。",
+        "分步教程：经 clovapi 本地代理为 Claude Code 接入 DeepSeek、OpenRouter、SiliconFlow 与第三方 API，以及 Codex CLI 上游配置。",
       ogImage: "/use-case-zh.png",
     },
     agentTitle: (name) => `${name} API 配置与切换 · clovapi`,
     agentDescription: (name) =>
-      `用 clovapi 管理 ${name} 的上游 API：保存 profile、探测连通性，一行 switch 写入 CLI 配置。支持官方订阅与第三方 API。`,
+      `用 clovapi 为 ${name} 配置上游 API：经内置本地代理转发请求，add 保存 profile、switch 一键应用。支持官方订阅与第三方 API。`,
   },
   en: {
     home: {
-      title: "Switch Claude Code & Codex API in One Command · clovapi",
+      title: "Built-in local proxy for agent CLI API switching · clovapi",
       description:
-        "Open-source CLI and desktop app to manage upstream APIs for Claude Code, Codex, OpenCode, and more. Official subscriptions and third-party providers — add once, switch anytime.",
+        "Open-source CLI and desktop app built around a local proxy: after switch, agent CLIs talk to localhost while clovapi routes upstream and transcodes API formats. Save profiles with add, apply with switch.",
       ogImage: "/use-case-en.png",
     },
     skill: {
@@ -84,26 +84,26 @@ export const SEO_COPY: Record<
       ogImage: "/use-case-en.png",
     },
     agents: {
-      title: "Supported coding agents · clovapi API switching",
+      title: "Supported coding agents · clovapi local proxy switching",
       description:
-        "clovapi works with Claude Code, Codex, OpenCode, OpenClaw, Hermes, Kimi Code CLI, and more. See API formats and switch commands per agent.",
+        "clovapi serves Claude Code, Codex, OpenCode, OpenClaw, Hermes, Kimi Code CLI, and more through its built-in local proxy. See API formats and switch commands per agent.",
       ogImage: "/use-case-en.png",
     },
     compareCcSwitch: {
-      title: "clovapi vs cc-switch · coding agent API switch comparison",
+      title: "clovapi vs cc-switch · agent CLI API switch comparison",
       description:
-        "Compare clovapi and cc-switch: multi-CLI support, Codex subscriptions, automatic API-style mapping, and cross-platform open-source installs.",
+        "Both offer desktop apps and multi-CLI support. clovapi is built around a local proxy that transcodes API formats at switch time; cc-switch focuses on GUI provider management, MCP/Skills sync, and optional proxy takeover.",
       ogImage: "/use-case-en.png",
     },
     guides: {
-      title: "Claude Code & Codex API setup guides · clovapi",
+      title: "Claude Code & Codex API setup guides · clovapi local proxy",
       description:
-        "Step-by-step guides: third-party APIs for Claude Code (DeepSeek, OpenRouter, SiliconFlow) and Codex CLI upstream configuration.",
+        "Step-by-step guides: route Claude Code through clovapi's local proxy for DeepSeek, OpenRouter, SiliconFlow, and third-party APIs, plus Codex CLI upstream setup.",
       ogImage: "/use-case-en.png",
     },
     agentTitle: (name) => `Configure & switch ${name} API · clovapi`,
     agentDescription: (name) =>
-      `Manage ${name} upstream APIs with clovapi — save profiles, probe connectivity, and apply with one switch command. Official subscriptions and third-party APIs supported.`,
+      `Configure ${name} upstream APIs with clovapi — requests go through the built-in local proxy. Save profiles, probe connectivity, and apply with one switch command.`,
   },
 };
 
@@ -174,7 +174,7 @@ export const FAQ_ITEMS: Record<AppLanguage, FaqItem[]> = {
     {
       question: "clovapi 是什么？和 API 网关有什么区别？",
       answer:
-        "clovapi 是面向编程 Agent CLI（如 Claude Code、Codex）的上游 API 配置管理工具，不是通用 API 网关。它用 clovapi add 保存 profile，用 clovapi switch 一键写入目标 CLI 的配置。",
+        "clovapi 是面向编程 Agent CLI 的上游 API 管理工具，内置本地代理为核心：switch 后 Agent 请求经 localhost 转发，由代理完成上游路由与 API 形态转码。用 clovapi add 保存 profile，clovapi switch 一键应用到目标 CLI。",
     },
     {
       question: "支持哪些 Agent CLI？",
@@ -189,7 +189,7 @@ export const FAQ_ITEMS: Record<AppLanguage, FaqItem[]> = {
     {
       question: "clovapi 和 cc-switch 有什么区别？",
       answer:
-        "cc-switch 主要面向 Claude Code 环境变量切换；clovapi 额外支持 Codex、OpenCode 等多 CLI，并在 switch 时自动匹配各 CLI 需要的 API 协议形态。详见 /compare/cc-switch。",
+        "两者都提供桌面客户端，并支持 Claude Code、Codex、OpenCode 等多 Agent CLI。clovapi 的核心是内置本地代理：switch 默认经 localhost 转发，由同一代理内核完成 anthropic / openai-responses 等形态转码。cc-switch 更侧重可视化 provider 管理、MCP/Skills/Prompts 同步与可选代理接管。详见 /compare/cc-switch。",
     },
     {
       question: "如何安装？",
@@ -200,7 +200,7 @@ export const FAQ_ITEMS: Record<AppLanguage, FaqItem[]> = {
     {
       question: "What is clovapi? How is it different from an API gateway?",
       answer:
-        "clovapi manages upstream API profiles for coding agent CLIs such as Claude Code and Codex — it is not a general-purpose API gateway. Use clovapi add to save profiles and clovapi switch to write them into the target CLI config.",
+        "clovapi manages upstream API profiles for coding agent CLIs with a built-in local proxy at its core. After switch, agent requests go through localhost while clovapi routes upstream and transcodes API formats. Use clovapi add to save profiles and clovapi switch to apply them.",
     },
     {
       question: "Which agent CLIs are supported?",
@@ -215,7 +215,7 @@ export const FAQ_ITEMS: Record<AppLanguage, FaqItem[]> = {
     {
       question: "How does clovapi compare to cc-switch?",
       answer:
-        "cc-switch focuses on Claude Code env-var switching. clovapi adds Codex, OpenCode, and other CLIs, with automatic API-style mapping per agent. See /compare/cc-switch for details.",
+        "Both ship desktop apps and support multiple agent CLIs such as Claude Code, Codex, and OpenCode. clovapi is built around a local proxy: switch routes agents through localhost and transcodes anthropic / openai-responses / gemini formats in one place. cc-switch emphasizes GUI provider management, MCP/Skills/Prompts sync, and optional proxy takeover. See /compare/cc-switch for details.",
     },
     {
       question: "How do I install clovapi?",

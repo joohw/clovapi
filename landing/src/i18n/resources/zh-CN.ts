@@ -15,7 +15,7 @@ const zhCN = {
   home: {
     title: "轻松管理 Agent API",
     subtitle:
-      "支持 Claude Code、Codex 官方订阅与第三方 API，一键 switch 写入 Agent CLI 配置。",
+      "以内置本地代理为核心：switch 后 Agent 请求经 localhost 转发，由代理完成上游路由与 API 形态转码。",
     quickStart: "快速开始",
     quickStartHint:
       "添加的API profile 会经由本地代理提供给目标 Agent CLI",
@@ -77,7 +77,7 @@ const zhCN = {
         description: "GenerateContent · Google Gemini API，面向 Gemini 系 CLI 与工具链。",
       },
     },
-    footerTagline: "开源 CLI · 轻松管理 Agent API",
+    footerTagline: "内置本地代理 · 轻松管理 Agent API",
     footerCopyright: "© 2026 clovapi",
   },
   agents: {
@@ -98,23 +98,27 @@ const zhCN = {
   },
   compare: {
     title: "clovapi vs cc-switch",
-    subtitle: "两者都帮助切换 Claude Code 的上游 API。clovapi 额外覆盖多 CLI 与 Codex 官方订阅。",
+    subtitle:
+      "两者都支持桌面端与多 Agent CLI。clovapi 以内置本地代理为核心，switch 时经 localhost 完成 API 形态转码与上游路由。",
     feature: "功能",
     yes: "支持",
     no: "—",
     rows: {
+      localProxyCore: "内置本地代理（核心架构）",
       multiCli: "多 CLI（Codex、OpenCode 等）",
       codex: "Codex 官方订阅",
-      apiStyle: "API 形态自动映射",
-      claudeCode: "Claude Code 环境变量切换",
+      apiStyle: "API 形态自动转码",
+      claudeCode: "Claude Code 配置切换",
       openSource: "开源",
       desktop: "桌面客户端",
+      mcpSkills: "MCP / Skills / Prompts 同步",
     },
     whenClovapiTitle: "什么时候选 clovapi？",
     whenClovapiBody:
-      "你需要在 Claude Code、Codex、OpenCode 等多个 Agent 之间切换上游，或希望 switch 时自动匹配 anthropic / openai-responses 等协议形态。",
+      "你希望 switch 默认经内置本地代理转发，由同一代理内核完成 anthropic / openai-responses / gemini 等形态转码，或用轻量 Go CLI + 可选桌面端管理 profile。",
     whenCcSwitchTitle: "什么时候选 cc-switch？",
-    whenCcSwitchBody: "你只用 Claude Code，且已有 cc-switch 工作流，不需要 Codex 或多 CLI 支持。",
+    whenCcSwitchBody:
+      "你需要 MCP/Skills/Prompts 跨 CLI 同步、Gemini CLI 支持，或更完整的桌面运维面板（会话搜索、云同步、可选代理接管等）。",
     agentsLink: "查看支持的 Agent 列表 →",
   },
   skill: {

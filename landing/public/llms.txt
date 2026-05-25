@@ -1,6 +1,6 @@
 # clovapi
 
-> 轻松管理 Agent API：支持 Claude Code、Codex 官方订阅与第三方 API，add 保存、switch 一键切换。
+> 以内置本地代理为核心，轻松管理 Agent API：switch 后 Claude Code、Codex 等 Agent 统一走 localhost，由代理完成上游路由与 API 形态转码。
 
 ## 站点
 - 主页: /
@@ -19,6 +19,11 @@
 - Agent Skill（Markdown）: /skill?format=md
 - Agent Skill（人类可读入口）: /skill
 
+## 核心能力
+- 内置本地代理：Agent CLI 请求经 127.0.0.1 转发，由同一代理内核完成 anthropic / openai-responses / gemini 等形态转码
+- CLI + 桌面客户端：npm / Homebrew / winget 安装 CLI，或使用 macOS / Windows 桌面端
+- 官方订阅与第三方 API 统一 add / switch
+
 ## 支持的 Agent CLI
 - Claude Code（anthropic /v1/messages）
 - Codex（openai-responses /v1/responses）
@@ -28,11 +33,16 @@
 - 安装: npm i -g @clovapi/cli
 - 保存 profile: clovapi add --name <NAME>
 - 下发到 CLI: clovapi switch --cli <KIND> [PROFILE]
+- 本地代理: clovapi proxy start
+
+## 与 cc-switch 对比
+- 两者均支持桌面端与多 Agent CLI（Claude Code、Codex、OpenCode 等）
+- clovapi 以内置本地代理为核心架构；cc-switch 侧重 GUI provider 管理、MCP/Skills/Prompts 同步与可选代理接管
 
 ## 常见问题
-- clovapi 面向编程 Agent CLI 的上游 API 配置，不是通用 API 网关
+- clovapi 面向编程 Agent CLI 的上游 API 管理，内置本地代理为核心，不是通用 API 网关
 - 官方订阅与第三方 API 可统一 add / switch
-- 相比 cc-switch，clovapi 支持多 CLI 与 API 形态自动映射
+- switch 后 Agent 默认经 localhost 代理转发并完成 API 形态转码
 
 ## 抓取
 - robots.txt: /robots.txt

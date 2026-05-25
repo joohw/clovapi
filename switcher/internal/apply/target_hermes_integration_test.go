@@ -64,6 +64,15 @@ func (r *hermesRecorder) handler() http.Handler {
 				`data: {"type":"message_stop"}`,
 				``,
 			}, "\n"))
+		case strings.Contains(req.URL.Path, "/chat/completions"):
+			writeHermesSSE(w, strings.Join([]string{
+				`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","choices":[{"index":0,"delta":{"role":"assistant","content":"ok"},"finish_reason":null}]}`,
+				``,
+				`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}`,
+				``,
+				`data: [DONE]`,
+				``,
+			}, "\n"))
 		case strings.Contains(req.URL.Path, "/responses"):
 			writeHermesSSE(w, strings.Join([]string{
 				`event: response.created`,

@@ -839,41 +839,75 @@ func RemoveLocalProxyStubs(s *Store) {
 	s.List = filtered
 }
 
-// CliIngressStyle returns the default API style segment for local proxy ingress paths.
-func CliIngressStyle(kind clikind.Kind) apistyle.Style {
+// ingressStylePriority is the preferred proxy ingress wire order for multi-style CLIs:
+// messages (claude) → responses → chat → gemini (only when upstream is gemini).
+var ingressStylePriority = []apistyle.Style{
+	apistyle.Claude,
+	apistyle.OpenAIResponses,
+	apistyle.OpenAIChat,
+	apistyle.Gemini,
+}
+
+func ingressStylesForCLI(kind clikind.Kind) []apistyle.Style {
 	switch kind {
-	case clikind.ClaudeCode, clikind.KimiCode:
-		return apistyle.Claude
+	case clikind.ClaudeCode:
+		return []apistyle.Style{apistyle.Claude}
 	case clikind.Codex:
-		return apistyle.OpenAIResponses
+		return []apistyle.Style{apistyle.OpenAIResponses}
+	case clikind.Hermes, clikind.KimiCode, clikind.OpenCode, clikind.OpenClaw:
+		return []apistyle.Style{apistyle.Claude, apistyle.OpenAIResponses, apistyle.OpenAIChat, apistyle.Gemini}
 	default:
-		return apistyle.OpenAIChat
+		return []apistyle.Style{apistyle.OpenAIChat}
 	}
 }
 
-// IngressStyleForCLI picks proxy ingress style from CLI kind and vendor/model wire style.
-// Hermes custom provider uses anthropic_messages against the local proxy; clovapi transcodes to upstream wire.
-func IngressStyleForCLI(kind clikind.Kind, hit VendorModelHit) apistyle.Style {
-	modelStyle := firstStyle(hit.Model.APIStyle, hit.Vendor.APIStyle)
-	switch kind {
-	case clikind.ClaudeCode, clikind.KimiCode:
-		return apistyle.Claude
-	case clikind.Codex:
-		return apistyle.OpenAIResponses
-	case clikind.Hermes:
-		return apistyle.Claude
-	default:
-		switch modelStyle {
-		case apistyle.Claude:
-			return apistyle.Claude
-		case apistyle.OpenAIResponses:
-			return apistyle.OpenAIResponses
-		case apistyle.Gemini:
-			return apistyle.Gemini
-		default:
-			return apistyle.OpenAIChat
+func ingressStyleSupported(supported []apistyle.Style, want apistyle.Style) bool {
+	for _, st := range supported {
+		if st == want {
+			return true
 		}
 	}
+	return false
+}
+
+func pickPreferredIngressStyle(supported []apistyle.Style) apistyle.Style {
+	for _, st := range ingressStylePriority {
+		if ingressStyleSupported(supported, st) {
+			return st
+		}
+	}
+	if len(supported) > 0 {
+		return supported[0]
+	}
+	return apistyle.OpenAIChat
+}
+
+// CliIngressStyle returns the default API style segment for local proxy ingress paths.
+func CliIngressStyle(kind clikind.Kind) apistyle.Style {
+	return pickPreferredIngressStyle(ingressStylesForCLI(kind))
+}
+
+// IngressStyleForCLI picks proxy ingress style from CLI kind and vendor/model wire style.
+// Priority: messages (claude) → responses → chat; gemini only when upstream is gemini.
+// Hermes + Codex uses responses (Hermes api_mode codex_responses).
+func IngressStyleForCLI(kind clikind.Kind, hit VendorModelHit) apistyle.Style {
+	supported := ingressStylesForCLI(kind)
+	if len(supported) == 1 {
+		return supported[0]
+	}
+
+	modelStyle := firstStyle(hit.Model.APIStyle, hit.Vendor.APIStyle)
+	providerID := ProviderIDFromStoreProfile(hit.Vendor)
+
+	if kind == clikind.Hermes && providerID == provider.CodexProviderID {
+		if ingressStyleSupported(supported, apistyle.OpenAIResponses) {
+			return apistyle.OpenAIResponses
+		}
+	}
+	if modelStyle == apistyle.Gemini && ingressStyleSupported(supported, apistyle.Gemini) {
+		return apistyle.Gemini
+	}
+	return pickPreferredIngressStyle(supported)
 }
 
 // ResolveWireModelForIngress returns path model id and CLI wire model for proxy ingress.

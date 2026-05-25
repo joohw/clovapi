@@ -10,9 +10,9 @@ import (
 	"github.com/clovapi/switcher/internal/apistyle"
 )
 
-// IngressUsesClaudeSSEWire matches Electron ingressWantsSse — Claude ingress streaming clients accept SSE envelopes for upstream JSON failures.
-func IngressUsesClaudeSSEWire(ingress apistyle.Style, wantsStream bool) bool {
-	return wantsStream && ingress == apistyle.Claude
+// IngressUsesClaudeSSEWire reports Claude-shaped SSE downstream framing.
+func IngressUsesClaudeSSEWire(ingress apistyle.Style) bool {
+	return ingress == apistyle.Claude
 }
 
 // LooksLikeSSEWire reports whether a plaintext prefix resembles SSE framing (event:/data:/id:/retry:).

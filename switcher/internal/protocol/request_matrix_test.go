@@ -224,6 +224,29 @@ func TestPrepareMissingModelFails(t *testing.T) {
 	}
 }
 
+func TestPrepareForcesStreamTrueWhenClientSendsFalse(t *testing.T) {
+	body := []byte(`{"model":"gpt-5.4","messages":[{"role":"user","content":"hi"}],"stream":false}`)
+	up, ir, _, err := protocol.PrepareUpstreamRequest(
+		apistyle.OpenAIChat,
+		apistyle.OpenAIResponses,
+		body,
+		protocol.UpstreamHints{Model: "gpt-5.4", Source: "subscription:codex"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ir.Stream {
+		t.Fatalf("ir.Stream = false, want true")
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal(up, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	if parsed["stream"] != true {
+		t.Fatalf("upstream stream = %#v, want true", parsed["stream"])
+	}
+}
+
 func TestPrepareDefaultsStreamTrueWhenOmitted(t *testing.T) {
 	body := []byte(`{"model":"gpt-5.4","messages":[{"role":"user","content":"title this chat"}]}`)
 	up, ir, _, err := protocol.PrepareUpstreamRequest(

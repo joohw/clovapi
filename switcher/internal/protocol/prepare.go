@@ -17,6 +17,7 @@ func PrepareUpstreamRequest(ingress, egress apistyle.Style, body []byte, hints U
 		return nil, Request{}, "", err
 	}
 	GatewayEnrich(&ir, hints)
+	ForceUpstreamStreaming(&ir)
 	if strings.TrimSpace(ir.Model) == "" {
 		return nil, Request{}, "", fmt.Errorf("missing model (set in body or upstream config)")
 	}

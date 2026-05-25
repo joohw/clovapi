@@ -32,20 +32,9 @@ func defaultProxyTestAPIStyle(vendor profile.Profile, model profile.Model, provi
 	return string(profile.NormalizeAPIStyle("openai-chat"))
 }
 
-func resolveProbeStyles(providerID, cliKindStr string, vendor profile.Profile, model profile.Model) (ingressStyle string, probeStyle apistyle.Style, err error) {
-	ingressStyle = defaultProxyTestAPIStyle(vendor, model, providerID)
-	probeStyle = profile.NormalizeAPIStyle(ingressStyle)
-	cliKindStr = strings.TrimSpace(cliKindStr)
-	if cliKindStr == "" {
-		return ingressStyle, probeStyle, nil
-	}
-	kind, parseErr := clikind.Parse(cliKindStr)
-	if parseErr != nil {
-		return "", "", parseErr
-	}
-	ingressStyle = string(profile.CliIngressStyle(kind))
-	probeStyle = profile.CliIngressStyle(kind)
-	return ingressStyle, probeStyle, nil
+func resolveProbeStyles(kind clikind.Kind, hit profile.VendorModelHit) (ingressStyle string, probeStyle apistyle.Style) {
+	st := profile.IngressStyleForCLI(kind, hit)
+	return string(st), st
 }
 
 // TestBinding probes connectivity via the local proxy ingress URL.
@@ -87,13 +76,19 @@ func TestBinding(binding string, portOverride int, cliKindStr string) TestResult
 		}
 	}
 
-	apiStyleStr, probeStyle, styleErr := resolveProbeStyles(providerID, cliKindStr, hit.Vendor, hit.Model)
-	if styleErr != nil {
-		return TestResult{
-			OK: false, Passed: false, Summary: "测试失败",
-			Error: styleErr.Error(),
-			Text:  fmt.Sprintf("无效的 CLI 类型：%s", cliKindStr),
+	apiStyleStr := defaultProxyTestAPIStyle(hit.Vendor, hit.Model, providerID)
+	probeStyle := profile.NormalizeAPIStyle(apiStyleStr)
+	cliKindStr = strings.TrimSpace(cliKindStr)
+	if cliKindStr != "" {
+		kind, parseErr := clikind.Parse(cliKindStr)
+		if parseErr != nil {
+			return TestResult{
+				OK: false, Passed: false, Summary: "测试失败",
+				Error: parseErr.Error(),
+				Text:  fmt.Sprintf("无效的 CLI 类型：%s", cliKindStr),
+			}
 		}
+		apiStyleStr, probeStyle = resolveProbeStyles(kind, hit)
 	}
 	pathModelID, modelWire := profile.ResolveWireModelForIngress(hit, modelID)
 	port := s.Proxy.Port

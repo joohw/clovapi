@@ -239,7 +239,7 @@ func TestPassthroughForwardingSameIngressEgressOpenAIChat(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"upstream":"stub"}`))
+		_, _ = w.Write([]byte(`{"id":"stub","object":"chat.completion","choices":[{"message":{"role":"assistant","content":"stub reply"}}]}`))
 	}))
 	defer up.Close()
 
@@ -278,8 +278,18 @@ func TestPassthroughForwardingSameIngressEgressOpenAIChat(t *testing.T) {
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("status=%d body=%s", resp.StatusCode, body)
 	}
-	if !strings.Contains(string(body), `"upstream":"stub"`) {
+	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "text/event-stream") {
+		t.Fatalf("expected SSE downstream, ct=%s", resp.Header.Get("Content-Type"))
+	}
+	if !strings.Contains(string(body), "stub reply") {
 		t.Fatalf("unexpected client body %s", body)
+	}
+	var upstreamParsed map[string]any
+	if err := json.Unmarshal(upstreamBody, &upstreamParsed); err != nil {
+		t.Fatalf("upstream body not JSON: %s", upstreamBody)
+	}
+	if upstreamParsed["stream"] != true {
+		t.Fatalf("upstream stream = %v want true", upstreamParsed["stream"])
 	}
 	if !strings.Contains(string(upstreamBody), `"model":"gpt-4o-wire"`) {
 		t.Fatalf("upstream did not receive enriched model payload: %s", upstreamBody)
@@ -368,20 +378,11 @@ func TestCrossProtocolOpenAIIngressWithClaudeUpstreamTranscodesJSON(t *testing.T
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status=%d body=%s", resp.StatusCode, raw)
 	}
-	var wire map[string]any
-	if err := json.Unmarshal(raw, &wire); err != nil {
-		t.Fatal(err)
+	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "text/event-stream") {
+		t.Fatalf("expected SSE downstream, ct=%s", resp.Header.Get("Content-Type"))
 	}
-	choices, ok := wire["choices"].([]any)
-	if !ok || len(choices) == 0 {
+	if !strings.Contains(string(raw), "pong") {
 		t.Fatalf("unexpected body %s", raw)
-	}
-	msg, ok := choices[0].(map[string]any)["message"].(map[string]any)
-	if !ok {
-		t.Fatal("assistant message missing")
-	}
-	if msg["content"] != "pong" {
-		t.Fatalf("content=%v", msg["content"])
 	}
 	if upstreamHits != 1 {
 		t.Fatalf("upstreamHits=%d", upstreamHits)
@@ -442,24 +443,15 @@ func TestCrossProtocolIngressDecompressesGzipUpstream(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status=%d body=%s", resp.StatusCode, body)
 	}
-	if strings.TrimSpace(resp.Header.Get("Content-Encoding")) != "" {
-		t.Fatalf("unexpected content-encoding hdr=%v", resp.Header)
+	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "text/event-stream") {
+		t.Fatalf("expected SSE downstream, ct=%s", resp.Header.Get("Content-Type"))
 	}
-	if len(body) > 0 && body[0] == 0x1f {
-		t.Fatalf("unexpected gzip sentinel on client body=%v", body[:min(8, len(body))])
-	}
-	var wire map[string]any
-	if err := json.Unmarshal(body, &wire); err != nil {
-		t.Fatal(err)
-	}
-	choices := wire["choices"].([]any)
-	msg := choices[0].(map[string]any)["message"].(map[string]any)
-	if msg["content"] != "pong" {
-		t.Fatalf("unexpected assistant body %v", wire)
+	if !strings.Contains(string(body), "pong") {
+		t.Fatalf("unexpected assistant body %s", body)
 	}
 }
 
-func TestCrossProtocolSSEUpstreamMaterializedForNonStreamClient(t *testing.T) {
+func TestCrossProtocolSSEUpstreamTranscodedForOpenAIChatIngress(t *testing.T) {
 	sseReply := strings.Join([]string{
 		`event: response.output_text.delta`,
 		`data: {"type":"response.output_text.delta","delta":"Chat title"}`,
@@ -493,20 +485,11 @@ func TestCrossProtocolSSEUpstreamMaterializedForNonStreamClient(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status=%d body=%s", resp.StatusCode, body)
 	}
-	if strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "text/event-stream") {
-		t.Fatalf("expected JSON downstream, ct=%s", resp.Header.Get("Content-Type"))
+	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "text/event-stream") {
+		t.Fatalf("expected SSE downstream, ct=%s", resp.Header.Get("Content-Type"))
 	}
-	var wire map[string]any
-	if err := json.Unmarshal(body, &wire); err != nil {
-		t.Fatalf("expected JSON body, got %q: %v", body, err)
-	}
-	choices, ok := wire["choices"].([]any)
-	if !ok || len(choices) == 0 {
-		t.Fatalf("missing choices in %#v", wire)
-	}
-	msg, ok := choices[0].(map[string]any)["message"].(map[string]any)
-	if !ok || msg["content"] != "Chat title" {
-		t.Fatalf("unexpected assistant body %#v", wire)
+	if !strings.Contains(string(body), "Chat title") {
+		t.Fatalf("unexpected SSE body %s", body)
 	}
 }
 

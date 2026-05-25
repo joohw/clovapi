@@ -89,23 +89,42 @@ func TestIngressStyleForCLI(t *testing.T) {
 		Vendor: Profile{Kind: "subscription", SubscriptionProviderID: "codex", APIStyle: apistyle.OpenAIResponses},
 		Model:  Model{ID: "gpt-5.4", Model: "gpt-5.4", APIStyle: apistyle.OpenAIResponses},
 	}
-	if got := IngressStyleForCLI(clikind.Hermes, codexHit); got != apistyle.Claude {
-		t.Fatalf("hermes codex ingress = %q want claude", got)
-	}
 	claudeHit := VendorModelHit{
 		Vendor: Profile{Kind: "subscription", SubscriptionProviderID: "claude-code", APIStyle: apistyle.Claude},
 		Model:  Model{ID: "claude-opus-4-7", Model: "claude-opus-4-7", APIStyle: apistyle.Claude},
 	}
-	if got := IngressStyleForCLI(clikind.Hermes, claudeHit); got != apistyle.Claude {
-		t.Fatalf("hermes claude ingress = %q want claude", got)
+	geminiHit := VendorModelHit{
+		Vendor: Profile{Kind: "api", APIStyle: apistyle.OpenAIChat},
+		Model:  Model{ID: "gemini-pro", Model: "gemini-pro", APIStyle: apistyle.Gemini},
 	}
-	if got := IngressStyleForCLI(clikind.Codex, codexHit); got != apistyle.OpenAIResponses {
-		t.Fatalf("codex cli ingress = %q", got)
+
+	cases := []struct {
+		kind clikind.Kind
+		hit  VendorModelHit
+		want apistyle.Style
+	}{
+		{clikind.Codex, codexHit, apistyle.OpenAIResponses},
+		{clikind.ClaudeCode, claudeHit, apistyle.Claude},
+		{clikind.ClaudeCode, codexHit, apistyle.Claude},
+		{clikind.KimiCode, codexHit, apistyle.Claude},
+		{clikind.KimiCode, claudeHit, apistyle.Claude},
+		{clikind.OpenCode, codexHit, apistyle.Claude},
+		{clikind.OpenCode, claudeHit, apistyle.Claude},
+		{clikind.OpenClaw, codexHit, apistyle.Claude},
+		{clikind.Hermes, codexHit, apistyle.OpenAIResponses},
+		{clikind.Hermes, claudeHit, apistyle.Claude},
+		{clikind.OpenCode, geminiHit, apistyle.Gemini},
 	}
-	if got := IngressStyleForCLI(clikind.KimiCode, codexHit); got != apistyle.Claude {
-		t.Fatalf("kimi codex ingress = %q want claude", got)
+	for _, tc := range cases {
+		if got := IngressStyleForCLI(tc.kind, tc.hit); got != tc.want {
+			t.Fatalf("%s ingress = %q want %q", tc.kind, got, tc.want)
+		}
 	}
-	if got := IngressStyleForCLI(clikind.KimiCode, claudeHit); got != apistyle.Claude {
-		t.Fatalf("kimi claude ingress = %q want claude", got)
+
+	if got := CliIngressStyle(clikind.OpenCode); got != apistyle.Claude {
+		t.Fatalf("opencode default ingress = %q want claude", got)
+	}
+	if got := CliIngressStyle(clikind.Hermes); got != apistyle.Claude {
+		t.Fatalf("hermes default ingress = %q want claude", got)
 	}
 }

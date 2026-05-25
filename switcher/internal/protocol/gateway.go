@@ -28,6 +28,11 @@ func GatewayEnrich(r *Request, h UpstreamHints) {
 	}
 }
 
+// ForceUpstreamStreaming ensures all relayed upstream calls use SSE-capable streaming.
+func ForceUpstreamStreaming(r *Request) {
+	r.Stream = true
+}
+
 // ResolveUpstreamPath returns the ingress-stripped suffix for the upstream HTTP path.
 func ResolveUpstreamPath(egress apistyle.Style, _ Request, upstreamSource string) string {
 	return DefaultUpstreamPathSuffix(egress, upstreamSource)

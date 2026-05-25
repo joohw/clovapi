@@ -90,6 +90,9 @@ func TestPrepareOpenAIResponsesPassthroughCodexSubscriptionStripsSampling(t *tes
 	if parsed["input"] != "hello" {
 		t.Fatalf("input = %#v, want passthrough hello", parsed["input"])
 	}
+	if parsed["stream"] != true {
+		t.Fatalf("stream = %#v, want true", parsed["stream"])
+	}
 }
 
 func TestShouldPassthroughOpenAIResponsesWire(t *testing.T) {

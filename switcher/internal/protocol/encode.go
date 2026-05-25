@@ -22,7 +22,7 @@ func EncodeRequestClaude(r Request) ([]byte, error) {
 		"model":      r.Model,
 		"max_tokens": maxTok,
 		"messages":   cmPayload(cm),
-		"stream":     r.Stream != false,
+		"stream":     true,
 	}
 	if r.Temperature != nil {
 		payload["temperature"] = *r.Temperature
@@ -73,7 +73,7 @@ func EncodeRequestOpenAIChat(r Request) ([]byte, error) {
 	body := map[string]any{
 		"model":    r.Model,
 		"messages": msgs,
-		"stream":   r.Stream != false,
+		"stream":   true,
 	}
 	if r.MaxTokens != nil {
 		body["max_tokens"] = *r.MaxTokens
@@ -137,7 +137,7 @@ func EncodeRequestOpenAIResponses(r Request) ([]byte, error) {
 	body := map[string]any{
 		"model":        r.Model,
 		"input":        input,
-		"stream":       r.Stream != false,
+		"stream":       true,
 		"store":        false,
 		"instructions": instructions,
 	}

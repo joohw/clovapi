@@ -2,6 +2,7 @@ package apply
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -35,6 +36,9 @@ func (hermesTarget) Apply(p profile.Profile) error {
 		return fmt.Errorf("wrong cli %q for hermes target", p.CLI)
 	}
 	modelID := hermesWireModelID(p)
+	if pathID := hermesPathModelID(p.BaseURL); pathID != "" {
+		modelID = pathID
+	}
 	if modelID == "" {
 		return fmt.Errorf("profile model is required for hermes apply")
 	}
@@ -51,38 +55,30 @@ func (hermesTarget) Apply(p profile.Profile) error {
 	}
 
 	modelObj := ensureSubMap(root, "model")
-	if subProvider := hermesSubscriptionProvider(p); subProvider != "" {
-		// Hermes picks the first catalog model for a native provider; do not pin model.default here.
-		delete(modelObj, "default")
-		modelObj["provider"] = subProvider
-		delete(modelObj, "base_url")
-		delete(modelObj, "api_key")
-		delete(modelObj, "api_mode")
-	} else {
-		prov := hermesInferenceProvider(p.APIStyle)
-		if hermesUsesCustomProxyProvider(p) {
-			// Hermes ignores model.api_key for built-in anthropic and uses OAuth tokens instead.
-			// Route local clovapi proxy ingress through custom + api_mode so clovapi-local is honored.
-			prov = "custom"
-		}
-		modelObj["default"] = modelID
-		modelObj["provider"] = prov
-		if prov == "custom" {
-			apiMode := hermesAPIMode(p.APIStyle)
-			baseURL := hermesWireBaseURL(p.BaseURL, apiMode)
-			modelObj["base_url"] = baseURL
-			modelObj["api_key"] = p.APIKey
-			if apiMode != "" {
-				modelObj["api_mode"] = apiMode
-			} else {
-				delete(modelObj, "api_mode")
-			}
-			upsertHermesCustomProvider(root, baseURL, p.APIKey, modelID, apiMode, p.Models)
+	prov := hermesInferenceProvider(p.APIStyle)
+	useCustomRelay := hermesUsesCustomProxyProvider(p) || prov == "custom"
+	if useCustomRelay {
+		// Hermes ignores model.api_key for built-in anthropic and uses OAuth tokens instead.
+		// Route local clovapi proxy ingress through the named custom provider so clovapi-local is honored.
+		prov = hermesRelayName
+	}
+	modelObj["default"] = modelID
+	modelObj["provider"] = prov
+	if useCustomRelay {
+		apiMode := hermesAPIMode(p.APIStyle)
+		baseURL := hermesWireBaseURL(p.BaseURL, apiMode)
+		modelObj["base_url"] = baseURL
+		modelObj["api_key"] = p.APIKey
+		if apiMode != "" {
+			modelObj["api_mode"] = apiMode
 		} else {
-			modelObj["base_url"] = strings.TrimRight(strings.TrimSpace(p.BaseURL), "/")
-			modelObj["api_key"] = p.APIKey
 			delete(modelObj, "api_mode")
 		}
+		upsertHermesCustomProvider(root, baseURL, p.APIKey, modelID, apiMode)
+	} else {
+		modelObj["base_url"] = strings.TrimRight(strings.TrimSpace(p.BaseURL), "/")
+		modelObj["api_key"] = p.APIKey
+		delete(modelObj, "api_mode")
 	}
 
 	out, err := yaml.Marshal(root)
@@ -130,32 +126,21 @@ func (hermesTarget) ResetDefault() error {
 	return writeFileAtomic(path, out, 0o600)
 }
 
-// hermesSubscriptionProvider returns a native Hermes OAuth provider when clovapi
-// would otherwise write subscription upstream URLs as provider=custom.
-func hermesSubscriptionProvider(p profile.Profile) string {
-	// Desktop ApplyBinding always targets the local proxy; clovapi holds subscription auth there.
-	if hermesProxyBaseURL(p.BaseURL) {
+// hermesPathModelID reads the bound model id from a clovapi proxy ingress base URL.
+func hermesPathModelID(baseURL string) string {
+	raw := strings.TrimSpace(baseURL)
+	if raw == "" {
 		return ""
 	}
-	if strings.EqualFold(strings.TrimSpace(p.Kind), "subscription") {
-		switch strings.TrimSpace(p.SubscriptionProviderID) {
-		case provider.CodexProviderID:
-			return "openai-codex"
-		case provider.ClaudeCodeProviderID:
-			return "anthropic"
-		}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return ""
 	}
-	base := strings.ToLower(strings.TrimSpace(p.BaseURL))
-	switch {
-	case strings.Contains(base, "chatgpt.com/backend-api"):
-		return "openai-codex"
-	case base == "https://api.anthropic.com" || strings.HasPrefix(base, "https://api.anthropic.com/"):
-		if strings.EqualFold(strings.TrimSpace(p.Kind), "subscription") ||
-			strings.TrimSpace(p.SubscriptionProviderID) == provider.ClaudeCodeProviderID {
-			return "anthropic"
-		}
+	ingress, ok := provider.ParseProxyIngressPath(u.Path)
+	if !ok {
+		return ""
 	}
-	return ""
+	return strings.TrimSpace(ingress.ModelID)
 }
 
 // hermesWireModelID returns the bound model id for Hermes defaults.
@@ -224,7 +209,7 @@ func hermesWireBaseURL(baseURL, apiMode string) string {
 	return ensureWireV1BaseURL(b)
 }
 
-func upsertHermesCustomProvider(root map[string]any, baseURL, apiKey, modelID, apiMode string, catalog []profile.Model) {
+func upsertHermesCustomProvider(root map[string]any, baseURL, apiKey, modelID, apiMode string) {
 	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if baseURL == "" {
 		return
@@ -240,43 +225,32 @@ func upsertHermesCustomProvider(root map[string]any, baseURL, apiKey, modelID, a
 		}
 		if strings.EqualFold(strings.TrimSpace(fmt.Sprint(ent["name"])), hermesRelayName) ||
 			strings.TrimRight(strings.TrimSpace(fmt.Sprint(ent["base_url"])), "/") == baseURL {
-			out = append(out, hermesCustomProviderEntry(baseURL, apiKey, modelID, apiMode, catalog))
+			out = append(out, hermesCustomProviderEntry(baseURL, apiKey, modelID, apiMode))
 			replaced = true
 			continue
 		}
 		out = append(out, ent)
 	}
 	if !replaced {
-		out = append(out, hermesCustomProviderEntry(baseURL, apiKey, modelID, apiMode, catalog))
+		out = append(out, hermesCustomProviderEntry(baseURL, apiKey, modelID, apiMode))
 	}
 	root["custom_providers"] = out
 }
 
-func hermesCustomProviderModels(catalog []profile.Model, defaultModelID string) map[string]any {
+func hermesCustomProviderModels(defaultModelID string) map[string]any {
 	out := map[string]any{}
-	if len(catalog) > 0 {
-		for _, m := range catalog {
-			id := profileModelSegment(strings.TrimSpace(m.Model))
-			if id == "" {
-				id = profileModelSegment(m.ID)
-			}
-			if id != "" {
-				out[id] = map[string]any{}
-			}
-		}
-	}
-	if len(out) == 0 && strings.TrimSpace(defaultModelID) != "" {
-		out[defaultModelID] = map[string]any{}
+	if id := strings.TrimSpace(defaultModelID); id != "" {
+		out[id] = map[string]any{}
 	}
 	return out
 }
 
-func hermesCustomProviderEntry(baseURL, apiKey, modelID, apiMode string, catalog []profile.Model) map[string]any {
+func hermesCustomProviderEntry(baseURL, apiKey, modelID, apiMode string) map[string]any {
 	ent := map[string]any{
 		"name":     hermesRelayName,
 		"base_url": baseURL,
 		"model":    modelID,
-		"models":   hermesCustomProviderModels(catalog, modelID),
+		"models":   hermesCustomProviderModels(modelID),
 	}
 	if strings.TrimSpace(apiKey) != "" {
 		ent["api_key"] = apiKey

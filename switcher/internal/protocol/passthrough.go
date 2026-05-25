@@ -37,24 +37,20 @@ func preparePassthroughOpenAIResponsesRequest(body []byte, hints UpstreamHints) 
 		delete(raw, "max_output_tokens")
 		delete(raw, "max_tokens")
 	}
+	raw["stream"] = true
 
 	upstreamJSON, err := json.Marshal(raw)
 	if err != nil {
 		return nil, Request{}, "", err
 	}
 
-	var streamPtr *bool
-	if v, ok := raw["stream"]; ok {
-		b := coerceBoolPreferTrueDefault(v)
-		streamPtr = &b
-	}
 	meta := &Metadata{}
 	if strings.TrimSpace(hints.Source) == "subscription:codex" {
 		meta.CodexSubscription = true
 	}
 	ir := Request{
 		Model:  model,
-		Stream: streamDefault(streamPtr),
+		Stream: true,
 		Meta:   meta,
 	}
 	pathSuffix := ResolveUpstreamPath(apistyle.OpenAIResponses, ir, hints.Source)

@@ -10,8 +10,9 @@
     "prepare:cli:dev": "node scripts/prepare-dev-cli.mjs",
     "dev": "npm run prepare:cli:dev && concurrently -k \"npm run dev:ui\" \"wait-on tcp:5173 && cross-env ELECTRON_DEV=1 electron .\"",
     "build:ui": "vite build --config ui/vite.config.mjs",
+    "build:icons": "zsh scripts/build-icons.sh",
     "prepare:cli:darwin": "node scripts/prepare-darwin-cli.mjs",
-    "build:mac": "npm run build:ui && npm run prepare:cli:darwin && electron-builder --mac dmg",
+    "build:mac": "npm run build:ui && npm run build:icons && npm run prepare:cli:darwin && electron-builder --mac dmg",
     "test": "node --test proxy-manager.test.js",
     "start": "npm run build:ui && electron ."
   },
@@ -43,6 +44,7 @@
   "build": {
     "appId": "com.clovapi.switcher",
     "productName": "ClovAPI Switcher",
+    "icon": "assets/icon.ico",
     "directories": {
       "output": "dist"
     },
@@ -56,6 +58,7 @@
       "!node_modules/clovapi/**"
     ],
     "mac": {
+      "icon": "assets/icon.icns",
       "category": "public.app-category.developer-tools",
       "target": [
         {

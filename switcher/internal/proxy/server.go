@@ -379,28 +379,13 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ingressWantsSSEClaudeWire := protocol.IngressUsesClaudeSSEWire(route.IngressStyle, ir.Stream)
-	plaintextReader := io.Reader(upResp.Body)
-	upstreamCloser := func() {
-		if upResp.Body != nil {
-			_ = upResp.Body.Close()
-		}
-	}
-	if ir.Stream {
-		plain, layered := protocol.WrapStreamingPlaintextReader(upResp.Header.Get("Content-Encoding"), upResp.Body)
-		plaintextReader = plain
-		upstreamCloser = layered
-	}
-	defer upstreamCloser()
+	plain, layered := protocol.WrapStreamingPlaintextReader(upResp.Header.Get("Content-Encoding"), upResp.Body)
+	defer layered()
 
 	ctypeLower := strings.ToLower(strings.TrimSpace(upResp.Header.Get("Content-Type")))
-	streamingSSE := false
-	if ir.Stream {
-		buf := bufio.NewReader(plaintextReader)
-		plaintextReader = buf
-		peek, _ := buf.Peek(512)
-		streamingSSE = protocol.UpstreamResponseLooksLikeSSE(ctypeLower, peek)
-	}
+	buf := bufio.NewReader(plain)
+	peek, _ := buf.Peek(512)
+	streamingSSE := protocol.UpstreamResponseLooksLikeSSE(ctypeLower, peek)
 
 	if streamingSSE {
 		baseSan := protocol.SanitizeUpstreamResponseHeaders(upResp.Header.Clone())
@@ -413,7 +398,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(upResp.StatusCode)
 		var capture bytes.Buffer
-		tee := io.TeeReader(plaintextReader, &capture)
+		tee := io.TeeReader(buf, &capture)
 		var streamErr error
 		if protocol.ShouldPassthroughStreamingSSE(route.IngressStyle, route.EgressStyle) {
 			streamErr = protocol.PassthroughStreamingPlaintextSSE(r.Context(), tee, w)
@@ -427,7 +412,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	upBody, err := io.ReadAll(plaintextReader)
+	upBody, err := io.ReadAll(buf)
 	if err != nil {
 		trace.setError("read upstream response")
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "read upstream response"})
@@ -436,88 +421,24 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, upBody)
 
 	upStatus := upResp.StatusCode
-	if ir.Stream && upStatus >= 400 {
-		ev := protocol.MaterializePlainUpstreamEvents(route.EgressStyle, upStatus, upBody)
-		if ingressWantsSSEClaudeWire {
-			for k, vv := range protocol.MergeMinimalSSEStreamingErrorHeaders() {
-				for _, v := range vv {
-					w.Header().Add(k, v)
-				}
-			}
-			w.WriteHeader(upStatus)
-			_ = protocol.WriteSSEFromBufferedIR(route.IngressStyle, ir.Model, ev, w)
-			return
-		}
-		payload, encErr := protocol.EncodeNonStreamJSONResponseForStyle(route.IngressStyle, ev)
-		if encErr != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": encErr.Error()})
-			return
-		}
-		h := protocol.MergeMinimalJSONReplyHeaders(payload)
-		for k, vv := range h {
+	ev := protocol.MaterializePlainUpstreamEvents(route.EgressStyle, upStatus, upBody)
+	if upStatus >= 400 {
+		for k, vv := range protocol.MergeMinimalSSEStreamingErrorHeaders() {
 			for _, v := range vv {
 				w.Header().Add(k, v)
 			}
 		}
-		w.WriteHeader(upStatus)
-		if len(payload) > 0 {
-			_, _ = w.Write(payload)
-		}
-		return
-	}
-
-	if ir.Stream && upStatus < 400 {
-		ev := protocol.MaterializePlainUpstreamEvents(route.EgressStyle, upStatus, upBody)
-		if ingressWantsSSEClaudeWire {
-			baseSan := protocol.SanitizeUpstreamResponseHeaders(upResp.Header.Clone())
-			streamHdr := protocol.MergeSSEProxyDownstreamHeaders(baseSan)
-			for k, vv := range streamHdr {
-				for _, v := range vv {
-					w.Header().Add(strings.TrimSpace(http.CanonicalHeaderKey(k)), v)
-				}
-			}
-			w.WriteHeader(upStatus)
-			_ = protocol.WriteSSEFromBufferedIR(route.IngressStyle, ir.Model, ev, w)
-			return
-		}
-		payload, encErr := protocol.EncodeNonStreamJSONResponseForStyle(route.IngressStyle, ev)
-		if encErr != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": encErr.Error()})
-			return
-		}
+	} else {
 		baseSan := protocol.SanitizeUpstreamResponseHeaders(upResp.Header.Clone())
-		outHdr := protocol.MergeJSONSuccessHeaders(baseSan, payload)
-		for k, vv := range outHdr.Clone() {
+		streamHdr := protocol.MergeSSEProxyDownstreamHeaders(baseSan)
+		for k, vv := range streamHdr {
 			for _, v := range vv {
-				w.Header().Add(k, v)
+				w.Header().Add(strings.TrimSpace(http.CanonicalHeaderKey(k)), v)
 			}
 		}
-		w.WriteHeader(upStatus)
-		if len(payload) > 0 {
-			_, _ = w.Write(payload)
-		}
-		return
 	}
-
-	outStatus, outHdr, outBody, ferr := protocol.FinalizeNonStreamProxyDownstream(route.IngressStyle, route.EgressStyle, upStatus, upResp.Header.Clone(), upBody)
-	if ferr != nil {
-		switch {
-		case errors.Is(ferr, protocol.ErrUpstreamSSEForNonStreamingClient):
-			writeJSON(w, http.StatusNotImplemented, map[string]string{"error": ferr.Error()})
-		default:
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": ferr.Error()})
-		}
-		return
-	}
-	for k, vv := range outHdr.Clone() {
-		for _, v := range vv {
-			w.Header().Add(k, v)
-		}
-	}
-	w.WriteHeader(outStatus)
-	if len(outBody) > 0 {
-		_, _ = w.Write(outBody)
-	}
+	w.WriteHeader(upStatus)
+	_ = protocol.WriteSSEFromBufferedIR(route.IngressStyle, ir.Model, ev, w)
 }
 
 func shouldTransformProxyMethod(m string) bool {

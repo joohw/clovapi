@@ -5,8 +5,8 @@ Next.js App Router marketing site for clovapi (CLI / desktop client).
 ## Development
 
 ```bash
-bun install
-bun run dev
+npm install
+npm run dev
 ```
 
 Default dev URL: `http://localhost:27483`.
@@ -26,6 +26,6 @@ cp ../.env.example .env.local
 ## Build & Run
 
 ```bash
-bun run build
-bun run start
+npm run build
+npm run start
 ```

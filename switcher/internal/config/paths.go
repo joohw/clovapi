@@ -87,3 +87,34 @@ func CallLogsLegacyPath() (string, error) {
 func SetDirOverride(dir string) {
 	overrideDir = dir
 }
+
+// CliBinDir returns the directory for a user-managed clovapi binary (updated separately from the desktop bundle).
+func CliBinDir() (string, error) {
+	d, err := Dir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(d, "bin"), nil
+}
+
+// CliBinPath returns the default install path for `clovapi update`.
+func CliBinPath() (string, error) {
+	dir, err := CliBinDir()
+	if err != nil {
+		return "", err
+	}
+	name := "clovapi"
+	if runtime.GOOS == "windows" {
+		name = "clovapi.exe"
+	}
+	return filepath.Join(dir, name), nil
+}
+
+// CliVersionMetaPath stores the version string last installed by `clovapi update`.
+func CliVersionMetaPath() (string, error) {
+	dir, err := CliBinDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "version.txt"), nil
+}

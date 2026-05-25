@@ -23,6 +23,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
+      - -X github.com/clovapi/switcher/internal/buildinfo.Version={{.Version}}
+      - -X github.com/clovapi/switcher/internal/buildinfo.Commit={{.Commit}}
+      - -X github.com/clovapi/switcher/internal/buildinfo.Date={{.Date}}
 
 archives:
   - id: default

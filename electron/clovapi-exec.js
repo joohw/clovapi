@@ -1,10 +1,12 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { cliBinPath } = require("./config-paths");
 
 function buildBundledCandidates(extraCandidates = []) {
   const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
   const defaults = [
+    cliBinPath(),
     path.join(__dirname, "bin", exeName),
     path.join(__dirname, "..", "switcher", exeName),
     path.join(process.cwd(), "switcher", exeName),

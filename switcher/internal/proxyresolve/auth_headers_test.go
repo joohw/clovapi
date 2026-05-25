@@ -49,4 +49,7 @@ func TestUpstreamAuthHeadersCodexSubscriptionAccount(t *testing.T) {
 	if h.Get("Authorization") != "Bearer codex-token" {
 		t.Fatalf("authorization = %q", h.Get("Authorization"))
 	}
+	if h.Get("Accept") != "text/event-stream" {
+		t.Fatalf("accept = %q want text/event-stream", h.Get("Accept"))
+	}
 }

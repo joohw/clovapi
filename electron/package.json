@@ -12,7 +12,9 @@
     "build:ui": "vite build --config ui/vite.config.mjs",
     "build:icons": "zsh scripts/build-icons.sh",
     "prepare:cli:darwin": "node scripts/prepare-darwin-cli.mjs",
+    "prepare:cli:win": "node scripts/prepare-win-cli.mjs",
     "build:mac": "npm run build:ui && npm run build:icons && npm run prepare:cli:darwin && electron-builder --mac dmg",
+    "build:win": "npm run build:ui && npm run prepare:cli:win && electron-builder --win nsis",
     "test": "node --test proxy-manager.test.js",
     "start": "npm run build:ui && electron ."
   },
@@ -80,6 +82,22 @@
     },
     "dmg": {
       "artifactName": "clovapi-desktop-darwin-universal.${ext}"
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "extraResources": [
+        {
+          "from": "bin/clovapi.exe",
+          "to": "bin/clovapi.exe"
+        }
+      ],
+      "artifactName": "clovapi-desktop-win-${arch}.${ext}"
     }
   }
 }

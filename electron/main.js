@@ -7,6 +7,7 @@ const proxyLogger = require("./proxy-logger");
 const callLogsStore = require("./call-logs-store");
 const clovapiDesktop = require("./clovapi-desktop");
 const { buildBundledCandidates, resolveClovapiExecutable: resolveBundledClovapiExecutable } = require("./clovapi-exec");
+const { cliBinPath } = require("./config-paths");
 const subscriptionAuth = require("./subscription-auth");
 const subscriptionOAuthFlow = require("./subscription-oauth-flow");
 const { sanitizeForIpc } = require("./ipc-utils");
@@ -274,6 +275,34 @@ ipcMain.handle("cli:run-clovapi", async (_event, payload) => {
       error: error instanceof Error ? error.message : "Failed to start clovapi.",
     };
   }
+});
+
+ipcMain.handle("cli:update", async (_event, payload) => {
+  const executable = await resolveClovapiExecutable();
+  if (!executable) {
+    return { ok: false, error: "clovapi executable not found" };
+  }
+  const args = ["update", "--json"];
+  if (payload?.check) args.push("--check");
+  if (payload?.version) args.push("--version", String(payload.version));
+  const result = await spawnExecutableAndWait(executable, args, process.cwd());
+  if (!result.ok) {
+    return { ok: false, error: result.error || "Failed to run clovapi update." };
+  }
+  let detail = null;
+  try {
+    detail = JSON.parse(String(result.stdout || "").trim() || "{}");
+  } catch {
+    detail = { raw: result.stdout, stderr: result.stderr };
+  }
+  if ((result.code ?? 1) !== 0) {
+    return {
+      ok: false,
+      error: String(result.stderr || result.stdout || "clovapi update failed").trim(),
+      detail,
+    };
+  }
+  return { ok: true, detail, stdout: result.stdout, stderr: result.stderr };
 });
 
 ipcMain.handle("profiles:load", async () => {
@@ -585,6 +614,10 @@ ipcMain.handle("proxy-logs:clear", async (_event, payload) => {
 });
 
 ipcMain.handle("cli:tool-status", async () => {
+  const userPath = cliBinPath();
+  if (fs.existsSync(userPath)) {
+    return { ok: true, available: true, source: "user", path: userPath };
+  }
   const bundledPath = resolveBundledCliPath();
   if (bundledPath) {
     return { ok: true, available: true, source: "bundled", path: bundledPath };

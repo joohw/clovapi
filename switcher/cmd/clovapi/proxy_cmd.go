@@ -208,7 +208,8 @@ func ensureProxyRunning() error {
 
 func shouldSkipAutoProxy(cmd *cobra.Command) bool {
 	for c := cmd; c != nil; c = c.Parent() {
-		if c.Name() == "__proxy-daemon" {
+		switch c.Name() {
+		case "__proxy-daemon", "update", "version":
 			return true
 		}
 	}

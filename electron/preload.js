@@ -31,6 +31,9 @@ contextBridge.exposeInMainWorld("clovapiCli", {
   toolStatus() {
     return ipcRenderer.invoke("cli:tool-status");
   },
+  updateCli(payload) {
+    return ipcRenderer.invoke("cli:update", payload || {});
+  },
   which(command) {
     return ipcRenderer.invoke("cli:which", { command });
   },

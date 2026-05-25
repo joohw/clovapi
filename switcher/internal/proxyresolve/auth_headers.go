@@ -52,6 +52,9 @@ func UpstreamAuthHeaders(a UpstreamAuth) http.Header {
 			if accountID := strings.TrimSpace(a.AccountID); accountID != "" {
 				h.Set("chatgpt-account-id", accountID)
 			}
+			// Codex subscription always streams SSE; match Electron codex-backend probe headers.
+			h.Set("Accept", "text/event-stream")
+			return h
 		}
 		// Negotiate structured responses; streamed upstream bodies are decoded and transcoded by the relay when ingress requests stream:true.
 		h.Set("Accept", "application/json")

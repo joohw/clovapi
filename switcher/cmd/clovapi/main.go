@@ -45,7 +45,7 @@ func newRoot() *cobra.Command {
 		},
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(cmdProfiles(), cmdSet(), cmdRemove(), cmdSwitch(), cmdProxy(), cmdReset(), cmdDesktop(), cmdHiddenProxyDaemon())
+	root.AddCommand(cmdProfiles(), cmdSet(), cmdRemove(), cmdSwitch(), cmdProxy(), cmdReset(), cmdDesktop(), cmdVersion(), cmdUpdate(), cmdHiddenProxyDaemon())
 	return root
 }
 

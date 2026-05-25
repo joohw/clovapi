@@ -11,6 +11,11 @@ function configDir() {
   return path.join(os.homedir(), ".config", "clovapi");
 }
 
+function cliBinPath() {
+  const name = process.platform === "win32" ? "clovapi.exe" : "clovapi";
+  return path.join(configDir(), "bin", name);
+}
+
 function callLogsDir() {
   return path.join(configDir(), "call-logs");
 }
@@ -21,6 +26,7 @@ function callLogsDBPath() {
 
 module.exports = {
   configDir,
+  cliBinPath,
   callLogsDir,
   callLogsDBPath,
 };

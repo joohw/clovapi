@@ -25,7 +25,7 @@ type Server struct {
 	Config profile.ProxyConfig
 	// ProfileLoader resolves persisted Desktop v4 profiles; defaults to profile.LoadDesktop when nil (set in ctor).
 	ProfileLoader func() (*profile.Store, error)
-	// HTTPClient performs upstream calls when serving matching ingress/egress requests; defaults in NewServer (2-minute timeout).
+	// HTTPClient performs upstream calls when serving matching ingress/egress requests; defaults in NewServer (streaming-safe, no whole-request timeout).
 	HTTPClient *http.Client
 	Server     *http.Server
 	CallLogs   *CallLogStore
@@ -66,14 +66,7 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 		Config:        cfg,
 		ProfileLoader: profile.LoadDesktop,
 		CallLogs:      NewCallLogStore(),
-		HTTPClient: &http.Client{
-			Timeout: 2 * time.Minute,
-			Transport: &http.Transport{
-				Proxy:              http.ProxyFromEnvironment,
-				ForceAttemptHTTP2:  true,
-				DisableCompression: true,
-			},
-		},
+		HTTPClient: defaultUpstreamHTTPClient(),
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
@@ -374,7 +367,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 
 	upResp, err := s.upstreamHTTP().Do(upReq)
 	if err != nil {
-		trace.setError("upstream request failed")
+		trace.setError(fmt.Sprintf("upstream request failed: %v", err))
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "upstream request failed"})
 		return
 	}
@@ -450,18 +443,23 @@ func shouldTransformProxyMethod(m string) bool {
 	}
 }
 
+func defaultUpstreamHTTPClient() *http.Client {
+	return &http.Client{
+		// Do not set Timeout: it applies to the full round trip including long SSE bodies.
+		Transport: &http.Transport{
+			Proxy:                 http.ProxyFromEnvironment,
+			ForceAttemptHTTP2:     true,
+			DisableCompression:    true,
+			ResponseHeaderTimeout: 10 * time.Minute,
+		},
+	}
+}
+
 func (s *Server) upstreamHTTP() *http.Client {
 	if s.HTTPClient != nil {
 		return s.HTTPClient
 	}
-	return &http.Client{
-		Timeout: 2 * time.Minute,
-		Transport: &http.Transport{
-			Proxy:              http.ProxyFromEnvironment,
-			ForceAttemptHTTP2:  true,
-			DisableCompression: true,
-		},
-	}
+	return defaultUpstreamHTTPClient()
 }
 
 func isModelsPath(pathSuffix string) bool {

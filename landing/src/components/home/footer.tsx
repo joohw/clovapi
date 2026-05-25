@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -34,18 +35,18 @@ export function HomeFooter() {
         </div>
 
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <a href="/agents" className="text-muted-foreground hover:text-foreground">
+          <Link href="/agents" className="text-muted-foreground hover:text-foreground">
             {t("header.agents")}
-          </a>
-          <a href="/guides" className="text-muted-foreground hover:text-foreground">
+          </Link>
+          <Link href="/guides" className="text-muted-foreground hover:text-foreground">
             {t("header.guides")}
-          </a>
-          <a href="/blog" className="text-muted-foreground hover:text-foreground">
+          </Link>
+          <Link href="/blog" className="text-muted-foreground hover:text-foreground">
             {t("header.blog")}
-          </a>
-          <a href="/compare/cc-switch" className="text-muted-foreground hover:text-foreground">
+          </Link>
+          <Link href="/compare/cc-switch" className="text-muted-foreground hover:text-foreground">
             cc-switch
-          </a>
+          </Link>
           <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
             GitHub
           </a>
@@ -57,9 +58,9 @@ export function HomeFooter() {
           >
             npm
           </a>
-          <a href="/skill" className="text-muted-foreground hover:text-foreground">
+          <Link href="/skill" className="text-muted-foreground hover:text-foreground">
             {t("header.skill")}
-          </a>
+          </Link>
         </div>
       </div>
     </footer>

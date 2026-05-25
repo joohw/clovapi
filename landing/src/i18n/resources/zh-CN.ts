@@ -4,6 +4,7 @@ const zhCN = {
     agents: "Agent",
     guides: "教程",
     blog: "博客",
+    download: "下载",
     skill: "Skill",
     backHome: "返回首页",
     github: "GitHub",
@@ -128,6 +129,18 @@ const zhCN = {
     whenCcSwitchBody:
       "你需要 MCP/Skills/Prompts 跨 CLI 同步、Gemini CLI 支持，或更完整的桌面运维面板（会话搜索、云同步、可选代理接管等）。",
     agentsLink: "查看支持的 Agent 列表 →",
+  },
+  download: {
+    title: "下载 clovapi",
+    subtitle: "从官方 R2 镜像下载 macOS / Windows 桌面客户端。",
+    macTitle: "macOS 桌面端",
+    macBody: "适用于 Apple Silicon 与 Intel Mac 的 Universal DMG，发布到 downloads.clovapi.com。",
+    windowsTitle: "Windows 桌面端",
+    windowsBody: "Windows x64 桌面安装包，由 release workflow 发布。",
+    downloadMac: "下载 macOS",
+    downloadWindows: "下载 Windows",
+    desktopLatest: "桌面端 latest",
+    pathsTitle: "公开镜像路径",
   },
   skill: {
     agentHintTitle: "安装 ClovAPI Skill",

@@ -6,6 +6,7 @@
 # Optional env:
 #   R2_ARTIFACT_PREFIX (default: clovapi)
 #   R2_PUBLIC_BASE_URL (default: https://downloads.clovapi.com) — logged only
+#   R2_SESSION_TOKEN (for temporary R2 S3 credentials)
 #
 # Usage:
 #   ./scripts/r2-publish.sh cli --tag v0.1.12 --dist switcher/dist
@@ -34,6 +35,7 @@ r2_endpoint() {
 aws_r2() {
   AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
   AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+  AWS_SESSION_TOKEN="${R2_SESSION_TOKEN:-}" \
   AWS_DEFAULT_REGION=auto \
     aws --endpoint-url "$(r2_endpoint)" s3 "$@"
 }

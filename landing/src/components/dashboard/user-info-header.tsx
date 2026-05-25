@@ -62,7 +62,7 @@ function StatRow({ items }: { items: StatItem[] }) {
   );
 }
 
-export function UserInfoHeader({ user, status, onRefreshUser }: UserInfoHeaderProps) {
+export function UserInfoHeader({ user, onRefreshUser }: UserInfoHeaderProps) {
   const { showError, showSuccess } = useToast();
   const [showRedeemDialog, setShowRedeemDialog] = useState(false);
   const [showPayDialog, setShowPayDialog] = useState(false);

@@ -46,7 +46,6 @@ export async function buildPageMetadata(page: SeoPageKey, slugArg?: string): Pro
   const siteUrl = await resolveSiteUrl();
   const pathname = pathnameForPage(page, slugArg);
   const { title, description, ogImage } = resolvePageCopy(page, language, slugArg);
-  const canonical = `${siteUrl}${pathname}`;
 
   return buildMetadataFromCopy({ siteUrl, language, pathname, title, description, ogImage });
 }

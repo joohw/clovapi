@@ -3,6 +3,7 @@ const en = {
     home: "Home",
     agents: "Agents",
     guides: "Guides",
+    blog: "Blog",
     skill: "Skill",
     backHome: "Back to home",
     github: "GitHub",
@@ -96,6 +97,13 @@ const en = {
     indexTitle: "Setup guides",
     indexSubtitle: "Step-by-step: third-party APIs for Claude Code & Codex — DeepSeek, OpenRouter, SiliconFlow, and more.",
     tipsLabel: "Tip",
+  },
+  blog: {
+    indexTitle: "Blog",
+    indexSubtitle: "Local proxy architecture, agent CLI API switching practices, and deep dives on Claude Code / Codex upstream setup.",
+    empty: "No posts yet.",
+    backToBlog: "← Back to blog",
+    viewGuides: "View setup guides →",
   },
   compare: {
     title: "clovapi vs cc-switch",

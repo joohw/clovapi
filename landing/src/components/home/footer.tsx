@@ -40,6 +40,9 @@ export function HomeFooter() {
           <a href="/guides" className="text-muted-foreground hover:text-foreground">
             {t("header.guides")}
           </a>
+          <a href="/blog" className="text-muted-foreground hover:text-foreground">
+            {t("header.blog")}
+          </a>
           <a href="/compare/cc-switch" className="text-muted-foreground hover:text-foreground">
             cc-switch
           </a>

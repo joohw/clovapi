@@ -3,6 +3,7 @@ const zhCN = {
     home: "首页",
     agents: "Agent",
     guides: "教程",
+    blog: "博客",
     skill: "Skill",
     backHome: "返回首页",
     github: "GitHub",
@@ -95,6 +96,13 @@ const zhCN = {
     indexTitle: "配置教程",
     indexSubtitle: "分步指南：Claude Code / Codex 接入第三方 API 与常见上游（DeepSeek、OpenRouter、SiliconFlow）。",
     tipsLabel: "提示",
+  },
+  blog: {
+    indexTitle: "博客",
+    indexSubtitle: "本地代理架构、Agent CLI API 切换实践，以及 Claude Code / Codex 上游配置深度解读。",
+    empty: "暂无文章。",
+    backToBlog: "← 返回博客",
+    viewGuides: "查看配置教程 →",
   },
   compare: {
     title: "clovapi vs cc-switch",

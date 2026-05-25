@@ -1,7 +1,15 @@
 import type { AppLanguage } from "@/i18n/config";
 import { normalizePath, SITE_NAME } from "@/lib/site";
 
-export type SeoPageKey = "home" | "skill" | "agents" | "guides" | "compareCcSwitch" | `agent:${string}` | `guide:${string}`;
+export type SeoPageKey =
+  | "home"
+  | "skill"
+  | "agents"
+  | "guides"
+  | "blog"
+  | "compareCcSwitch"
+  | `agent:${string}`
+  | `guide:${string}`;
 
 export type AgentPageDef = {
   slug: string;
@@ -66,6 +74,12 @@ export const SEO_COPY: Record<
         "分步教程：经 clovapi 本地代理为 Claude Code 接入 DeepSeek、OpenRouter、SiliconFlow 与第三方 API，以及 Codex CLI 上游配置。",
       ogImage: "/use-case-zh.png",
     },
+    blog: {
+      title: "博客 · clovapi Agent API 切换与本地代理",
+      description:
+        "clovapi 博客：编程 Agent CLI 本地代理架构、API 形态转码，以及 Claude Code / Codex 上游切换实践与深度解读。",
+      ogImage: "/use-case-zh.png",
+    },
     agentTitle: (name) => `${name} API 配置与切换 · clovapi`,
     agentDescription: (name) =>
       `用 clovapi 为 ${name} 配置上游 API：经内置本地代理转发请求，add 保存 profile、switch 一键应用。支持官方订阅与第三方 API。`,
@@ -99,6 +113,12 @@ export const SEO_COPY: Record<
       title: "Claude Code & Codex API setup guides · clovapi local proxy",
       description:
         "Step-by-step guides: route Claude Code through clovapi's local proxy for DeepSeek, OpenRouter, SiliconFlow, and third-party APIs, plus Codex CLI upstream setup.",
+      ogImage: "/use-case-en.png",
+    },
+    blog: {
+      title: "Blog · clovapi agent API switching & local proxy",
+      description:
+        "clovapi blog: local proxy architecture, API format transcoding, and practical notes on Claude Code / Codex upstream switching.",
       ogImage: "/use-case-en.png",
     },
     agentTitle: (name) => `Configure & switch ${name} API · clovapi`,
@@ -155,6 +175,7 @@ export function pathnameForPage(page: SeoPageKey, slugArg?: string): string {
   if (page === "skill") return "/skill";
   if (page === "agents") return "/agents";
   if (page === "guides") return "/guides";
+  if (page === "blog") return "/blog";
   if (page === "compareCcSwitch") return "/compare/cc-switch";
   if (page.startsWith("agent:")) {
     const slug = slugArg ?? page.slice("agent:".length);

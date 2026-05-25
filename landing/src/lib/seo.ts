@@ -10,6 +10,8 @@ import {
   type SeoPageKey,
 } from "@/lib/seo-data";
 import { getGuideContent, guidePathname } from "@/lib/guides-data";
+import { blogPathname } from "@/lib/blog-data";
+import { getBlogPost } from "@/lib/blog-data.server";
 import { getPublicSiteUrlFromRequest, normalizePath, SITE_NAME } from "@/lib/site";
 
 export type { AgentPageDef, FaqItem, SeoPageKey } from "@/lib/seo-data";
@@ -66,6 +68,25 @@ export async function buildGuidePageMetadata(slug: string): Promise<Metadata> {
   });
 }
 
+export async function buildBlogPostPageMetadata(slug: string): Promise<Metadata> {
+  const language = await resolveSeoLanguage();
+  const siteUrl = await resolveSiteUrl();
+  const post = getBlogPost(slug, language);
+  if (!post) return {};
+
+  const pathname = blogPathname(slug);
+  return buildMetadataFromCopy({
+    siteUrl,
+    language,
+    pathname,
+    title: post.title,
+    description: post.description || post.title,
+    ogImage: SEO_COPY[language].home.ogImage,
+    openGraphType: "article",
+    publishedTime: post.date || undefined,
+  });
+}
+
 function buildMetadataFromCopy(options: {
   siteUrl: string;
   language: AppLanguage;
@@ -73,13 +94,30 @@ function buildMetadataFromCopy(options: {
   title: string;
   description: string;
   ogImage: string;
+  openGraphType?: "website" | "article";
+  publishedTime?: string;
 }): Metadata {
-  const { siteUrl, language, pathname, title, description, ogImage } = options;
+  const { siteUrl, language, pathname, title, description, ogImage, openGraphType = "website", publishedTime } = options;
   const canonical = `${siteUrl}${normalizePath(pathname)}`;
 
   return {
     title,
     description,
+    icons: {
+      icon: [
+        {
+          url: "/clover-light.svg",
+          type: "image/svg+xml",
+          media: "(prefers-color-scheme: light)",
+        },
+        {
+          url: "/clover.svg",
+          type: "image/svg+xml",
+          media: "(prefers-color-scheme: dark)",
+        },
+      ],
+      shortcut: "/favicon.ico",
+    },
     alternates: {
       canonical,
       languages: {
@@ -89,7 +127,7 @@ function buildMetadataFromCopy(options: {
       },
     },
     openGraph: {
-      type: "website",
+      type: openGraphType,
       siteName: SITE_NAME,
       title,
       description,
@@ -97,6 +135,7 @@ function buildMetadataFromCopy(options: {
       locale: language === "zh-CN" ? "zh_CN" : "en_US",
       alternateLocale: language === "zh-CN" ? ["en_US"] : ["zh_CN"],
       images: [{ url: `${siteUrl}${ogImage}`, width: 730, height: 731, alt: title }],
+      ...(publishedTime ? { publishedTime } : {}),
     },
     twitter: {
       card: "summary_large_image",

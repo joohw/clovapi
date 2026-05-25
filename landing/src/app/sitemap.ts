@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
 import { AGENT_PAGES } from "@/lib/seo-data";
+import { BLOG_POSTS } from "@/lib/blog-data";
 import { GUIDE_PAGES } from "@/lib/guides-data";
 import { getPublicSiteUrlFromRequest } from "@/lib/site";
 
@@ -15,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/`, changeFrequency: "weekly", priority: 1, lastModified },
     { url: `${siteUrl}/agents`, changeFrequency: "weekly", priority: 0.9, lastModified },
     { url: `${siteUrl}/guides`, changeFrequency: "weekly", priority: 0.9, lastModified },
+    { url: `${siteUrl}/blog`, changeFrequency: "weekly", priority: 0.88, lastModified },
     { url: `${siteUrl}/compare/cc-switch`, changeFrequency: "monthly", priority: 0.85, lastModified },
     { url: `${siteUrl}/skill`, changeFrequency: "weekly", priority: 0.8, lastModified },
   ];
@@ -33,6 +35,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${siteUrl}/guides/${guide.slug}`,
       changeFrequency: "monthly",
       priority: guide.priority,
+      lastModified,
+    });
+  }
+
+  for (const post of BLOG_POSTS) {
+    entries.push({
+      url: `${siteUrl}/blog/${post.slug}`,
+      changeFrequency: "monthly",
+      priority: post.priority,
       lastModified,
     });
   }

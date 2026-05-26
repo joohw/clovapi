@@ -207,6 +207,17 @@ func ensureProxyRunning() error {
 }
 
 func shouldSkipAutoProxy(cmd *cobra.Command) bool {
+	if cmd != nil && cmd.Name() == "start" && cmd.Parent() != nil && cmd.Parent().Name() == "proxy" {
+		return true
+	}
+	if cmd != nil &&
+		cmd.Name() == "test" &&
+		cmd.Parent() != nil &&
+		cmd.Parent().Name() == "profiles" &&
+		cmd.Parent().Parent() != nil &&
+		cmd.Parent().Parent().Name() == "desktop" {
+		return true
+	}
 	for c := cmd; c != nil; c = c.Parent() {
 		switch c.Name() {
 		case "__proxy-daemon", "update", "version":

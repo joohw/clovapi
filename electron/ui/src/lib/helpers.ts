@@ -482,14 +482,12 @@ export function buildCliBindingOptions(
         }
         const sub = subscriptions.find((item) => item.id === providerId);
         const loggedIn = Boolean(sub?.loggedIn);
-        const vendorLabel = displayVendorName(vendor.name);
+		if (!loggedIn) {
+			continue;
+		}
         options.push({
           value: modelBindingValue(providerId, model.id),
-          label: loggedIn
-            ? cliModelBindingLabel(vendor, model)
-            : t("binding.loginRequired", { vendor: vendorLabel }),
-          disabled: !loggedIn,
-          hint: loggedIn ? undefined : t("binding.loginHint", { vendor: vendorLabel }),
+			label: cliModelBindingLabel(vendor, model),
         });
         continue;
       }

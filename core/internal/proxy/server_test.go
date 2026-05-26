@@ -3,6 +3,7 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -75,6 +76,15 @@ func TestServerHealthAndModelsList(t *testing.T) {
 	}
 	if len(body.Data) != 1 || body.Data[0].ID != "claude opus/4" {
 		t.Fatalf("encoded slash models body = %+v", body)
+	}
+}
+
+func TestShouldRecordStreamErrorIgnoresContextCanceled(t *testing.T) {
+	if shouldRecordStreamError(context.Canceled) {
+		t.Fatal("context.Canceled should be treated as downstream cancellation")
+	}
+	if !shouldRecordStreamError(io.ErrUnexpectedEOF) {
+		t.Fatal("unexpected EOF should still be recorded")
 	}
 }
 

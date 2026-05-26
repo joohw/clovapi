@@ -13,16 +13,6 @@ function codexModelsListUrl() {
   return `${CODEX_MODELS_URL}?client_version=${encodeURIComponent(CODEX_CLIENT_VERSION)}`;
 }
 
-/** Codex ChatGPT 订阅可用的模型 ID（含 -codex 或 codex-mini-latest 等） */
-const CODEX_SUBSCRIPTION_MODEL_FALLBACKS = [
-  "gpt-5.4",
-  "gpt-5.4-mini",
-  "gpt-5.3-codex",
-  "gpt-5.2",
-  "gpt-5.2-codex",
-  "gpt-5.1-codex-mini",
-];
-
 function isCodexSubscriptionModelId(modelId) {
   const id = String(modelId || "").trim().toLowerCase();
   if (!id || id === "default") return false;
@@ -173,6 +163,18 @@ function readCodexAuthFile() {
   }
 }
 
+function decodeJwtPayload(token) {
+  try {
+    const parts = String(token).split(".");
+    if (parts.length !== 3) return null;
+    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = payload + "=".repeat((4 - (payload.length % 4)) % 4);
+    return JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
 function httpGetJson(urlString, headers = {}, timeoutMs = FETCH_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
     let url;
@@ -288,7 +290,6 @@ async function fetchCodexBackendModels(credentials = {}) {
     if (!accountId) {
       accountId = String(data?.tokens?.account_id || "").trim();
       if (!accountId && accessToken) {
-        const { decodeJwtPayload } = require("./oauth/utils");
         const payload = decodeJwtPayload(accessToken);
         const auth = payload?.["https://api.openai.com/auth"];
         accountId = typeof auth?.chatgpt_account_id === "string" ? auth.chatgpt_account_id : "";
@@ -319,15 +320,6 @@ async function fetchCodexBackendModels(credentials = {}) {
   throw new Error("Codex 后端返回空模型列表");
 }
 
-function fallbackCodexModels() {
-  return CODEX_SUBSCRIPTION_MODEL_FALLBACKS.map((modelId) => ({
-    id: modelId,
-    label: modelId,
-    model: modelId,
-    isDefault: modelId === CODEX_SUBSCRIPTION_MODEL_FALLBACKS[0],
-  }));
-}
-
 let cachedAccountModels = null;
 let cachedAccountModelsAt = 0;
 const ACCOUNT_MODELS_TTL_MS = 5 * 60 * 1000;
@@ -340,7 +332,7 @@ function clearCodexModelCache() {
 function defaultCodexModelFromCatalog(catalog) {
   const list = Array.isArray(catalog) ? catalog : [];
   const picked = list.find((item) => item?.isDefault) || list[0];
-  return String(picked?.model || picked?.id || CODEX_SUBSCRIPTION_MODEL_FALLBACKS[0]).trim();
+	return String(picked?.model || picked?.id || "").trim();
 }
 
 async function loadCodexAccountModels(options = {}) {
@@ -358,7 +350,7 @@ async function loadCodexAccountModels(options = {}) {
     cachedAccountModelsAt = Date.now();
     return cachedAccountModels;
   } catch {
-    return fallbackCodexModels();
+    return [];
   }
 }
 
@@ -401,17 +393,12 @@ async function resolveCodexTestModels(requested) {
   }
   if (preferred) out.push(preferred);
   for (const id of catalogIds) out.push(id);
-  if (!allowed.size) {
-    out.push(...CODEX_SUBSCRIPTION_MODEL_FALLBACKS);
-  }
-
   return [...new Set(out.filter(Boolean))];
 }
 
 module.exports = {
   CODEX_MODELS_URL,
   CODEX_CLIENT_VERSION,
-  CODEX_SUBSCRIPTION_MODEL_FALLBACKS,
   isCodexSubscriptionModelId,
   buildCodexProbePayload,
   probeCodexResponsesStream,
@@ -422,6 +409,5 @@ module.exports = {
   resolveCodexSubscriptionTestModel,
   isCodexAccountUnsupportedModelError,
   clearCodexModelCache,
-  fallbackCodexModels,
   parseCodexModelsBody,
 };

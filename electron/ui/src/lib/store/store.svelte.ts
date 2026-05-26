@@ -39,7 +39,6 @@ export {
   checkCoreUpdate,
   installCoreUpdate,
 } from "./proxy";
-export { loadPresets, applyPresetToForm, applyPresetToModelForm } from "./presets";
 export {
   setActiveTab,
   openProfilesVendor,

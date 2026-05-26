@@ -1,10 +1,16 @@
 package desktop
 
 import (
+	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 
-	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
@@ -19,27 +25,91 @@ type TestResult struct {
 	Error   string `json:"error,omitempty"`
 }
 
-func defaultProxyTestAPIStyle(vendor profile.Profile, model profile.Model, providerID string) string {
-	if st := strings.TrimSpace(string(model.APIStyle)); st != "" {
-		return st
+func proxyConfigForTest(s *profile.Store, portOverride int) profile.ProxyConfig {
+	cfg := profile.ProxyConfig{Enabled: true, Host: "127.0.0.1", Port: 27483}
+	if s != nil {
+		cfg = s.Proxy
 	}
-	if providerID == provider.ClaudeCodeProviderID {
-		return string(profile.NormalizeAPIStyle("claude"))
+	if strings.TrimSpace(cfg.Host) == "" {
+		cfg.Host = "127.0.0.1"
 	}
-	if providerID == provider.CodexProviderID {
-		return string(profile.NormalizeAPIStyle("openai-responses"))
+	if cfg.Port == 0 {
+		cfg.Port = 27483
 	}
-	return string(profile.NormalizeAPIStyle("openai-chat"))
+	if portOverride > 0 {
+		cfg.Port = portOverride
+	}
+	return cfg
 }
 
-func resolveProbeStyles(kind agentkind.Kind, hit profile.VendorModelHit) (ingressStyle string, probeStyle apistyle.Style) {
-	st := profile.IngressStyleForCLI(kind, hit)
-	return string(st), st
+func proxyHealthClientHost(bindHost string) string {
+	host := strings.TrimSpace(bindHost)
+	if host == "" {
+		return "127.0.0.1"
+	}
+	switch strings.ToLower(host) {
+	case "0.0.0.0", "::", "::ffff:0.0.0.0":
+		return "127.0.0.1"
+	default:
+		return host
+	}
 }
 
-// TestProviderModel probes connectivity via the local proxy ingress URL.
-// When cliKind is set, the probe uses that CLI's fixed ingress style (cross-subscription path).
+func proxyHealthURL(cfg profile.ProxyConfig) string {
+	host := proxyHealthClientHost(cfg.Host)
+	return "http://" + net.JoinHostPort(host, strconv.Itoa(cfg.Port)) + "/health"
+}
+
+func probeProxyHealth(cfg profile.ProxyConfig) bool {
+	client := http.Client{Timeout: 2 * time.Second}
+	resp, err := client.Get(proxyHealthURL(cfg))
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return false
+	}
+	var body map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		return false
+	}
+	ok, _ := body["ok"].(bool)
+	service, _ := body["service"].(string)
+	return ok && strings.Contains(service, "clovapi-core-proxy")
+}
+
+func waitProxyHealth(cfg profile.ProxyConfig, deadline time.Duration) error {
+	deadlineAt := time.Now().Add(deadline)
+	for time.Now().Before(deadlineAt) {
+		if probeProxyHealth(cfg) {
+			return nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return fmt.Errorf("本地代理未就绪: %s", proxyHealthURL(cfg))
+}
+
+func ensureProxyForTest(cfg profile.ProxyConfig) error {
+	if probeProxyHealth(cfg) {
+		return nil
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("找不到 clovapi 可执行文件: %w", err)
+	}
+	cmd := exec.Command(exe, "proxy", "start", "--host", cfg.Host, "--port", strconv.Itoa(cfg.Port))
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("启动本地代理失败: %w: %s", err, strings.TrimSpace(string(out)))
+	}
+	return waitProxyHealth(cfg, 15*time.Second)
+}
+
+// TestProviderModel probes connectivity via the local proxy ingress URLs.
+// Desktop model tests intentionally hit both Responses and Messages ingress
+// routes so the call log captures the two core protocol paths.
 func TestProviderModel(providerID, modelID string, portOverride int, cliKindStr string) TestResult {
+	_ = strings.TrimSpace(cliKindStr)
 	providerID = strings.TrimSpace(providerID)
 	modelID = strings.TrimSpace(modelID)
 	if providerID == "" || modelID == "" {
@@ -68,32 +138,20 @@ func TestProviderModel(providerID, modelID string, portOverride int, cliKindStr 
 			Error: fmt.Sprintf("不支持的供应商: %s", providerID),
 		}
 	}
-
-	apiStyleStr := defaultProxyTestAPIStyle(hit.Vendor, hit.Model, providerID)
-	probeStyle := profile.NormalizeAPIStyle(apiStyleStr)
-	cliKindStr = strings.TrimSpace(cliKindStr)
-	if cliKindStr != "" {
-		kind, parseErr := agentkind.Parse(cliKindStr)
-		if parseErr != nil {
-			return TestResult{
-				OK: false, Passed: false, Summary: "测试失败",
-				Error: parseErr.Error(),
-				Text:  fmt.Sprintf("无效的 CLI 类型：%s", cliKindStr),
-			}
+	proxyCfg := proxyConfigForTest(s, portOverride)
+	if err := ensureProxyForTest(proxyCfg); err != nil {
+		return TestResult{
+			OK: true, Passed: false, Summary: "测试失败",
+			Text:  fmt.Sprintf("本地代理不可用：%v", err),
+			Error: err.Error(),
 		}
-		apiStyleStr, probeStyle = resolveProbeStyles(kind, hit)
 	}
-	pathModelID, modelWire := profile.ResolveWireModelForIngress(hit, modelID)
-	port := s.Proxy.Port
-	if portOverride > 0 {
-		port = portOverride
-	}
-	if port == 0 {
-		port = 27483
-	}
-	baseURL := provider.BuildProxyIngressBaseURL(port, providerID, pathModelID, apiStyleStr)
 
-	if err := testclient.Probe(probeStyle, baseURL, "clovapi-local", modelWire); err != nil {
+	pathModelID, modelWire := profile.ResolveWireModelForIngress(hit, modelID)
+	responsesBaseURL := provider.BuildProxyIngressBaseURL(proxyCfg.Port, providerID, pathModelID, string(apistyle.OpenAIResponses))
+	claudeBaseURL := provider.BuildProxyIngressBaseURL(proxyCfg.Port, providerID, pathModelID, string(apistyle.Claude))
+
+	if err := testclient.ProbeToolRoundTrip(responsesBaseURL, claudeBaseURL, "clovapi-local", modelWire); err != nil {
 		return TestResult{
 			OK: true, Passed: false, Summary: "测试失败",
 			Text:  fmt.Sprintf("连通性测试失败：%v", err),
@@ -102,7 +160,7 @@ func TestProviderModel(providerID, modelID string, portOverride int, cliKindStr 
 	}
 	return TestResult{
 		OK: true, Passed: true, Summary: "测试成功",
-		Text: fmt.Sprintf("已通过本地代理测试 %s/%s（%s）。", providerID, pathModelID, modelWire),
+		Text: fmt.Sprintf("已通过本地代理工具测试 %s/%s（%s）：openai-responses + anthropic messages。", providerID, pathModelID, modelWire),
 	}
 }
 

@@ -1,4 +1,4 @@
-const { runClovapiArgs } = require("./clovapi-exec");
+const { runClovapiArgs, runClovapiArgsAsync } = require("./clovapi-exec");
 
 function parseDesktopStdout(result) {
   const text = String(result.stdout || "").trim();
@@ -14,6 +14,21 @@ function parseDesktopStdout(result) {
 
 function runDesktop(args, options = {}) {
   const result = runClovapiArgs(["desktop", ...args], {
+    timeout: options.timeout ?? 30000,
+    input: options.input,
+  });
+  if (result.error && result.error.code === "ETIMEDOUT") {
+    return { ok: false, error: "clovapi desktop timed out" };
+  }
+  if (!result.ok) {
+    const message = String(result.stderr || result.stdout || "clovapi desktop failed").trim();
+    return { ok: false, error: message || "clovapi desktop failed" };
+  }
+  return parseDesktopStdout(result);
+}
+
+async function runDesktopAsync(args, options = {}) {
+  const result = await runClovapiArgsAsync(["desktop", ...args], {
     timeout: options.timeout ?? 30000,
     input: options.input,
   });
@@ -55,7 +70,7 @@ function listVendorModels(vendorName) {
   });
 }
 
-function testBinding(payload) {
+async function testBinding(payload) {
   const binding = String(payload?.binding || "").trim();
   const provider = String(payload?.provider || payload?.provider_id || "").trim();
   const model = String(payload?.model || payload?.model_id || "").trim();
@@ -73,7 +88,7 @@ function testBinding(payload) {
   if (Number.isFinite(port) && port > 0) {
     args.push("--port", String(port));
   }
-  return runDesktop(args, { timeout: 45000 });
+  return runDesktopAsync(args, { timeout: 130000 });
 }
 
 function modelAdapters() {
@@ -102,6 +117,7 @@ function queryVendorUsage(vendorName) {
 
 module.exports = {
   runDesktop,
+  runDesktopAsync,
   loadProfiles,
   loadProxyConfig,
   saveProxyConfig,

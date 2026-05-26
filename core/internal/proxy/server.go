@@ -415,7 +415,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		tee := io.TeeReader(buf, &capture)
 		var streamErr error
 		streamErr = protocol.TranscodePlaintextSSEToIngress(r.Context(), route.IngressStyle, route.EgressStyle, ir.Model, tee, w)
-		if streamErr != nil {
+		if shouldRecordStreamError(streamErr) {
 			trace.setError(streamErr.Error())
 		}
 		trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, capture.Bytes())
@@ -458,6 +458,13 @@ func shouldTransformProxyMethod(m string) bool {
 	default:
 		return false
 	}
+}
+
+func shouldRecordStreamError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return !errors.Is(err, context.Canceled)
 }
 
 func applyUpstreamRequestPolicy(r *protocol.Request, source string) {

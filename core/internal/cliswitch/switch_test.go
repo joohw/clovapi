@@ -33,3 +33,22 @@ func TestCodexCanResolveClaudeSubscriptionSelection(t *testing.T) {
 		t.Fatalf("selection = %+v", selection)
 	}
 }
+
+func TestOpenCodeUsesResponsesForCodexSubscription(t *testing.T) {
+	hit := profile.VendorModelHit{
+		Vendor: profile.Profile{
+			Name:                   provider.CodexVendorName,
+			Kind:                   "subscription",
+			SubscriptionProviderID: provider.CodexProviderID,
+			APIStyle:               apistyle.OpenAIResponses,
+		},
+		Model: profile.Model{
+			ID:       "gpt-5.4",
+			Model:    "gpt-5.4",
+			APIStyle: apistyle.OpenAIResponses,
+		},
+	}
+	if got := profile.IngressStyleForCLI(agentkind.OpenCode, hit); got != apistyle.OpenAIResponses {
+		t.Fatalf("opencode codex ingress = %s, want %s", got, apistyle.OpenAIResponses)
+	}
+}

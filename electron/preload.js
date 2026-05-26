@@ -59,12 +59,6 @@ contextBridge.exposeInMainWorld("clovapiSubscription", {
   cancelLogin(provider) {
     return ipcRenderer.invoke("subscription:login-cancel", { provider });
   },
-  claudeProfile(targetCli) {
-    return ipcRenderer.invoke("subscription:claude-profile", { targetCli });
-  },
-  buildProfile(provider, targetCli) {
-    return ipcRenderer.invoke("subscription:build-profile", { provider, targetCli });
-  },
   logout(provider) {
     return ipcRenderer.invoke("subscription:logout", { provider });
   },

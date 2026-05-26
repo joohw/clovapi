@@ -1,6 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { spawnSync } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 const { cliBinPath } = require("./config-paths");
 
 function isDevEnvironment() {
@@ -147,9 +147,81 @@ function runClovapiArgs(args, options = {}) {
   };
 }
 
+function runClovapiArgsAsync(args, options = {}) {
+  return new Promise((resolve) => {
+    const exe = resolveClovapiExecutable(options);
+    if (!exe) {
+      resolve({
+        ok: false,
+        stdout: "",
+        stderr: "clovapi executable not found",
+        status: 1,
+        error: new Error("clovapi executable not found"),
+      });
+      return;
+    }
+
+    const child = spawn(exe, args, {
+      windowsHide: true,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    const stdoutChunks = [];
+    const stderrChunks = [];
+    let settled = false;
+    let timedOut = false;
+    const timeoutMs = options.timeout ?? 8000;
+    const timer =
+      timeoutMs > 0
+        ? setTimeout(() => {
+            timedOut = true;
+            child.kill("SIGTERM");
+          }, timeoutMs)
+        : null;
+
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve(result);
+    };
+
+    child.stdout.on("data", (chunk) => stdoutChunks.push(String(chunk || "")));
+    child.stderr.on("data", (chunk) => stderrChunks.push(String(chunk || "")));
+    child.on("error", (error) => {
+      finish({
+        ok: false,
+        stdout: stdoutChunks.join(""),
+        stderr: stderrChunks.join(""),
+        status: 1,
+        error,
+      });
+    });
+    child.on("close", (code, signal) => {
+      const error = timedOut
+        ? Object.assign(new Error("clovapi command timed out"), { code: "ETIMEDOUT" })
+        : null;
+      finish({
+        ok: !error && code === 0,
+        stdout: stdoutChunks.join(""),
+        stderr: stderrChunks.join(""),
+        status: code ?? 1,
+        signal,
+        error,
+      });
+    });
+
+    if (options.input != null) {
+      child.stdin.end(String(options.input));
+    } else {
+      child.stdin.end();
+    }
+  });
+}
+
 module.exports = {
   buildBundledCandidates,
   coreDevStatePath,
   resolveClovapiExecutable,
   runClovapiArgs,
+  runClovapiArgsAsync,
 };

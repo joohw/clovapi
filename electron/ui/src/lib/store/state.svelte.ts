@@ -1,5 +1,5 @@
-import { CUSTOM_PRESET_ID, DEFAULT_CLIS, DEFAULT_PRESETS, FIXED_PROVIDER_IDS } from "../constants";
-import type { ActiveSelection, CliDef, ModelAdapterDef, ModelTestEntry, Preset, ProxyLogEntry, ProxySystemLogEntry, ProviderDef, SubscriptionItem, Vendor } from "../../global";
+import { DEFAULT_CLIS, FIXED_PROVIDER_IDS } from "../constants";
+import type { ActiveSelection, CliDef, ModelAdapterDef, ModelTestEntry, ProxyLogEntry, ProxySystemLogEntry, ProviderDef, SubscriptionItem, Vendor } from "../../global";
 
 export type TabId = "cli" | "profiles" | "call-logs" | "system-logs" | "settings";
 
@@ -14,7 +14,6 @@ export const store = $state({
   ollamaInstalled: false,
   clovapiAvailable: false,
   editingProfileName: "",
-  presets: [...DEFAULT_PRESETS] as Preset[],
   subscriptions: [] as SubscriptionItem[],
   subscriptionLogging: {} as Record<string, boolean>,
   modelTests: {} as Record<string, ModelTestEntry>,
@@ -24,7 +23,6 @@ export const store = $state({
   modelDialogMode: "create" as "create" | "edit",
   modelDialogVendorName: "",
   editingModelId: "",
-  presetId: CUSTOM_PRESET_ID,
   formName: "",
   formBaseUrl: "",
   formApiKey: "",

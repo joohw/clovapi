@@ -191,9 +191,9 @@ func cmdDesktopVendorAdapters() *cobra.Command {
 func cmdDesktopAuth() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "auth",
-		Short: "Subscription OAuth status (login flow stays in the desktop shell)",
+		Short: "Subscription OAuth login/status/logout",
 	}
-	c.AddCommand(cmdDesktopAuthStatus(), cmdDesktopAuthLogout())
+	c.AddCommand(cmdDesktopAuthStatus(), cmdDesktopAuthLogin(), cmdDesktopAuthLogout())
 	return c
 }
 
@@ -205,6 +205,22 @@ func cmdDesktopAuthStatus() *cobra.Command {
 			return writeDesktopJSON(desktop.AuthStatus())
 		},
 	}
+}
+
+func cmdDesktopAuthLogin() *cobra.Command {
+	var providerID string
+	var jsonFlag bool
+	c := &cobra.Command{
+		Use:   "login",
+		Short: "Run subscription OAuth login",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_ = jsonFlag // desktop commands always return JSON.
+			return writeDesktopJSON(desktop.AuthLogin(cmd.Context(), providerID))
+		},
+	}
+	c.Flags().StringVar(&providerID, "provider", "", "Provider id: claude-code|codex")
+	c.Flags().BoolVar(&jsonFlag, "json", false, "Return JSON (always enabled for desktop commands)")
+	return c
 }
 
 func cmdDesktopAuthLogout() *cobra.Command {

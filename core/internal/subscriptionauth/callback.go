@@ -1,0 +1,133 @@
+package subscriptionauth
+
+import (
+	"context"
+	"fmt"
+	"html"
+	"net"
+	"net/http"
+	"net/url"
+	"strings"
+	"sync"
+)
+
+type callbackData struct {
+	Code  string
+	State string
+}
+
+type callbackError struct {
+	Status  int
+	Message string
+	Details string
+}
+
+type callbackOptions struct {
+	Port     int
+	Path     string
+	Validate func(url.Values) (callbackData, callbackError)
+}
+
+type callbackServer struct {
+	server *http.Server
+	done   chan callbackResult
+	once   sync.Once
+}
+
+type callbackResult struct {
+	data callbackData
+	err  error
+}
+
+func startCallbackServer(ctx context.Context, opts callbackOptions) (*callbackServer, error) {
+	if opts.Port == 0 || strings.TrimSpace(opts.Path) == "" || opts.Validate == nil {
+		return nil, fmt.Errorf("invalid callback server options")
+	}
+	cs := &callbackServer{done: make(chan callbackResult, 1)}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != opts.Path {
+			writeOAuthHTML(w, http.StatusNotFound, "error", "回调路径不正确。", "")
+			return
+		}
+		data, validation := opts.Validate(r.URL.Query())
+		if validation.Message != "" {
+			status := validation.Status
+			if status == 0 {
+				status = http.StatusBadRequest
+			}
+			writeOAuthHTML(w, status, "error", validation.Message, validation.Details)
+			return
+		}
+		writeOAuthHTML(w, http.StatusOK, "success", "授权完成，可以关闭此窗口并返回 ClovAPI。", "")
+		cs.complete(callbackResult{data: data})
+	})
+	cs.server = &http.Server{Handler: mux}
+
+	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", opts.Port))
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		<-ctx.Done()
+		cs.complete(callbackResult{err: errCallbackCancelled})
+		_ = cs.server.Close()
+	}()
+	go func() {
+		if err := cs.server.Serve(ln); err != nil && err != http.ErrServerClosed {
+			cs.complete(callbackResult{err: err})
+		}
+	}()
+	return cs, nil
+}
+
+func (s *callbackServer) Wait(ctx context.Context) (callbackData, error) {
+	select {
+	case result := <-s.done:
+		return result.data, result.err
+	case <-ctx.Done():
+		return callbackData{}, errCallbackCancelled
+	}
+}
+
+func (s *callbackServer) Close() {
+	_ = s.server.Close()
+}
+
+func (s *callbackServer) complete(result callbackResult) {
+	s.once.Do(func() {
+		s.done <- result
+	})
+}
+
+func writeOAuthHTML(w http.ResponseWriter, status int, kind, message, details string) {
+	heading := "登录失败"
+	if kind == "success" {
+		heading = "登录成功"
+	}
+	detailBlock := ""
+	if strings.TrimSpace(details) != "" {
+		detailBlock = `<p class="details">` + html.EscapeString(details) + `</p>`
+	}
+	body := `<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>` + html.EscapeString(heading) + `</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 40px auto; max-width: 480px; text-align: center; color: #111; }
+    h1 { font-size: 1.25rem; }
+    p { color: #444; line-height: 1.6; }
+    .details { font-family: monospace; font-size: 0.85rem; word-break: break-word; }
+  </style>
+</head>
+<body>
+  <h1>` + html.EscapeString(heading) + `</h1>
+  <p>` + html.EscapeString(message) + `</p>
+  ` + detailBlock + `
+</body>
+</html>`
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	_, _ = w.Write([]byte(body))
+}

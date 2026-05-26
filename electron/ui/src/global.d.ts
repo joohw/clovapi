@@ -35,8 +35,6 @@ type SubscriptionBridge = {
   status(): Promise<{ ok?: boolean; items?: SubscriptionItem[] }>;
   login(provider: string): Promise<{ ok?: boolean; cancelled?: boolean; error?: string }>;
   cancelLogin(provider: string): Promise<unknown>;
-  claudeProfile(targetCli: string): Promise<BuildProfileResult>;
-  buildProfile(provider: string, targetCli: string): Promise<BuildProfileResult>;
   logout(provider: string): Promise<ProfilesLoadResult>;
 };
 
@@ -129,22 +127,6 @@ type ProxyLogsResult = {
   error?: string;
   requests?: ProxyLogEntry[];
   system?: ProxySystemLogEntry[];
-};
-
-type BuildProfileResult = {
-  ok?: boolean;
-  error?: string;
-  profile?: {
-    name: string;
-    base_url?: string;
-    baseUrl?: string;
-    api_key?: string;
-    apiKey?: string;
-    model?: string;
-    api_style?: string;
-    apiStyle?: string;
-    cli?: string;
-  };
 };
 
 type ProfilesLoadResult = {

@@ -965,8 +965,8 @@ func CliIngressStyle(kind agentkind.Kind) apistyle.Style {
 }
 
 // IngressStyleForCLI picks proxy ingress style from CLI kind and vendor/model wire style.
-// Priority: messages (claude) → responses → chat; gemini only when upstream is gemini.
-// Hermes + Codex uses responses (Hermes api_mode codex_responses).
+// Priority: provider-native subscriptions first, then messages (claude) → responses → chat;
+// gemini only when upstream is gemini.
 func IngressStyleForCLI(kind agentkind.Kind, hit VendorModelHit) apistyle.Style {
 	supported := ingressStylesForCLI(kind)
 	if len(supported) == 1 {
@@ -976,7 +976,7 @@ func IngressStyleForCLI(kind agentkind.Kind, hit VendorModelHit) apistyle.Style 
 	modelStyle := firstStyle(hit.Model.APIStyle, hit.Vendor.APIStyle)
 	providerID := ProviderIDFromStoreProfile(hit.Vendor)
 
-	if kind == agentkind.Hermes && providerID == provider.CodexProviderID {
+	if providerID == provider.CodexProviderID {
 		if ingressStyleSupported(supported, apistyle.OpenAIResponses) {
 			return apistyle.OpenAIResponses
 		}

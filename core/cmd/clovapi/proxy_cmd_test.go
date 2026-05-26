@@ -3,6 +3,8 @@ package main
 import (
 	"testing"
 
+	"github.com/spf13/cobra"
+
 	"github.com/clovapi/switcher/internal/profile"
 )
 
@@ -28,5 +30,27 @@ func TestProxyBaseURLUsesLoopbackForWildcardBind(t *testing.T) {
 	want := "http://127.0.0.1:27483"
 	if got != want {
 		t.Fatalf("proxyBaseURL = %q, want %q", got, want)
+	}
+}
+
+func TestShouldSkipAutoProxyForProxyStart(t *testing.T) {
+	parent := &cobra.Command{Use: "proxy"}
+	start := &cobra.Command{Use: "start"}
+	parent.AddCommand(start)
+
+	if !shouldSkipAutoProxy(start) {
+		t.Fatal("proxy start should not trigger auto proxy startup")
+	}
+}
+
+func TestShouldSkipAutoProxyForDesktopProfilesTest(t *testing.T) {
+	desktop := &cobra.Command{Use: "desktop"}
+	profiles := &cobra.Command{Use: "profiles"}
+	testCmd := &cobra.Command{Use: "test"}
+	desktop.AddCommand(profiles)
+	profiles.AddCommand(testCmd)
+
+	if !shouldSkipAutoProxy(testCmd) {
+		t.Fatal("desktop profiles test should manage proxy startup itself")
 	}
 }

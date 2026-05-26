@@ -1,7 +1,6 @@
 import { detectCliPath, detectOllamaInstalled, setRunning } from "./cli";
 import { loadVendorCatalog } from "./catalog";
 import { loadModelTests } from "./model-tests";
-import { loadPresets } from "./presets";
 import { loadProfilesFromDisk } from "./profiles";
 import { refreshProxyLogs, refreshProxyStatus } from "./proxy";
 import { refreshSubscriptions } from "./subscriptions";
@@ -9,7 +8,6 @@ import { store } from "./state.svelte";
 
 export async function initApp() {
   store.modelTests = loadModelTests();
-  await loadPresets();
   await loadVendorCatalog();
   await loadProfilesFromDisk();
   await refreshSubscriptions();

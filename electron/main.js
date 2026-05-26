@@ -12,8 +12,6 @@ const {
   resolveClovapiExecutable: resolveBundledClovapiExecutable,
 } = require("./clovapi-exec");
 const { cliBinPath } = require("./config-paths");
-const subscriptionAuth = require("./subscription-auth");
-const subscriptionOAuthFlow = require("./subscription-oauth-flow");
 const { sanitizeForIpc } = require("./ipc-utils");
 
 // Overlay scrollbars float above content instead of reserving layout width (Windows/Linux).
@@ -420,16 +418,7 @@ ipcMain.handle("profiles:model-adapters", async () => {
 
 ipcMain.handle("profiles:test", async (_event, payload) => {
   try {
-    const ensured = await proxyManager.ensureRunning();
-    if (!ensured.ok) {
-      return sanitizeForIpc({
-        ok: true,
-        passed: false,
-        summary: "测试失败",
-        error: ensured.error || "本地代理未启动",
-        text: ensured.error || "无法启动本地代理，测试请求未发出。",
-      });
-    }
+    const requestedPort = Number(payload?.proxy?.port) || 0;
     const body = {
       binding: payload?.binding,
       provider: payload?.provider,
@@ -438,7 +427,7 @@ ipcMain.handle("profiles:test", async (_event, payload) => {
       model_id: payload?.model_id,
       cli: payload?.cli,
       proxy: {
-        port: Number(payload?.proxy?.port) || Number(ensured.port) || 27483,
+        port: requestedPort || 27483,
       },
     };
     return sanitizeForIpc(await clovapiDesktop.testBinding(body));
@@ -473,36 +462,55 @@ ipcMain.handle("cli:which", async (_event, payload) => {
   return resolveCommandPath(command);
 });
 
-/** providerId -> AbortController (each subscription login is independent). */
+/** providerId -> child process (each subscription login is independent). */
 const activeSubscriptionLogins = new Map();
 
 async function runSubscriptionLogin(providerId) {
-  const cfg = subscriptionAuth.getProviderConfig(providerId);
-  if (!cfg) {
-    return { ok: false, error: `未知订阅类型: ${providerId}` };
-  }
+  if (providerId !== "claude-code" && providerId !== "codex") return { ok: false, error: `未知订阅类型: ${providerId}` };
   if (activeSubscriptionLogins.has(providerId)) {
     return { ok: false, error: "该订阅正在登录中" };
   }
-
-  const abort = new AbortController();
-  activeSubscriptionLogins.set(providerId, abort);
-
-  try {
-    return await subscriptionOAuthFlow.runSubscriptionLogin(providerId, {
-      signal: abort.signal,
+  const executable = await resolveClovapiExecutable();
+  if (!executable) return { ok: false, error: "clovapi executable not found" };
+  return new Promise((resolve) => {
+    const args = ["desktop", "auth", "login", "--provider", providerId, "--json"];
+    const child = spawn(executable, args, { windowsHide: true, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
+    activeSubscriptionLogins.set(providerId, child);
+    const stdoutChunks = [];
+    const stderrChunks = [];
+    emitOutput("system", `$ ${executable} ${args.join(" ")}\n`);
+    child.stdout.on("data", (chunk) => {
+      stdoutChunks.push(String(chunk || ""));
+      emitOutput("stdout", chunk);
     });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const cancelled = error?.code === "LOGIN_CANCELLED" || abort.signal.aborted;
-    return {
-      ok: false,
-      cancelled,
-      error: message || "登录失败",
-    };
-  } finally {
-    activeSubscriptionLogins.delete(providerId);
-  }
+    child.stderr.on("data", (chunk) => {
+      stderrChunks.push(String(chunk || ""));
+      emitOutput("stderr", chunk);
+    });
+    child.on("error", (error) => {
+      activeSubscriptionLogins.delete(providerId);
+      resolve({ ok: false, error: error instanceof Error ? error.message : "登录失败" });
+    });
+    child.on("close", (code, signal) => {
+      activeSubscriptionLogins.delete(providerId);
+      emitOutput("system", `\n[exit] code=${String(code)} signal=${String(signal)}\n`);
+      if (signal) {
+        resolve({ ok: false, cancelled: true, error: "已取消登录" });
+        return;
+      }
+      const stdout = stdoutChunks.join("").trim();
+      const stderr = stderrChunks.join("").trim();
+      if (code !== 0) {
+        resolve({ ok: false, error: stderr || stdout || "登录失败" });
+        return;
+      }
+      try {
+        resolve(JSON.parse(stdout));
+      } catch {
+        resolve({ ok: false, error: stdout || stderr || "登录响应不是 JSON" });
+      }
+    });
+  });
 }
 
 ipcMain.handle("subscription:status", async () => {
@@ -523,31 +531,20 @@ ipcMain.handle("subscription:login", async (_event, payload) => {
 
 ipcMain.handle("subscription:login-cancel", async (_event, payload) => {
   const provider = String(payload?.provider || "").trim();
-  const abort = activeSubscriptionLogins.get(provider);
-  if (!abort) {
+  const child = activeSubscriptionLogins.get(provider);
+  if (!child) {
     return { ok: false, error: "该订阅未在登录中" };
   }
-  abort.abort();
+  if (process.platform === "win32" && child.pid) {
+    spawn("taskkill", ["/pid", String(child.pid), "/t", "/f"], { windowsHide: true });
+  } else {
+    child.kill("SIGTERM");
+  }
   return { ok: true };
-});
-
-ipcMain.handle("subscription:claude-profile", async (_event, payload) => {
-  const targetCli = String(payload?.targetCli || "kimi-code").trim();
-  return subscriptionAuth.buildClaudeSubscriptionProfile(targetCli);
-});
-
-ipcMain.handle("subscription:build-profile", async (_event, payload) => {
-  const provider = String(payload?.provider || "").trim();
-  const targetCli = String(payload?.targetCli || "").trim();
-  return subscriptionAuth.buildSubscriptionProfile(provider, targetCli);
 });
 
 ipcMain.handle("subscription:logout", async (_event, payload) => {
   const provider = String(payload?.provider || "").trim();
-  const cfg = subscriptionAuth.getProviderConfig(provider);
-  if (!cfg) {
-    return { ok: false, error: `未知订阅类型: ${provider}` };
-  }
   try {
     return await clovapiDesktop.authLogout(provider);
   } catch (error) {

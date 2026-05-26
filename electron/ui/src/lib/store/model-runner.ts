@@ -5,6 +5,10 @@ import { refreshProxyLogs } from "./proxy";
 import { store } from "./state.svelte";
 import { toast } from "../toast";
 
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function runModelTest(binding: string) {
   const key = String(binding || "").trim();
   if (!key) return;
@@ -55,5 +59,6 @@ export async function runModelTest(binding: string) {
   const summary = result?.summary || (passed ? t("modelTest.success") : t("modelTest.failed"));
 
   setModelTestResult(statusKey, passed, summary, "");
-  void refreshProxyLogs();
+  await delay(150);
+  await refreshProxyLogs();
 }

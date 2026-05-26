@@ -85,11 +85,11 @@
 - 主要函数：`applyUpstreamRequestPolicy`
 - 作用：按上游来源附加特殊编码策略：Codex 订阅省略 Responses 采样参数，Claude 订阅启用 OAuth 兼容编码。
 
-### 13. Desktop Auth / Subscription Bridge
+### 13. Subscription Auth
 
-- 位置：`electron/oauth/`、`electron/subscription-auth.js`、`electron/subscription-oauth-flow.js`、`electron/preload.js`
-- 主要桥接对象：`window.clovapiSubscription`
-- 作用：桌面端负责发起 OAuth 登录、写入官方 CLI 兼容凭据、查询登录状态、登出订阅；core 运行时再读取这些凭据完成代理转发。
+- 位置：`core/internal/subscriptionauth/`、`core/internal/desktop/`、`electron/preload.js`
+- 主要入口：`clovapi desktop auth login|status|logout`、`window.clovapiSubscription`
+- 作用：core 负责 OAuth 登录、写入官方 CLI 兼容凭据、查询登录状态、登出订阅；Electron 只作为薄壳调用 core 命令并展示结果。
 
 ### 14. Desktop UI Vendor Model
 
@@ -121,4 +121,4 @@
 - `proxyresolve` 只负责把入口解析成上游路由和认证信息，不做协议转码。
 - `protocol` 只负责协议 IR 和转码，不决定上游 URL、订阅来源或凭据。
 - `apply` 只负责改写各 Agent CLI 的本地配置，不直接调用上游。
-- `electron` 负责桌面 OAuth、IPC 和 UI 状态，核心代理仍由 Go core 执行。
+- `electron` 负责 IPC 和 UI 状态；订阅登录、凭据写入和核心代理均由 Go core 执行。

@@ -129,7 +129,7 @@ Paths expand correctly on Windows (user profile / AppData).
 
 - [Harbor](https://github.com/harbor-framework/harbor) — official Terminal-Bench harness
 - [Terminal-Bench](https://www.tbench.ai/) — terminal agent benchmark dataset
-- [Harbor & agent API control](../docs/harbor-agents.md) · [Agent repo index](../docs/agent-repos.md)
+- [Agent repo index](../docs/agent-repos.md)
 
 ### Upstream models & plans
 

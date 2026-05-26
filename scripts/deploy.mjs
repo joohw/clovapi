@@ -78,8 +78,8 @@ function printHelp() {
   console.log(`Usage: npm run deploy -- [options]
 
 Options:
-  --config <path>       Deploy config file (default: .env.deploy)
-  --env-file <path>     Runtime env file sent to remote docker (default: .env)
+  --config <path>       Deploy config file (default: landing/.env.deploy)
+  --env-file <path>     Runtime env file sent to remote docker (default: landing/.env)
   --tag <tag>           Image tag (default: latest or DOCKER_IMAGE_TAG)
   --image <name>        Image name without registry (default: clovapi or DOCKER_IMAGE_NAME)
   --container <name>    Remote container name (default: clovapi)
@@ -177,9 +177,13 @@ async function main() {
   const dryRun = hasFlag("--dry-run");
   const noImageUpdate = hasFlag("--no-image-update");
   const repoRoot = process.cwd();
-  const configPath = path.resolve(repoRoot, getArgValue("--config") || ".env.deploy");
-  const envFilePath = path.resolve(repoRoot, getArgValue("--env-file") || ".env");
   const landingRoot = path.resolve(repoRoot, "landing");
+  const configPath = getArgValue("--config")
+    ? path.resolve(repoRoot, getArgValue("--config"))
+    : path.resolve(landingRoot, ".env.deploy");
+  const envFilePath = getArgValue("--env-file")
+    ? path.resolve(repoRoot, getArgValue("--env-file"))
+    : path.resolve(landingRoot, ".env");
   const dockerfilePath = path.resolve(landingRoot, "Dockerfile.frontend");
 
   if (!fs.existsSync(dockerfilePath)) {

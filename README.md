@@ -29,4 +29,3 @@ clovapi --help
 | `clovapi switch [--cli KIND]` | 将 profile 应用到某一 CLI（`use`） |
 | `clovapi proxy` | 内置本地代理（`start` / `status` / `config`） |
 | `clovapi reset` | 清空全部 profile 与绑定（`--yes`） |
-

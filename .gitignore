@@ -10,8 +10,6 @@
 # Environment files
 .env
 .env.*
-!.env.example
-!.env.deploy.example
 
 # Build outputs / binaries
 /build

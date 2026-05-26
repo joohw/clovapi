@@ -13,10 +13,24 @@ Default dev URL: `http://localhost:3000` (local Go proxy stays on `27483`).
 
 ## Environment Variables
 
-Copy the repo root `.env.example` to `.env.local`:
+All env files for this app live in `landing/`:
+
+| File | Purpose |
+|------|---------|
+| `.env.example` | Runtime template — copy to `.env.local` (dev) or `.env` (deploy) |
+| `.env.deploy.example` | Deploy credentials template — copy to `.env.deploy` |
+
+Local development:
 
 ```bash
-cp ../.env.example .env.local
+cp .env.example .env.local
+```
+
+Deploy (from repo root; reads `landing/.env.deploy` + `landing/.env`):
+
+```bash
+cd ..
+npm run deploy
 ```
 
 - `PUBLIC_SITE_URL` / `NEXT_PUBLIC_SITE_URL`: public website URL for canonical/sitemap/skill links

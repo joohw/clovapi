@@ -135,7 +135,7 @@ clovapi switch --cli codex   # 无参数时复用 active 绑定，或进入交�
 
 - [Harbor](https://github.com/harbor-framework/harbor) — Terminal-Bench 官方 harness
 - [Terminal-Bench](https://www.tbench.ai/) — 终端 Agent 基准数据集
-- [Harbor 与各 Agent 的 API 控制](../docs/harbor-agents.zh.md) · [Agent 仓库索引](../docs/agent-repos.zh.md)
+- [Agent 仓库索引](../docs/agent-repos.md)
 
 ### 上游模型与套餐
 

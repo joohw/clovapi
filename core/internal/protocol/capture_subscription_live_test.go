@@ -35,8 +35,14 @@ func testdataSSEDir(t *testing.T) string {
 
 func captureSubscriptionSSE(t *testing.T, egress apistyle.Style, source, baseURL, apiKey, accountID, model string, ingressBody []byte, outName string) {
 	t.Helper()
-	hints := protocol.UpstreamHints{Model: model, Source: source}
-	upJSON, _, pathSuffix, err := protocol.PrepareUpstreamRequest(egress, egress, ingressBody, hints)
+	pathSuffix := proxyresolve.UpstreamPathSuffix(egress, source)
+	upJSON, _, err := protocol.PrepareUpstreamRequest(egress, egress, ingressBody, protocol.PrepareOptions{
+		Model:       model,
+		ForceStream: true,
+		Configure: func(ir *protocol.Request) {
+			applySubscriptionCapturePolicy(ir, source)
+		},
+	})
 	if err != nil {
 		t.Fatalf("PrepareUpstreamRequest: %v", err)
 	}
@@ -85,6 +91,18 @@ func captureSubscriptionSSE(t *testing.T, egress apistyle.Style, source, baseURL
 		t.Fatal(err)
 	}
 	t.Logf("wrote %s (%d bytes, text=%q)", outPath, len(raw), text)
+}
+
+func applySubscriptionCapturePolicy(r *protocol.Request, source string) {
+	if r.Meta == nil {
+		r.Meta = &protocol.Metadata{}
+	}
+	switch strings.TrimSpace(source) {
+	case "subscription:codex":
+		r.Meta.OpenAIResponsesOmitSampling = true
+	case "subscription:claude-code":
+		r.Meta.ClaudeOAuthEncodingCompatibility = true
+	}
 }
 
 func normalizeSSEFixture(raw []byte) []byte {

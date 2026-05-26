@@ -68,7 +68,7 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 		Config:        cfg,
 		ProfileLoader: profile.LoadDesktop,
 		CallLogs:      NewCallLogStore(),
-		HTTPClient: defaultUpstreamHTTPClient(),
+		HTTPClient:    defaultUpstreamHTTPClient(),
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
@@ -200,8 +200,14 @@ func (s *Server) handleDebugTransform(w http.ResponseWriter, r *http.Request) {
 		body = []byte("{}")
 	}
 
-	hints := protocol.UpstreamHints{Model: req.Upstream.Model, Source: req.Upstream.Source}
-	upstreamPayload, _, pathSuffix, err := protocol.PrepareUpstreamRequest(ingressStyle, egressStyle, body, hints)
+	pathSuffix := proxyresolve.UpstreamPathSuffix(egressStyle, req.Upstream.Source)
+	upstreamPayload, _, err := protocol.PrepareUpstreamRequest(ingressStyle, egressStyle, body, protocol.PrepareOptions{
+		Model:       req.Upstream.Model,
+		ForceStream: true,
+		Configure: func(ir *protocol.Request) {
+			applyUpstreamRequestPolicy(ir, req.Upstream.Source)
+		},
+	})
 	resp := debugTransformResponse{PathSuffix: pathSuffix}
 	if err != nil {
 		resp.Error = err.Error()
@@ -223,7 +229,10 @@ func (s *Server) handleDebugTransform(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, resp)
 		return
 	}
-	protocol.GatewayEnrich(&irFin, hints)
+	if model := strings.TrimSpace(req.Upstream.Model); model != "" {
+		irFin.Model = model
+	}
+	applyUpstreamRequestPolicy(&irFin, req.Upstream.Source)
 	resp.UpstreamPreview = summarizeUpstreamPreview(preview)
 	resp.IREffectiveModel = irFin.Model
 	writeJSON(w, http.StatusOK, resp)
@@ -343,8 +352,13 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hints := protocol.UpstreamHints{Model: route.EffectiveModel, Source: route.Source}
-	upJSON, ir, _, err := protocol.PrepareUpstreamRequest(route.IngressStyle, route.EgressStyle, payload, hints)
+	upJSON, ir, err := protocol.PrepareUpstreamRequest(route.IngressStyle, route.EgressStyle, payload, protocol.PrepareOptions{
+		Model:       route.EffectiveModel,
+		ForceStream: true,
+		Configure: func(ir *protocol.Request) {
+			applyUpstreamRequestPolicy(ir, route.Source)
+		},
+	})
 	if err != nil {
 		trace.setError(err.Error())
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -444,6 +458,22 @@ func shouldTransformProxyMethod(m string) bool {
 	default:
 		return false
 	}
+}
+
+func applyUpstreamRequestPolicy(r *protocol.Request, source string) {
+	switch strings.TrimSpace(source) {
+	case "subscription:codex":
+		ensureProtocolMeta(r).OpenAIResponsesOmitSampling = true
+	case "subscription:claude-code":
+		ensureProtocolMeta(r).ClaudeOAuthEncodingCompatibility = true
+	}
+}
+
+func ensureProtocolMeta(r *protocol.Request) *protocol.Metadata {
+	if r.Meta == nil {
+		r.Meta = &protocol.Metadata{}
+	}
+	return r.Meta
 }
 
 func defaultUpstreamHTTPClient() *http.Client {

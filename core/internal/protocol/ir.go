@@ -31,12 +31,12 @@ type Tool struct {
 	Parameters  map[string]any `json:"parameters,omitempty"`
 }
 
-// Metadata carries cross-style fields (instructions, OAuth subscription flags, hoisted system text).
+// Metadata carries cross-style fields and egress encoding compatibility knobs.
 type Metadata struct {
-	System                  string `json:"system,omitempty"`
-	Instructions            string `json:"instructions,omitempty"`
-	CodexSubscription       bool   `json:"codex_subscription,omitempty"`
-	SubscriptionClaudeOAuth bool   `json:"subscription_claude_oauth,omitempty"`
+	System                           string `json:"system,omitempty"`
+	Instructions                     string `json:"instructions,omitempty"`
+	OpenAIResponsesOmitSampling      bool   `json:"openai_responses_omit_sampling,omitempty"`
+	ClaudeOAuthEncodingCompatibility bool   `json:"claude_oauth_encoding_compatibility,omitempty"`
 }
 
 // Request is normalized IR consumed by egress encoders.

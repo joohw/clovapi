@@ -97,7 +97,7 @@ func VendorCompatibleWithCLI(kind clikind.Kind, vendor profile.Profile) bool {
 			return true
 		}
 	case clikind.Codex:
-		if providerID == provider.CodexProviderID {
+		if providerID == provider.CodexProviderID || providerID == provider.ClaudeCodeProviderID {
 			return true
 		}
 	default:

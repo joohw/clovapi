@@ -14,7 +14,7 @@ func EncodeRequestClaude(r Request) ([]byte, error) {
 	if r.MaxTokens != nil {
 		maxTok = *r.MaxTokens
 	}
-	if r.Meta != nil && r.Meta.SubscriptionClaudeOAuth && maxTok > claudeOAuthMaxOutputTokens {
+	if r.Meta != nil && r.Meta.ClaudeOAuthEncodingCompatibility && maxTok > claudeOAuthMaxOutputTokens {
 		maxTok = claudeOAuthMaxOutputTokens
 	}
 	cm := ClaudeAPIMessages(r.Messages)
@@ -31,7 +31,7 @@ func EncodeRequestClaude(r Request) ([]byte, error) {
 		payload["tools"] = tools
 	}
 	system := CollectSystemPrompt(r)
-	if r.Meta != nil && r.Meta.SubscriptionClaudeOAuth {
+	if r.Meta != nil && r.Meta.ClaudeOAuthEncodingCompatibility {
 		system = stripClaudeOAuthBillingText(system)
 		if system != "" && !strings.Contains(system, claudeOAuthSystemBootstrap) {
 			system = claudeOAuthSystemBootstrap + "\n\n" + system
@@ -122,11 +122,11 @@ func EncodeRequestOpenAIResponses(r Request) ([]byte, error) {
 		"store":        false,
 		"instructions": instructions,
 	}
-	codex := r.Meta != nil && r.Meta.CodexSubscription
-	if r.MaxTokens != nil && !codex {
+	omitSampling := r.Meta != nil && r.Meta.OpenAIResponsesOmitSampling
+	if r.MaxTokens != nil && !omitSampling {
 		body["max_output_tokens"] = *r.MaxTokens
 	}
-	if r.Temperature != nil && !codex {
+	if r.Temperature != nil && !omitSampling {
 		body["temperature"] = *r.Temperature
 	}
 	if len(r.Tools) > 0 {

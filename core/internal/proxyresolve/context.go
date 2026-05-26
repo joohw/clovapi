@@ -7,7 +7,6 @@ import (
 
 	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/profile"
-	"github.com/clovapi/switcher/internal/protocol"
 	"github.com/clovapi/switcher/internal/provider"
 )
 
@@ -136,7 +135,7 @@ func ResolveIngressContext(store *profile.Store, providerID, modelID, ingressAPI
 	egress := flat.APIStyle
 
 	src := sourceFromProfile(&flat)
-	pathSuffix := protocol.DefaultUpstreamPathSuffix(egress, src)
+	pathSuffix := UpstreamPathSuffix(egress, src)
 	if len(pathSuffixHints) > 0 && strings.TrimSpace(pathSuffixHints[0]) != "" {
 		pathSuffix = pathSuffixHints[0]
 	}

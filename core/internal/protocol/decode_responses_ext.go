@@ -109,8 +109,11 @@ func decodeResponsesInputSlots(input any) ([]InputSlot, []Message, []ExtensionNo
 			continue
 		}
 		typ := strings.ToLower(strings.TrimSpace(fmt.Sprint(m["type"])))
+		if _, hasType := m["type"]; !hasType {
+			typ = ""
+		}
 		switch typ {
-		case "message":
+		case "", "message":
 			role := strings.ToLower(strings.TrimSpace(fmt.Sprint(m["role"])))
 			if role == "" {
 				role = "user"

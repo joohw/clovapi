@@ -1,4 +1,4 @@
-package protocol
+package proxyresolve
 
 import (
 	"strings"
@@ -6,8 +6,10 @@ import (
 	"github.com/clovapi/switcher/internal/apistyle"
 )
 
-// DefaultUpstreamPathSuffix mirrors electron/protocol/paths.js defaultUpstreamPathSuffix.
-func DefaultUpstreamPathSuffix(egress apistyle.Style, upstreamSource string) string {
+// UpstreamPathSuffix returns the ingress-stripped upstream HTTP path for a
+// resolved route. Subscription-specific endpoints belong with proxy routing,
+// not the protocol IR/transcoding package.
+func UpstreamPathSuffix(egress apistyle.Style, upstreamSource string) string {
 	if strings.TrimSpace(upstreamSource) == "subscription:codex" {
 		return "/codex/responses"
 	}

@@ -92,8 +92,14 @@ func codexLiveSub(t *testing.T) (liveSub, bool) {
 
 func (s liveSub) post(t *testing.T, ingressBody []byte) (status int, raw []byte, events []protocol.ResponseEvent) {
 	t.Helper()
-	hints := protocol.UpstreamHints{Model: s.model, Source: s.source}
-	upJSON, _, pathSuffix, err := protocol.PrepareUpstreamRequest(s.ingress, s.egress, ingressBody, hints)
+	pathSuffix := proxyresolve.UpstreamPathSuffix(s.egress, s.source)
+	upJSON, _, err := protocol.PrepareUpstreamRequest(s.ingress, s.egress, ingressBody, protocol.PrepareOptions{
+		Model:       s.model,
+		ForceStream: true,
+		Configure: func(ir *protocol.Request) {
+			applySubscriptionLivePolicy(ir, s.source)
+		},
+	})
 	if err != nil {
 		t.Fatalf("%s PrepareUpstreamRequest: %v", s.name, err)
 	}
@@ -129,6 +135,18 @@ func (s liveSub) post(t *testing.T, ingressBody []byte) (status int, raw []byte,
 	}
 	events = protocol.MaterializeSSEUpstreamEvents(s.egress, raw)
 	return status, raw, events
+}
+
+func applySubscriptionLivePolicy(r *protocol.Request, source string) {
+	if r.Meta == nil {
+		r.Meta = &protocol.Metadata{}
+	}
+	switch strings.TrimSpace(source) {
+	case "subscription:codex":
+		r.Meta.OpenAIResponsesOmitSampling = true
+	case "subscription:claude-code":
+		r.Meta.ClaudeOAuthEncodingCompatibility = true
+	}
 }
 
 func truncate(s string, n int) string {

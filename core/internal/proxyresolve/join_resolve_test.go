@@ -7,7 +7,6 @@ import (
 
 	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/profile"
-	"github.com/clovapi/switcher/internal/protocol"
 	"github.com/clovapi/switcher/internal/provider"
 	"github.com/clovapi/switcher/internal/proxyresolve"
 )
@@ -28,10 +27,10 @@ func TestJoinURLDedupV1Suffix(t *testing.T) {
 }
 
 func TestDefaultUpstreamCodexResponsesPath(t *testing.T) {
-	if got := protocol.DefaultUpstreamPathSuffix(apistyle.OpenAIResponses, "subscription:codex"); got != "/codex/responses" {
+	if got := proxyresolve.UpstreamPathSuffix(apistyle.OpenAIResponses, "subscription:codex"); got != "/codex/responses" {
 		t.Fatalf("%q", got)
 	}
-	if got := protocol.DefaultUpstreamPathSuffix(apistyle.OpenAIResponses, "profile:x"); got != "/responses" {
+	if got := proxyresolve.UpstreamPathSuffix(apistyle.OpenAIResponses, "profile:x"); got != "/responses" {
 		t.Fatalf("%q", got)
 	}
 }

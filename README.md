@@ -23,8 +23,6 @@ npm i -g @clovapi/cli
 clovapi --help
 ```
 
-Homebrew、winget、install.sh 与从源码构建见 **[switcher/README.zh.md](switcher/README.zh.md)**。
-
 ## 常用命令
 
 | 命令 | 说明 |

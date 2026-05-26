@@ -23,8 +23,6 @@ npm i -g @clovapi/cli
 clovapi --help
 ```
 
-Homebrew, winget, install.sh, and building from source: **[switcher/README.md](switcher/README.md)**.
-
 ## Common commands
 
 | Command | Description |

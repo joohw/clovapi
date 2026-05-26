@@ -30,40 +30,7 @@ Supported CLIs include Claude Code, Codex, OpenCode, OpenClaw, Hermes, and Kimi 
 3. Before applying a profile, confirm the target CLI (\`--cli claude-code\`, \`--cli codex\`, etc.).
 4. Use \`clovapi list\` to inspect saved profiles and last-applied CLI bindings.
 5. On errors, surface the CLI stderr/exit code to the user in plain language.
-
-## Environment (optional gateway use)
-
-If calling a CLOVAPI HTTP gateway instead of the CLI:
-
-\`\`\`bash
-export CLOVAPI_BASE_URL="${baseUrl}"
-export CLOVAPI_API_KEY="<YOUR_CLOVAPI_KEY>"
-\`\`\`
-
-## OpenAI-compatible request example
-
-\`\`\`bash
-curl "${baseUrl}/v1/chat/completions" \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer $CLOVAPI_API_KEY" \\
-  -d '{
-    "model": "gpt-4o-mini",
-    "messages": [
-      {"role":"system","content":"You are a helpful coding assistant."},
-      {"role":"user","content":"Hello from CLOVAPI"}
-    ],
-    "stream": true
-  }'
-\`\`\`
-
-## HTTP gateway rules (when applicable)
-
-1. Send \`Authorization: Bearer $CLOVAPI_API_KEY\` on every request.
-2. Call \`GET /v1/models\` before tasks to pick an available model.
-3. Prefer streaming when the client supports it.
-4. On 401/403, stop and ask for key/permission check.
-5. On 429/5xx, retry with exponential backoff (max 3 attempts).
-6. Return concise, user-readable error messages on final failure.
+6. Use \`clovapi proxy start\` when the user needs the local proxy daemon; do not assume a remote CLOVAPI HTTP API.
 
 ## References
 

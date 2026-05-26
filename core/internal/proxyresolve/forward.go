@@ -12,7 +12,8 @@ var ErrBindingResolutionLost = errors.New("model binding vanished after resolvin
 
 // ForwardRoute holds outbound connection details resolved from persisted profiles (contains secrets — never marshal/log).
 type ForwardRoute struct {
-	Binding        string
+	ProviderID     string
+	ModelID        string
 	IngressStyle   apistyle.Style
 	EgressStyle    apistyle.Style
 	EffectiveModel string
@@ -30,12 +31,13 @@ func ResolveForwardRoute(store *profile.Store, providerID, modelID, ingressAPISt
 	if err != nil {
 		return ForwardRoute{}, err
 	}
-	flat, ok := store.ProfileForModelBinding(ctx.Binding)
+	flat, ok := store.FlatProfileForProviderModel(ctx.ProviderID, ctx.ModelID)
 	if !ok {
 		return ForwardRoute{}, ErrBindingResolutionLost
 	}
 	return ForwardRoute{
-		Binding:        ctx.Binding,
+		ProviderID:     ctx.ProviderID,
+		ModelID:        ctx.ModelID,
 		IngressStyle:   ctx.IngressStyle,
 		EgressStyle:    ctx.EgressStyle,
 		EffectiveModel: ctx.EffectiveUpstreamModel,

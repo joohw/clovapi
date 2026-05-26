@@ -1,5 +1,6 @@
 import {
   canManuallyManageVendorModels,
+  activeSelection,
   isBuiltinCustomApiVendorName,
   isBuiltinSubscriptionVendorName,
   isDefaultCustomApiProfile,
@@ -7,6 +8,8 @@ import {
   isOllamaVendor,
   normalizeVendor,
   normalizeVendorModel,
+  parseModelBinding,
+  providerIdForVendor,
   resolveVendorByName,
 } from "../helpers";
 import { OLLAMA_DEFAULTS, OLLAMA_PROFILE_NAME } from "../constants";
@@ -15,8 +18,31 @@ import { toast } from "../toast";
 import { store } from "./state.svelte";
 import { clearModelBinding, clearVendorBindings } from "./bindings";
 import { persistProfiles } from "./profile-persist";
+import type { Vendor } from "../../global";
 
 export { persistProfiles };
+
+function normalizeActiveSelections(raw: unknown, vendors: Vendor[]) {
+  const out: typeof store.active = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const [kind, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === "string") {
+      const parsed = parseModelBinding(value);
+      if (!parsed) continue;
+      const vendor = resolveVendorByName(vendors, parsed.vendorName);
+      const providerId = vendor ? providerIdForVendor(vendor) : parsed.providerId;
+      if (providerId && parsed.modelId) out[kind] = activeSelection(providerId, parsed.modelId);
+      continue;
+    }
+    if (value && typeof value === "object") {
+      const row = value as { provider_id?: string; model_id?: string; providerId?: string; modelId?: string };
+      const providerId = String(row.provider_id || row.providerId || "").trim();
+      const modelId = String(row.model_id || row.modelId || "").trim();
+      if (providerId && modelId) out[kind] = activeSelection(providerId, modelId);
+    }
+  }
+  return out;
+}
 
 export async function loadProfilesFromDisk() {
   const bridge = window.clovapiProfiles;
@@ -32,7 +58,7 @@ export async function loadProfilesFromDisk() {
   }
 
   store.profiles = (result.profiles || []).map(normalizeVendor);
-  store.active = result.active && typeof result.active === "object" ? result.active : {};
+  store.active = normalizeActiveSelections(result.active, store.profiles);
   if (result.proxy) {
     store.proxyPort = Number(result.proxy.port) || 27483;
     store.proxyBaseUrl = `http://127.0.0.1:${store.proxyPort}`;

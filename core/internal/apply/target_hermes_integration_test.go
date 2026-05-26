@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
 )
@@ -184,7 +184,7 @@ func TestHermesCLIAnthropicIngressHitsProxyMessagesPath(t *testing.T) {
 
 	ingressBase := strings.TrimSuffix(srv.URL, "/") + "/codex/gpt-5.4/claude"
 	p := profile.Profile{
-		Name: "relay", CLI: clikind.Hermes, APIStyle: apistyle.Claude,
+		Name: "relay", CLI: agentkind.Hermes, APIStyle: apistyle.Claude,
 		Kind: "subscription", SubscriptionProviderID: provider.CodexProviderID,
 		BaseURL: ingressBase, APIKey: "clovapi-local", Model: "gpt-5.4",
 	}
@@ -222,7 +222,7 @@ func TestHermesCLICodexResponsesIngressIncludesInput(t *testing.T) {
 
 	ingressBase := strings.TrimSuffix(srv.URL, "/") + "/codex/gpt-5.4/openai-responses"
 	p := profile.Profile{
-		Name: "relay", CLI: clikind.Hermes, APIStyle: apistyle.OpenAIResponses,
+		Name: "relay", CLI: agentkind.Hermes, APIStyle: apistyle.OpenAIResponses,
 		BaseURL: ingressBase, APIKey: "clovapi-local", Model: "gpt-5.4",
 	}
 	if err := Apply(p); err != nil {

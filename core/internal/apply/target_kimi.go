@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/pelletier/go-toml/v2"
 )
@@ -17,7 +17,7 @@ const defaultKimiMaxContextSize = 200000
 
 type kimiTarget struct{}
 
-func (kimiTarget) Kind() clikind.Kind { return clikind.KimiCode }
+func (kimiTarget) Kind() agentkind.Kind { return agentkind.KimiCode }
 
 func (kimiTarget) SupportedStyles() []apistyle.Style {
 	return []apistyle.Style{apistyle.Claude, apistyle.OpenAIChat, apistyle.OpenAIResponses, apistyle.Gemini}
@@ -32,7 +32,7 @@ func (kimiTarget) Installed() bool {
 }
 
 func (kimiTarget) Apply(p profile.Profile) error {
-	if p.CLI != clikind.KimiCode {
+	if p.CLI != agentkind.KimiCode {
 		return fmt.Errorf("wrong cli %q for kimi-code target", p.CLI)
 	}
 	key := profileModelSegment(p.Model)

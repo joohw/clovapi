@@ -1,4 +1,4 @@
-package clikind
+package agentkind
 
 import (
 	"fmt"

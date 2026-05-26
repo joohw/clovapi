@@ -90,20 +90,6 @@ func BuildProxyIngressBaseURL(port int, providerID, modelID, apiStyle string) st
 	return strings.TrimRight(base, "/") + "/v1"
 }
 
-// ModelBindingForProvider builds the persisted @model: vendor / wire id path token used by the desktop resolver.
-func ModelBindingForProvider(providerID, modelID string) string {
-	def := DefinitionByID(providerID)
-	if def.ID == "" {
-		return ""
-	}
-	vn := strings.TrimSpace(def.VendorName)
-	mid := strings.TrimSpace(modelID)
-	if vn == "" || mid == "" {
-		return ""
-	}
-	return "@model:" + vn + "/" + mid
-}
-
 func ParseProxyIngressPath(pathname string) (Ingress, bool) {
 	pathname = normalizeProxyIngressPath(pathname)
 	parts := strings.Split(strings.TrimPrefix(pathname, "/"), "/")

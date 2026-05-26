@@ -34,13 +34,13 @@ type AuthStatusResult struct {
 }
 
 type AuthLogoutResult struct {
-	OK       bool          `json:"ok"`
-	Path     string        `json:"path,omitempty"`
-	Version  int           `json:"version,omitempty"`
-	Active   map[string]string `json:"active,omitempty"`
-	Proxy    UIProxyConfig `json:"proxy,omitempty"`
-	Profiles []UIVendor    `json:"profiles,omitempty"`
-	Error    string        `json:"error,omitempty"`
+	OK       bool                               `json:"ok"`
+	Path     string                             `json:"path,omitempty"`
+	Version  int                                `json:"version,omitempty"`
+	Active   map[string]profile.ActiveSelection `json:"active,omitempty"`
+	Proxy    UIProxyConfig                      `json:"proxy,omitempty"`
+	Profiles []UIVendor                         `json:"profiles,omitempty"`
+	Error    string                             `json:"error,omitempty"`
 }
 
 var authProviders = []struct {
@@ -205,26 +205,21 @@ func clearSubscriptionProviderState(s *profile.Store, providerID string) bool {
 		return false
 	}
 	id := strings.TrimSpace(providerID)
-	vendorNames := map[string]struct{}{}
 	changed := false
 	for i := range s.List {
 		p := &s.List[i]
 		if strings.EqualFold(strings.TrimSpace(p.Kind), "subscription") &&
 			strings.TrimSpace(p.SubscriptionProviderID) == id {
-			vendorNames[strings.ToLower(strings.TrimSpace(p.Name))] = struct{}{}
 			if len(p.Models) > 0 {
 				p.Models = nil
 				changed = true
 			}
 		}
 	}
-	for cli, binding := range s.Active {
-		vendorName, _, ok := profile.ParseModelBinding(binding)
-		if ok {
-			if _, hit := vendorNames[strings.ToLower(strings.TrimSpace(vendorName))]; hit {
-				delete(s.Active, cli)
-				changed = true
-			}
+	for cli, active := range s.Active {
+		if strings.TrimSpace(active.ProviderID) == id {
+			delete(s.Active, cli)
+			changed = true
 		}
 	}
 	return changed
@@ -262,13 +257,13 @@ func AuthLogout(providerID string) AuthLogoutResult {
 }
 
 type ListModelsResult struct {
-	OK        bool      `json:"ok"`
-	AdapterID string    `json:"adapterId,omitempty"`
-	Models    []UIModel `json:"models,omitempty"`
-	Source    string    `json:"source,omitempty"`
-	Message   string    `json:"message,omitempty"`
+	OK        bool       `json:"ok"`
+	AdapterID string     `json:"adapterId,omitempty"`
+	Models    []UIModel  `json:"models,omitempty"`
+	Source    string     `json:"source,omitempty"`
+	Message   string     `json:"message,omitempty"`
 	Profiles  []UIVendor `json:"profiles,omitempty"`
-	Error     string    `json:"error,omitempty"`
+	Error     string     `json:"error,omitempty"`
 }
 
 const fetchTimeout = 20 * time.Second
@@ -436,10 +431,10 @@ func fetchClaudeSubscriptionModels(vendor profile.Profile, defaultStyle string) 
 		return nil, "", fmt.Errorf("Claude 订阅未登录或凭据已过期")
 	}
 	body, err := httpGetJSON("https://api.anthropic.com/v1/models", map[string]string{
-		"Authorization":      "Bearer " + flat.APIKey,
-		"anthropic-version":  "2023-06-01",
-		"anthropic-beta":     "oauth-2025-04-20",
-		"x-app":              "claude-code",
+		"Authorization":     "Bearer " + flat.APIKey,
+		"anthropic-version": "2023-06-01",
+		"anthropic-beta":    "oauth-2025-04-20",
+		"x-app":             "claude-code",
 	})
 	if err != nil {
 		return nil, "", err
@@ -459,7 +454,7 @@ func fetchCodexSubscriptionModels(vendor profile.Profile, defaultStyle string) (
 	}
 	url := "https://chatgpt.com/backend-api/codex/models?client_version=0.105.0"
 	body, err := httpGetJSON(url, map[string]string{
-		"Authorization": "Bearer " + flat.APIKey,
+		"Authorization":      "Bearer " + flat.APIKey,
 		"Chatgpt-Account-Id": flat.AccountID,
 	})
 	if err != nil {
@@ -609,11 +604,11 @@ type UIProviderDef struct {
 }
 
 type VendorCatalogResult struct {
-	OK               bool              `json:"ok"`
-	FixedProviderIDs []string          `json:"fixedProviderIds,omitempty"`
-	Providers        []UIProviderDef   `json:"providers,omitempty"`
+	OK               bool                `json:"ok"`
+	FixedProviderIDs []string            `json:"fixedProviderIds,omitempty"`
+	Providers        []UIProviderDef     `json:"providers,omitempty"`
 	Adapters         []map[string]string `json:"adapters,omitempty"`
-	Error            string            `json:"error,omitempty"`
+	Error            string              `json:"error,omitempty"`
 }
 
 // VendorCatalog returns the fixed provider registry and model adapter catalog for the desktop UI.

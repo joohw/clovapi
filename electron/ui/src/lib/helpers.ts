@@ -7,7 +7,6 @@ import {
 import {
   API_STYLES,
   INTERNAL_PROFILE_PREFIX,
-  MODEL_BINDING_PREFIX,
   MODEL_ADAPTER_IDS,
   CUSTOM_API_PROFILE_NAME,
   FIXED_PROVIDER_IDS,
@@ -18,6 +17,7 @@ import {
 import type { FixedProviderId } from "./constants";
 import type {
   CliDef,
+  ActiveSelection,
   ModelAdapterId,
   Preset,
   SubscriptionItem,
@@ -179,41 +179,52 @@ export function managedVendorList(vendors: Vendor[]): Vendor[] {
 }
 
 export function subscriptionTestStatusKey(providerId: string): string {
-  const vendor = SUBSCRIPTION_VENDOR_DEFS.find((item) => item.subscriptionProviderId === providerId);
-  if (!vendor) return `subscription:${providerId}`;
-  return modelBindingValue(vendor.name, "default");
+  return modelBindingValue(providerId, "default");
 }
 
-export function isSubscriptionBinding(value: string, vendors: Vendor[] = []): boolean {
-  const parsed = parseModelBinding(value);
-  if (!parsed) return false;
-  const vendor = findVendorByName(vendors, parsed.vendorName);
-  return vendor?.kind === "subscription";
+export function activeProviderId(value: ActiveSelection | string | undefined): string {
+  if (typeof value === "string") return parseModelBinding(value)?.providerId || "";
+  return String(value?.provider_id || value?.providerId || "").trim();
 }
 
-export function isModelBinding(value: string): boolean {
-  return String(value || "").startsWith(MODEL_BINDING_PREFIX);
+export function activeModelId(value: ActiveSelection | string | undefined): string {
+  if (typeof value === "string") return parseModelBinding(value)?.modelId || "";
+  return String(value?.model_id || value?.modelId || "").trim();
 }
 
-export function subscriptionProviderFromBinding(value: string, vendors: Vendor[] = []): string {
-  const parsed = parseModelBinding(String(value || "").trim());
-  if (!parsed) return "";
-  const vendor = findVendorByName(vendors, parsed.vendorName);
-  if (vendor?.kind === "subscription") {
-    return String(vendor.subscriptionProviderId || "").trim();
-  }
-  return "";
+export function activeSelection(providerId: string, modelId: string): ActiveSelection {
+  return { provider_id: String(providerId || "").trim(), model_id: String(modelId || "").trim() };
+}
+
+export function activeSelectionKey(value: ActiveSelection | string | undefined): string {
+  const providerId = activeProviderId(value);
+  const modelId = activeModelId(value);
+  return providerId && modelId ? `${providerId}/${modelId}` : "";
+}
+
+export function isSubscriptionBinding(value: ActiveSelection | string | undefined, vendors: Vendor[] = []): boolean {
+  const providerId = activeProviderId(value);
+  return getSubscriptionVendors(vendors).some((vendor) => vendor.subscriptionProviderId === providerId);
+}
+
+export function isModelBinding(value: ActiveSelection | string | undefined): boolean {
+  return Boolean(activeSelectionKey(value));
+}
+
+export function subscriptionProviderFromBinding(value: ActiveSelection | string | undefined, _vendors: Vendor[] = []): string {
+  return activeProviderId(value);
 }
 
 /** Pick the CLI ingress style used for cross-subscription routing tests. */
 export function crossSubscriptionTestCli(
-  binding: string,
+  binding: ActiveSelection | string,
   vendors: Vendor[] = [],
-  active: Record<string, string> = {},
+  active: Record<string, ActiveSelection> = {},
   clis: CliDef[] = [],
 ): string {
+  const key = activeSelectionKey(binding);
   for (const cli of clis) {
-    if (String(active[cli.kind] || "").trim() === String(binding || "").trim()) {
+    if (activeSelectionKey(active[cli.kind]) === key) {
       return cli.kind;
     }
   }
@@ -224,19 +235,21 @@ export function crossSubscriptionTestCli(
 }
 
 export function modelBindingValue(vendorName: string, modelId: string): string {
-  return `${MODEL_BINDING_PREFIX}${vendorName}/${modelId}`;
+  return `${String(vendorName || "").trim()}/${String(modelId || "").trim()}`;
 }
 
-export function parseModelBinding(value: string): { vendorName: string; modelId: string } | null {
-  if (!isModelBinding(value)) return null;
-  const rest = value.slice(MODEL_BINDING_PREFIX.length);
+export function parseModelBinding(value: string): { providerId: string; modelId: string; vendorName: string } | null {
+  let rest = String(value || "").trim();
+  if (!rest) return null;
+  if (rest.startsWith("@model:")) rest = rest.slice("@model:".length);
   const slash = rest.indexOf("/");
   if (slash <= 0) return null;
-  return { vendorName: rest.slice(0, slash), modelId: rest.slice(slash + 1) };
+  const providerId = rest.slice(0, slash);
+  return { providerId, vendorName: providerId, modelId: rest.slice(slash + 1) };
 }
 
-export function modelTestStatusKey(binding: string): string {
-  return binding;
+export function modelTestStatusKey(binding: ActiveSelection | string): string {
+  return activeSelectionKey(binding);
 }
 
 export function normalizeModelAdapter(
@@ -389,6 +402,14 @@ export function normalizeVendor(input: Partial<Vendor>): Vendor {
     baseUrl: String(input?.baseUrl || "").trim(),
     apiKey: String(input?.apiKey || ""),
     cli: String(input?.cli || ""),
+    usageQuery:
+      kind === "api"
+        ? {
+            enabled: input?.usageQuery?.enabled !== false,
+            templateType: String(input?.usageQuery?.templateType || "auto").trim() || "auto",
+            autoIntervalMinutes: Number(input?.usageQuery?.autoIntervalMinutes || 0) || 0,
+          }
+        : undefined,
     models,
   };
 }
@@ -463,7 +484,7 @@ export function buildCliBindingOptions(
         const loggedIn = Boolean(sub?.loggedIn);
         const vendorLabel = displayVendorName(vendor.name);
         options.push({
-          value: modelBindingValue(vendor.name, model.id),
+          value: modelBindingValue(providerId, model.id),
           label: loggedIn
             ? cliModelBindingLabel(vendor, model)
             : t("binding.loginRequired", { vendor: vendorLabel }),
@@ -474,7 +495,7 @@ export function buildCliBindingOptions(
       }
 
       options.push({
-        value: modelBindingValue(vendor.name, model.id),
+        value: modelBindingValue(providerIdForVendor(vendor), model.id),
         label: cliModelBindingLabel(vendor, model),
       });
     }
@@ -484,13 +505,13 @@ export function buildCliBindingOptions(
 }
 
 export function canApplyCliBinding(
-  binding: string,
+  binding: ActiveSelection | string,
   clovapiAvailable: boolean,
   subscriptions: SubscriptionItem[],
   vendors: Vendor[],
 ): boolean {
   if (!clovapiAvailable) return false;
-  if (!String(binding || "").trim()) return true;
+  if (!activeSelectionKey(binding)) return true;
   if (isSubscriptionBinding(binding, vendors)) {
     const providerId = subscriptionProviderFromBinding(binding, vendors);
     return Boolean(subscriptions.find((item) => item.id === providerId)?.loggedIn);

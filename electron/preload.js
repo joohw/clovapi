@@ -107,6 +107,11 @@ contextBridge.exposeInMainWorld("clovapiProfiles", {
         ? { binding: payload }
         : {
             binding: payload?.binding,
+            provider: payload?.provider,
+            provider_id: payload?.provider_id,
+            model: payload?.model,
+            model_id: payload?.model_id,
+            cli: payload?.cli,
             vendors: payload?.vendors,
             active: payload?.active,
             proxy: payload?.proxy,
@@ -115,6 +120,9 @@ contextBridge.exposeInMainWorld("clovapiProfiles", {
   },
   listModels(vendorName) {
     return ipcRenderer.invoke("profiles:list-models", { vendorName });
+  },
+  queryUsage(vendorName) {
+    return ipcRenderer.invoke("profiles:usage", { vendorName });
   },
   modelAdapters() {
     return ipcRenderer.invoke("profiles:model-adapters");

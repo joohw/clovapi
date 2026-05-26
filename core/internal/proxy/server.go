@@ -144,7 +144,7 @@ func (s *Server) handleDebugResolveRoute(w http.ResponseWriter, r *http.Request)
 	}
 	store, err := s.loadStore()
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load profiles store"})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load profiles.json"})
 		return
 	}
 	q := r.URL.Query()
@@ -307,8 +307,8 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	if (r.Method == http.MethodGet || r.Method == http.MethodHead) && isModelsPath(ingress.PathSuffix) {
 		store, err := s.loadStore()
 		if err != nil {
-			trace.setError("failed to load profiles store")
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load profiles store"})
+			trace.setError("failed to load profiles.json")
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load profiles.json"})
 			return
 		}
 		s.serveIngressModels(w, r, trace, ingress, store)
@@ -322,8 +322,8 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 
 	store, err := s.loadStore()
 	if err != nil {
-		trace.setError("failed to load profiles store")
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load profiles store"})
+		trace.setError("failed to load profiles.json")
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load profiles.json"})
 		return
 	}
 

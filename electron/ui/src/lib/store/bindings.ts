@@ -1,21 +1,24 @@
-import { MODEL_BINDING_PREFIX } from "../constants";
 import {
+  activeProviderId,
+  activeSelectionKey,
   isBuiltinSubscriptionVendor,
   modelBindingValue,
   parseModelBinding,
+  providerIdForVendor,
   resolveVendorByName,
 } from "../helpers";
 import { clearModelBindingTest } from "./model-tests";
 import { store } from "./state.svelte";
 
 export function activeBindingForCli(kind: string): string {
-  return String(store.active[kind] || "").trim();
+  return activeSelectionKey(store.active[kind]);
 }
 
 export function clearModelBinding(vendorName: string, modelId: string) {
-  const binding = modelBindingValue(vendorName, modelId);
+  const vendor = resolveVendorByName(store.profiles, vendorName);
+  const binding = modelBindingValue(vendor ? providerIdForVendor(vendor) : vendorName, modelId);
   for (const [kind, activeBinding] of Object.entries(store.active)) {
-    if (activeBinding === binding) delete store.active[kind];
+    if (activeSelectionKey(activeBinding) === binding) delete store.active[kind];
   }
   clearModelBindingTest(binding);
 }
@@ -23,8 +26,9 @@ export function clearModelBinding(vendorName: string, modelId: string) {
 export function clearVendorBindings(vendorName: string) {
   const key = String(vendorName || "").trim().toLowerCase();
   for (const [kind, binding] of Object.entries(store.active)) {
-    const parsed = parseModelBinding(binding);
-    if (parsed && parsed.vendorName.toLowerCase() === key) {
+    const providerId = activeProviderId(binding);
+    const vendor = store.profiles.find((item) => providerIdForVendor(item) === providerId);
+    if (vendor && vendor.name.toLowerCase() === key) {
       delete store.active[kind];
     }
   }
@@ -32,10 +36,9 @@ export function clearVendorBindings(vendorName: string) {
 
 export function isValidModelBinding(binding: string): boolean {
   const key = String(binding || "").trim();
-  if (!key.startsWith(MODEL_BINDING_PREFIX)) return false;
   const parsed = parseModelBinding(key);
   if (!parsed) return false;
-  const vendor = resolveVendorByName(store.profiles, parsed.vendorName);
+  const vendor = store.profiles.find((item) => providerIdForVendor(item) === parsed.providerId);
   if (!vendor) return false;
   const modelId = String(parsed.modelId || "").trim();
   if (!modelId || modelId.toLowerCase() === "default") return false;

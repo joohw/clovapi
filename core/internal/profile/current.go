@@ -7,17 +7,14 @@ import (
 )
 
 // EffectiveCurrent returns one fallback profile for compatibility:
-// first active binding, otherwise a single saved profile.
+// first active provider/model selection, otherwise a single saved profile.
 func (s *Store) EffectiveCurrent() (Profile, bool) {
 	if s == nil {
 		return Profile{}, false
 	}
-	for _, name := range s.Active {
-		if p, ok := s.Get(name); ok {
-			p = normalizeStoredProfileCopy(p)
-			if p.BaseURL != "" && p.APIStyle != "" {
-				return p, true
-			}
+	for _, sel := range s.Active {
+		if p, ok := s.FlatProfileForProviderModel(sel.ProviderID, sel.ModelID); ok {
+			return p, true
 		}
 	}
 	if len(s.List) == 1 {
@@ -38,37 +35,17 @@ func (s *Store) ActiveForCLI(cli string) (Profile, bool) {
 	if s == nil || s.Active == nil {
 		return Profile{}, false
 	}
-	name := strings.TrimSpace(s.Active[cli])
-	if name == "" {
-		return Profile{}, false
-	}
-	if p, ok := s.Get(name); ok {
-		return p, true
-	}
-	if strings.HasPrefix(name, "@model:") {
-		return s.ProfileForModelBinding(name)
-	}
-	return Profile{}, false
+	sel := s.Active[cli].normalized()
+	return s.FlatProfileForProviderModel(sel.ProviderID, sel.ModelID)
 }
 
-// ProfileForModelBinding resolves desktop active bindings of the form
-// @model:<vendor-name>/<model-id> into a flat Profile suitable for CLI apply.
-func (s *Store) ProfileForModelBinding(binding string) (Profile, bool) {
+// FlatProfileForProviderModel resolves a provider/model pair into a flat
+// Profile suitable for CLI apply or proxy forwarding.
+func (s *Store) FlatProfileForProviderModel(providerID, modelID string) (Profile, bool) {
 	if s == nil {
 		return Profile{}, false
 	}
-	value := strings.TrimSpace(binding)
-	if !strings.HasPrefix(value, "@model:") {
-		return Profile{}, false
-	}
-	rest := strings.TrimPrefix(value, "@model:")
-	slash := strings.Index(rest, "/")
-	if slash <= 0 || slash >= len(rest)-1 {
-		return Profile{}, false
-	}
-	vendorName := rest[:slash]
-	modelID := rest[slash+1:]
-	hit, ok := FindVendorModel(s, vendorName, modelID)
+	hit, ok := FindProviderModel(s, providerID, modelID)
 	if !ok {
 		return Profile{}, false
 	}
@@ -76,7 +53,7 @@ func (s *Store) ProfileForModelBinding(binding string) (Profile, bool) {
 	m := hit.Model
 	useModelConnection := strings.EqualFold(strings.TrimSpace(vendor.Name), CustomAPIProfileName)
 	p := vendor
-	p.Name = binding
+	p.Name = strings.TrimSpace(providerID) + "/" + strings.TrimSpace(m.ID)
 	p.Model = firstNonEmpty(m.Model, m.ID, vendor.Model)
 	p.APIStyle = firstStyle(m.APIStyle, vendor.APIStyle)
 	if useModelConnection {
@@ -89,6 +66,18 @@ func (s *Store) ProfileForModelBinding(binding string) (Profile, bool) {
 	p.Models = nil
 	HydrateSubscriptionCredentials(&p)
 	return p, strings.TrimSpace(p.BaseURL) != "" && p.APIStyle != ""
+}
+
+// ProfileForModelBinding is retained for one-way migration and deprecated
+// command compatibility. New code should use FlatProfileForProviderModel.
+func (s *Store) ProfileForModelBinding(binding string) (Profile, bool) {
+	if s == nil {
+		return Profile{}, false
+	}
+	if sel, ok := s.activeSelectionFromLegacyValue(binding); ok {
+		return s.FlatProfileForProviderModel(sel.ProviderID, sel.ModelID)
+	}
+	return Profile{}, false
 }
 
 func firstNonEmpty(values ...string) string {

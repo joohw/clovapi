@@ -1,4 +1,4 @@
-import { normalizeVendor } from "../helpers";
+import { activeSelection, normalizeVendor } from "../helpers";
 import { refreshProxyLogs } from "./proxy";
 import { store } from "./state.svelte";
 
@@ -8,6 +8,19 @@ let persistTail: Promise<PersistResult | undefined> = Promise.resolve(undefined)
 
 function cloneForIpc<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function normalizeActive(raw: unknown) {
+  const out: typeof store.active = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const [kind, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!value || typeof value !== "object") continue;
+    const row = value as { provider_id?: string; model_id?: string; providerId?: string; modelId?: string };
+    const providerId = String(row.provider_id || row.providerId || "").trim();
+    const modelId = String(row.model_id || row.modelId || "").trim();
+    if (providerId && modelId) out[kind] = activeSelection(providerId, modelId);
+  }
+  return out;
 }
 
 export async function persistProfiles() {
@@ -26,7 +39,7 @@ export async function persistProfiles() {
     const result = await bridge.save(payload);
     if (result?.ok) {
       store.profiles = (result.profiles || []).map(normalizeVendor);
-      store.active = result.active && typeof result.active === "object" ? { ...result.active } : {};
+      store.active = normalizeActive(result.active);
       if (result.proxy) {
         store.proxyPort = Number(result.proxy.port) || 27483;
         store.proxyBaseUrl = `http://127.0.0.1:${store.proxyPort}`;

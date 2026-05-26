@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/clovapi/switcher/internal/clikind"
+	"github.com/clovapi/switcher/internal/agentkind"
 	cfgpkg "github.com/clovapi/switcher/internal/config"
 	"github.com/clovapi/switcher/internal/profile"
 )
@@ -20,15 +20,16 @@ type UIModel struct {
 }
 
 type UIVendor struct {
-	Name                   string    `json:"name"`
-	Kind                   string    `json:"kind"`
-	LocalProvider          string    `json:"localProvider,omitempty"`
-	SubscriptionProviderID string    `json:"subscriptionProviderId,omitempty"`
-	ModelAdapter           string    `json:"modelAdapter"`
-	BaseURL                string    `json:"baseUrl,omitempty"`
-	APIKey                 string    `json:"apiKey,omitempty"`
-	CLI                    string    `json:"cli,omitempty"`
-	Models                 []UIModel `json:"models"`
+	Name                   string        `json:"name"`
+	Kind                   string        `json:"kind"`
+	LocalProvider          string        `json:"localProvider,omitempty"`
+	SubscriptionProviderID string        `json:"subscriptionProviderId,omitempty"`
+	ModelAdapter           string        `json:"modelAdapter"`
+	BaseURL                string        `json:"baseUrl,omitempty"`
+	APIKey                 string        `json:"apiKey,omitempty"`
+	CLI                    string        `json:"cli,omitempty"`
+	UsageQuery             *UsageQueryUI `json:"usageQuery,omitempty"`
+	Models                 []UIModel     `json:"models"`
 }
 
 type UIProxyConfig struct {
@@ -38,29 +39,29 @@ type UIProxyConfig struct {
 }
 
 type LoadResult struct {
-	OK       bool          `json:"ok"`
-	Path     string        `json:"path,omitempty"`
-	Version  int           `json:"version,omitempty"`
-	Active   map[string]string `json:"active,omitempty"`
-	Proxy    UIProxyConfig `json:"proxy,omitempty"`
-	Profiles []UIVendor    `json:"profiles,omitempty"`
-	Error    string        `json:"error,omitempty"`
+	OK       bool                               `json:"ok"`
+	Path     string                             `json:"path,omitempty"`
+	Version  int                                `json:"version,omitempty"`
+	Active   map[string]profile.ActiveSelection `json:"active,omitempty"`
+	Proxy    UIProxyConfig                      `json:"proxy,omitempty"`
+	Profiles []UIVendor                         `json:"profiles,omitempty"`
+	Error    string                             `json:"error,omitempty"`
 }
 
 type SaveInput struct {
-	Profiles []UIVendor          `json:"profiles"`
-	Active   map[string]string   `json:"active"`
-	Proxy    *UIProxyConfig      `json:"proxy"`
+	Profiles []UIVendor                         `json:"profiles"`
+	Active   map[string]profile.ActiveSelection `json:"active"`
+	Proxy    *UIProxyConfig                     `json:"proxy"`
 }
 
 type SaveResult struct {
-	OK       bool          `json:"ok"`
-	Path     string        `json:"path,omitempty"`
-	Version  int           `json:"version,omitempty"`
-	Active   map[string]string `json:"active,omitempty"`
-	Proxy    UIProxyConfig `json:"proxy,omitempty"`
-	Profiles []UIVendor    `json:"profiles,omitempty"`
-	Error    string        `json:"error,omitempty"`
+	OK       bool                               `json:"ok"`
+	Path     string                             `json:"path,omitempty"`
+	Version  int                                `json:"version,omitempty"`
+	Active   map[string]profile.ActiveSelection `json:"active,omitempty"`
+	Proxy    UIProxyConfig                      `json:"proxy,omitempty"`
+	Profiles []UIVendor                         `json:"profiles,omitempty"`
+	Error    string                             `json:"error,omitempty"`
 }
 
 func vendorToUI(p profile.Profile) UIVendor {
@@ -88,6 +89,7 @@ func vendorToUI(p profile.Profile) UIVendor {
 		BaseURL:                p.BaseURL,
 		APIKey:                 p.APIKey,
 		CLI:                    string(p.CLI),
+		UsageQuery:             usageQueryToUI(p.UsageQuery),
 		Models:                 models,
 	}
 }
@@ -104,8 +106,8 @@ func vendorFromUI(v UIVendor) profile.Profile {
 			APIKey:   m.APIKey,
 		})
 	}
-	var cliKind clikind.Kind
-	if k, err := clikind.Parse(v.CLI); err == nil {
+	var cliKind agentkind.Kind
+	if k, err := agentkind.Parse(v.CLI); err == nil {
 		cliKind = k
 	}
 	return profile.NormalizeVendorProfile(profile.Profile{
@@ -117,13 +119,14 @@ func vendorFromUI(v UIVendor) profile.Profile {
 		CLI:                    cliKind,
 		BaseURL:                v.BaseURL,
 		APIKey:                 v.APIKey,
+		UsageQuery:             usageQueryFromUI(v.UsageQuery),
 		Models:                 models,
 	}, 0)
 }
 
 func storeToUI(s *profile.Store) LoadResult {
 	path, _ := cfgpkg.ProfilesPath()
-	active := map[string]string{}
+	active := map[string]profile.ActiveSelection{}
 	if s.Active != nil {
 		for k, v := range s.Active {
 			active[k] = v
@@ -195,7 +198,7 @@ func SaveProfiles(input SaveInput) SaveResult {
 	current.List = append(incoming, preserved...)
 
 	if input.Active != nil {
-		current.Active = map[string]string{}
+		current.Active = map[string]profile.ActiveSelection{}
 		for k, v := range input.Active {
 			current.Active[k] = v
 		}

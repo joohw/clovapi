@@ -23,10 +23,6 @@ func TestRegistryMatchesDesktopFixedProviders(t *testing.T) {
 	if !IsFixedProviderID("ollama") || IsFixedProviderID("unknown") {
 		t.Fatalf("fixed provider detection mismatch")
 	}
-	wantBinding := "@model:" + CustomAPIVendorName + "/gpt-test"
-	if got := ModelBindingForProvider("custom-api", "gpt-test"); got != wantBinding {
-		t.Fatalf("binding got %q want %q", got, wantBinding)
-	}
 }
 
 func TestProxyIngressURLAndParser(t *testing.T) {

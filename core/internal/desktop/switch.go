@@ -4,46 +4,30 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apply"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
 )
 
-// ApplyBinding resolves a @model binding, writes the local proxy ingress to the CLI, and persists active.
-func ApplyBinding(kind clikind.Kind, binding string) error {
-	binding = strings.TrimSpace(binding)
-	if binding == "" {
-		return fmt.Errorf("binding is required")
+// ApplyProviderModel writes the local proxy ingress to the CLI and persists the
+// active provider/model selection.
+func ApplyProviderModel(kind agentkind.Kind, providerID, modelID string) error {
+	providerID = strings.TrimSpace(providerID)
+	modelID = strings.TrimSpace(modelID)
+	if providerID == "" {
+		return fmt.Errorf("provider id is required")
 	}
-	if !strings.HasPrefix(binding, profile.ModelBindingPrefix) {
-		return fmt.Errorf("binding must start with %q", profile.ModelBindingPrefix)
+	if modelID == "" {
+		return fmt.Errorf("model id is required")
 	}
-
 	s, err := profile.LoadDesktop()
 	if err != nil {
 		return err
 	}
-
-	vendorName, modelID, ok := profile.ParseModelBinding(binding)
+	hit, ok := profile.FindProviderModel(s, providerID, modelID)
 	if !ok {
-		return fmt.Errorf("invalid binding: %s", binding)
-	}
-	hit, ok := profile.FindVendorModel(s, vendorName, modelID)
-	if !ok && strings.EqualFold(strings.TrimSpace(modelID), "default") {
-		vendor, vok := profile.FindStoreVendorProfile(s, vendorName)
-		if vok && len(vendor.Models) > 0 {
-			hit = profile.VendorModelHit{Vendor: vendor, Model: vendor.Models[0]}
-			ok = true
-		}
-	}
-	if !ok {
-		return fmt.Errorf("model binding not found: %s", binding)
-	}
-
-	providerID := profile.ProviderIDFromStoreProfile(hit.Vendor)
-	if !provider.IsFixedProviderID(providerID) {
-		return fmt.Errorf("unsupported vendor: %s", vendorName)
+		return fmt.Errorf("provider/model not found: %s/%s", providerID, modelID)
 	}
 
 	applyHit := hit
@@ -56,7 +40,7 @@ func ApplyBinding(kind clikind.Kind, binding string) error {
 	baseURL := provider.BuildProxyIngressBaseURL(port, providerID, pathModelID, string(ingressStyle))
 
 	p := profile.Profile{
-		Name:                   binding,
+		Name:                   providerID + "/" + pathModelID,
 		CLI:                    kind,
 		Kind:                   hit.Vendor.Kind,
 		SubscriptionProviderID: hit.Vendor.SubscriptionProviderID,
@@ -73,7 +57,20 @@ func ApplyBinding(kind clikind.Kind, binding string) error {
 		return err
 	}
 
-	s.SetActive(string(kind), binding)
+	s.SetActive(string(kind), providerID, pathModelID)
 	profile.RemoveLocalProxyStubs(s)
 	return profile.SaveDesktop(s)
+}
+
+// ApplyBinding is deprecated compatibility for old --binding callers.
+func ApplyBinding(kind agentkind.Kind, binding string) error {
+	s, err := profile.LoadDesktop()
+	if err != nil {
+		return err
+	}
+	sel, ok := s.ActiveSelectionFromLegacyValue(binding)
+	if !ok {
+		return fmt.Errorf("invalid binding: %s", binding)
+	}
+	return ApplyProviderModel(kind, sel.ProviderID, sel.ModelID)
 }

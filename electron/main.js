@@ -392,6 +392,21 @@ ipcMain.handle("profiles:list-models", async (_event, payload) => {
   }
 });
 
+ipcMain.handle("profiles:usage", async (_event, payload) => {
+  try {
+    const vendorName = String(payload?.vendorName || "").trim();
+    if (!vendorName) {
+      return { ok: false, error: "vendorName is required" };
+    }
+    return await clovapiDesktop.queryVendorUsage(vendorName);
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to query vendor usage",
+    };
+  }
+});
+
 ipcMain.handle("profiles:model-adapters", async () => {
   try {
     return await clovapiDesktop.modelAdapters();
@@ -417,6 +432,10 @@ ipcMain.handle("profiles:test", async (_event, payload) => {
     }
     const body = {
       binding: payload?.binding,
+      provider: payload?.provider,
+      provider_id: payload?.provider_id,
+      model: payload?.model,
+      model_id: payload?.model_id,
       cli: payload?.cli,
       proxy: {
         port: Number(payload?.proxy?.port) || Number(ensured.port) || 27483,

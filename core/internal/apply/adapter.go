@@ -3,15 +3,15 @@ package apply
 import (
 	"fmt"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/syslog"
 )
 
 // ProfileTarget writes one profile to on-disk config for a specific local CLI / agent.
 type ProfileTarget interface {
-	Kind() clikind.Kind
+	Kind() agentkind.Kind
 	SupportedStyles() []apistyle.Style
 	Description() string
 	Apply(p profile.Profile) error
@@ -21,7 +21,7 @@ type ProfileTarget interface {
 	Installed() bool
 }
 
-var targets = map[clikind.Kind]ProfileTarget{}
+var targets = map[agentkind.Kind]ProfileTarget{}
 
 // Register adds or replaces a target for its Kind(). Must be called from init() only.
 func Register(t ProfileTarget) {
@@ -36,25 +36,25 @@ func Register(t ProfileTarget) {
 }
 
 // TargetFor returns the registered ProfileTarget for k.
-func TargetFor(k clikind.Kind) (ProfileTarget, bool) {
+func TargetFor(k agentkind.Kind) (ProfileTarget, bool) {
 	t, ok := targets[k]
 	return t, ok
 }
 
 // RegisteredKinds returns CLI kinds in stable UI order (must match all Register calls).
-func RegisteredKinds() []clikind.Kind {
-	return []clikind.Kind{
-		clikind.ClaudeCode,
-		clikind.Codex,
-		clikind.OpenCode,
-		clikind.OpenClaw,
-		clikind.Hermes,
-		clikind.KimiCode,
+func RegisteredKinds() []agentkind.Kind {
+	return []agentkind.Kind{
+		agentkind.ClaudeCode,
+		agentkind.Codex,
+		agentkind.OpenCode,
+		agentkind.OpenClaw,
+		agentkind.Hermes,
+		agentkind.KimiCode,
 	}
 }
 
 // PartitionKindsByInstall splits registered kinds into detected-installed vs not, preserving order within each group.
-func PartitionKindsByInstall() (installed, notInstalled []clikind.Kind) {
+func PartitionKindsByInstall() (installed, notInstalled []agentkind.Kind) {
 	for _, k := range RegisteredKinds() {
 		t, ok := TargetFor(k)
 		if !ok || t == nil {
@@ -70,7 +70,7 @@ func PartitionKindsByInstall() (installed, notInstalled []clikind.Kind) {
 }
 
 // SupportedStyles returns API styles supported by k (from registry).
-func SupportedStyles(k clikind.Kind) []apistyle.Style {
+func SupportedStyles(k agentkind.Kind) []apistyle.Style {
 	t, ok := TargetFor(k)
 	if !ok || t == nil {
 		return nil
@@ -79,7 +79,7 @@ func SupportedStyles(k clikind.Kind) []apistyle.Style {
 }
 
 // KindSupportsStyle reports whether k accepts API style s when applying a profile.
-func KindSupportsStyle(k clikind.Kind, s apistyle.Style) bool {
+func KindSupportsStyle(k agentkind.Kind, s apistyle.Style) bool {
 	for _, x := range SupportedStyles(k) {
 		if x == s {
 			return true
@@ -110,7 +110,7 @@ func Apply(p profile.Profile) error {
 }
 
 // ResetDefault runs the registered target’s ResetDefault (clears relay bindings written by Apply).
-func ResetDefault(k clikind.Kind) error {
+func ResetDefault(k agentkind.Kind) error {
 	t, ok := TargetFor(k)
 	if !ok || t == nil {
 		return fmt.Errorf("unsupported cli %q", k)

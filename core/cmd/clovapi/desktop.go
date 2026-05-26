@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
-	"github.com/clovapi/switcher/internal/clikind"
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/desktop"
 )
 
@@ -69,16 +70,23 @@ func cmdDesktopProfilesSave() *cobra.Command {
 
 func cmdDesktopProfilesTest() *cobra.Command {
 	var binding string
+	var providerID string
+	var modelID string
 	var port int
 	var cliKind string
 	c := &cobra.Command{
 		Use:   "test",
-		Short: "Probe a @model binding via the local proxy",
+		Short: "Probe a provider/model via the local proxy",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(providerID) != "" || strings.TrimSpace(modelID) != "" {
+				return writeDesktopJSON(desktop.TestProviderModel(providerID, modelID, port, cliKind))
+			}
 			return writeDesktopJSON(desktop.TestBinding(binding, port, cliKind))
 		},
 	}
-	c.Flags().StringVar(&binding, "binding", "", "Model binding (@model:Vendor/model-id)")
+	c.Flags().StringVar(&providerID, "provider", "", "Provider id")
+	c.Flags().StringVar(&modelID, "model", "", "Model id")
+	c.Flags().StringVar(&binding, "binding", "", "Deprecated model binding (@model:Vendor/model-id)")
 	c.Flags().IntVar(&port, "port", 0, "Local proxy port override")
 	c.Flags().StringVar(&cliKind, "cli", "", "CLI kind for ingress style (e.g. codex|claude-code)")
 	return c
@@ -126,7 +134,20 @@ func cmdDesktopVendor() *cobra.Command {
 		Use:   "vendor",
 		Short: "Vendor operations for the desktop UI",
 	}
-	c.AddCommand(cmdDesktopVendorListModels(), cmdDesktopVendorAdapters(), cmdDesktopVendorCatalog())
+	c.AddCommand(cmdDesktopVendorListModels(), cmdDesktopVendorAdapters(), cmdDesktopVendorCatalog(), cmdDesktopVendorUsage())
+	return c
+}
+
+func cmdDesktopVendorUsage() *cobra.Command {
+	var vendorName string
+	c := &cobra.Command{
+		Use:   "usage",
+		Short: "Query upstream quota/balance for one API vendor",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return writeDesktopJSON(desktop.QueryVendorUsage(vendorName))
+		},
+	}
+	c.Flags().StringVar(&vendorName, "vendor", "", "Vendor display name")
 	return c
 }
 
@@ -199,10 +220,18 @@ func cmdDesktopAuthLogout() *cobra.Command {
 	return c
 }
 
-func applyBindingSwitch(kind clikind.Kind, binding string) error {
+func applyBindingSwitch(kind agentkind.Kind, binding string) error {
 	if err := desktop.ApplyBinding(kind, binding); err != nil {
 		return err
 	}
 	fmt.Printf("Applied binding %q to %s\n", binding, kind)
+	return nil
+}
+
+func applyProviderModelSwitch(kind agentkind.Kind, providerID, modelID string) error {
+	if err := desktop.ApplyProviderModel(kind, providerID, modelID); err != nil {
+		return err
+	}
+	fmt.Printf("Applied provider/model %q/%q to %s\n", providerID, modelID, kind)
 	return nil
 }

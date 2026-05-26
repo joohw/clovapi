@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/clikind"
 )
 
-func LogCLIApplied(kind clikind.Kind, model string, style apistyle.Style) {
+func LogCLIApplied(kind agentkind.Kind, model string, style apistyle.Style) {
 	Write(
 		"system",
 		fmt.Sprintf(
@@ -20,11 +20,11 @@ func LogCLIApplied(kind clikind.Kind, model string, style apistyle.Style) {
 	)
 }
 
-func LogCLIReset(kind clikind.Kind) {
+func LogCLIReset(kind agentkind.Kind) {
 	Write("system", fmt.Sprintf("reset %s", kind))
 }
 
-func LogCLIApplyFailed(kind clikind.Kind, err error) {
+func LogCLIApplyFailed(kind agentkind.Kind, err error) {
 	if err == nil {
 		return
 	}

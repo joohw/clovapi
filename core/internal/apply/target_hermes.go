@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
 	"gopkg.in/yaml.v3"
@@ -17,7 +17,7 @@ const hermesRelayName = "clovapi"
 
 type hermesTarget struct{}
 
-func (hermesTarget) Kind() clikind.Kind { return clikind.Hermes }
+func (hermesTarget) Kind() agentkind.Kind { return agentkind.Hermes }
 
 func (hermesTarget) SupportedStyles() []apistyle.Style {
 	return []apistyle.Style{apistyle.Claude, apistyle.OpenAIChat, apistyle.OpenAIResponses, apistyle.Gemini}
@@ -32,7 +32,7 @@ func (hermesTarget) Installed() bool {
 }
 
 func (hermesTarget) Apply(p profile.Profile) error {
-	if p.CLI != clikind.Hermes {
+	if p.CLI != agentkind.Hermes {
 		return fmt.Errorf("wrong cli %q for hermes target", p.CLI)
 	}
 	modelID := hermesWireModelID(p)

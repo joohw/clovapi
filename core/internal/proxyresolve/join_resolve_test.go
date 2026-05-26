@@ -103,9 +103,8 @@ func TestResolveIngressContextCustomAPIVendor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantBinding := provider.ModelBindingForProvider("custom-api", "gpt-5.5")
-	if ctx.Binding != wantBinding {
-		t.Fatalf("binding = %q want %q", ctx.Binding, wantBinding)
+	if ctx.ProviderID != "custom-api" || ctx.ModelID != "gpt-5.5" {
+		t.Fatalf("provider/model = %s/%s", ctx.ProviderID, ctx.ModelID)
 	}
 	if ctx.IngressStyle != apistyle.OpenAIChat || ctx.EgressStyle != apistyle.OpenAIResponses {
 		t.Fatalf("styles ingress=%v egress=%v", ctx.IngressStyle, ctx.EgressStyle)

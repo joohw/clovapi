@@ -4,9 +4,9 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/apply"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
 )
@@ -19,16 +19,6 @@ var (
 	ErrVendorIncompatible = errors.New("vendor is not compatible with this CLI")
 	ErrModelIncompatible  = errors.New("model is not compatible with this CLI")
 )
-
-// BuildModelBinding returns a persisted @model:Vendor/model-id binding.
-func BuildModelBinding(vendorName, modelID string) string {
-	vendorName = strings.TrimSpace(vendorName)
-	modelID = strings.TrimSpace(modelID)
-	if vendorName == "" || modelID == "" {
-		return ""
-	}
-	return profile.ModelBindingPrefix + vendorName + "/" + modelID
-}
 
 // ParseTarget parses switch positional args: @model:…, Vendor/model, or vendor-only.
 func ParseTarget(arg string) (vendorName, modelID, binding string, ok bool) {
@@ -46,13 +36,13 @@ func ParseTarget(arg string) (vendorName, modelID, binding string, ok bool) {
 	if slash := strings.Index(arg, "/"); slash > 0 && slash < len(arg)-1 {
 		vendorName = arg[:slash]
 		modelID = arg[slash+1:]
-		return vendorName, modelID, BuildModelBinding(vendorName, modelID), true
+		return vendorName, modelID, "", true
 	}
 	return arg, "", "", true
 }
 
 // VendorsForCLI lists user vendors that have at least one model usable by kind.
-func VendorsForCLI(s *profile.Store, kind clikind.Kind) []profile.Profile {
+func VendorsForCLI(s *profile.Store, kind agentkind.Kind) []profile.Profile {
 	if s == nil {
 		return nil
 	}
@@ -78,7 +68,7 @@ func VendorsForCLI(s *profile.Store, kind clikind.Kind) []profile.Profile {
 	return out
 }
 
-func subscriptionVendorAllowsManualModel(kind clikind.Kind, vendor profile.Profile) bool {
+func subscriptionVendorAllowsManualModel(kind agentkind.Kind, vendor profile.Profile) bool {
 	if strings.ToLower(strings.TrimSpace(vendor.Kind)) != "subscription" {
 		return false
 	}
@@ -86,17 +76,17 @@ func subscriptionVendorAllowsManualModel(kind clikind.Kind, vendor profile.Profi
 }
 
 // VendorCompatibleWithCLI reports whether a vendor may be used with the CLI at all.
-func VendorCompatibleWithCLI(kind clikind.Kind, vendor profile.Profile) bool {
+func VendorCompatibleWithCLI(kind agentkind.Kind, vendor profile.Profile) bool {
 	providerID := profile.ProviderIDFromStoreProfile(vendor)
 	if providerID == "" {
 		return false
 	}
 	switch kind {
-	case clikind.ClaudeCode, clikind.KimiCode:
+	case agentkind.ClaudeCode, agentkind.KimiCode:
 		if providerID == provider.ClaudeCodeProviderID {
 			return true
 		}
-	case clikind.Codex:
+	case agentkind.Codex:
 		if providerID == provider.CodexProviderID || providerID == provider.ClaudeCodeProviderID {
 			return true
 		}
@@ -112,7 +102,7 @@ func VendorCompatibleWithCLI(kind clikind.Kind, vendor profile.Profile) bool {
 }
 
 // CompatibleModelsForCLI lists vendor models whose ingress style works with kind.
-func CompatibleModelsForCLI(kind clikind.Kind, vendor profile.Profile) []profile.Model {
+func CompatibleModelsForCLI(kind agentkind.Kind, vendor profile.Profile) []profile.Model {
 	var out []profile.Model
 	for i, raw := range vendor.Models {
 		m := profile.NormalizeModelEntry(raw, i)
@@ -124,7 +114,7 @@ func CompatibleModelsForCLI(kind clikind.Kind, vendor profile.Profile) []profile
 }
 
 // ModelCompatibleWithCLI reports whether vendor/model can be applied to kind.
-func ModelCompatibleWithCLI(kind clikind.Kind, vendor profile.Profile, model profile.Model) bool {
+func ModelCompatibleWithCLI(kind agentkind.Kind, vendor profile.Profile, model profile.Model) bool {
 	if !VendorCompatibleWithCLI(kind, vendor) {
 		return false
 	}
@@ -139,9 +129,9 @@ func ModelCompatibleWithCLI(kind clikind.Kind, vendor profile.Profile, model pro
 	}
 	modelStyle := modelStyleOrDefault(model, vendor)
 	switch kind {
-	case clikind.ClaudeCode, clikind.KimiCode:
+	case agentkind.ClaudeCode, agentkind.KimiCode:
 		return modelStyle == apistyle.Claude || modelStyle == ""
-	case clikind.Codex:
+	case agentkind.Codex:
 		return modelStyle == apistyle.OpenAIResponses || modelStyle == apistyle.OpenAIChat || modelStyle == ""
 	default:
 		return true
@@ -155,29 +145,47 @@ func modelStyleOrDefault(model profile.Model, vendor profile.Profile) apistyle.S
 	return vendor.APIStyle
 }
 
-// ResolveBinding resolves a vendor/model pair to a binding, validating CLI compatibility.
-func ResolveBinding(s *profile.Store, kind clikind.Kind, vendorName, modelID string) (string, error) {
+// ResolveSelection resolves a vendor/model pair to provider/model identity,
+// validating agent compatibility.
+func ResolveSelection(s *profile.Store, kind agentkind.Kind, vendorName, modelID string) (profile.ActiveSelection, error) {
 	vendorName = strings.TrimSpace(vendorName)
 	modelID = strings.TrimSpace(modelID)
 	if vendorName == "" {
-		return "", ErrVendorRequired
+		return profile.ActiveSelection{}, ErrVendorRequired
 	}
 	if modelID == "" {
-		return "", ErrModelRequired
+		return profile.ActiveSelection{}, ErrModelRequired
 	}
 	vendor, ok := profile.FindStoreVendorProfile(s, vendorName)
 	if !ok {
-		return "", ErrVendorNotFound
+		return profile.ActiveSelection{}, ErrVendorNotFound
 	}
 	if !VendorCompatibleWithCLI(kind, vendor) {
-		return "", ErrVendorIncompatible
+		return profile.ActiveSelection{}, ErrVendorIncompatible
 	}
 	hit, ok := profile.FindVendorModel(s, vendorName, modelID)
 	if !ok {
-		return "", ErrModelNotFound
+		return profile.ActiveSelection{}, ErrModelNotFound
 	}
 	if !ModelCompatibleWithCLI(kind, hit.Vendor, hit.Model) {
-		return "", ErrModelIncompatible
+		return profile.ActiveSelection{}, ErrModelIncompatible
 	}
-	return BuildModelBinding(vendorName, modelID), nil
+	providerID := profile.ProviderIDFromStoreProfile(hit.Vendor)
+	if providerID == "" {
+		return profile.ActiveSelection{}, ErrVendorNotFound
+	}
+	return profile.ActiveSelection{ProviderID: providerID, ModelID: strings.TrimSpace(hit.Model.ID)}, nil
+}
+
+// ResolveBinding is deprecated compatibility for old --binding tests/callers.
+func ResolveBinding(s *profile.Store, kind agentkind.Kind, vendorName, modelID string) (string, error) {
+	sel, err := ResolveSelection(s, kind, vendorName, modelID)
+	if err != nil {
+		return "", err
+	}
+	def := provider.DefinitionByID(sel.ProviderID)
+	if def.VendorName == "" {
+		return "", ErrVendorNotFound
+	}
+	return profile.ModelBindingPrefix + def.VendorName + "/" + sel.ModelID, nil
 }

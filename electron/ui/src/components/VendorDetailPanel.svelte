@@ -7,6 +7,7 @@
     customApiModelLine,
     isDefaultCustomApiProfile,
     isOllamaVendor,
+    providerIdForVendor,
     vendorKindLabel,
   } from "../lib/helpers";
   import { OLLAMA_PROFILE_NAME } from "../lib/constants";
@@ -21,6 +22,9 @@
     isVendorFetching,
     openModelDialog,
     openProfileDialog,
+    queryVendorUsage,
+    vendorUsageSummary,
+    isVendorUsageLoading,
     removeVendorModel,
     runModelTest,
     runSubscriptionLogin,
@@ -66,6 +70,8 @@
       emptyMixed: t("vendorDetail.emptyMixed"),
       installed: t("vendorDetail.installed"),
       notInstalled: t("vendorDetail.notInstalled"),
+      queryUsage: t("vendorDetail.queryUsage"),
+      queryingUsage: t("vendorDetail.queryingUsage"),
     };
   });
 
@@ -76,6 +82,10 @@
     }
     if (isOllamaVendor(vendor)) {
       return store.ollamaInstalled ? copy.installed : copy.notInstalled;
+    }
+    if (vendor.kind === "api") {
+      const usage = vendorUsageSummary(vendor.name);
+      if (usage) return usage;
     }
     return vendorKindLabel(vendor);
   });
@@ -136,6 +146,16 @@
         {isVendorFetching(vendor.name) ? copy.fetching : copy.fetchModels}
       </Button>
     {/if}
+    {#if vendor.kind === "api" && vendor.baseUrl && vendor.apiKey}
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={store.running || isVendorUsageLoading(vendor.name)}
+        onclick={() => void queryVendorUsage(vendor)}
+      >
+        {isVendorUsageLoading(vendor.name) ? copy.queryingUsage : copy.queryUsage}
+      </Button>
+    {/if}
     {#if vendor.kind === "local"}
       <Button
         size="sm"
@@ -173,7 +193,7 @@
     </p>
   {:else}
     {#each vendor.models as model (model.id)}
-      {@const binding = modelBindingValue(vendor.name, model.id)}
+      {@const binding = modelBindingValue(providerIdForVendor(vendor), model.id)}
       {@const testKey = modelTestStatusKey(binding)}
       {@const test = modelTestUi(binding)}
       {@const testing = isModelTesting(testKey)}

@@ -4,13 +4,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
 )
 
-func TestResolveSwitchBindingOrError(t *testing.T) {
+func TestResolveSwitchSelectionOrError(t *testing.T) {
 	s := &profile.Store{
 		List: []profile.Profile{
 			{
@@ -25,17 +25,17 @@ func TestResolveSwitchBindingOrError(t *testing.T) {
 			},
 		},
 	}
-	binding, err := resolveSwitchBindingOrError(s, clikind.Codex, provider.CodexVendorName, "gpt-5.5", "", "")
-	if err != nil || binding != "@model:Codex Subscription/gpt-5.5" {
-		t.Fatalf("flags: binding=%q err=%v", binding, err)
+	selection, err := resolveSwitchSelectionOrError(s, agentkind.Codex, "", provider.CodexVendorName, "gpt-5.5", "", "")
+	if err != nil || selection.ProviderID != provider.CodexProviderID || selection.ModelID != "gpt-5.5" {
+		t.Fatalf("flags: selection=%+v err=%v", selection, err)
 	}
-	binding, err = resolveSwitchBindingOrError(s, clikind.Codex, "", "", "", "Codex Subscription/gpt-5.5")
-	if err != nil || binding != "@model:Codex Subscription/gpt-5.5" {
-		t.Fatalf("positional: binding=%q err=%v", binding, err)
+	selection, err = resolveSwitchSelectionOrError(s, agentkind.Codex, "", "", "", "", "Codex Subscription/gpt-5.5")
+	if err != nil || selection.ProviderID != provider.CodexProviderID || selection.ModelID != "gpt-5.5" {
+		t.Fatalf("positional: selection=%+v err=%v", selection, err)
 	}
-	binding, err = resolveSwitchBindingOrError(s, clikind.Codex, provider.CodexVendorName, "", "", "")
-	if err != nil || binding != "" {
-		t.Fatalf("vendor-only: binding=%q err=%v", binding, err)
+	selection, err = resolveSwitchSelectionOrError(s, agentkind.Codex, "", provider.CodexVendorName, "", "", "")
+	if err != nil || selection.ProviderID != "" {
+		t.Fatalf("vendor-only: selection=%+v err=%v", selection, err)
 	}
 }
 
@@ -58,11 +58,11 @@ func TestPromptModelForVendorSelection(t *testing.T) {
 		t.Fatal("vendor missing")
 	}
 	sc := switchScannerFrom(strings.NewReader("2\n"))
-	picked, err := promptModelForVendor(sc, clikind.Codex, s, vendor, "", "", false)
+	picked, err := promptModelForVendor(sc, agentkind.Codex, s, vendor, "", "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if picked.binding != "@model:Codex Subscription/gpt-5.5" {
-		t.Fatalf("binding=%q", picked.binding)
+	if picked.selection.ProviderID != provider.CodexProviderID || picked.selection.ModelID != "gpt-5.5" {
+		t.Fatalf("selection=%+v", picked.selection)
 	}
 }

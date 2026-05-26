@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/pelletier/go-toml/v2"
 )
@@ -16,7 +16,7 @@ const CodexProviderID = "clovapi-relay"
 
 type codexTarget struct{}
 
-func (codexTarget) Kind() clikind.Kind { return clikind.Codex }
+func (codexTarget) Kind() agentkind.Kind { return agentkind.Codex }
 
 func (codexTarget) SupportedStyles() []apistyle.Style {
 	return []apistyle.Style{apistyle.OpenAIResponses}
@@ -31,7 +31,7 @@ func (codexTarget) Installed() bool {
 }
 
 func (codexTarget) Apply(p profile.Profile) error {
-	if p.CLI != clikind.Codex || p.APIStyle != apistyle.OpenAIResponses {
+	if p.CLI != agentkind.Codex || p.APIStyle != apistyle.OpenAIResponses {
 		return errWrongAdapter("codex", "openai-responses", p)
 	}
 	path, err := CodexConfigPath()

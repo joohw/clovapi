@@ -86,7 +86,7 @@ export async function runSubscriptionTest(providerId: string) {
     toast.error(t("toast.subscriptionVendorMissing"));
     return;
   }
-  await runModelTest(modelBindingValue(vendor.name, vendor.models[0].id));
+  await runModelTest(modelBindingValue(providerId, vendor.models[0].id));
 }
 
 export async function runSubscriptionLogout(providerId: string, label: string) {
@@ -104,7 +104,7 @@ export async function runSubscriptionLogout(providerId: string, label: string) {
   }
   if (previousVendor?.models?.length) {
     for (const model of previousVendor.models) {
-      clearModelTest(modelBindingValue(previousVendor.name, model.id));
+      clearModelTest(modelBindingValue(providerId, model.id));
     }
   }
   if (Array.isArray(result.profiles)) {
@@ -119,7 +119,7 @@ export async function runSubscriptionLogout(providerId: string, label: string) {
   );
   if (vendor?.models?.length) {
     for (const model of vendor.models) {
-      clearModelTest(modelBindingValue(vendor.name, model.id));
+      clearModelTest(modelBindingValue(providerId, model.id));
     }
   }
   for (const cli of store.clis) {
@@ -166,7 +166,7 @@ export function subscriptionVendorRows(): SubscriptionVendorRow[] {
     return {
       ...status,
       vendor,
-      binding: modelBindingValue(vendor.name, modelId),
+      binding: modelBindingValue(providerId, modelId),
     };
   });
 }

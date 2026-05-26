@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 )
 
@@ -14,7 +14,7 @@ const openclawRelayID = "clovapi"
 
 type openClawTarget struct{}
 
-func (openClawTarget) Kind() clikind.Kind { return clikind.OpenClaw }
+func (openClawTarget) Kind() agentkind.Kind { return agentkind.OpenClaw }
 
 func (openClawTarget) SupportedStyles() []apistyle.Style {
 	return []apistyle.Style{apistyle.Claude, apistyle.OpenAIChat, apistyle.OpenAIResponses, apistyle.Gemini}
@@ -29,7 +29,7 @@ func (openClawTarget) Installed() bool {
 }
 
 func (openClawTarget) Apply(p profile.Profile) error {
-	if p.CLI != clikind.OpenClaw {
+	if p.CLI != agentkind.OpenClaw {
 		return fmt.Errorf("wrong cli %q for openclaw target", p.CLI)
 	}
 	seg := profileModelSegment(p.Model)

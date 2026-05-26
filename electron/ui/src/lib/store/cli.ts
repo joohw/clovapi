@@ -1,5 +1,6 @@
 import {
   canApplyCliBinding,
+  activeSelection,
   isSubscriptionBinding,
   subscriptionProviderFromBinding,
   subscriptionProviderLabel,
@@ -26,7 +27,10 @@ export function setRunning(running: boolean) {
 export async function onCliBindingChange(cli: CliDef, value: string) {
   const binding = String(value || "").trim();
   if (!binding) delete store.active[cli.kind];
-  else store.active[cli.kind] = binding;
+  else {
+    const [providerId, modelId] = binding.split("/", 2);
+    store.active[cli.kind] = activeSelection(providerId, modelId);
+  }
   const saved = await persistProfiles();
   if (!saved?.ok) {
     toast.error(saved?.error || t("toast.bindingSaveFailed"));
@@ -163,7 +167,10 @@ export async function runCliApply(cli: CliDef) {
     return;
   }
 
-  store.active[cli.kind] = binding;
+  {
+    const [providerId, modelId] = binding.split("/", 2);
+    store.active[cli.kind] = activeSelection(providerId, modelId);
+  }
   const primed = await persistProfiles();
   if (!primed?.ok) {
     toast.error(primed?.error || t("toast.bindingSaveFailed"));
@@ -179,7 +186,7 @@ export async function runCliApply(cli: CliDef) {
 
   try {
     const exit = await runClovapiArgsAndWait(
-      ["switch", "--cli", cli.kind, "--binding", binding],
+      ["switch", "--cli", cli.kind, "--provider", binding.split("/")[0] || "", "--model", binding.split("/")[1] || ""],
       { silent: true },
     );
 
@@ -198,7 +205,10 @@ export async function runCliApply(cli: CliDef) {
       return;
     }
 
-    store.active[cli.kind] = binding;
+    {
+      const [providerId, modelId] = binding.split("/", 2);
+      store.active[cli.kind] = activeSelection(providerId, modelId);
+    }
     const saved = await persistProfiles();
     if (!saved?.ok) {
       toast.error(saved?.error || t("toast.profilesSaveFailed"), { id: toastId });

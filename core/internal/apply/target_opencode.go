@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 )
 
@@ -14,7 +14,7 @@ const opencodeRelayID = "clovapi"
 
 type openCodeTarget struct{}
 
-func (openCodeTarget) Kind() clikind.Kind { return clikind.OpenCode }
+func (openCodeTarget) Kind() agentkind.Kind { return agentkind.OpenCode }
 
 func (openCodeTarget) SupportedStyles() []apistyle.Style {
 	return []apistyle.Style{apistyle.Claude, apistyle.OpenAIChat, apistyle.OpenAIResponses, apistyle.Gemini}
@@ -29,7 +29,7 @@ func (openCodeTarget) Installed() bool {
 }
 
 func (openCodeTarget) Apply(p profile.Profile) error {
-	if p.CLI != clikind.OpenCode {
+	if p.CLI != agentkind.OpenCode {
 		return fmt.Errorf("wrong cli %q for opencode target", p.CLI)
 	}
 	dir, err := OpenCodeGlobalDir()

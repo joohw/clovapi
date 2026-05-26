@@ -1,4 +1,4 @@
-import { crossSubscriptionTestCli, modelTestStatusKey, toIpcPayload } from "../helpers";
+import { activeModelId, activeProviderId, crossSubscriptionTestCli, modelTestStatusKey, toIpcPayload } from "../helpers";
 import { t } from "../i18n";
 import { isModelTesting, setModelTestResult, setModelTestTesting } from "./model-tests";
 import { refreshProxyLogs } from "./proxy";
@@ -27,7 +27,8 @@ export async function runModelTest(binding: string) {
     result = await Promise.race([
       bridge.test(
         toIpcPayload({
-          binding: key,
+          provider: activeProviderId(key),
+          model: activeModelId(key),
           cli: cli || undefined,
           vendors: store.profiles,
           active: store.active,

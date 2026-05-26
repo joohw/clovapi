@@ -1,12 +1,12 @@
 import { CUSTOM_PRESET_ID, DEFAULT_CLIS, DEFAULT_PRESETS, FIXED_PROVIDER_IDS } from "../constants";
-import type { CliDef, ModelAdapterDef, ModelTestEntry, Preset, ProxyLogEntry, ProxySystemLogEntry, ProviderDef, SubscriptionItem, Vendor } from "../../global";
+import type { ActiveSelection, CliDef, ModelAdapterDef, ModelTestEntry, Preset, ProxyLogEntry, ProxySystemLogEntry, ProviderDef, SubscriptionItem, Vendor } from "../../global";
 
 export type TabId = "cli" | "profiles" | "call-logs" | "system-logs" | "settings";
 
 export const store = $state({
   activeTab: "cli" as TabId,
   profiles: [] as Vendor[],
-  active: {} as Record<string, string>,
+  active: {} as Record<string, ActiveSelection>,
   profilesPath: "",
   clis: [...DEFAULT_CLIS] as CliDef[],
   running: false,
@@ -50,6 +50,8 @@ export const store = $state({
   proxyLogSelectedId: null as string | null,
   proxySystemLogSelectedId: null as string | null,
   vendorFetching: {} as Record<string, boolean>,
+  vendorUsage: {} as Record<string, { summary: string; rows: import("../../global").VendorUsageData[]; error: string }>,
+  vendorUsageLoading: {} as Record<string, boolean>,
   profilesSelectedVendor: null as string | null,
   modelAdapters: [] as ModelAdapterDef[],
   providers: [] as ProviderDef[],

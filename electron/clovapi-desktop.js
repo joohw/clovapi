@@ -57,7 +57,14 @@ function listVendorModels(vendorName) {
 
 function testBinding(payload) {
   const binding = String(payload?.binding || "").trim();
-  const args = ["profiles", "test", "--binding", binding];
+  const provider = String(payload?.provider || payload?.provider_id || "").trim();
+  const model = String(payload?.model || payload?.model_id || "").trim();
+  const args = ["profiles", "test"];
+  if (provider || model) {
+    args.push("--provider", provider, "--model", model);
+  } else {
+    args.push("--binding", binding);
+  }
   const cli = String(payload?.cli || "").trim();
   if (cli) {
     args.push("--cli", cli);
@@ -87,6 +94,12 @@ function authLogout(provider) {
   });
 }
 
+function queryVendorUsage(vendorName) {
+  return runDesktop(["vendor", "usage", "--vendor", String(vendorName || "")], {
+    timeout: 20000,
+  });
+}
+
 module.exports = {
   runDesktop,
   loadProfiles,
@@ -99,4 +112,5 @@ module.exports = {
   vendorCatalog,
   authStatus,
   authLogout,
+  queryVendorUsage,
 };

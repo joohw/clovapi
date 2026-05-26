@@ -8,15 +8,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/apply"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/cliswitch"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/syslog"
 )
 
-func runSwitch(sc *bufio.Scanner, s *profile.Store, kind clikind.Kind, resetFlag bool, bindingFlag, vendorFlag, modelFlag, directBaseURL, directAPIKey, directModel, directAPIStyle, positional string) error {
+func runSwitch(sc *bufio.Scanner, s *profile.Store, kind agentkind.Kind, resetFlag bool, bindingFlag, providerFlag, vendorFlag, modelFlag, directBaseURL, directAPIKey, directModel, directAPIStyle, positional string) error {
 	if resetFlag {
 		if strings.TrimSpace(positional) != "" {
 			return fmt.Errorf("cannot use --reset with a positional argument")
@@ -24,8 +24,8 @@ func runSwitch(sc *bufio.Scanner, s *profile.Store, kind clikind.Kind, resetFlag
 		if strings.TrimSpace(directBaseURL) != "" || strings.TrimSpace(bindingFlag) != "" {
 			return fmt.Errorf("cannot use --reset with --base-url or --binding")
 		}
-		if strings.TrimSpace(vendorFlag) != "" || strings.TrimSpace(modelFlag) != "" {
-			return fmt.Errorf("cannot use --reset with --vendor or --model")
+		if strings.TrimSpace(providerFlag) != "" || strings.TrimSpace(vendorFlag) != "" || strings.TrimSpace(modelFlag) != "" {
+			return fmt.Errorf("cannot use --reset with --provider, --vendor or --model")
 		}
 		if err := apply.ResetDefault(kind); err != nil {
 			return err
@@ -40,18 +40,18 @@ func runSwitch(sc *bufio.Scanner, s *profile.Store, kind clikind.Kind, resetFlag
 	}
 
 	if strings.TrimSpace(directBaseURL) != "" {
-		if strings.TrimSpace(bindingFlag) != "" || strings.TrimSpace(vendorFlag) != "" || strings.TrimSpace(modelFlag) != "" || strings.TrimSpace(positional) != "" {
-			return fmt.Errorf("cannot combine --base-url with vendor/model selection")
+		if strings.TrimSpace(bindingFlag) != "" || strings.TrimSpace(providerFlag) != "" || strings.TrimSpace(vendorFlag) != "" || strings.TrimSpace(modelFlag) != "" || strings.TrimSpace(positional) != "" {
+			return fmt.Errorf("cannot combine --base-url with provider/model selection")
 		}
 		return applyDirectToCLI(kind, directBaseURL, directAPIKey, directModel, directAPIStyle)
 	}
 
-	binding, bindingErr := resolveSwitchBindingOrError(s, kind, vendorFlag, modelFlag, bindingFlag, positional)
-	if bindingErr != nil {
-		return bindingErr
+	selection, selectionErr := resolveSwitchSelectionOrError(s, kind, providerFlag, vendorFlag, modelFlag, bindingFlag, positional)
+	if selectionErr != nil {
+		return selectionErr
 	}
-	if binding != "" {
-		return applyBindingSwitch(kind, binding)
+	if selection.ProviderID != "" {
+		return applyProviderModelSwitch(kind, selection.ProviderID, selection.ModelID)
 	}
 
 	if picked, ok, err := promptSwitchVendorOnly(sc, s, kind, vendorFlag, modelFlag, positional); err != nil {
@@ -68,16 +68,16 @@ func runSwitch(sc *bufio.Scanner, s *profile.Store, kind clikind.Kind, resetFlag
 			fmt.Printf("Reset %s to default (cleared clovapi relay bindings).\n", kind)
 			return nil
 		}
-		return applyBindingSwitch(kind, picked.binding)
+		return applyProviderModelSwitch(kind, picked.selection.ProviderID, picked.selection.ModelID)
 	}
 
-	if active := strings.TrimSpace(s.Active[string(kind)]); active != "" && strings.HasPrefix(active, profile.ModelBindingPrefix) {
-		if _, ok := s.ProfileForModelBinding(active); ok {
-			return applyBindingSwitch(kind, active)
+	if active := s.Active[string(kind)]; strings.TrimSpace(active.ProviderID) != "" {
+		if _, ok := s.FlatProfileForProviderModel(active.ProviderID, active.ModelID); ok {
+			return applyProviderModelSwitch(kind, active.ProviderID, active.ModelID)
 		}
 	}
 
-	if !switchNeedsInteractive(sc, s, kind, bindingFlag, vendorFlag, modelFlag, directBaseURL, positional) {
+	if !switchNeedsInteractive(sc, s, kind, bindingFlag, providerFlag, vendorFlag, modelFlag, directBaseURL, positional) {
 		return fmt.Errorf("no model selected for %s — pass Vendor/model, or --vendor with --model, or --binding", kind)
 	}
 
@@ -96,15 +96,15 @@ func runSwitch(sc *bufio.Scanner, s *profile.Store, kind clikind.Kind, resetFlag
 		fmt.Printf("Reset %s to default (cleared clovapi relay bindings).\n", kind)
 		return nil
 	}
-	return applyBindingSwitch(kind, picked.binding)
+	return applyProviderModelSwitch(kind, picked.selection.ProviderID, picked.selection.ModelID)
 }
 
 type switchPick struct {
-	binding string
-	reset   bool
+	selection profile.ActiveSelection
+	reset     bool
 }
 
-func promptSwitchForCLI(sc *bufio.Scanner, kind clikind.Kind, s *profile.Store) (switchPick, error) {
+func promptSwitchForCLI(sc *bufio.Scanner, kind agentkind.Kind, s *profile.Store) (switchPick, error) {
 	vendors := cliswitch.VendorsForCLI(s, kind)
 	if len(vendors) == 0 {
 		return switchPick{}, fmt.Errorf("no compatible vendors for %s — configure providers in the desktop app or profiles.json", kind)
@@ -114,14 +114,16 @@ func promptSwitchForCLI(sc *bufio.Scanner, kind clikind.Kind, s *profile.Store) 
 	fmt.Printf("Switch %s:\n", kind)
 	fmt.Println("  0) reset this CLI to default (clear clovapi relay bindings)")
 
-	active := strings.TrimSpace(s.Active[string(kind)])
-	activeVendor, activeModel, hasActive := profile.ParseModelBinding(active)
+	active := s.Active[string(kind)]
+	activeProvider := strings.TrimSpace(active.ProviderID)
+	activeModel := strings.TrimSpace(active.ModelID)
+	hasActive := activeProvider != "" && activeModel != ""
 
 	var vendorPicks []profile.Profile
 	for _, v := range vendors {
 		name := strings.TrimSpace(v.Name)
 		marker := ""
-		if hasActive && strings.EqualFold(name, activeVendor) {
+		if hasActive && profile.ProviderIDFromStoreProfile(v) == activeProvider {
 			marker = " (active vendor)"
 		}
 		fmt.Printf("  %d) %s%s\n", len(vendorPicks)+1, name, marker)
@@ -143,17 +145,17 @@ func promptSwitchForCLI(sc *bufio.Scanner, kind clikind.Kind, s *profile.Store) 
 		if n < 1 || n > len(vendorPicks) {
 			return switchPick{}, fmt.Errorf("choose 0–%d", len(vendorPicks))
 		}
-		return promptModelForVendor(sc, kind, s, vendorPicks[n-1], activeVendor, activeModel, hasActive)
+		return promptModelForVendor(sc, kind, s, vendorPicks[n-1], activeProvider, activeModel, hasActive)
 	}
 	for _, v := range vendorPicks {
 		if strings.EqualFold(strings.TrimSpace(v.Name), line) {
-			return promptModelForVendor(sc, kind, s, v, activeVendor, activeModel, hasActive)
+			return promptModelForVendor(sc, kind, s, v, activeProvider, activeModel, hasActive)
 		}
 	}
 	return switchPick{}, fmt.Errorf("unknown vendor %q", line)
 }
 
-func promptModelForVendor(sc *bufio.Scanner, kind clikind.Kind, s *profile.Store, vendor profile.Profile, activeVendor, activeModel string, hasActive bool) (switchPick, error) {
+func promptModelForVendor(sc *bufio.Scanner, kind agentkind.Kind, s *profile.Store, vendor profile.Profile, activeProvider, activeModel string, hasActive bool) (switchPick, error) {
 	models := cliswitch.CompatibleModelsForCLI(kind, vendor)
 	vendorName := strings.TrimSpace(vendor.Name)
 
@@ -172,7 +174,7 @@ func promptModelForVendor(sc *bufio.Scanner, kind clikind.Kind, s *profile.Store
 		}
 		wire := strings.TrimSpace(firstModelWire(m))
 		marker := ""
-		if hasActive && strings.EqualFold(vendorName, activeVendor) && strings.EqualFold(id, activeModel) {
+		if hasActive && profile.ProviderIDFromStoreProfile(vendor) == activeProvider && strings.EqualFold(id, activeModel) {
 			marker = " (active)"
 		}
 		fmt.Printf("  %d) %s  wire=%s  style=%s%s\n", len(modelPicks)+1, label, wire, modelStyleShow(m), marker)
@@ -185,11 +187,11 @@ func promptModelForVendor(sc *bufio.Scanner, kind clikind.Kind, s *profile.Store
 			return switchPick{}, fmt.Errorf("read model: %w", sc.Err())
 		}
 		modelID := strings.TrimSpace(sc.Text())
-		binding, err := cliswitch.ResolveBinding(s, kind, vendorName, modelID)
+		selection, err := cliswitch.ResolveSelection(s, kind, vendorName, modelID)
 		if err != nil {
 			return switchPick{}, err
 		}
-		return switchPick{binding: binding}, nil
+		return switchPick{selection: selection}, nil
 	}
 	if len(modelPicks) == 0 {
 		return switchPick{}, fmt.Errorf("no compatible models for %s on %s", vendorName, kind)
@@ -208,22 +210,22 @@ func promptModelForVendor(sc *bufio.Scanner, kind clikind.Kind, s *profile.Store
 			return switchPick{}, fmt.Errorf("choose 1–%d", len(modelPicks))
 		}
 		modelID := strings.TrimSpace(modelPicks[n-1].ID)
-		binding, err := cliswitch.ResolveBinding(s, kind, vendorName, modelID)
+		selection, err := cliswitch.ResolveSelection(s, kind, vendorName, modelID)
 		if err != nil {
 			return switchPick{}, err
 		}
-		return switchPick{binding: binding}, nil
+		return switchPick{selection: selection}, nil
 	}
 	for _, m := range modelPicks {
 		id := strings.TrimSpace(m.ID)
 		label := strings.TrimSpace(m.Label)
 		wire := strings.TrimSpace(firstModelWire(m))
 		if strings.EqualFold(line, id) || strings.EqualFold(line, label) || strings.EqualFold(line, wire) {
-			binding, err := cliswitch.ResolveBinding(s, kind, vendorName, id)
+			selection, err := cliswitch.ResolveSelection(s, kind, vendorName, id)
 			if err != nil {
 				return switchPick{}, err
 			}
-			return switchPick{binding: binding}, nil
+			return switchPick{selection: selection}, nil
 		}
 	}
 	return switchPick{}, fmt.Errorf("unknown model %q", line)
@@ -243,21 +245,35 @@ func modelStyleShow(m profile.Model) string {
 	return "—"
 }
 
-func resolveSwitchBindingOrError(s *profile.Store, kind clikind.Kind, vendorFlag, modelFlag, bindingFlag, positional string) (string, error) {
+func resolveSwitchSelectionOrError(s *profile.Store, kind agentkind.Kind, providerFlag, vendorFlag, modelFlag, bindingFlag, positional string) (profile.ActiveSelection, error) {
+	providerFlag = strings.TrimSpace(providerFlag)
+	modelFlag = strings.TrimSpace(modelFlag)
+	if providerFlag != "" {
+		if modelFlag == "" {
+			return profile.ActiveSelection{}, fmt.Errorf("--model is required with --provider")
+		}
+		hit, ok := profile.FindProviderModel(s, providerFlag, modelFlag)
+		if !ok {
+			return profile.ActiveSelection{}, cliswitch.ErrModelNotFound
+		}
+		if !cliswitch.ModelCompatibleWithCLI(kind, hit.Vendor, hit.Model) {
+			return profile.ActiveSelection{}, cliswitch.ErrModelIncompatible
+		}
+		return profile.ActiveSelection{ProviderID: providerFlag, ModelID: hit.Model.ID}, nil
+	}
 	binding := strings.TrimSpace(bindingFlag)
 	if binding != "" {
 		if !strings.HasPrefix(binding, profile.ModelBindingPrefix) {
-			return "", fmt.Errorf("--binding must start with %q", profile.ModelBindingPrefix)
+			return profile.ActiveSelection{}, fmt.Errorf("--binding must start with %q", profile.ModelBindingPrefix)
 		}
 		vendorName, modelID, ok := profile.ParseModelBinding(binding)
 		if !ok {
-			return "", fmt.Errorf("invalid --binding %q", binding)
+			return profile.ActiveSelection{}, fmt.Errorf("invalid --binding %q", binding)
 		}
-		return cliswitch.ResolveBinding(s, kind, vendorName, modelID)
+		return cliswitch.ResolveSelection(s, kind, vendorName, modelID)
 	}
 
 	vendorFlag = strings.TrimSpace(vendorFlag)
-	modelFlag = strings.TrimSpace(modelFlag)
 	positional = strings.TrimSpace(positional)
 
 	if vendorFlag != "" || modelFlag != "" {
@@ -266,29 +282,29 @@ func resolveSwitchBindingOrError(s *profile.Store, kind clikind.Kind, vendorFlag
 			vendorName, _, _, _ = cliswitch.ParseTarget(positional)
 		}
 		if vendorName == "" {
-			return "", fmt.Errorf("--vendor is required with --model")
+			return profile.ActiveSelection{}, fmt.Errorf("--vendor is required with --model")
 		}
 		if strings.TrimSpace(modelFlag) == "" {
-			return "", nil
+			return profile.ActiveSelection{}, nil
 		}
-		return cliswitch.ResolveBinding(s, kind, vendorName, modelFlag)
+		return cliswitch.ResolveSelection(s, kind, vendorName, modelFlag)
 	}
 
 	if positional != "" {
 		vendorName, modelID, _, ok := cliswitch.ParseTarget(positional)
 		if !ok {
-			return "", fmt.Errorf("invalid switch target %q", positional)
+			return profile.ActiveSelection{}, fmt.Errorf("invalid switch target %q", positional)
 		}
 		if modelID == "" {
-			return "", nil
+			return profile.ActiveSelection{}, nil
 		}
-		return cliswitch.ResolveBinding(s, kind, vendorName, modelID)
+		return cliswitch.ResolveSelection(s, kind, vendorName, modelID)
 	}
 
-	return "", nil
+	return profile.ActiveSelection{}, nil
 }
 
-func applyDirectToCLI(kind clikind.Kind, baseURL, apiKey, model, styleStr string) error {
+func applyDirectToCLI(kind agentkind.Kind, baseURL, apiKey, model, styleStr string) error {
 	mod := strings.TrimSpace(model)
 	if mod == "" {
 		return fmt.Errorf("--model is required with --base-url")
@@ -299,9 +315,9 @@ func applyDirectToCLI(kind clikind.Kind, baseURL, apiKey, model, styleStr string
 			return err
 		}
 		switch kind {
-		case clikind.ClaudeCode, clikind.KimiCode:
+		case agentkind.ClaudeCode, agentkind.KimiCode:
 			st = apistyle.Claude
-		case clikind.Codex:
+		case agentkind.Codex:
 			st = apistyle.OpenAIResponses
 		default:
 			st = apistyle.OpenAIChat
@@ -344,7 +360,7 @@ func isTerminal(f *os.File) bool {
 	return (fi.Mode() & os.ModeCharDevice) != 0
 }
 
-func promptSwitchVendorOnly(sc *bufio.Scanner, s *profile.Store, kind clikind.Kind, vendorFlag, modelFlag, positional string) (switchPick, bool, error) {
+func promptSwitchVendorOnly(sc *bufio.Scanner, s *profile.Store, kind agentkind.Kind, vendorFlag, modelFlag, positional string) (switchPick, bool, error) {
 	if strings.TrimSpace(modelFlag) != "" {
 		return switchPick{}, false, nil
 	}
@@ -355,7 +371,7 @@ func promptSwitchVendorOnly(sc *bufio.Scanner, s *profile.Store, kind clikind.Ki
 			vendorName = v
 		}
 	}
-	if vendorName == "" || !switchNeedsInteractive(sc, s, kind, "", vendorName, "", "", positional) {
+	if vendorName == "" || !switchNeedsInteractive(sc, s, kind, "", "", vendorName, "", "", positional) {
 		return switchPick{}, false, nil
 	}
 	vendor, ok := profile.FindStoreVendorProfile(s, vendorName)
@@ -365,17 +381,18 @@ func promptSwitchVendorOnly(sc *bufio.Scanner, s *profile.Store, kind clikind.Ki
 	if !cliswitch.VendorCompatibleWithCLI(kind, vendor) {
 		return switchPick{}, false, fmt.Errorf("vendor %q is not compatible with %s", vendorName, kind)
 	}
-	active := strings.TrimSpace(s.Active[string(kind)])
-	activeVendor, activeModel, hasActive := profile.ParseModelBinding(active)
-	picked, err := promptModelForVendor(sc, kind, s, vendor, activeVendor, activeModel, hasActive)
+	active := s.Active[string(kind)]
+	activeProvider := strings.TrimSpace(active.ProviderID)
+	activeModel := strings.TrimSpace(active.ModelID)
+	picked, err := promptModelForVendor(sc, kind, s, vendor, activeProvider, activeModel, activeProvider != "" && activeModel != "")
 	if err != nil {
 		return switchPick{}, false, err
 	}
 	return picked, true, nil
 }
 
-func switchNeedsInteractive(sc *bufio.Scanner, s *profile.Store, kind clikind.Kind, bindingFlag, vendorFlag, modelFlag, directBaseURL, positional string) bool {
-	if strings.TrimSpace(bindingFlag) != "" || strings.TrimSpace(directBaseURL) != "" {
+func switchNeedsInteractive(sc *bufio.Scanner, s *profile.Store, kind agentkind.Kind, bindingFlag, providerFlag, vendorFlag, modelFlag, directBaseURL, positional string) bool {
+	if strings.TrimSpace(bindingFlag) != "" || strings.TrimSpace(providerFlag) != "" || strings.TrimSpace(directBaseURL) != "" {
 		return false
 	}
 	if strings.TrimSpace(vendorFlag) != "" && strings.TrimSpace(modelFlag) != "" {
@@ -386,8 +403,8 @@ func switchNeedsInteractive(sc *bufio.Scanner, s *profile.Store, kind clikind.Ki
 			return false
 		}
 	}
-	if active := strings.TrimSpace(s.Active[string(kind)]); active != "" {
-		if _, ok := s.ProfileForModelBinding(active); ok {
+	if active := s.Active[string(kind)]; strings.TrimSpace(active.ProviderID) != "" {
+		if _, ok := s.FlatProfileForProviderModel(active.ProviderID, active.ModelID); ok {
 			return false
 		}
 	}

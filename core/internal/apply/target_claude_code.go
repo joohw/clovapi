@@ -5,14 +5,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 )
 
 type claudeCodeTarget struct{}
 
-func (claudeCodeTarget) Kind() clikind.Kind { return clikind.ClaudeCode }
+func (claudeCodeTarget) Kind() agentkind.Kind { return agentkind.ClaudeCode }
 
 func (claudeCodeTarget) SupportedStyles() []apistyle.Style {
 	return []apistyle.Style{apistyle.Claude}
@@ -27,7 +27,7 @@ func (claudeCodeTarget) Installed() bool {
 }
 
 func (claudeCodeTarget) Apply(p profile.Profile) error {
-	if p.CLI != clikind.ClaudeCode || p.APIStyle != apistyle.Claude {
+	if p.CLI != agentkind.ClaudeCode || p.APIStyle != apistyle.Claude {
 		return errWrongAdapter("claude-code", "claude", p)
 	}
 	path, err := ClaudeSettingsPath()

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
 	"gopkg.in/yaml.v3"
@@ -43,7 +43,7 @@ func TestHermesApplyCodexProxyPinsModelDefault(t *testing.T) {
 	proxyBase := provider.BuildProxyIngressBaseURL(27483, provider.CodexProviderID, "gpt-5.4", "openai-responses")
 	p := profile.Profile{
 		Name:                   "@model:Codex Subscription/gpt-5.4",
-		CLI:                    clikind.Hermes,
+		CLI:                    agentkind.Hermes,
 		Kind:                   "subscription",
 		SubscriptionProviderID: provider.CodexProviderID,
 		BaseURL:                proxyBase,
@@ -99,7 +99,7 @@ func TestHermesApplyDirectCodexSubscriptionUsesCustomWithDefault(t *testing.T) {
 	_ = testHermesHome(t)
 	p := profile.Profile{
 		Name:                   "@model:Codex Subscription/gpt-5.4",
-		CLI:                    clikind.Hermes,
+		CLI:                    agentkind.Hermes,
 		Kind:                   "subscription",
 		SubscriptionProviderID: provider.CodexProviderID,
 		BaseURL:                "https://chatgpt.com/backend-api",

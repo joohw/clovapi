@@ -12,9 +12,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/apply"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/profile"
 	coreproxy "github.com/clovapi/switcher/internal/proxy"
 	"github.com/clovapi/switcher/internal/syslog"
@@ -82,9 +82,9 @@ func cmdProfiles() *cobra.Command {
 				}
 				if len(s.Active) > 0 {
 					fmt.Println()
-					fmt.Println("Active bindings:")
-					for cli, binding := range s.Active {
-						fmt.Printf("  %s -> %s\n", cli, binding)
+					fmt.Println("Active selections:")
+					for cli, selection := range s.Active {
+						fmt.Printf("  %s -> %s/%s\n", cli, selection.ProviderID, selection.ModelID)
 					}
 				}
 			}
@@ -226,6 +226,7 @@ func cmdSwitch() *cobra.Command {
 	var directAPIKey string
 	var directAPIStyle string
 	var bindingFlag string
+	var providerFlag string
 	var vendorFlag string
 	var modelFlag string
 	c := &cobra.Command{
@@ -246,7 +247,7 @@ func cmdSwitch() *cobra.Command {
 			}
 
 			kindStr := strings.TrimSpace(cliStr)
-			var kind clikind.Kind
+			var kind agentkind.Kind
 			if kindStr == "" {
 				k, err := promptCLIPick(sc)
 				if err != nil {
@@ -254,7 +255,7 @@ func cmdSwitch() *cobra.Command {
 				}
 				kind = k
 			} else {
-				k, err := clikind.Parse(kindStr)
+				k, err := agentkind.Parse(kindStr)
 				if err != nil {
 					return err
 				}
@@ -266,11 +267,12 @@ func cmdSwitch() *cobra.Command {
 				positional = strings.TrimSpace(args[0])
 			}
 
-			return runSwitch(sc, s, kind, resetFlag, bindingFlag, vendorFlag, modelFlag, directBaseURL, directAPIKey, modelFlag, directAPIStyle, positional)
+			return runSwitch(sc, s, kind, resetFlag, bindingFlag, providerFlag, vendorFlag, modelFlag, directBaseURL, directAPIKey, modelFlag, directAPIStyle, positional)
 		},
 	}
 	c.Flags().StringVar(&cliStr, "cli", "", "Target CLI (omit to prompt): claude-code|codex|opencode|openclaw|hermes|kimi-code")
 	c.Flags().BoolVar(&resetFlag, "reset", false, "Clear clovapi relay bindings for this CLI only (use with --cli)")
+	c.Flags().StringVar(&providerFlag, "provider", "", "Provider id (claude-code|codex|ollama|custom-api)")
 	c.Flags().StringVar(&vendorFlag, "vendor", "", "Vendor name (e.g. Codex Subscription, Custom API)")
 	c.Flags().StringVar(&modelFlag, "model", "", "Model id (with --vendor, or required with --base-url)")
 	c.Flags().StringVar(&directBaseURL, "base-url", "", "Apply a custom endpoint directly (bypasses vendor bindings)")
@@ -282,7 +284,7 @@ func cmdSwitch() *cobra.Command {
 }
 
 // promptCLIPick asks which agent CLI to target (no reset option — reset comes after selection).
-func promptCLIPick(sc *bufio.Scanner) (clikind.Kind, error) {
+func promptCLIPick(sc *bufio.Scanner) (agentkind.Kind, error) {
 	installed, notReady := apply.PartitionKindsByInstall()
 	if len(installed) > 0 {
 		fmt.Println("Choose CLI (installed on this machine):")
@@ -316,7 +318,7 @@ func promptCLIPick(sc *bufio.Scanner) (clikind.Kind, error) {
 		}
 		return installed[n-1], nil
 	}
-	return clikind.Parse(line)
+	return agentkind.Parse(line)
 }
 
 func cmdReset() *cobra.Command {
@@ -723,7 +725,7 @@ func apiStyleChoices() string {
 	return strings.Join(o, "|")
 }
 
-func styleChoices(k clikind.Kind) string {
+func styleChoices(k agentkind.Kind) string {
 	var o []string
 	for _, s := range apply.SupportedStyles(k) {
 		o = append(o, string(s))

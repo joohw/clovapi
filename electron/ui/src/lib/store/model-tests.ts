@@ -1,5 +1,5 @@
 import { MODEL_TEST_STORAGE_KEY, MODEL_TEST_VALIDITY_MS, TEST_STATUS_STORAGE_KEY } from "../constants";
-import { modelTestStatusKey, parseModelBinding } from "../helpers";
+import { modelTestStatusKey, parseModelBinding, providerIdForVendor, resolveVendorByName } from "../helpers";
 import { localeTag, t } from "../i18n";
 import { store } from "./state.svelte";
 import type { ModelTestEntry } from "../../global";
@@ -168,10 +168,12 @@ export function clearModelTest(key: string) {
 export function clearVendorModelTests(vendorName: string) {
   const key = String(vendorName || "").trim().toLowerCase();
   if (!key) return;
+  const vendor = resolveVendorByName(store.profiles, vendorName);
+  const providerId = vendor ? providerIdForVendor(vendor) : "";
   let changed = false;
   for (const testKey of Object.keys(store.modelTests)) {
     const parsed = parseModelBinding(testKey);
-    if (parsed && parsed.vendorName.toLowerCase() === key) {
+    if (parsed && (parsed.providerId === providerId || parsed.vendorName.toLowerCase() === key)) {
       delete store.modelTests[testKey];
       changed = true;
     }

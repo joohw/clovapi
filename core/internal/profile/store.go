@@ -39,10 +39,56 @@ func ensureProxyDefaults(s *Store, oldVersion int) {
 func emptyStore() *Store {
 	return &Store{
 		Version: StoreVersion,
-		Active:  map[string]string{},
+		Active:  map[string]ActiveSelection{},
 		List:    nil,
 		Proxy:   defaultProxyConfig(),
 	}
+}
+
+func (a ActiveSelection) normalized() ActiveSelection {
+	return ActiveSelection{
+		ProviderID: strings.TrimSpace(a.ProviderID),
+		ModelID:    strings.TrimSpace(a.ModelID),
+	}
+}
+
+func (a ActiveSelection) valid() bool {
+	a = a.normalized()
+	return a.ProviderID != "" && a.ModelID != ""
+}
+
+// UnmarshalJSON accepts both the v5 structured active map and the v4
+// string-shaped map used for @model:Vendor/model bindings.
+func (s *Store) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		Version int                        `json:"version"`
+		Active  map[string]json.RawMessage `json:"active"`
+		List    []Profile                  `json:"profiles"`
+		Proxy   ProxyConfig                `json:"proxy"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*s = Store{
+		Version: raw.Version,
+		Active:  map[string]ActiveSelection{},
+		List:    raw.List,
+		Proxy:   raw.Proxy,
+	}
+	for agent, payload := range raw.Active {
+		var sel ActiveSelection
+		if err := json.Unmarshal(payload, &sel); err == nil && sel.valid() {
+			s.Active[agent] = sel.normalized()
+			continue
+		}
+		var legacy string
+		if err := json.Unmarshal(payload, &legacy); err == nil {
+			if migrated, ok := s.activeSelectionFromLegacyValue(legacy); ok {
+				s.Active[agent] = migrated
+			}
+		}
+	}
+	return nil
 }
 
 // Reset clears all profiles and active bindings and persists an empty store.
@@ -74,7 +120,7 @@ func Load() (*Store, error) {
 		s.Version = StoreVersion
 	}
 	if s.Active == nil {
-		s.Active = map[string]string{}
+		s.Active = map[string]ActiveSelection{}
 	}
 	ensureProxyDefaults(&s, oldVersion)
 	return &s, nil
@@ -129,7 +175,7 @@ func Save(s *Store) error {
 		s.Version = StoreVersion
 	}
 	if s.Active == nil {
-		s.Active = map[string]string{}
+		s.Active = map[string]ActiveSelection{}
 	}
 	ensureProxyDefaults(s, s.Version)
 	p, err := cfgpkg.ProfilesPath()
@@ -169,8 +215,8 @@ func (s *Store) LogSavedMessage() string {
 			vendors++
 		}
 	}
-	for _, binding := range s.Active {
-		if strings.TrimSpace(binding) != "" {
+	for _, sel := range s.Active {
+		if sel.valid() {
 			bindings++
 		}
 	}
@@ -186,10 +232,10 @@ func (s *Store) LogSummary() string {
 		}
 	}
 	parts := make([]string, 0, len(s.Active))
-	for cli, binding := range s.Active {
-		value := strings.TrimSpace(binding)
-		if value != "" {
-			parts = append(parts, fmt.Sprintf("%s=%s", cli, value))
+	for cli, sel := range s.Active {
+		sel = sel.normalized()
+		if sel.valid() {
+			parts = append(parts, fmt.Sprintf("%s=%s/%s", cli, sel.ProviderID, sel.ModelID))
 		}
 	}
 	activeSummary := "none"
@@ -235,20 +281,25 @@ func (s *Store) Remove(name string) bool {
 	if i < 0 {
 		return false
 	}
+	removed := s.List[i]
 	s.List = slices.Delete(s.List, i, i+1)
+	providerID := ProviderIDFromStoreProfile(removed)
 	for k, v := range s.Active {
-		if strings.EqualFold(strings.TrimSpace(v), strings.TrimSpace(name)) {
+		if strings.TrimSpace(providerID) != "" && strings.EqualFold(strings.TrimSpace(v.ProviderID), providerID) {
 			delete(s.Active, k)
 		}
 	}
 	return true
 }
 
-func (s *Store) SetActive(cli string, profileName string) {
+func (s *Store) SetActive(cli string, providerID string, modelID string) {
 	if s.Active == nil {
-		s.Active = map[string]string{}
+		s.Active = map[string]ActiveSelection{}
 	}
-	s.Active[cli] = profileName
+	sel := ActiveSelection{ProviderID: providerID, ModelID: modelID}.normalized()
+	if sel.valid() {
+		s.Active[cli] = sel
+	}
 }
 
 // ClearActive removes the saved active profile binding for this CLI kind (e.g. after reset-default).

@@ -45,9 +45,10 @@ var (
 	ErrSubscriptionUpstreamNotReady = errors.New("subscription credentials missing or expired")
 )
 
-// IngressContext captures normalized styles and binding upstream metadata for debugging.
+// IngressContext captures normalized styles and upstream metadata for debugging.
 type IngressContext struct {
-	Binding                string         `json:"binding"`
+	ProviderID             string         `json:"provider_id"`
+	ModelID                string         `json:"model_id"`
 	IngressStyle           apistyle.Style `json:"ingress_style,omitempty"`
 	EgressStyle            apistyle.Style `json:"egress_style,omitempty"`
 	PathSuffix             string         `json:"path_suffix"`  // upstream suffix after gateway adds /v1 (e.g. /messages)
@@ -100,19 +101,17 @@ func ResolveIngressContext(store *profile.Store, providerID, modelID, ingressAPI
 	if !provider.IsFixedProviderID(providerID) {
 		return out, fmt.Errorf("unsupported provider id")
 	}
-	binding := provider.ModelBindingForProvider(providerID, modelID)
-	if strings.TrimSpace(binding) == "" {
-		return out, fmt.Errorf("could not derive model binding for provider")
-	}
+	providerID = strings.TrimSpace(providerID)
+	modelID = strings.TrimSpace(modelID)
 
 	ingress, err := apistyle.Parse(ingressAPIStr)
 	if err != nil {
 		return out, err
 	}
 
-	flat, ok := store.ProfileForModelBinding(binding)
+	flat, ok := store.FlatProfileForProviderModel(providerID, modelID)
 	if !ok {
-		return out, fmt.Errorf("model binding not resolved in profiles store")
+		return out, fmt.Errorf("provider/model not resolved in profiles store")
 	}
 	kind := strings.ToLower(strings.TrimSpace(flat.Kind))
 	if kind == "subscription" {
@@ -129,7 +128,7 @@ func ResolveIngressContext(store *profile.Store, providerID, modelID, ingressAPI
 
 	effModel := strings.TrimSpace(flat.Model)
 	if effModel == "" {
-		return out, fmt.Errorf("upstream model missing after resolving binding")
+		return out, fmt.Errorf("upstream model missing after resolving provider/model")
 	}
 	baseNorm := NormalizeBaseURL(flat.BaseURL)
 	egress := flat.APIStyle
@@ -141,7 +140,8 @@ func ResolveIngressContext(store *profile.Store, providerID, modelID, ingressAPI
 	}
 
 	out = IngressContext{
-		Binding:                binding,
+		ProviderID:             providerID,
+		ModelID:                modelID,
 		IngressStyle:           ingress,
 		EgressStyle:            egress,
 		PathSuffix:             pathSuffix,
@@ -166,8 +166,6 @@ func sourceFromProfile(p *profile.Profile) string {
 		return "subscription:" + sp
 	case k == "local" && lp != "":
 		return "local:" + lp
-	case strings.HasPrefix(name, "@model:"):
-		return "binding"
 	default:
 		return "profile:" + name
 	}

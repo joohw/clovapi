@@ -1,11 +1,11 @@
 package profile
 
 import (
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/clikind"
 )
 
-const StoreVersion = 4
+const StoreVersion = 5
 
 // Profile is one saved upstream binding (API surface + endpoint + credentials).
 // The simple top-level fields preserve the original CLI profile shape; Kind/Models
@@ -16,13 +16,22 @@ type Profile struct {
 	LocalProvider          string         `json:"local_provider,omitempty"`
 	SubscriptionProviderID string         `json:"subscription_provider_id,omitempty"`
 	ModelAdapter           string         `json:"model_adapter,omitempty"`
-	CLI                    clikind.Kind   `json:"cli,omitempty"`
+	CLI                    agentkind.Kind `json:"cli,omitempty"`
 	APIStyle               apistyle.Style `json:"api_style"`
 	BaseURL                string         `json:"base_url"`
 	APIKey                 string         `json:"api_key"`
 	AccountID              string         `json:"account_id,omitempty"` // ChatGPT account id for Codex subscription upstream
-	Model                  string         `json:"model,omitempty"` // required for new profiles; used for probes and agent defaults
+	Model                  string         `json:"model,omitempty"`      // required for new profiles; used for probes and agent defaults
 	Models                 []Model        `json:"models,omitempty"`
+	UsageQuery             *UsageQuery    `json:"usage_query,omitempty"`
+}
+
+// UsageQuery configures optional upstream quota/balance polling for API vendors.
+// TemplateType follows cc-switch usage_script.template_type: auto, balance, token_plan.
+type UsageQuery struct {
+	Enabled          bool   `json:"enabled,omitempty"`
+	TemplateType     string `json:"template_type,omitempty"`
+	AutoIntervalMins int    `json:"auto_interval_minutes,omitempty"`
 }
 
 // Model is a desktop-compatible model entry nested under a vendor profile.
@@ -42,10 +51,16 @@ type ProxyConfig struct {
 	Port    int    `json:"port"`
 }
 
+// ActiveSelection is the persisted provider/model selected for one local agent.
+type ActiveSelection struct {
+	ProviderID string `json:"provider_id"`
+	ModelID    string `json:"model_id"`
+}
+
 // Store is persisted JSON.
 type Store struct {
-	Version int               `json:"version"`
-	Active  map[string]string `json:"active"`   // cli kind -> active profile/model binding
-	List    []Profile         `json:"profiles"` // all saved vendor/API profiles
-	Proxy   ProxyConfig       `json:"proxy"`
+	Version int                        `json:"version"`
+	Active  map[string]ActiveSelection `json:"active"`   // agent kind -> active provider/model
+	List    []Profile                  `json:"profiles"` // all saved vendor/API profiles
+	Proxy   ProxyConfig                `json:"proxy"`
 }

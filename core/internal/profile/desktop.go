@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/clikind"
 	"github.com/clovapi/switcher/internal/provider"
 )
 
@@ -145,7 +145,26 @@ func NormalizeVendorProfile(p Profile, index int) Profile {
 		APIKey:                 p.APIKey,
 		Model:                  aggregateModel,
 		Models:                 models,
+		UsageQuery:             normalizeUsageQuery(p.UsageQuery, kind),
 	}
+}
+
+func normalizeUsageQuery(q *UsageQuery, kind string) *UsageQuery {
+	if strings.ToLower(strings.TrimSpace(kind)) != "api" {
+		return nil
+	}
+	if q == nil {
+		return &UsageQuery{Enabled: true, TemplateType: "auto"}
+	}
+	out := &UsageQuery{
+		Enabled:          q.Enabled,
+		TemplateType:     strings.ToLower(strings.TrimSpace(q.TemplateType)),
+		AutoIntervalMins: q.AutoIntervalMins,
+	}
+	if out.TemplateType == "" {
+		out.TemplateType = "auto"
+	}
+	return out
 }
 
 func isLocalProxyStubProfileName(name string) bool {
@@ -225,6 +244,51 @@ func ParseModelBinding(binding string) (vendorName, modelID string, ok bool) {
 		return "", "", false
 	}
 	return rest[:slash], rest[slash+1:], true
+}
+
+func (s *Store) activeSelectionFromLegacyValue(value string) (ActiveSelection, bool) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ActiveSelection{}, false
+	}
+	if vendorName, modelID, ok := ParseModelBinding(value); ok {
+		hit, found := FindVendorModel(s, vendorName, modelID)
+		if !found {
+			return ActiveSelection{}, false
+		}
+		providerID := ProviderIDFromStoreProfile(hit.Vendor)
+		if providerID == "" {
+			return ActiveSelection{}, false
+		}
+		return ActiveSelection{ProviderID: providerID, ModelID: strings.TrimSpace(hit.Model.ID)}.normalized(), true
+	}
+	if p, ok := s.Get(value); ok {
+		providerID := ProviderIDFromStoreProfile(p)
+		modelID := strings.TrimSpace(p.Model)
+		if modelID == "" && len(p.Models) > 0 {
+			modelID = strings.TrimSpace(p.Models[0].ID)
+		}
+		sel := ActiveSelection{ProviderID: providerID, ModelID: modelID}.normalized()
+		return sel, sel.valid()
+	}
+	return ActiveSelection{}, false
+}
+
+// ActiveSelectionFromLegacyValue converts old profile/binding strings for
+// deprecated command inputs.
+func (s *Store) ActiveSelectionFromLegacyValue(value string) (ActiveSelection, bool) {
+	return s.activeSelectionFromLegacyValue(value)
+}
+
+// LegacyBindingForSelection renders an old @model string for deprecated CLI
+// inputs and status displays.
+func LegacyBindingForSelection(sel ActiveSelection) string {
+	def := provider.DefinitionByID(strings.TrimSpace(sel.ProviderID))
+	modelID := strings.TrimSpace(sel.ModelID)
+	if def.VendorName == "" || modelID == "" {
+		return ""
+	}
+	return ModelBindingPrefix + def.VendorName + "/" + modelID
 }
 
 type VendorModelHit struct {
@@ -387,6 +451,35 @@ func FindVendorModel(s *Store, vendorName, modelID string) (VendorModelHit, bool
 	return VendorModelHit{}, false
 }
 
+// FindProviderModel resolves a fixed provider/model pair without going through
+// @model binding strings.
+func FindProviderModel(s *Store, providerID, modelID string) (VendorModelHit, bool) {
+	if s == nil {
+		return VendorModelHit{}, false
+	}
+	providerID = strings.TrimSpace(providerID)
+	modelID = strings.TrimSpace(modelID)
+	if providerID == "" || modelID == "" {
+		return VendorModelHit{}, false
+	}
+	for _, p := range s.List {
+		if ProviderIDFromStoreProfile(p) != providerID {
+			continue
+		}
+		if hit, ok := FindVendorModel(s, p.Name, modelID); ok {
+			return hit, true
+		}
+		if strings.EqualFold(modelID, "default") && len(p.Models) > 0 {
+			return VendorModelHit{Vendor: p, Model: NormalizeModelEntry(p.Models[0], 0)}, true
+		}
+	}
+	def := provider.DefinitionByID(providerID)
+	if def.ID == "" {
+		return VendorModelHit{}, false
+	}
+	return FindVendorModel(s, def.VendorName, modelID)
+}
+
 // MergeVendorModels merges fetched models into existing vendor models by id.
 func MergeVendorModels(existing, fetched []Model) []Model {
 	type key struct {
@@ -459,20 +552,11 @@ func pruneStaleBuiltinVendors(s *Store) bool {
 }
 
 func renameActiveBindings(s *Store, oldName, newName string) {
-	if s == nil || s.Active == nil {
-		return
-	}
-	oldKey := strings.ToLower(strings.TrimSpace(oldName))
-	next := strings.TrimSpace(newName)
-	if oldKey == "" || next == "" {
-		return
-	}
-	for cli, activeName := range s.Active {
-		vendorName, modelID, ok := ParseModelBinding(activeName)
-		if ok && strings.EqualFold(vendorName, oldName) {
-			s.Active[cli] = ModelBindingPrefix + next + "/" + modelID
-		}
-	}
+	// Active selections are keyed by provider id, so vendor display renames no
+	// longer require rewriting persisted state. The function remains to keep the
+	// normalization call sites readable while old binding migration lives in
+	// Store.UnmarshalJSON.
+	_, _, _ = s, oldName, newName
 }
 
 func ensureDefaultSubscriptionVendors(s *Store) bool {
@@ -551,9 +635,8 @@ func pruneOllamaBuiltinPlaceholderModels(s *Store) bool {
 	for _, raw := range profile.Models {
 		entry := NormalizeModelEntry(raw, 0)
 		if isOllamaBuiltinPlaceholderModel(entry) {
-			binding := ModelBindingPrefix + OllamaProfileName + "/" + entry.ID
-			for cli, activeName := range s.Active {
-				if activeName == binding {
+			for cli, active := range s.Active {
+				if active.ProviderID == provider.OllamaProviderID && strings.EqualFold(active.ModelID, entry.ID) {
 					delete(s.Active, cli)
 				}
 			}
@@ -728,36 +811,30 @@ func EnsureDefaultOllamaProfile(s *Store) bool {
 	return changed
 }
 
-// SanitizeActiveBindings removes stale __local_proxy_* and invalid @model bindings.
+// SanitizeActiveBindings removes stale or invalid active provider/model selections.
 func SanitizeActiveBindings(s *Store) bool {
 	if s == nil {
 		return false
 	}
 	if s.Active == nil {
-		s.Active = map[string]string{}
+		s.Active = map[string]ActiveSelection{}
 		return false
 	}
 	changed := false
-	for cli, activeName := range map[string]string(s.Active) {
-		value := strings.TrimSpace(activeName)
-		if value == "" {
+	for cli, active := range s.Active {
+		active = active.normalized()
+		if !active.valid() {
 			delete(s.Active, cli)
 			changed = true
 			continue
 		}
-		if isLocalProxyStubActiveValue(value) || !strings.HasPrefix(value, ModelBindingPrefix) {
+		if _, ok := FindProviderModel(s, active.ProviderID, active.ModelID); !ok {
 			delete(s.Active, cli)
 			changed = true
 			continue
 		}
-		vendorName, modelID, ok := ParseModelBinding(value)
-		if !ok {
-			delete(s.Active, cli)
-			changed = true
-			continue
-		}
-		if _, ok := FindVendorModel(s, vendorName, modelID); !ok {
-			delete(s.Active, cli)
+		if active != s.Active[cli] {
+			s.Active[cli] = active
 			changed = true
 		}
 	}
@@ -798,7 +875,7 @@ func NormalizeDesktopStore(s *Store) *Store {
 		s.Version = StoreVersion
 	}
 	if s.Active == nil {
-		s.Active = map[string]string{}
+		s.Active = map[string]ActiveSelection{}
 	}
 	ensureProxyDefaults(s, s.Version)
 	normalized := make([]Profile, len(s.List))
@@ -848,13 +925,13 @@ var ingressStylePriority = []apistyle.Style{
 	apistyle.Gemini,
 }
 
-func ingressStylesForCLI(kind clikind.Kind) []apistyle.Style {
+func ingressStylesForCLI(kind agentkind.Kind) []apistyle.Style {
 	switch kind {
-	case clikind.ClaudeCode:
+	case agentkind.ClaudeCode:
 		return []apistyle.Style{apistyle.Claude}
-	case clikind.Codex:
+	case agentkind.Codex:
 		return []apistyle.Style{apistyle.OpenAIResponses}
-	case clikind.Hermes, clikind.KimiCode, clikind.OpenCode, clikind.OpenClaw:
+	case agentkind.Hermes, agentkind.KimiCode, agentkind.OpenCode, agentkind.OpenClaw:
 		return []apistyle.Style{apistyle.Claude, apistyle.OpenAIResponses, apistyle.OpenAIChat, apistyle.Gemini}
 	default:
 		return []apistyle.Style{apistyle.OpenAIChat}
@@ -883,14 +960,14 @@ func pickPreferredIngressStyle(supported []apistyle.Style) apistyle.Style {
 }
 
 // CliIngressStyle returns the default API style segment for local proxy ingress paths.
-func CliIngressStyle(kind clikind.Kind) apistyle.Style {
+func CliIngressStyle(kind agentkind.Kind) apistyle.Style {
 	return pickPreferredIngressStyle(ingressStylesForCLI(kind))
 }
 
 // IngressStyleForCLI picks proxy ingress style from CLI kind and vendor/model wire style.
 // Priority: messages (claude) → responses → chat; gemini only when upstream is gemini.
 // Hermes + Codex uses responses (Hermes api_mode codex_responses).
-func IngressStyleForCLI(kind clikind.Kind, hit VendorModelHit) apistyle.Style {
+func IngressStyleForCLI(kind agentkind.Kind, hit VendorModelHit) apistyle.Style {
 	supported := ingressStylesForCLI(kind)
 	if len(supported) == 1 {
 		return supported[0]
@@ -899,7 +976,7 @@ func IngressStyleForCLI(kind clikind.Kind, hit VendorModelHit) apistyle.Style {
 	modelStyle := firstStyle(hit.Model.APIStyle, hit.Vendor.APIStyle)
 	providerID := ProviderIDFromStoreProfile(hit.Vendor)
 
-	if kind == clikind.Hermes && providerID == provider.CodexProviderID {
+	if kind == agentkind.Hermes && providerID == provider.CodexProviderID {
 		if ingressStyleSupported(supported, apistyle.OpenAIResponses) {
 			return apistyle.OpenAIResponses
 		}

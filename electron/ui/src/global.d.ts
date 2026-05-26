@@ -44,11 +44,12 @@ type ProfilesBridge = {
   load(): Promise<ProfilesLoadResult>;
   save(payload: {
     profiles: Vendor[];
-    active: Record<string, string>;
+    active: Record<string, ActiveSelection>;
     proxy?: ProxyConfig;
   }): Promise<ProfilesSaveResult>;
   test(payload: string | ProfileTestPayload): Promise<ProfileTestResult>;
   listModels(vendorName: string): Promise<ListVendorModelsResult>;
+  queryUsage(vendorName: string): Promise<VendorUsageResult>;
   modelAdapters(): Promise<ModelAdaptersResult>;
 };
 
@@ -150,7 +151,7 @@ type ProfilesLoadResult = {
   ok?: boolean;
   error?: string;
   profiles?: Vendor[];
-  active?: Record<string, string>;
+  active?: Record<string, ActiveSelection>;
   proxy?: ProxyConfig;
   path?: string;
 };
@@ -186,6 +187,13 @@ export type ModelTestEntry = {
   detail: string;
   /** Unix timestamp (ms) when the test finished; used for 3h validity */
   testedAt?: number;
+};
+
+export type ActiveSelection = {
+  provider_id?: string;
+  model_id?: string;
+  providerId?: string;
+  modelId?: string;
 };
 
 export type ModelAdapterId = "manual" | "openai-compatible" | "ollama" | "subscription";
@@ -224,6 +232,37 @@ export type VendorModel = {
   apiKey?: string;
 };
 
+export type VendorUsageQuery = {
+  enabled?: boolean;
+  templateType?: string;
+  autoIntervalMinutes?: number;
+};
+
+export type VendorUsageData = {
+  planName?: string;
+  extra?: string;
+  isValid?: boolean;
+  invalidMessage?: string;
+  total?: number;
+  used?: number;
+  remaining?: number;
+  unit?: string;
+};
+
+export type VendorUsageResult = {
+  ok?: boolean;
+  vendor?: string;
+  templateType?: string;
+  usage?: {
+    success?: boolean;
+    kind?: string;
+    data?: VendorUsageData[];
+    tiers?: { name: string; utilization: number; resetsAt?: string }[];
+    error?: string;
+  };
+  error?: string;
+};
+
 /** 供应商：远程 API（api）、本地 Ollama（local）、官方订阅（subscription） */
 export type Vendor = {
   name: string;
@@ -234,6 +273,7 @@ export type Vendor = {
   baseUrl: string;
   apiKey: string;
   cli: string;
+  usageQuery?: VendorUsageQuery;
   models: VendorModel[];
 };
 
@@ -259,10 +299,14 @@ export type SubscriptionVendorRow = SubscriptionItem & {
 };
 
 type ProfileTestPayload = {
-  binding: string;
+  binding?: string;
+  provider?: string;
+  provider_id?: string;
+  model?: string;
+  model_id?: string;
   cli?: string;
   vendors?: Vendor[];
-  active?: Record<string, string>;
+  active?: Record<string, ActiveSelection>;
   proxy?: ProxyConfig;
 };
 

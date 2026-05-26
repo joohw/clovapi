@@ -137,6 +137,16 @@ jobs:
           cache: npm
           cache-dependency-path: electron/package-lock.json
 
+      - name: Setup Python
+        if: steps.r2_gate.outputs.publish == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install icon build dependencies
+        if: steps.r2_gate.outputs.publish == 'true'
+        run: pip install pillow
+
       - name: Sync desktop version from tag
         if: steps.r2_gate.outputs.publish == 'true'
         env:
@@ -149,12 +159,6 @@ jobs:
         run: |
           npm ci
           npm run build:mac
-
-      - name: Setup Python
-        if: steps.r2_gate.outputs.publish == 'true'
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
 
       - name: Install awscli
         if: steps.r2_gate.outputs.publish == 'true'

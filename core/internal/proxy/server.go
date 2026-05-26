@@ -120,13 +120,47 @@ func (s *Server) handleDebugSystemLog(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDebugCallLog(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet, http.MethodHead:
-		writeJSON(w, http.StatusOK, map[string]any{"entries": s.CallLogs.List()})
+		limit := queryIntDefault(r, "limit", 20)
+		offset := queryIntDefault(r, "offset", 0)
+		if limit < 1 {
+			limit = 20
+		}
+		if offset < 0 {
+			offset = 0
+		}
+		entries := s.CallLogs.ListRecentPage(limit+1, offset)
+		hasMore := len(entries) > limit
+		if hasMore {
+			entries = entries[:limit]
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"entries":  entries,
+			"limit":    limit,
+			"offset":   offset,
+			"hasMore":  hasMore,
+			"sessions": s.CallLogs.ListSessions(100),
+		})
 	case http.MethodDelete:
 		s.CallLogs.Clear()
 		writeJSON(w, http.StatusOK, map[string]string{"ok": "cleared"})
 	default:
 		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "GET or DELETE only"})
 	}
+}
+
+func queryIntDefault(r *http.Request, key string, def int) int {
+	if r == nil {
+		return def
+	}
+	raw := strings.TrimSpace(r.URL.Query().Get(key))
+	if raw == "" {
+		return def
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil {
+		return def
+	}
+	return n
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -385,6 +419,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	upReq.Header.Set("Content-Type", "application/json")
 	upReq.Header.Set("Content-Length", strconv.Itoa(len(upJSON)))
 	upReq.Header.Set("Accept-Encoding", "identity")
+	trace.setUpstreamRequestHeaders(upReq)
 
 	upResp, err := s.upstreamHTTP().Do(upReq)
 	if err != nil {

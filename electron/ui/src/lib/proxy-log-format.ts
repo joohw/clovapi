@@ -42,21 +42,21 @@ export function proxyLogUpstreamRequestLine(entry: ProxyLogEntry): string {
 }
 
 export function proxyLogOverviewText(entry: ProxyLogEntry): string {
-  const inboundHeaders = proxyLogHeaderText(entry.request?.headers || {});
-  const upstreamHeaders = proxyLogHeaderText(entry.upstream?.headers || {});
   const status = entry.upstream?.status ? String(entry.upstream.status) : "(pending)";
-  return [
-    t("callLogs.inboundSection"),
-    proxyLogInboundRequestLine(entry),
-    "",
-    inboundHeaders,
-    "",
-    t("callLogs.upstreamSection"),
-    `HTTP ${status}`,
-    proxyLogUpstreamRequestLine(entry),
-    "",
-    upstreamHeaders,
-  ].join("\n");
+  const session = String(entry.session || entry.sessionId || "").trim() || t("common.none");
+  const usage = proxyLogTokenUsageText(entry.upstream?.body || "");
+  const rows = [
+    `${t("callLogs.overviewResult")}: ${proxyLogSummary(entry)}`,
+    `${t("callLogs.overviewSession")}: ${session}`,
+    `${t("callLogs.overviewTokens")}: ${usage}`,
+    `${t("callLogs.overviewInbound")}: ${proxyLogInboundRequestLine(entry)}`,
+    `${t("callLogs.overviewUpstream")}: ${proxyLogUpstreamRequestLine(entry) || t("common.none")}`,
+    `${t("callLogs.overviewStatus")}: HTTP ${status}`,
+  ];
+  if (entry.error) {
+    rows.push(`${t("callLogs.proxyError")}: ${entry.error}`);
+  }
+  return rows.join("\n");
 }
 
 export function proxyLogInboundRequestText(entry: ProxyLogEntry): string {
@@ -81,6 +81,79 @@ export function proxyLogHeaderText(headers: Record<string, string>): string {
   const entries = Object.entries(headers || {});
   if (!entries.length) return t("common.none");
   return entries.map(([key, value]) => `${key}: ${value}`).join("\n");
+}
+
+export function proxyLogTokenUsageText(body: string): string {
+  const usage = extractProxyLogTokenUsage(body);
+  if (!usage) return t("common.none");
+  const parts = [];
+  if (usage.inputTokens != null) parts.push(`${t("callLogs.inputTokens")}: ${usage.inputTokens}`);
+  if (usage.outputTokens != null) parts.push(`${t("callLogs.outputTokens")}: ${usage.outputTokens}`);
+  if (usage.cacheReadTokens != null) parts.push(`${t("callLogs.cacheReadTokens")}: ${usage.cacheReadTokens}`);
+  if (usage.cacheCreationTokens != null) {
+    parts.push(`${t("callLogs.cacheCreationTokens")}: ${usage.cacheCreationTokens}`);
+  }
+  return parts.length ? parts.join(" · ") : t("common.none");
+}
+
+type TokenUsage = {
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheReadTokens?: number;
+  cacheCreationTokens?: number;
+};
+
+function extractProxyLogTokenUsage(body: string): TokenUsage | null {
+  const text = String(body || "").trim();
+  if (!text) return null;
+  const usage: TokenUsage = {};
+  for (const payload of usagePayloadsFromBody(text)) {
+    if (!payload || typeof payload !== "object") continue;
+    const record = payload as Record<string, unknown>;
+    mergeUsage(usage, record.usage);
+    const message = record.message;
+    if (message && typeof message === "object") {
+      mergeUsage(usage, (message as Record<string, unknown>).usage);
+    }
+  }
+  return Object.keys(usage).length ? usage : null;
+}
+
+function usagePayloadsFromBody(text: string): unknown[] {
+  const payloads: unknown[] = [];
+  if (text.startsWith("{")) {
+    try {
+      payloads.push(JSON.parse(text));
+    } catch {
+      /* ignore malformed body */
+    }
+  }
+  for (const line of text.split(/\r?\n/)) {
+    const match = line.match(/^data:\s*(.+)$/);
+    if (!match || match[1] === "[DONE]") continue;
+    try {
+      payloads.push(JSON.parse(match[1]));
+    } catch {
+      /* ignore non-JSON SSE payloads */
+    }
+  }
+  return payloads;
+}
+
+function mergeUsage(target: TokenUsage, raw: unknown) {
+  if (!raw || typeof raw !== "object") return;
+  const usage = raw as Record<string, unknown>;
+  assignNumber(target, "inputTokens", usage.input_tokens);
+  assignNumber(target, "outputTokens", usage.output_tokens);
+  assignNumber(target, "cacheReadTokens", usage.cache_read_input_tokens);
+  assignNumber(target, "cacheCreationTokens", usage.cache_creation_input_tokens);
+}
+
+function assignNumber(target: TokenUsage, key: keyof TokenUsage, value: unknown) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return;
+  if (target[key] == null || value > Number(target[key])) {
+    target[key] = value;
+  }
 }
 
 export function proxyLogBodyText(body: string): string {

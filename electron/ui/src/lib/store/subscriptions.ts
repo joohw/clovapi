@@ -3,6 +3,7 @@ import {
   isSubscriptionBinding,
   modelBindingValue,
   normalizeVendor,
+  subscriptionIsUsable,
   subscriptionProviderFromBinding,
   subscriptionProviderIdsForCli,
 } from "../helpers";
@@ -61,10 +62,11 @@ export async function runSubscriptionLogin(providerId: string) {
   await refreshSubscriptions();
 
   if (result?.ok) {
+    const status = subscriptionStatusForProvider(providerId);
     const vendor = getSubscriptionVendors(store.profiles).find(
       (item) => item.subscriptionProviderId === providerId,
     );
-    if (vendor?.name) {
+    if (vendor?.name && subscriptionIsUsable(status)) {
       await fetchVendorModels(vendor.name);
     }
     return;
@@ -75,7 +77,7 @@ export async function runSubscriptionLogin(providerId: string) {
 
 export async function runSubscriptionTest(providerId: string) {
   const sub = subscriptionStatusForProvider(providerId);
-  if (!sub?.loggedIn) {
+  if (!subscriptionIsUsable(sub)) {
     toast.warning(t("toast.loginBeforeTest"));
     return;
   }

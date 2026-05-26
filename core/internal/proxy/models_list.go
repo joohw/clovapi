@@ -65,6 +65,7 @@ func (s *Server) forwardCodexModelsList(w http.ResponseWriter, r *http.Request, 
 	}
 	upReq.Header.Set("Accept", "application/json")
 	upReq.Header.Set("Accept-Encoding", "identity")
+	trace.setUpstreamRequestHeaders(upReq)
 
 	upResp, err := s.upstreamHTTP().Do(upReq)
 	if err != nil {

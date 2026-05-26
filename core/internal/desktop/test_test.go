@@ -34,3 +34,16 @@ func TestProxyHealthURLBracketsIPv6(t *testing.T) {
 		t.Fatalf("proxyHealthURL = %q, want %q", got, want)
 	}
 }
+
+func TestClaudeSubscriptionActiveRequiresPaidPlan(t *testing.T) {
+	if providerSubscriptionActive("claude-code", true, map[string]any{
+		"claudeAiOauth": map[string]any{"subscriptionType": "Free"},
+	}) {
+		t.Fatalf("free Claude account should not be active")
+	}
+	if !providerSubscriptionActive("claude-code", true, map[string]any{
+		"claudeAiOauth": map[string]any{"subscriptionType": "Max"},
+	}) {
+		t.Fatalf("paid Claude account should be active")
+	}
+}

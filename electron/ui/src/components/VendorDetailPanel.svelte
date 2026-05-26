@@ -8,6 +8,7 @@
     isDefaultCustomApiProfile,
     isOllamaVendor,
     providerIdForVendor,
+    subscriptionIsUsable,
     vendorKindLabel,
   } from "../lib/helpers";
   import { OLLAMA_PROFILE_NAME } from "../lib/constants";
@@ -47,6 +48,10 @@
   const logging = $derived(
     vendor.kind === "subscription" ? isSubscriptionLogging(vendor.subscriptionProviderId) : false,
   );
+  const subscriptionUsable = $derived(
+    vendor.kind !== "subscription" || subscriptionIsUsable(subscription),
+  );
+  const visibleModels = $derived(subscriptionUsable ? vendor.models || [] : []);
 
   const copy = $derived.by(() => {
     void i18n.locale;
@@ -66,6 +71,7 @@
       testConnectivity: t("subscription.testConnectivity"),
       emptyCustom: t("vendorDetail.emptyCustom"),
       emptySubscriptionNeedLogin: t("vendorDetail.emptySubscriptionNeedLogin"),
+      emptySubscriptionUnavailable: t("vendorDetail.emptySubscriptionUnavailable"),
       emptySubscription: t("vendorDetail.emptySubscription"),
       emptyMixed: t("vendorDetail.emptyMixed"),
       installed: t("vendorDetail.installed"),
@@ -140,7 +146,7 @@
       <Button
         size="sm"
         variant="outline"
-        disabled={store.running || isVendorFetching(vendor.name)}
+        disabled={store.running || isVendorFetching(vendor.name) || !subscriptionUsable}
         onclick={() => void fetchVendorModels(vendor.name)}
       >
         {isVendorFetching(vendor.name) ? copy.fetching : copy.fetchModels}
@@ -177,13 +183,13 @@
       </Button>
     {/if}
   {/snippet}
-  {#if !vendor.models?.length}
+  {#if !visibleModels.length}
     <p class="px-4 py-6 text-center text-sm text-muted-foreground">
       {#if isCustomApi}
         {copy.emptyCustom}
       {:else if !canManuallyManageVendorModels(vendor)}
-        {#if vendor.kind === "subscription" && subscription && !subscription.loggedIn && !logging}
-          {copy.emptySubscriptionNeedLogin}
+        {#if vendor.kind === "subscription" && subscription && !subscriptionUsable && !logging}
+          {subscription.loggedIn ? copy.emptySubscriptionUnavailable : copy.emptySubscriptionNeedLogin}
         {:else}
           {copy.emptySubscription}
         {/if}
@@ -192,7 +198,7 @@
       {/if}
     </p>
   {:else}
-    {#each vendor.models as model (model.id)}
+    {#each visibleModels as model (model.id)}
       {@const binding = modelBindingValue(providerIdForVendor(vendor), model.id)}
       {@const testKey = modelTestStatusKey(binding)}
       {@const test = modelTestUi(binding)}
@@ -218,8 +224,8 @@
           <Button
             size="sm"
             variant="outline"
-            disabled={store.running || testing || (vendor.kind === "subscription" && (!subscription?.loggedIn || logging))}
-            title={vendor.kind === "subscription" && !subscription?.loggedIn ? copy.loginFirst : copy.testConnectivity}
+            disabled={store.running || testing || (vendor.kind === "subscription" && (!subscriptionUsable || logging))}
+            title={vendor.kind === "subscription" && !subscriptionUsable ? copy.loginFirst : copy.testConnectivity}
             onclick={() => void runModelTest(binding)}
           >
             {testing ? copy.testing : copy.test}

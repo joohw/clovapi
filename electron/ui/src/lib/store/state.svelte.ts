@@ -1,7 +1,7 @@
 import { DEFAULT_CLIS, FIXED_PROVIDER_IDS } from "../constants";
-import type { ActiveSelection, CliDef, ModelAdapterDef, ModelTestEntry, ProxyLogEntry, ProxySystemLogEntry, ProviderDef, SubscriptionItem, Vendor } from "../../global";
+import type { ActiveSelection, CliDef, ModelAdapterDef, ModelTestEntry, ProxyLogEntry, ProxyLogSession, ProxySystemLogEntry, ProviderDef, SubscriptionItem, Vendor } from "../../global";
 
-export type TabId = "cli" | "profiles" | "call-logs" | "system-logs" | "settings";
+export type TabId = "cli" | "profiles" | "call-logs" | "sessions" | "system-logs" | "settings";
 
 export const store = $state({
   activeTab: "cli" as TabId,
@@ -43,9 +43,14 @@ export const store = $state({
   coreUpdating: false,
   coreUpdateCheck: null as import("../../global").ModelTestEntry | null,
   proxyLogs: [] as ProxyLogEntry[],
+  proxyLogSessions: [] as ProxyLogSession[],
   proxySystemLogs: [] as ProxySystemLogEntry[],
   proxyLogsLoading: false,
+  proxyLogsPageSize: 20,
+  proxyLogsOffset: 0,
+  proxyLogsHasMore: false,
   proxyLogSelectedId: null as string | null,
+  proxyLogSelectedSession: null as string | null,
   proxySystemLogSelectedId: null as string | null,
   vendorFetching: {} as Record<string, boolean>,
   vendorUsage: {} as Record<string, { summary: string; rows: import("../../global").VendorUsageData[]; error: string }>,

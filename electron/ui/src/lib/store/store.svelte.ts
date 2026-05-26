@@ -31,6 +31,8 @@ export { queryVendorUsage, vendorUsageSummary, isVendorUsageLoading } from "./ve
 export {
   refreshProxyStatus,
   refreshProxyLogs,
+  nextProxyLogsPage,
+  previousProxyLogsPage,
   refreshCoreVersion,
   clearCallLogs,
   clearSystemLogs,
@@ -45,6 +47,8 @@ export {
   closeProfilesVendor,
   openProxyLog,
   closeProxyLog,
+  openProxySession,
+  closeProxySession,
   openProxySystemLog,
 } from "./navigation";
 export {

@@ -24,7 +24,7 @@ const (
 	ProviderClaudeCode = "claude-code"
 	ProviderCodex      = "codex"
 
-	claudeClientID     = "9d1c250a-e61b-44d5-88ed-5944d1962f5e"
+	claudeClientID     = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
 	claudeAuthorizeURL = "https://claude.ai/oauth/authorize"
 	claudeTokenURL     = "https://platform.claude.com/v1/oauth/token"
 	claudeProfileURL   = "https://api.anthropic.com/api/oauth/profile"

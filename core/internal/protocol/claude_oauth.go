@@ -14,7 +14,7 @@ import (
 const (
 	claudeOAuthSystemBootstrap   = "You are Claude Code, Anthropic's official CLI for Claude."
 	claudeOAuthMaxOutputTokens   = 8192
-	defaultClaudeOAuthBillingHdr = "x-anthropic-billing-header: cc_version=2.1.85.351; cc_entrypoint=cli; cch=6c6d5;"
+	defaultClaudeOAuthBillingHdr = "x-anthropic-billing-header: cc_version=2.1.126; cc_entrypoint=cli; cch=6c6d5;"
 )
 
 func claudeOAuthBillingHeader() string {
@@ -60,6 +60,39 @@ func applyClaudeOAuthBilling(payload map[string]any, systemText string) {
 		meta["user_id"] = claudeOAuthUserIDJSON()
 	}
 	payload["metadata"] = meta
+}
+
+// EncodeClaudeOAuthCompatibleRawRequest keeps Claude Messages wire fields that
+// Claude Code may rely on while still applying proxy-owned routing policy.
+func EncodeClaudeOAuthCompatibleRawRequest(body []byte, r Request) ([]byte, error) {
+	payload, err := jsonDecodeMap(body)
+	if err != nil {
+		return nil, fmt.Errorf("decode claude oauth request: %w", err)
+	}
+	payload["model"] = strings.TrimSpace(r.Model)
+	payload["stream"] = true
+
+	maxTok := 1024
+	if r.MaxTokens != nil {
+		maxTok = *r.MaxTokens
+	} else if n, ok := coerceIntPointer(payload["max_tokens"]); ok && n != nil {
+		maxTok = *n
+	}
+	if maxTok > claudeOAuthMaxOutputTokens {
+		maxTok = claudeOAuthMaxOutputTokens
+	}
+	payload["max_tokens"] = maxTok
+
+	system := CollectSystemPrompt(r)
+	system = stripClaudeOAuthBillingText(system)
+	if system != "" && !strings.Contains(system, claudeOAuthSystemBootstrap) {
+		system = claudeOAuthSystemBootstrap + "\n\n" + system
+	} else if system == "" {
+		system = claudeOAuthSystemBootstrap
+	}
+	applyClaudeOAuthBilling(payload, system)
+
+	return json.Marshal(payload)
 }
 
 func fmtString(v any) string {

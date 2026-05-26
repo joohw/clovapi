@@ -88,6 +88,40 @@ func TestShouldRecordStreamErrorIgnoresContextCanceled(t *testing.T) {
 	}
 }
 
+func TestDebugCallLogPaginatesDefaultLimit(t *testing.T) {
+	s := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	s.CallLogs = newCallLogStoreAt(t.TempDir())
+	for i := 0; i < 25; i++ {
+		s.CallLogs.Push(CallLogEntry{
+			StartedAt: "2026-01-01T00:00:" + strconv.Itoa(10+i) + "Z",
+			Request:   CallLogRequest{Method: "POST", URL: "/entry-" + strconv.Itoa(i)},
+		})
+	}
+	ts := httptest.NewServer(s.Server.Handler)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/__debug/call-log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var body struct {
+		Entries []CallLogEntry `json:"entries"`
+		Limit   int            `json:"limit"`
+		Offset  int            `json:"offset"`
+		HasMore bool           `json:"hasMore"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Limit != 20 || body.Offset != 0 || !body.HasMore {
+		t.Fatalf("pagination = limit %d offset %d hasMore %v", body.Limit, body.Offset, body.HasMore)
+	}
+	if len(body.Entries) != 20 {
+		t.Fatalf("entries len = %d, want 20", len(body.Entries))
+	}
+}
+
 func TestServerCodexModelsListProxiesOfficialShape(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/backend-api/codex/models" {

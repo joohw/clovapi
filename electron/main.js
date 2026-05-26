@@ -603,9 +603,16 @@ ipcMain.handle("proxy:stop", async () => {
   }
 });
 
-ipcMain.handle("proxy-logs:list", async () => {
+ipcMain.handle("proxy-logs:list", async (_event, payload) => {
   let system = [];
   let requests = [];
+  let sessions = [];
+  let callLogPage = {
+    limit: Math.max(1, Number(payload?.limit) || callLogsStore.DEFAULT_CALL_LOG_PAGE_SIZE || 20),
+    offset: Math.max(0, Number(payload?.offset) || 0),
+    hasMore: false,
+  };
+  let requestsLoaded = false;
   try {
     const cfg = await proxyManager.loadProxyConfig();
     const status = await proxyManager.status();
@@ -615,14 +622,26 @@ ipcMain.handle("proxy-logs:list", async () => {
       const ac = new AbortController();
       const timer = setTimeout(() => ac.abort(), 2500);
       try {
+        const callURL = new URL(`http://${host}:${port}/__debug/call-log`);
+        callURL.searchParams.set("limit", String(callLogPage.limit));
+        callURL.searchParams.set("offset", String(callLogPage.offset));
         const [callRes, systemRes] = await Promise.all([
-          fetch(`http://${host}:${port}/__debug/call-log`, { signal: ac.signal }),
+          fetch(callURL, { signal: ac.signal }),
           fetch(`http://${host}:${port}/__debug/system-log`, { signal: ac.signal }),
         ]);
         if (callRes.ok) {
           const json = await callRes.json();
           if (Array.isArray(json?.entries)) {
             requests = json.entries;
+            callLogPage = {
+              limit: Number(json.limit) || callLogPage.limit,
+              offset: Number(json.offset) || callLogPage.offset,
+              hasMore: Boolean(json.hasMore),
+            };
+            requestsLoaded = true;
+          }
+          if (Array.isArray(json?.sessions)) {
+            sessions = json.sessions;
           }
         }
         if (systemRes.ok) {
@@ -642,14 +661,21 @@ ipcMain.handle("proxy-logs:list", async () => {
   if (!system.length) {
     system = proxyLogger.listSystem();
   }
-  if (!requests.length) {
+  if (!requestsLoaded) {
     try {
-      requests = await callLogsStore.readCallLogs(200);
+      const page = await callLogsStore.readCallLogs(callLogPage);
+      requests = page.entries;
+      sessions = await callLogsStore.readCallLogSessions(100);
+      callLogPage = {
+        limit: page.limit,
+        offset: page.offset,
+        hasMore: page.hasMore,
+      };
     } catch {
       requests = [];
     }
   }
-  return { ok: true, requests, system };
+  return { ok: true, requests, sessions, system, callLogPage };
 });
 
 ipcMain.handle("proxy-logs:clear", async (_event, payload) => {

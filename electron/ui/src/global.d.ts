@@ -68,7 +68,7 @@ type ProxyBridge = {
 };
 
 type ProxyLogsBridge = {
-  list(): Promise<ProxyLogsResult>;
+  list(payload?: { limit?: number; offset?: number }): Promise<ProxyLogsResult>;
   clear(scope?: "calls" | "system" | "all"): Promise<ProxyLogsResult>;
 };
 
@@ -103,11 +103,13 @@ export type ProxyLogEntry = {
     headers: Record<string, string>;
     body: string;
   };
+  session?: string;
   sessionId?: string;
   sessionKind?: string;
   upstream: {
     method: string;
     url: string;
+    requestHeaders?: Record<string, string>;
     status: number;
     headers: Record<string, string>;
     body: string;
@@ -122,11 +124,26 @@ export type ProxySystemLogEntry = {
   message: string;
 };
 
+export type ProxyLogSession = {
+  session: string;
+  sessionId: string;
+  sessionKind: string;
+  entryCount: number;
+  lastStartedAt: string;
+  logIds: string[];
+};
+
 type ProxyLogsResult = {
   ok?: boolean;
   error?: string;
   requests?: ProxyLogEntry[];
+  sessions?: ProxyLogSession[];
   system?: ProxySystemLogEntry[];
+  callLogPage?: {
+    limit?: number;
+    offset?: number;
+    hasMore?: boolean;
+  };
 };
 
 type ProfilesLoadResult = {
@@ -200,6 +217,7 @@ export type SubscriptionItem = {
   label: string;
   installed: boolean;
   loggedIn: boolean;
+  active?: boolean;
   summary: string;
   command?: string;
 };

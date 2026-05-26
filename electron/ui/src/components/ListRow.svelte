@@ -14,6 +14,7 @@
     muted = false,
     indent = false,
     linesNowrap = false,
+    centerContent = false,
     onOpen,
     leading,
     actions,
@@ -27,6 +28,7 @@
     muted?: boolean;
     indent?: boolean;
     linesNowrap?: boolean;
+    centerContent?: boolean;
     onOpen?: () => void;
     leading?: Snippet;
     actions: Snippet;
@@ -87,7 +89,8 @@
 
 <div
   class={cn(
-    "flex flex-col gap-3 border-b border-border px-4 py-3 last:border-b-0 sm:flex-row sm:items-start sm:justify-between",
+    "flex flex-col gap-3 border-b border-border px-4 py-3 last:border-b-0 sm:flex-row sm:justify-between",
+    centerContent ? "sm:items-center" : "sm:items-start",
     muted && "bg-muted/30",
     indent && "pl-8",
     testStatus === "testing" && "bg-amber-500/5",

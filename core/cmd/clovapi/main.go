@@ -543,6 +543,7 @@ func cmdProxySyslogs() *cobra.Command {
 
 func cmdProxyLogs() *cobra.Command {
 	var limit int
+	var offset int
 	var jsonOut bool
 	var outPath string
 	var yes bool
@@ -574,9 +575,9 @@ func cmdProxyLogs() *cobra.Command {
 			store := coreproxy.NewCallLogStore()
 			var entries []coreproxy.CallLogEntry
 			if strings.TrimSpace(sessionID) != "" {
-				entries = store.ListRecentSession(limit, sessionID)
+				entries = store.ListRecentSessionPage(limit, offset, sessionID)
 			} else {
-				entries = store.ListRecent(limit)
+				entries = store.ListRecentPage(limit, offset)
 			}
 			if jsonOut {
 				data, err := json.MarshalIndent(entries, "", "  ")
@@ -607,7 +608,8 @@ func cmdProxyLogs() *cobra.Command {
 			return nil
 		},
 	}
-	listCmd.Flags().IntVar(&limit, "limit", 50, "Max entries to show (0 = all)")
+	listCmd.Flags().IntVar(&limit, "limit", 20, "Max entries to show (0 = all)")
+	listCmd.Flags().IntVar(&offset, "offset", 0, "Entries to skip before listing")
 	listCmd.Flags().BoolVar(&jsonOut, "json", false, "Output JSON")
 	listCmd.Flags().StringVar(&sessionID, "session", "", "Filter by session id (e.g. Claude Code session)")
 

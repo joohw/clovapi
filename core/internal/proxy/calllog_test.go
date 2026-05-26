@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestCallLogStorePushAndList(t *testing.T) {
@@ -24,6 +26,25 @@ func TestCallLogStorePushAndList(t *testing.T) {
 	}
 	if entries[0].ID == "" || entries[1].ID == "" {
 		t.Fatal("expected ids to be assigned")
+	}
+	if _, err := uuid.Parse(entries[0].ID); err != nil {
+		t.Fatalf("entry id is not a uuid: %q", entries[0].ID)
+	}
+}
+
+func TestCallLogStoreListRecentPage(t *testing.T) {
+	dir := t.TempDir()
+	store := newCallLogStoreAt(dir)
+	store.Push(CallLogEntry{StartedAt: "2026-01-01T00:00:01Z", Request: CallLogRequest{Method: "POST", URL: "/a"}})
+	store.Push(CallLogEntry{StartedAt: "2026-01-01T00:00:02Z", Request: CallLogRequest{Method: "POST", URL: "/b"}})
+	store.Push(CallLogEntry{StartedAt: "2026-01-01T00:00:03Z", Request: CallLogRequest{Method: "POST", URL: "/c"}})
+
+	entries := store.ListRecentPage(1, 1)
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+	if entries[0].Request.URL != "/b" {
+		t.Fatalf("paged url = %q, want /b", entries[0].Request.URL)
 	}
 }
 
@@ -153,5 +174,42 @@ func TestRequestTraceRedactsAuthorization(t *testing.T) {
 	}
 	if got := trace.entry.Request.Headers["Authorization"]; got != "Bearer [redacted]" {
 		t.Fatalf("authorization redaction: %q", got)
+	}
+}
+
+func TestRequestTraceCapturesRedactedUpstreamRequestHeaders(t *testing.T) {
+	dir := t.TempDir()
+	upReq, err := http.NewRequest(http.MethodPost, "https://api.anthropic.com/v1/messages", strings.NewReader(`{"ping":true}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	upReq.Header.Set("Authorization", "Bearer upstream-token")
+	upReq.Header.Set("Anthropic-Beta", "claude-code-20250219")
+	upReq.Header.Set("X-Stainless-Lang", "js")
+
+	trace := startRequestTrace(newCallLogStoreAt(dir), mustHTTPRequest(t))
+	if trace == nil {
+		t.Fatal("expected trace")
+	}
+	trace.setUpstreamRequest(upReq.Method, upReq.URL.String())
+	trace.setUpstreamRequestHeaders(upReq)
+	trace.finish()
+
+	entries := trace.store.ListRecent(1)
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+	headers := entries[0].Upstream.RequestHeaders
+	if headers["Authorization"] != "Bearer [redacted]" {
+		t.Fatalf("authorization redaction: %q", headers["Authorization"])
+	}
+	if headers["Anthropic-Beta"] != "claude-code-20250219" {
+		t.Fatalf("anthropic beta = %q", headers["Anthropic-Beta"])
+	}
+	if headers["Host"] != "api.anthropic.com" {
+		t.Fatalf("host = %q", headers["Host"])
+	}
+	if headers["Content-Length"] == "" {
+		t.Fatal("missing content length")
 	}
 }

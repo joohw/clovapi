@@ -1,4 +1,5 @@
 <script lang="ts">
+  import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
   import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
@@ -6,7 +7,9 @@
   import {
     clearCallLogs,
     closeProxyLog,
+    nextProxyLogsPage,
     openProxyLog,
+    previousProxyLogsPage,
     refreshProxyLogs,
     store,
   } from "../lib/store.svelte";
@@ -25,6 +28,7 @@
       : undefined,
   );
   const inLogDetail = $derived(Boolean(store.proxyLogSelectedId));
+  let clearConfirmOpen = $state(false);
 
   const copy = $derived.by(() => {
     void i18n.locale;
@@ -37,8 +41,21 @@
       clear: t("common.clear"),
       empty: t("callLogs.empty"),
       details: t("common.details"),
+      previous: t("common.previous"),
+      next: t("common.next"),
+      cancel: t("common.cancel"),
+      clearConfirmTitle: t("callLogs.clearConfirmTitle"),
+      clearConfirmDescription: t("callLogs.clearConfirmDescription"),
+      clearConfirmAction: t("callLogs.clearConfirmAction"),
     };
   });
+
+  const pageNumber = $derived(Math.floor(store.proxyLogsOffset / store.proxyLogsPageSize) + 1);
+
+  function confirmClearLogs() {
+    clearConfirmOpen = false;
+    void clearCallLogs();
+  }
 
   $effect(() => {
     if (store.proxyLogSelectedId && !selectedLog) {
@@ -67,7 +84,7 @@
         >
           {store.proxyLogsLoading ? copy.refreshing : copy.refresh}
         </Button>
-        <Button size="sm" variant="outline" onclick={() => void clearCallLogs()}>
+        <Button size="sm" variant="outline" onclick={() => (clearConfirmOpen = true)}>
           {copy.clear}
         </Button>
       {/snippet}
@@ -79,6 +96,7 @@
           <ListRow
             title={proxyLogCardTitle(entry)}
             linesNowrap
+            centerContent
             onOpen={() => openProxyLog(entry.id)}
           >
             {#snippet actions()}
@@ -92,7 +110,46 @@
             {/snippet}
           </ListRow>
         {/each}
+        <div class="flex items-center justify-between gap-3 px-4 py-3">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={store.proxyLogsLoading || store.proxyLogsOffset <= 0}
+            onclick={() => void previousProxyLogsPage()}
+          >
+            {copy.previous}
+          </Button>
+          <span class="text-xs text-muted-foreground">Page {pageNumber}</span>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={store.proxyLogsLoading || !store.proxyLogsHasMore}
+            onclick={() => void nextProxyLogsPage()}
+          >
+            {copy.next}
+          </Button>
+        </div>
       {/if}
     </SectionCard>
+
+    <Dialog.Root bind:open={clearConfirmOpen}>
+      <Dialog.Content showCloseButton={false} class="sm:max-w-md">
+        <div class="flex flex-col gap-4">
+          <Dialog.Header>
+            <Dialog.Title>{copy.clearConfirmTitle}</Dialog.Title>
+            <Dialog.Description>{copy.clearConfirmDescription}</Dialog.Description>
+          </Dialog.Header>
+
+          <Dialog.Footer class="border-t border-border pt-4">
+            <Button type="button" variant="outline" onclick={() => (clearConfirmOpen = false)}>
+              {copy.cancel}
+            </Button>
+            <Button type="button" variant="destructive" onclick={confirmClearLogs}>
+              {copy.clearConfirmAction}
+            </Button>
+          </Dialog.Footer>
+        </div>
+      </Dialog.Content>
+    </Dialog.Root>
   </div>
 {/if}

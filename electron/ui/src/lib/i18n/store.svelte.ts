@@ -101,6 +101,7 @@ export function formatSubscriptionSummary(summary: string): string {
   const value = String(summary || "").trim();
   if (!value || value === "Not logged in") return t("subscription.notLoggedIn");
   if (value === "CLI not installed") return t("subscription.cliNotInstalled");
+  if (value === "Logged in · inactive subscription") return t("subscription.inactive");
   if (value === "Logged in") return t("subscription.loggedIn");
   if (value.startsWith("Logged in · ")) {
     return t("subscription.loggedInWith", { detail: value.slice("Logged in · ".length) });

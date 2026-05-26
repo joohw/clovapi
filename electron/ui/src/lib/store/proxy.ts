@@ -63,16 +63,24 @@ export async function refreshProxyStatus() {
   await refreshCoreVersion();
 }
 
-export async function refreshProxyLogs() {
+export async function refreshProxyLogs(offset = store.proxyLogsOffset) {
   const bridge = window.clovapiProxyLogs;
   if (!bridge?.list || store.proxyLogsLoading) return;
   store.proxyLogsLoading = true;
   try {
-    const result = await bridge.list();
+    const pageSize = Number(store.proxyLogsPageSize) || 20;
+    const nextOffset = Math.max(0, Number(offset) || 0);
+    const result = await bridge.list({ limit: pageSize, offset: nextOffset });
     if (result?.ok) {
       if (Array.isArray(result.requests)) {
         store.proxyLogs = result.requests;
       }
+      if (Array.isArray(result.sessions)) {
+        store.proxyLogSessions = result.sessions;
+      }
+      store.proxyLogsOffset = Number(result.callLogPage?.offset) || nextOffset;
+      store.proxyLogsPageSize = Number(result.callLogPage?.limit) || pageSize;
+      store.proxyLogsHasMore = Boolean(result.callLogPage?.hasMore);
       if (Array.isArray(result.system)) {
         store.proxySystemLogs = result.system;
       }
@@ -80,6 +88,16 @@ export async function refreshProxyLogs() {
   } finally {
     store.proxyLogsLoading = false;
   }
+}
+
+export async function nextProxyLogsPage() {
+  if (!store.proxyLogsHasMore || store.proxyLogsLoading) return;
+  await refreshProxyLogs(store.proxyLogsOffset + store.proxyLogsPageSize);
+}
+
+export async function previousProxyLogsPage() {
+  if (store.proxyLogsLoading || store.proxyLogsOffset <= 0) return;
+  await refreshProxyLogs(Math.max(0, store.proxyLogsOffset - store.proxyLogsPageSize));
 }
 
 export async function clearCallLogs() {
@@ -91,7 +109,11 @@ export async function clearCallLogs() {
     return;
   }
   store.proxyLogs = [];
+  store.proxyLogSessions = [];
+  store.proxyLogsOffset = 0;
+  store.proxyLogsHasMore = false;
   store.proxyLogSelectedId = null;
+  store.proxyLogSelectedSession = null;
 }
 
 export async function clearSystemLogs() {

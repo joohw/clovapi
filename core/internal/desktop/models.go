@@ -23,6 +23,7 @@ type AuthStatusItem struct {
 	Installed   bool   `json:"installed"`
 	CommandPath string `json:"commandPath,omitempty"`
 	LoggedIn    bool   `json:"loggedIn"`
+	Active      bool   `json:"active"`
 	Summary     string `json:"summary"`
 	Error       string `json:"error,omitempty"`
 }
@@ -102,20 +103,62 @@ func isCodexSubscriptionAuthValid(data map[string]any) bool {
 	return strings.TrimSpace(access) != ""
 }
 
+func claudeSubscriptionDetail(data map[string]any) string {
+	oauth, _ := data["claudeAiOauth"].(map[string]any)
+	if oauth == nil {
+		return ""
+	}
+	if sub, _ := oauth["subscriptionType"].(string); strings.TrimSpace(sub) != "" {
+		return strings.TrimSpace(sub)
+	}
+	if org, _ := oauth["organizationType"].(string); strings.TrimSpace(org) != "" {
+		return strings.TrimSpace(org)
+	}
+	return ""
+}
+
+func isActiveClaudeSubscriptionDetail(detail string) bool {
+	raw := strings.ToLower(strings.TrimSpace(detail))
+	if raw == "" || strings.Contains(raw, "free") || raw == "claude_ai" {
+		return false
+	}
+	switch {
+	case strings.Contains(raw, "max"),
+		strings.Contains(raw, "pro"),
+		strings.Contains(raw, "team"),
+		strings.Contains(raw, "enterprise"):
+		return true
+	default:
+		return false
+	}
+}
+
+func providerSubscriptionActive(providerID string, loggedIn bool, data map[string]any) bool {
+	if !loggedIn {
+		return false
+	}
+	switch providerID {
+	case provider.ClaudeCodeProviderID:
+		return isActiveClaudeSubscriptionDetail(claudeSubscriptionDetail(data))
+	case provider.CodexProviderID:
+		return true
+	default:
+		return false
+	}
+}
+
 func summarizeAuthStatus(providerID string, loggedIn bool, data map[string]any) string {
 	if !loggedIn {
 		return "Not logged in"
 	}
 	if providerID == provider.ClaudeCodeProviderID {
-		oauth, _ := data["claudeAiOauth"].(map[string]any)
-		if oauth != nil {
-			if sub, _ := oauth["subscriptionType"].(string); strings.TrimSpace(sub) != "" {
-				return "Logged in · " + sub
+		if detail := claudeSubscriptionDetail(data); detail != "" {
+			if !isActiveClaudeSubscriptionDetail(detail) {
+				return "Logged in · inactive subscription"
 			}
-			if org, _ := oauth["organizationType"].(string); strings.TrimSpace(org) != "" {
-				return "Logged in · " + org
-			}
+			return "Logged in · " + detail
 		}
+		return "Logged in · inactive subscription"
 	}
 	if providerID == provider.CodexProviderID {
 		if mode, _ := data["auth_mode"].(string); strings.TrimSpace(mode) != "" {
@@ -188,10 +231,12 @@ func AuthStatus() AuthStatusResult {
 		}
 		if data, ok := readAuthJSON(authPath); ok {
 			item.LoggedIn = providerLoggedIn(cfg.ID, data)
+			item.Active = providerSubscriptionActive(cfg.ID, item.LoggedIn, data)
 			item.Summary = summarizeAuthStatus(cfg.ID, item.LoggedIn, data)
 		} else if cfg.ID == provider.ClaudeCodeProviderID {
 			if data, ok := profile.ClaudeAuthRoot(); ok {
 				item.LoggedIn = providerLoggedIn(cfg.ID, data)
+				item.Active = providerSubscriptionActive(cfg.ID, item.LoggedIn, data)
 				item.Summary = summarizeAuthStatus(cfg.ID, item.LoggedIn, data)
 			}
 		}
@@ -425,6 +470,13 @@ func fetchOllamaModels(vendor profile.Profile, defaultStyle string) ([]profile.M
 }
 
 func fetchClaudeSubscriptionModels(vendor profile.Profile, defaultStyle string) ([]profile.Model, string, error) {
+	authData, ok := readAuthJSONOrClaudeFallback()
+	if !ok || !providerLoggedIn(provider.ClaudeCodeProviderID, authData) {
+		return nil, "", fmt.Errorf("Claude 订阅未登录或凭据已过期")
+	}
+	if !providerSubscriptionActive(provider.ClaudeCodeProviderID, true, authData) {
+		return nil, "", fmt.Errorf("Claude 订阅未激活，请确认账号包含 Pro/Max/Team/Enterprise 订阅")
+	}
 	flat := vendor
 	profile.HydrateSubscriptionCredentials(&flat)
 	if strings.TrimSpace(flat.APIKey) == "" {
@@ -444,6 +496,16 @@ func fetchClaudeSubscriptionModels(vendor profile.Profile, defaultStyle string) 
 		return nil, "", err
 	}
 	return models, "", nil
+}
+
+func readAuthJSONOrClaudeFallback() (map[string]any, bool) {
+	authPath, err := authPathForProvider(provider.ClaudeCodeProviderID)
+	if err == nil {
+		if data, ok := readAuthJSON(authPath); ok {
+			return data, true
+		}
+	}
+	return profile.ClaudeAuthRoot()
 }
 
 func fetchCodexSubscriptionModels(vendor profile.Profile, defaultStyle string) ([]profile.Model, string, error) {

@@ -118,12 +118,16 @@ func scanCallLogEntry(rows *sql.Rows) (CallLogEntry, error) {
 	if err := json.Unmarshal([]byte(upJSON), &entry.Upstream); err != nil {
 		return CallLogEntry{}, err
 	}
+	entry.Session = callLogSessionKey(entry.SessionKind, entry.SessionID)
 	return entry, nil
 }
 
-func listCallLogEntries(db *sql.DB, limit int, sessionID string) ([]CallLogEntry, error) {
+func listCallLogEntries(db *sql.DB, limit int, offset int, sessionID string) ([]CallLogEntry, error) {
 	if db == nil {
 		return nil, errors.New("call log db is nil")
+	}
+	if offset < 0 {
+		offset = 0
 	}
 	query := `SELECT id, session_id, session_kind, started_at, completed_at, duration_ms, request_json, upstream_json, error
 		FROM call_logs`
@@ -136,6 +140,10 @@ func listCallLogEntries(db *sql.DB, limit int, sessionID string) ([]CallLogEntry
 	if limit > 0 {
 		query += ` LIMIT ?`
 		args = append(args, limit)
+		if offset > 0 {
+			query += ` OFFSET ?`
+			args = append(args, offset)
+		}
 	}
 	rows, err := db.Query(query, args...)
 	if err != nil {
@@ -233,9 +241,13 @@ func listCallLogSessions(db *sql.DB, limit int) ([]CallLogSessionSummary, error)
 	if db == nil {
 		return nil, errors.New("call log db is nil")
 	}
-	query := `SELECT session_id, session_kind, COUNT(*), MAX(started_at)
-		FROM call_logs
-		WHERE session_id != ''
+	query := `SELECT session_id, session_kind, COUNT(*), MAX(started_at), GROUP_CONCAT(id, ',')
+		FROM (
+			SELECT id, session_id, session_kind, started_at
+			FROM call_logs
+			WHERE session_id != ''
+			ORDER BY started_at DESC, id DESC
+		)
 		GROUP BY session_id, session_kind
 		ORDER BY MAX(started_at) DESC`
 	args := []any{}
@@ -251,19 +263,38 @@ func listCallLogSessions(db *sql.DB, limit int) ([]CallLogSessionSummary, error)
 	var out []CallLogSessionSummary
 	for rows.Next() {
 		var item CallLogSessionSummary
-		if err := rows.Scan(&item.SessionID, &item.SessionKind, &item.EntryCount, &item.LastStartedAt); err != nil {
+		var ids string
+		if err := rows.Scan(&item.SessionID, &item.SessionKind, &item.EntryCount, &item.LastStartedAt, &ids); err != nil {
 			return nil, err
 		}
+		item.Session = callLogSessionKey(item.SessionKind, item.SessionID)
+		item.LogIDs = splitSessionLogIDs(ids)
 		out = append(out, item)
 	}
 	return out, rows.Err()
 }
 
 type CallLogSessionSummary struct {
-	SessionID     string `json:"sessionId"`
-	SessionKind   string `json:"sessionKind"`
-	EntryCount    int    `json:"entryCount"`
-	LastStartedAt string `json:"lastStartedAt"`
+	Session       string   `json:"session"`
+	SessionID     string   `json:"sessionId"`
+	SessionKind   string   `json:"sessionKind"`
+	EntryCount    int      `json:"entryCount"`
+	LastStartedAt string   `json:"lastStartedAt"`
+	LogIDs        []string `json:"logIds"`
+}
+
+func splitSessionLogIDs(raw string) []string {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if id := strings.TrimSpace(part); id != "" {
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 func FindCallLogEntry(id string) (CallLogEntry, error) {

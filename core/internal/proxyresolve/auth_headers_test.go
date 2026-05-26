@@ -1,6 +1,7 @@
 package proxyresolve_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/clovapi/switcher/internal/apistyle"
@@ -36,14 +37,20 @@ func TestUpstreamAuthHeadersClaudeVersusOAuth(t *testing.T) {
 		Source: "subscription:claude-code",
 		Stream: true,
 	})
-	if sub.Get("x-app") != "claude-code" {
-		t.Fatalf("subscription x-app = %q want claude-code", sub.Get("x-app"))
+	if sub.Get("x-app") != "cli" {
+		t.Fatalf("subscription x-app = %q want cli", sub.Get("x-app"))
 	}
-	if sub.Get("Accept") != "text/event-stream" {
-		t.Fatalf("subscription stream accept = %q want text/event-stream", sub.Get("Accept"))
+	if sub.Get("Accept") != "application/json" {
+		t.Fatalf("subscription stream accept = %q want application/json", sub.Get("Accept"))
 	}
 	if sub.Get("user-agent") == "" {
 		t.Fatal("missing claude-cli user-agent")
+	}
+	if sub.Get("x-stainless-lang") != "js" || sub.Get("x-stainless-runtime") != "node" {
+		t.Fatalf("missing claude-code stainless headers: %+v", sub)
+	}
+	if got := sub.Get("anthropic-beta"); !containsToken(got, "claude-code-20250219") || containsToken(got, "oauth-2025-04-20") {
+		t.Fatalf("unexpected oauth beta set: %q", got)
 	}
 
 	resp := proxyresolve.UpstreamAuthHeaders(proxyresolve.UpstreamAuth{
@@ -53,6 +60,15 @@ func TestUpstreamAuthHeadersClaudeVersusOAuth(t *testing.T) {
 	if resp.Get("Authorization") != "Bearer bear" || resp.Get("OpenAI-Beta") == "" || resp.Get("Accept") != "application/json" {
 		t.Fatalf("responses extras missing: %+v", resp)
 	}
+}
+
+func containsToken(s, token string) bool {
+	for _, part := range strings.Split(s, ",") {
+		if strings.TrimSpace(part) == token {
+			return true
+		}
+	}
+	return false
 }
 
 func TestUpstreamAuthHeadersCodexSubscriptionAccount(t *testing.T) {

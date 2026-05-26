@@ -62,3 +62,7 @@ Hermes configuration and proxy ingress must be validated against **actual `herme
 - **Don't:** add Hermes tests that only read `~/.hermes/config.yaml` or mock request matrices without invoking the CLI.
 
 When Hermes behavior is unclear, inspect the installed agent (`hermes dump`, `~/.hermes/hermes-agent/hermes_cli/runtime_provider.py`) before changing ingress style or base URL shaping.
+
+### Rule 4: Dev core version must advance on local changes
+
+The core dev build version lives in `core/internal/buildinfo/buildinfo.go` as a `devX.Y.Z` string (for example `dev2.1.1`). Whenever local development changes modify code or behavior, increment this dev core version in the same change. The desktop proxy health endpoint and `clovapi version` use this value, so bumping it makes stale local proxy binaries easier to detect.

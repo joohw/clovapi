@@ -80,8 +80,8 @@ contextBridge.exposeInMainWorld("clovapiProxy", {
 });
 
 contextBridge.exposeInMainWorld("clovapiProxyLogs", {
-  list() {
-    return ipcRenderer.invoke("proxy-logs:list");
+  list(payload) {
+    return ipcRenderer.invoke("proxy-logs:list", cloneForIpc(payload || {}));
   },
   clear(scope) {
     return ipcRenderer.invoke("proxy-logs:clear", { scope });

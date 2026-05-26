@@ -4,6 +4,7 @@
   import CliPanel from "./components/CliPanel.svelte";
   import ProfilesPanel from "./components/ProfilesPanel.svelte";
   import ProxyCallLogsPanel from "./components/ProxyCallLogsPanel.svelte";
+  import ProxySessionsPanel from "./components/ProxySessionsPanel.svelte";
   import ProxySystemLogsPanel from "./components/ProxySystemLogsPanel.svelte";
   import SettingsPanel from "./components/SettingsPanel.svelte";
   import ProfileDialog from "./components/ProfileDialog.svelte";
@@ -21,6 +22,7 @@
       value === "cli" ||
       value === "profiles" ||
       value === "call-logs" ||
+      value === "sessions" ||
       value === "system-logs" ||
       value === "settings"
     ) {
@@ -36,6 +38,7 @@
         cli: t("tabs.cli"),
         profiles: t("tabs.profiles"),
         callLogs: t("tabs.callLogs"),
+        sessions: t("tabs.sessions"),
         systemLogs: t("tabs.systemLogs"),
         settings: t("tabs.settings"),
       },
@@ -54,6 +57,7 @@
       <Tabs.Trigger value="cli">{copy.tabs.cli}</Tabs.Trigger>
       <Tabs.Trigger value="profiles">{copy.tabs.profiles}</Tabs.Trigger>
       <Tabs.Trigger value="call-logs">{copy.tabs.callLogs}</Tabs.Trigger>
+      <Tabs.Trigger value="sessions">{copy.tabs.sessions}</Tabs.Trigger>
       <Tabs.Trigger value="system-logs">{copy.tabs.systemLogs}</Tabs.Trigger>
       <Tabs.Trigger value="settings">{copy.tabs.settings}</Tabs.Trigger>
     </Tabs.List>
@@ -66,6 +70,9 @@
     </Tabs.Content>
     <Tabs.Content value="call-logs" class="min-h-0 outline-none">
       <ProxyCallLogsPanel />
+    </Tabs.Content>
+    <Tabs.Content value="sessions" class="min-h-0 outline-none">
+      <ProxySessionsPanel />
     </Tabs.Content>
     <Tabs.Content value="system-logs" class="min-h-0 outline-none">
       <ProxySystemLogsPanel />

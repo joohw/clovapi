@@ -35,6 +35,15 @@ func PrepareUpstreamRequest(ingress, egress apistyle.Style, body []byte, opts Pr
 	if strings.TrimSpace(ir.Model) == "" {
 		return nil, Request{}, fmt.Errorf("missing model (set in body or upstream config)")
 	}
+	if ingress == apistyle.Claude && egress == apistyle.Claude &&
+		ir.Meta != nil && ir.Meta.ClaudeOAuthEncodingCompatibility {
+		upstreamJSON, err = EncodeClaudeOAuthCompatibleRawRequest(body, ir)
+		if err != nil {
+			return nil, Request{}, err
+		}
+		return upstreamJSON, ir, nil
+	}
+	AdaptRequestForEgress(&ir, egress)
 	upstreamJSON, err = EncodeRequestForStyle(egress, ir)
 	if err != nil {
 		return nil, Request{}, err

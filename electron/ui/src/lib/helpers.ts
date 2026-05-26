@@ -333,7 +333,10 @@ export function vendorSummaryLine(
   subscription?: SubscriptionItem,
   ollamaInstalled = false,
 ): string {
-  const count = vendor.models?.length || 0;
+  const count =
+    vendor.kind === "subscription" && !subscriptionIsUsable(subscription)
+      ? 0
+      : vendor.models?.length || 0;
   const models = t("vendorDetail.modelCount", { count });
   if (vendor.kind === "subscription") {
     const status = formatSubscriptionSummary(subscription?.summary || "");
@@ -457,6 +460,11 @@ export function subscriptionStatusForVendor(
   );
 }
 
+export function subscriptionIsUsable(subscription: SubscriptionItem | undefined): boolean {
+  if (!subscription?.loggedIn) return false;
+  return subscription.active !== false;
+}
+
 export type CliBindingOption = {
   value: string;
   label: string;
@@ -481,13 +489,12 @@ export function buildCliBindingOptions(
           continue;
         }
         const sub = subscriptions.find((item) => item.id === providerId);
-        const loggedIn = Boolean(sub?.loggedIn);
-		if (!loggedIn) {
-			continue;
-		}
+        if (!subscriptionIsUsable(sub)) {
+          continue;
+        }
         options.push({
           value: modelBindingValue(providerId, model.id),
-			label: cliModelBindingLabel(vendor, model),
+          label: cliModelBindingLabel(vendor, model),
         });
         continue;
       }
@@ -512,7 +519,7 @@ export function canApplyCliBinding(
   if (!activeSelectionKey(binding)) return true;
   if (isSubscriptionBinding(binding, vendors)) {
     const providerId = subscriptionProviderFromBinding(binding, vendors);
-    return Boolean(subscriptions.find((item) => item.id === providerId)?.loggedIn);
+    return subscriptionIsUsable(subscriptions.find((item) => item.id === providerId));
   }
   return isModelBinding(binding);
 }

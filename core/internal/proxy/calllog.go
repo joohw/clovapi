@@ -3,12 +3,14 @@ package proxy
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type CallLogRequest struct {
@@ -20,15 +22,17 @@ type CallLogRequest struct {
 }
 
 type CallLogUpstream struct {
-	Method  string            `json:"method"`
-	URL     string            `json:"url"`
-	Status  int               `json:"status"`
-	Headers map[string]string `json:"headers"`
-	Body    string            `json:"body"`
+	Method         string            `json:"method"`
+	URL            string            `json:"url"`
+	RequestHeaders map[string]string `json:"requestHeaders,omitempty"`
+	Status         int               `json:"status"`
+	Headers        map[string]string `json:"headers"`
+	Body           string            `json:"body"`
 }
 
 type CallLogEntry struct {
 	ID          string          `json:"id"`
+	Session     string          `json:"session,omitempty"`
 	SessionID   string          `json:"sessionId,omitempty"`
 	SessionKind string          `json:"sessionKind,omitempty"`
 	StartedAt   string          `json:"startedAt"`
@@ -85,7 +89,7 @@ func (s *CallLogStore) Push(entry CallLogEntry) {
 		return
 	}
 	if strings.TrimSpace(entry.ID) == "" {
-		entry.ID = fmt.Sprintf("%d", time.Now().UnixNano())
+		entry.ID = uuid.NewString()
 	}
 	if strings.TrimSpace(entry.StartedAt) == "" {
 		entry.StartedAt = time.Now().UTC().Format(time.RFC3339Nano)
@@ -100,16 +104,24 @@ func (s *CallLogStore) List() []CallLogEntry {
 }
 
 func (s *CallLogStore) ListRecent(limit int) []CallLogEntry {
-	return s.ListRecentSession(limit, "")
+	return s.ListRecentPage(limit, 0)
 }
 
 func (s *CallLogStore) ListRecentSession(limit int, sessionID string) []CallLogEntry {
+	return s.ListRecentSessionPage(limit, 0, sessionID)
+}
+
+func (s *CallLogStore) ListRecentPage(limit int, offset int) []CallLogEntry {
+	return s.ListRecentSessionPage(limit, offset, "")
+}
+
+func (s *CallLogStore) ListRecentSessionPage(limit int, offset int, sessionID string) []CallLogEntry {
 	if s == nil || s.db == nil {
 		return nil
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	entries, err := listCallLogEntries(s.db, limit, sessionID)
+	entries, err := listCallLogEntries(s.db, limit, offset, sessionID)
 	if err != nil {
 		return nil
 	}
@@ -262,6 +274,13 @@ func (t *requestTrace) setUpstreamRequest(method, url string) {
 	t.entry.Upstream.URL = strings.TrimSpace(url)
 }
 
+func (t *requestTrace) setUpstreamRequestHeaders(r *http.Request) {
+	if t == nil || r == nil {
+		return
+	}
+	t.entry.Upstream.RequestHeaders = cloneOutboundRequestHeaders(r)
+}
+
 func (t *requestTrace) setUpstreamResponse(status int, headers http.Header, body []byte) {
 	if t == nil {
 		return
@@ -299,6 +318,26 @@ func cloneRedactedHeaders(headers http.Header) map[string]string {
 		default:
 			out[key] = val
 		}
+	}
+	return out
+}
+
+func cloneOutboundRequestHeaders(r *http.Request) map[string]string {
+	if r == nil {
+		return map[string]string{}
+	}
+	out := cloneRedactedHeaders(r.Header)
+	host := strings.TrimSpace(r.Host)
+	if host == "" && r.URL != nil {
+		host = strings.TrimSpace(r.URL.Host)
+	}
+	if host != "" {
+		out["Host"] = host
+	}
+	if r.ContentLength > 0 {
+		out["Content-Length"] = strconv.FormatInt(r.ContentLength, 10)
+	} else if out["Content-Length"] == "" {
+		delete(out, "Content-Length")
 	}
 	return out
 }

@@ -1,27 +1,81 @@
 package proxy
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"regexp"
 	"strings"
 )
 
 const claudeCodeSessionHeader = "x-claude-code-session-id"
+const codexSessionHeader = "session-id"
+const codexTurnMetadataHeader = "x-codex-turn-metadata"
+const openCodeSessionHeader = "x-session-affinity"
 
 var sessionFilenameSanitizer = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
 
 func extractCallLogSession(headers map[string]string) (kind, sessionID string) {
-	for key, val := range headers {
-		if !strings.EqualFold(strings.TrimSpace(key), claudeCodeSessionHeader) {
-			continue
+	if id := extractHeaderValue(headers, claudeCodeSessionHeader); id != "" {
+		return "claudecode", id
+	}
+	if isOpenCodeRequest(headers) {
+		if id := extractHeaderValue(headers, openCodeSessionHeader); id != "" {
+			return "opencode", id
 		}
-		id := strings.TrimSpace(val)
-		if id == "" {
-			return "", ""
+	}
+	if isCodexRequest(headers) {
+		if id := extractHeaderValue(headers, codexSessionHeader); id != "" {
+			return "codex", id
 		}
-		return "claude", id
+		if id := extractCodexMetadataSessionID(extractHeaderValue(headers, codexTurnMetadataHeader)); id != "" {
+			return "codex", id
+		}
 	}
 	return "", ""
+}
+
+func extractHeaderValue(headers map[string]string, want string) string {
+	for key, val := range headers {
+		if !strings.EqualFold(strings.TrimSpace(key), want) {
+			continue
+		}
+		return strings.TrimSpace(val)
+	}
+	return ""
+}
+
+func isCodexRequest(headers map[string]string) bool {
+	originator := strings.ToLower(extractHeaderValue(headers, "originator"))
+	userAgent := strings.ToLower(extractHeaderValue(headers, "user-agent"))
+	return strings.Contains(originator, "codex") || strings.Contains(userAgent, "codex")
+}
+
+func isOpenCodeRequest(headers map[string]string) bool {
+	userAgent := strings.ToLower(extractHeaderValue(headers, "user-agent"))
+	return strings.Contains(userAgent, "opencode")
+}
+
+func extractCodexMetadataSessionID(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	var payload struct {
+		SessionID string `json:"session_id"`
+	}
+	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(payload.SessionID)
+}
+
+func callLogSessionKey(kind, sessionID string) string {
+	k := strings.TrimSpace(strings.ToLower(kind))
+	id := strings.TrimSpace(sessionID)
+	if k == "" || id == "" {
+		return ""
+	}
+	return k + "-" + id
 }
 
 func sanitizeSessionFilename(sessionID string) string {
@@ -38,9 +92,9 @@ func sanitizeSessionFilename(sessionID string) string {
 
 func callLogPathForEntry(logsDir string, entry CallLogEntry) string {
 	kind, sessionID := extractCallLogSession(entry.Request.Headers)
-	if kind == "claude" {
+	if kind == "claudecode" || kind == "codex" {
 		if safe := sanitizeSessionFilename(sessionID); safe != "" {
-			return filepath.Join(logsDir, "claude", safe+".jsonl")
+			return filepath.Join(logsDir, kind, safe+".jsonl")
 		}
 	}
 	return filepath.Join(logsDir, "default.jsonl")
@@ -53,4 +107,5 @@ func applyCallLogSessionMeta(entry *CallLogEntry) {
 	kind, sessionID := extractCallLogSession(entry.Request.Headers)
 	entry.SessionID = sessionID
 	entry.SessionKind = kind
+	entry.Session = callLogSessionKey(kind, sessionID)
 }

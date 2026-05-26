@@ -7,7 +7,10 @@ import (
 	"github.com/clovapi/switcher/internal/apistyle"
 )
 
-const claudeOAuthUserAgent = "claude-cli/2.1.75"
+const (
+	claudeOAuthUserAgent = "claude-cli/2.1.126 (external, cli)"
+	claudeOAuthBeta      = "claude-code-20250219,interleaved-thinking-2025-05-14,redact-thinking-2026-02-12,context-management-2025-06-27,prompt-caching-scope-2026-01-05,advisor-tool-2026-03-01,effort-2025-11-24"
+)
 
 // UpstreamAuth carries outbound credential metadata for upstream HTTP calls.
 type UpstreamAuth struct {
@@ -33,19 +36,19 @@ func UpstreamAuthHeaders(a UpstreamAuth) http.Header {
 		if LooksLikeClaudeOAuthToken(key) {
 			h.Set("Authorization", "Bearer "+key)
 			h.Set("anthropic-version", "2023-06-01")
-			h.Set("anthropic-beta", "claude-code-20250219,oauth-2025-04-20")
+			h.Set("anthropic-beta", claudeOAuthBeta)
 			h.Set("anthropic-dangerous-direct-browser-access", "true")
 			h.Set("user-agent", claudeOAuthUserAgent)
-			if strings.TrimSpace(a.Source) == "subscription:claude-code" {
-				h.Set("x-app", "claude-code")
-			} else {
-				h.Set("x-app", "cli")
-			}
-			if a.Stream {
-				h.Set("Accept", "text/event-stream")
-			} else {
-				h.Set("Accept", "application/json")
-			}
+			h.Set("x-app", "cli")
+			h.Set("x-stainless-arch", "arm64")
+			h.Set("x-stainless-lang", "js")
+			h.Set("x-stainless-os", "MacOS")
+			h.Set("x-stainless-package-version", "0.81.0")
+			h.Set("x-stainless-retry-count", "0")
+			h.Set("x-stainless-runtime", "node")
+			h.Set("x-stainless-runtime-version", "v24.3.0")
+			h.Set("x-stainless-timeout", "600")
+			h.Set("Accept", "application/json")
 			return h
 		}
 		h.Set("x-api-key", key)

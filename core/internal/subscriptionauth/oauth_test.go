@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,6 +23,17 @@ func TestGeneratePKCEChallenge(t *testing.T) {
 	}
 	if strings.ContainsAny(pair.Verifier, "+/=") || strings.ContainsAny(pair.Challenge, "+/=") {
 		t.Fatalf("pkce values must be base64url without padding")
+	}
+}
+
+func TestBuildClaudeAuthorizeURLUsesClaudeCodeClientID(t *testing.T) {
+	raw := buildClaudeAuthorizeURL(pkcePair{Verifier: "verifier", Challenge: "challenge"}, "http://localhost:53692/callback")
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := parsed.Query().Get("client_id"), "9d1c250a-e61b-44d9-88ed-5944d1962f5e"; got != want {
+		t.Fatalf("client_id = %q, want %q", got, want)
 	}
 }
 

@@ -9,7 +9,7 @@ export function HomeFaq() {
   const items = FAQ_ITEMS[language];
 
   return (
-    <section id="faq" className="relative z-[1] border-t border-border/40 px-5 py-12 sm:px-6 md:py-16">
+    <section id="faq" className="relative z-[1] px-5 py-12 sm:px-6 md:py-16">
       <div className="mx-auto max-w-6xl">
         <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
           {language === "en" ? "FAQ" : "常见问题"}

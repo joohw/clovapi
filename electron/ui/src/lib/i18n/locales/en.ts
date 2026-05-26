@@ -59,7 +59,7 @@ const en = {
     proxy: "Local proxy",
   },
   cli: {
-    title: "Installed CLIs",
+    title: "Installed Agents",
     description:
       "After you select a model and apply, ClovAPI automatically switches the base URL to that model on the local proxy address.",
     installedAt: "Installed: {path}",

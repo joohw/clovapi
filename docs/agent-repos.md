@@ -21,6 +21,7 @@ repos=(
   openclaw/openclaw
   NousResearch/hermes-agent
   MoonshotAI/kimi-cli
+  earendil-works/pi
 )
 
 for spec in "${repos[@]}"; do
@@ -34,6 +35,7 @@ for spec in "${repos[@]}"; do
     openclaw/openclaw)      name="openclaw" ;;
     NousResearch/hermes-agent) name="hermes-agent" ;;
     MoonshotAI/kimi-cli)    name="kimi-cli" ;;
+    earendil-works/pi)      name="pi" ;;
   esac
   if [ -d "$name/.git" ]; then
     echo "skip $name"
@@ -73,3 +75,11 @@ Useful when comparing `env.ANTHROPIC_AUTH_TOKEN` / `settings.json` wiring:
 |-----------|--------|-------|
 | `ref/ccswitch` | https://github.com/huangdijia/ccswitch | Community Claude Code config switcher |
 | `ref/cc-switch` | https://github.com/farion1231/cc-switch | Desktop all-in-one Agent API switcher |
+
+---
+
+## Other agent CLIs (reference)
+
+| Local dir | GitHub | Notes |
+|-----------|--------|-------|
+| `ref/pi` | https://github.com/earendil-works/pi | Pi coding agent monorepo; CLI in `packages/coding-agent` |

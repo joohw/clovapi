@@ -20,7 +20,7 @@ export function HomeFooter() {
   const githubUrl = (process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/joohw/clovapi").trim();
 
   return (
-    <footer className="relative z-[1] border-t border-border/40 px-5 py-10 sm:px-6">
+    <footer className="relative z-[1] px-5 py-10 sm:px-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-base font-bold tracking-tight text-foreground">

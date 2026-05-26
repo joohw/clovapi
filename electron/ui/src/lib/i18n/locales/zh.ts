@@ -61,7 +61,7 @@ const zh = {
     proxy: "本地代理",
   },
   cli: {
-    title: "已安装的 CLI",
+    title: "已安装的 Agent",
     description:
       "选择模型并应用后，ClovAPI 会自动将 Base URL 切换为本地代理地址上的模型。",
     installedAt: "已安装: {path}",

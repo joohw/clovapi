@@ -6,14 +6,10 @@
     "ssh2": "^1.17.0"
   },
   "scripts": {
-    "dev": "npm run core:build && npm -C electron run dev",
+    "dev": "node scripts/dev.mjs",
+    "core:watch": "node scripts/watch-core.mjs",
     "deploy": "node scripts/deploy.mjs",
-    "core:test": "go -C core test ./...",
-    "core:build": "go -C core build -o clovapi ./cmd/clovapi",
-    "core:install": "npm run core:build && mkdir -p electron/bin && cp core/clovapi electron/bin/clovapi && chmod +x electron/bin/clovapi && echo Installed local clovapi to core/clovapi and electron/bin/clovapi",
-    "core:install-global": "npm run core:build && sh -c 'target=$(command -v clovapi); test -n \"$target\" || exit 1; rm -f \"$target\"; cp core/clovapi \"$target\" && chmod +x \"$target\" && echo Installed to \"$target\"' && npm run core:install",
     "desktop:build:mac": "npm -C electron run build:mac",
-    "desktop:build:win": "npm -C electron run build:win",
-    "npm:pack": "cd npm && npm pack --dry-run"
+    "desktop:build:win": "npm -C electron run build:win"
   }
 }

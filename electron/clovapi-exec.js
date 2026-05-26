@@ -7,11 +7,28 @@ function isDevEnvironment() {
   return process.env.ELECTRON_DEV === "1";
 }
 
+function coreDevStatePath() {
+  return path.join(__dirname, "..", "core", ".dev", "current.json");
+}
+
+function resolveCoreDevBinary() {
+  try {
+    const raw = fs.readFileSync(coreDevStatePath(), "utf8");
+    const parsed = JSON.parse(raw);
+    const candidate = typeof parsed?.path === "string" ? parsed.path : "";
+    if (candidate && fs.existsSync(candidate)) return candidate;
+  } catch {
+    /* ignore */
+  }
+  return "";
+}
+
 function developmentCandidates(exeName) {
   return [
-    path.join(__dirname, "bin", exeName),
+    resolveCoreDevBinary(),
     path.join(__dirname, "..", "core", exeName),
     path.join(process.cwd(), "core", exeName),
+    path.join(__dirname, "bin", exeName),
   ];
 }
 
@@ -132,6 +149,7 @@ function runClovapiArgs(args, options = {}) {
 
 module.exports = {
   buildBundledCandidates,
+  coreDevStatePath,
   resolveClovapiExecutable,
   runClovapiArgs,
 };

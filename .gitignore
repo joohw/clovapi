@@ -18,6 +18,7 @@ one-api
 new-api
 /__debug_bin*
 core/clovapi
+core/.dev/
 electron/bin/
 
 # Runtime data

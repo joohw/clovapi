@@ -8,7 +8,7 @@
   "scripts": {
     "dev:ui": "vite --config ui/vite.config.mjs",
     "prepare:cli:dev": "node scripts/prepare-dev-cli.mjs",
-    "dev": "npm run prepare:cli:dev && concurrently -k \"npm run dev:ui\" \"wait-on tcp:5173 && cross-env ELECTRON_DEV=1 electron .\"",
+    "dev": "concurrently -k \"npm run dev:ui\" \"wait-on tcp:5173 && cross-env ELECTRON_DEV=1 electron .\"",
     "build:ui": "vite build --config ui/vite.config.mjs",
     "build:icons": "node scripts/build-icons.mjs",
     "prepare:cli:darwin": "node scripts/prepare-darwin-cli.mjs",

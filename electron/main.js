@@ -6,7 +6,11 @@ const { createGoProxyManager } = require("./proxy-manager");
 const proxyLogger = require("./proxy-logger");
 const callLogsStore = require("./call-logs-store");
 const clovapiDesktop = require("./clovapi-desktop");
-const { buildBundledCandidates, resolveClovapiExecutable: resolveBundledClovapiExecutable } = require("./clovapi-exec");
+const {
+  buildBundledCandidates,
+  coreDevStatePath,
+  resolveClovapiExecutable: resolveBundledClovapiExecutable,
+} = require("./clovapi-exec");
 const { cliBinPath } = require("./config-paths");
 const subscriptionAuth = require("./subscription-auth");
 const subscriptionOAuthFlow = require("./subscription-oauth-flow");
@@ -20,6 +24,8 @@ let runningProcess = null;
 const THEME_STORAGE_KEY = "clovapi-theme";
 /** Matches renderer page background (title bar flash before paint). */
 const WINDOW_BG_TOP = "#FBF9F9";
+let coreDevWatcher = null;
+let coreDevRestartTimer = null;
 
 function forceLightModeForWindow(win) {
   if (!win || win.isDestroyed()) return;
@@ -108,6 +114,39 @@ async function resolveClovapiExecutable() {
 }
 
 const proxyManager = createGoProxyManager({ resolveExecutable: resolveClovapiExecutable });
+
+function scheduleCoreProxyRestart() {
+  clearTimeout(coreDevRestartTimer);
+  coreDevRestartTimer = setTimeout(async () => {
+    emitOutput("system", "[core-watch] core rebuilt; restarting proxy\n");
+    try {
+      await proxyManager.stop();
+      const cfg = await proxyManager.loadProxyConfig();
+      await proxyManager.start({ port: cfg.port, host: cfg.host });
+      emitOutput("system", "[core-watch] proxy restarted\n");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      emitOutput("stderr", `[core-watch] proxy restart failed: ${message}\n`);
+    }
+  }, 250);
+}
+
+function watchCoreDevBinary() {
+  if (process.env.ELECTRON_DEV !== "1") return;
+  const stateFile = coreDevStatePath();
+  const stateDir = path.dirname(stateFile);
+  try {
+    fs.mkdirSync(stateDir, { recursive: true });
+    coreDevWatcher = fs.watch(stateDir, (_event, filename) => {
+      if (String(filename || "") === path.basename(stateFile)) {
+        scheduleCoreProxyRestart();
+      }
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    emitOutput("stderr", `[core-watch] failed to watch core dev binary: ${message}\n`);
+  }
+}
 
 function startChildProcess(command, options = {}) {
   const { cwd = process.cwd(), env = process.env, executable, args = [] } = options;
@@ -643,6 +682,7 @@ ipcMain.handle("cli:tool-status", async () => {
 app.whenReady().then(async () => {
   nativeTheme.themeSource = "light";
   createWindow();
+  watchCoreDevBinary();
   try {
     const cfg = await proxyManager.loadProxyConfig();
     await proxyManager.start({ port: cfg.port });
@@ -657,6 +697,10 @@ app.whenReady().then(async () => {
 
 app.on("window-all-closed", () => {
   stopRunningProcess();
+  if (coreDevWatcher) {
+    coreDevWatcher.close();
+    coreDevWatcher = null;
+  }
   void proxyManager.stop();
   if (process.platform !== "darwin") app.quit();
 });

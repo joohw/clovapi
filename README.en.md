@@ -6,7 +6,6 @@ English | [中文](README.md)
 
 **Website:** https://clovapi.com — [agents](https://clovapi.com/agents) · [guides](https://clovapi.com/guides) · [Agent Skill](https://clovapi.com/skill)
 
----
 
 Open-source CLI and desktop app built around a built-in local proxy: save upstream profiles and `switch` them to Claude Code, Codex, OpenCode, and other agents. After switch, traffic goes through `localhost` while clovapi routes upstream and transcodes API formats.
 
@@ -30,20 +29,3 @@ clovapi --help
 | `clovapi switch [--cli KIND]` | Apply profile to one CLI (`use`) |
 | `clovapi proxy` | Built-in local proxy (`start` / `status` / `config`) |
 | `clovapi reset` | Clear all profiles and bindings (`--yes`) |
-
-## Documentation
-
-| | |
-|---|---|
-| Full docs (English) | [switcher/README.md](switcher/README.md) |
-| 完整说明（中文） | [switcher/README.zh.md](switcher/README.zh.md) |
-| Desktop app | [electron/README.md](electron/README.md) |
-
-## Repository layout
-
-| Directory | Description |
-|-----------|-------------|
-| [`switcher/`](switcher/) | clovapi CLI (Go) |
-| [`electron/`](electron/) | Desktop app (local proxy + GUI) |
-| [`landing/`](landing/) | Website [clovapi.com](https://clovapi.com) |
-| [`docs/`](docs/) | Development reference docs |

@@ -6,7 +6,6 @@
 
 **官网：** https://clovapi.com — [支持的 Agent](https://clovapi.com/agents) · [配置教程](https://clovapi.com/guides) · [Agent Skill](https://clovapi.com/skill)
 
----
 
 开源 CLI 与桌面客户端，以内置本地代理为核心：保存 upstream profile，`switch` 一键应用到 Claude Code、Codex、OpenCode 等 Agent；switch 后统一走 `localhost`，由代理完成上游路由与 API 形态转码。
 
@@ -31,19 +30,3 @@ clovapi --help
 | `clovapi proxy` | 内置本地代理（`start` / `status` / `config`） |
 | `clovapi reset` | 清空全部 profile 与绑定（`--yes`） |
 
-## 文档
-
-| | |
-|---|---|
-| 完整说明（中文） | [switcher/README.zh.md](switcher/README.zh.md) |
-| Full docs (English) | [switcher/README.md](switcher/README.md) |
-| 桌面端 | [electron/README.md](electron/README.md) |
-
-## 仓库结构
-
-| 目录 | 说明 |
-|------|------|
-| [`switcher/`](switcher/) | clovapi CLI（Go） |
-| [`electron/`](electron/) | 桌面端（本地代理 + GUI） |
-| [`landing/`](landing/) | 官网 [clovapi.com](https://clovapi.com) |
-| [`docs/`](docs/) | 开发参考文档 |

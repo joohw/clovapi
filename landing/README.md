@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Default dev URL: `http://localhost:27483`.
+Default dev URL: `http://localhost:3000` (local Go proxy stays on `27483`).
 
 ## Environment Variables
 

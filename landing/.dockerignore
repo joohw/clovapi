@@ -6,7 +6,10 @@ coverage
 
 .git
 .gitignore
+# Exclude markdown except blog posts (required at build + runtime for fs reads)
 *.md
+!content/blog/
+!content/blog/**
 .DS_Store
 
 .env*

@@ -11,7 +11,7 @@ export function normalizePath(path: string): string {
 export function getPublicSiteUrlFromRequest(host?: string): string {
   const fromEnv = process.env.PUBLIC_SITE_URL?.trim().replace(/\/+$/, "");
   if (fromEnv) return fromEnv;
-  if (!host) return "http://localhost:27483";
+  if (!host) return "http://localhost:3000";
   return host.startsWith("http://") || host.startsWith("https://")
     ? host
     : `https://${host}`;

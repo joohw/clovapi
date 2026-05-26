@@ -13,6 +13,19 @@ type CliBridge = {
   state(): Promise<{ running?: boolean }>;
   defaultCwd(): Promise<{ cwd?: string }>;
   toolStatus(): Promise<{ available?: boolean }>;
+  updateCli(payload?: { check?: boolean; version?: string }): Promise<{
+    ok?: boolean;
+    error?: string;
+    detail?: {
+      current_version?: string;
+      latest_version?: string;
+      target_path?: string;
+      updated?: boolean;
+      up_to_date?: boolean;
+    };
+    stdout?: string;
+    stderr?: string;
+  }>;
   which(command: string): Promise<{ exists?: boolean; path?: string }>;
   onOutput(callback: (payload: unknown) => void): () => void;
   onExit(callback: (payload: { code?: number | null }) => void): () => void;

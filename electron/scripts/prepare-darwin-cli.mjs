@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const electronDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const switcherDir = path.resolve(electronDir, "..", "switcher");
+const coreDir = path.resolve(electronDir, "..", "core");
 const binDir = path.join(electronDir, "bin");
 const output = path.join(binDir, "clovapi");
 
@@ -17,7 +17,7 @@ function run(command, args, options = {}) {
 
 function buildCli(arch, outPath) {
   run("go", ["build", "-ldflags=-s -w", "-o", outPath, "./cmd/clovapi"], {
-    cwd: switcherDir,
+    cwd: coreDir,
     env: { ...process.env, GOOS: "darwin", GOARCH: arch, CGO_ENABLED: "0" },
   });
 }

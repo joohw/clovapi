@@ -1,6 +1,6 @@
 # ClovAPI Desktop Client (Minimal)
 
-Electron UI for the **clovapi** switcher CLI. Profile data is stored in the same file as the CLI (`profiles.json`), not in browser `localStorage`.
+Electron UI for the **clovapi** core CLI. Profile data is stored in the same file as the CLI (`profiles.json`), not in browser `localStorage`.
 
 ## Config location (shared with CLI)
 
@@ -18,7 +18,7 @@ On first launch, if `profiles.json` is empty and legacy `localStorage` (`clovapi
   - Kimi Code：**Claude Subscription** — 读取 Claude OAuth 凭据，自动生成 profile 并写入 Kimi `config.toml`
 - **API 管理**：**仅四种固定供应商**（`claude-code`、`codex`、`ollama`、`custom-api`），不可动态注册新供应商；自定义 API 仅手动添加模型（与 `clovapi add` 同一 `profiles.json`）
 - **本地代理**：Electron 在主进程调用 **Go `clovapi proxy start`**（与 CLI 同源，后台 daemon），监听 `profiles.json` 中的 `proxy.host` / `proxy.port`（默认 `http://127.0.0.1:27483`）。请求路由与 Go 内核一致：`http://127.0.0.1:{port}/{providerId}/{modelId}/{apiStyle}/v1/…`
-- **协议与解码**：全部由 **Go `switcher/internal/proxy` + protocol** 持有；Electron 不写平行 JS proxy
+- **协议与解码**：全部由 **Go `core/internal/proxy` + protocol** 持有；Electron 不写平行 JS proxy
 - **测试**：`npm test`（进程管理参数构造、`/health` 外部代理分支、ingress URL 分段编码）
 - Bind each installed CLI to a profile (`active` map in `profiles.json`)
 - **应用** runs `clovapi switch --cli <kind> <name>` to write Codex / OpenCode / etc. configs

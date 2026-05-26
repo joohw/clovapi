@@ -10,19 +10,20 @@ This repository does **not** ship a remote multi-tenant API gateway — no billi
 
 | Directory | Role |
 |-----------|------|
-| `switcher/` | Go CLI + local proxy core (`cmd/clovapi`, `internal/proxy`, `internal/apply`, `internal/protocol`) |
+| `core/` | Go CLI + local proxy core (`cmd/clovapi`, `internal/proxy`, `internal/apply`, `internal/protocol`) |
+| `npm/` | npm launcher package (`@clovapi/cli`) that installs/calls the core binary |
 | `electron/` | Desktop app (Electron + Svelte 5 UI); invokes the same Go binary for proxy/switch |
 | `landing/` | Marketing site [clovapi.com](https://clovapi.com) (Next.js) |
 | `docs/` | Harbor / agent reference notes |
 
 ## Tech stack
 
-- **CLI / proxy**: Go 1.22+ (`switcher/`)
+- **CLI / proxy**: Go 1.22+ (`core/`)
 - **Desktop**: Electron, Svelte 5, Vite (`electron/ui/`)
 - **Website**: Next.js (`landing/`)
-- **Install**: `npm i -g @clovapi/cli`, Homebrew, winget; see `switcher/README.md`
+- **Install**: `npm i -g @clovapi/cli`, Homebrew, winget; see `core/README.md` and `npm/README.md`
 
-## Architecture (switcher)
+## Architecture (core)
 
 ```
 clovapi add / switch → internal/apply (per-CLI config writers)
@@ -32,9 +33,9 @@ clovapi add / switch → internal/apply (per-CLI config writers)
 ```
 
 - **Profiles**: `~/.config/clovapi/profiles.json` (or `%APPDATA%\clovapi` on Windows)
-- **Apply targets**: `switcher/internal/apply/target_*.go`
-- **Protocol bridge**: `switcher/internal/protocol/` (request/response IR, SSE)
-- **Proxy resolve**: `switcher/internal/proxyresolve/`
+- **Apply targets**: `core/internal/apply/target_*.go`
+- **Protocol bridge**: `core/internal/protocol/` (request/response IR, SSE)
+- **Proxy resolve**: `core/internal/proxyresolve/`
 
 ## Internationalization (i18n)
 
@@ -43,20 +44,20 @@ clovapi add / switch → internal/apply (per-CLI config writers)
 
 ## Rules
 
-### Rule 1: JSON in switcher
+### Rule 1: JSON in core
 
-Switcher code uses standard `encoding/json`. There is no shared `common/json.go` wrapper in this repo.
+Core code uses standard `encoding/json`. There is no shared `common/json.go` wrapper in this repo.
 
 ### Rule 2: Frontend package managers
 
 - **electron/** and **landing/**: follow each package’s README (`npm install`, `npm run dev`, etc.).
-- **switcher/**: `go build`, `go test ./...` from `switcher/`.
+- **core/**: `go build`, `go test ./...` from `core/`.
 
 ### Rule 3: Hermes adapter tests — exercise the real `hermes` CLI
 
 Hermes configuration and proxy ingress must be validated against **actual `hermes` subprocess HTTP calls**, not by asserting YAML fields or synthetic JSON bodies in isolation.
 
-- **Do:** apply clovapi `Apply` output, run `hermes chat -q … -Q --accept-hooks --yolo --max-turns 1`, and assert the recorded request path/body (see `switcher/internal/apply/target_hermes_integration_test.go`).
+- **Do:** apply clovapi `Apply` output, run `hermes chat -q … -Q --accept-hooks --yolo --max-turns 1`, and assert the recorded request path/body (see `core/internal/apply/target_hermes_integration_test.go`).
 - **Do:** treat [Hermes Agent transport rules](https://github.com/NousResearch/hermes-agent) as source of truth — e.g. `anthropic_messages` clients append `/v1/messages`, so clovapi must **not** suffix `/v1` on Anthropic-style custom provider base URLs.
 - **Don't:** add Hermes tests that only read `~/.hermes/config.yaml` or mock request matrices without invoking the CLI.
 

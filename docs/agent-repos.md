@@ -1,6 +1,6 @@
 # Agent reference repositories
 
-Catalog of open-source repos cloned under `ref/` for clovapi switcher research (reading upstream config formats and CLI behavior). Use this file to reproduce the same layout on another machine.
+Catalog of open-source repos cloned under `ref/` for clovapi core research (reading upstream config formats and CLI behavior). Use this file to reproduce the same layout on another machine.
 
 `ref/` is gitignored in this repo — clones live only on your disk.
 
@@ -50,9 +50,9 @@ Shallow clone (`--depth 1`) is enough for reading source. Drop `--depth 1` if yo
 
 ---
 
-## clovapi switcher targets
+## clovapi core targets
 
-Switcher writes config for these CLIs (see `switcher/internal/apply/target_*.go`):
+Core writes config for these CLIs (see `core/internal/apply/target_*.go`):
 
 | CLI | Upstream repo | Local `ref/` dir |
 |-----|---------------|------------------|

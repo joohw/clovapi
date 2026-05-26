@@ -5,10 +5,11 @@ import { fileURLToPath } from "node:url";
 
 const electronDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = path.resolve(electronDir, "..");
-const switcherDir = path.join(repoRoot, "switcher");
-const switcherBin = path.join(switcherDir, "clovapi");
+const coreDir = path.join(repoRoot, "core");
+const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
+const coreBin = path.join(coreDir, exeName);
 const electronBinDir = path.join(electronDir, "bin");
-const electronBin = path.join(electronBinDir, "clovapi");
+const electronBin = path.join(electronBinDir, exeName);
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { stdio: "inherit", ...options });
@@ -17,8 +18,8 @@ function run(command, args, options = {}) {
   }
 }
 
-run("go", ["build", "-o", switcherBin, "./cmd/clovapi"], { cwd: switcherDir });
+run("go", ["build", "-o", coreBin, "./cmd/clovapi"], { cwd: coreDir });
 fs.mkdirSync(electronBinDir, { recursive: true });
-fs.copyFileSync(switcherBin, electronBin);
+fs.copyFileSync(coreBin, electronBin);
 fs.chmodSync(electronBin, 0o755);
-console.log(`Dev clovapi ready:\n  ${switcherBin}\n  ${electronBin}`);
+console.log(`Dev clovapi ready:\n  ${coreBin}\n  ${electronBin}`);

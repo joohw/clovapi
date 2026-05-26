@@ -2,6 +2,51 @@ import { t } from "../i18n";
 import { store } from "./state.svelte";
 import { toast } from "../toast";
 
+type UpdateDetail = {
+  current_version?: string;
+  latest_version?: string;
+  target_path?: string;
+  updated?: boolean;
+  up_to_date?: boolean;
+};
+
+function parseVersionFromHealthBody(body: unknown): string {
+  if (!body || typeof body !== "object") return "";
+  const version = (body as { version?: unknown }).version;
+  return typeof version === "string" ? version.trim() : "";
+}
+
+async function resolveCoreVersionFromCli(): Promise<string> {
+  const bridge = window.clovapiCli;
+  if (!bridge?.runClovapi) return "";
+  const result = await bridge.runClovapi(["version"], "");
+  if (!result?.ok) return "";
+  const line = String(result.stdout || "")
+    .trim()
+    .split("\n")[0];
+  const match = line.match(/^clovapi\s+(\S+)/);
+  return match?.[1]?.trim() || "";
+}
+
+export async function refreshCoreVersion() {
+  if (store.proxyRunning) {
+    const bridge = window.clovapiProxy;
+    if (bridge?.health) {
+      try {
+        const result = await bridge.health();
+        const version = parseVersionFromHealthBody(result?.body);
+        if (version) {
+          store.coreVersion = version;
+          return;
+        }
+      } catch {
+        /* fall through to CLI */
+      }
+    }
+  }
+  store.coreVersion = await resolveCoreVersionFromCli();
+}
+
 export async function refreshProxyStatus() {
   const bridge = window.clovapiProxy;
   if (!bridge?.status) return;
@@ -15,6 +60,7 @@ export async function refreshProxyStatus() {
   } catch {
     store.proxyRunning = false;
   }
+  await refreshCoreVersion();
 }
 
 export async function refreshProxyLogs() {
@@ -79,6 +125,9 @@ export async function runProxyHealthTest() {
     const result = await bridge.health();
     await refreshProxyStatus();
 
+    const version = parseVersionFromHealthBody(result?.body);
+    if (version) store.coreVersion = version;
+
     if (result?.ok && result.passed) {
       const latency = result.latencyMs != null ? `${result.latencyMs}ms` : "";
       store.proxyHealthTest = {
@@ -102,6 +151,143 @@ export async function runProxyHealthTest() {
       summary: `${t("modelTest.failed")} · ${message}`,
       detail: "",
     };
+  }
+}
+
+export async function checkCoreUpdate() {
+  if (store.coreUpdateCheck?.status === "testing" || store.coreUpdating) return;
+
+  const bridge = window.clovapiCli;
+  if (!bridge?.updateCli) {
+    toast.error(t("toast.coreUpdateUnsupported"));
+    return;
+  }
+
+  store.coreUpdateCheck = {
+    status: "testing",
+    summary: t("common.testing"),
+    detail: "",
+  };
+
+  try {
+    const result = await bridge.updateCli({ check: true });
+    const detail = (result?.detail || {}) as UpdateDetail;
+
+    if (detail.current_version) {
+      store.coreVersion = detail.current_version;
+    } else if (!store.coreVersion) {
+      await refreshCoreVersion();
+    }
+
+    if (!result?.ok) {
+      store.coreUpdateAvailable = false;
+      store.coreLatestVersion = "";
+      store.coreUpdateCheck = {
+        status: "fail",
+        summary: result?.error || t("toast.coreUpdateCheckFailed"),
+        detail: JSON.stringify(detail, null, 2),
+      };
+      return;
+    }
+
+    if (detail.up_to_date) {
+      store.coreUpdateAvailable = false;
+      store.coreLatestVersion = "";
+      store.coreUpdateCheck = {
+        status: "pass",
+        summary: t("proxy.updateUpToDate"),
+        detail: "",
+        testedAt: Date.now(),
+      };
+      return;
+    }
+
+    store.coreUpdateAvailable = true;
+    store.coreLatestVersion = detail.latest_version || "";
+    store.coreUpdateCheck = {
+      status: "pass",
+      summary: t("proxy.updateAvailable", { latest: detail.latest_version || "?" }),
+      detail: "",
+      testedAt: Date.now(),
+    };
+  } catch (error) {
+    store.coreUpdateAvailable = false;
+    store.coreLatestVersion = "";
+    store.coreUpdateCheck = {
+      status: "fail",
+      summary: error instanceof Error ? error.message : t("toast.coreUpdateCheckFailed"),
+      detail: "",
+    };
+  }
+}
+
+export async function installCoreUpdate() {
+  if (store.coreUpdating || store.coreUpdateCheck?.status === "testing") return;
+
+  const bridge = window.clovapiCli;
+  if (!bridge?.updateCli) {
+    toast.error(t("toast.coreUpdateUnsupported"));
+    return;
+  }
+
+  store.coreUpdating = true;
+  store.coreUpdateCheck = {
+    status: "testing",
+    summary: t("proxy.updating"),
+    detail: "",
+  };
+
+  try {
+    const result = await bridge.updateCli({});
+    const detail = (result?.detail || {}) as UpdateDetail;
+
+    if (!result?.ok) {
+      store.coreUpdateCheck = {
+        status: "fail",
+        summary: result?.error || t("toast.coreUpdateInstallFailed"),
+        detail: JSON.stringify(detail, null, 2),
+      };
+      toast.error(result?.error || t("toast.coreUpdateInstallFailed"));
+      return;
+    }
+
+    if (detail.latest_version) {
+      store.coreVersion = detail.latest_version;
+    } else if (detail.current_version) {
+      store.coreVersion = detail.current_version;
+    }
+
+    store.coreUpdateAvailable = false;
+    store.coreLatestVersion = "";
+
+    if (detail.updated) {
+      store.coreUpdateCheck = {
+        status: "pass",
+        summary: t("proxy.updateInstalled", { version: detail.latest_version || store.coreVersion }),
+        detail: detail.target_path ? t("proxy.updateInstalledPath", { path: detail.target_path }) : "",
+        testedAt: Date.now(),
+      };
+      toast.success(t("toast.coreUpdateInstalled"));
+      await restartLocalProxy();
+      await refreshCoreVersion();
+      return;
+    }
+
+    store.coreUpdateCheck = {
+      status: "pass",
+      summary: t("proxy.updateUpToDate"),
+      detail: "",
+      testedAt: Date.now(),
+    };
+  } catch (error) {
+    store.coreUpdateCheck = {
+      status: "fail",
+      summary: error instanceof Error ? error.message : t("toast.coreUpdateInstallFailed"),
+      detail: "",
+    };
+    toast.error(error instanceof Error ? error.message : t("toast.coreUpdateInstallFailed"));
+  } finally {
+    store.coreUpdating = false;
   }
 }
 

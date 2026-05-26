@@ -9,7 +9,7 @@
 #   R2_SESSION_TOKEN (for temporary R2 S3 credentials)
 #
 # Usage:
-#   ./scripts/r2-publish.sh cli --tag v0.1.12 --dist switcher/dist
+#   ./scripts/r2-publish.sh cli --tag v0.1.12 --dist core/dist
 #   ./scripts/r2-publish.sh install-sh --file landing/public/install.sh
 #   ./scripts/r2-publish.sh desktop --tag v0.1.12 --file electron/dist/foo.dmg --name clovapi-desktop-darwin-universal.dmg
 

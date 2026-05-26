@@ -1,0 +1,35 @@
+{
+  "name": "@clovapi/cli",
+  "version": "0.1.11",
+  "description": "Install clovapi CLI from GitHub Releases",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joohw/clovapi.git",
+    "directory": "npm"
+  },
+  "license": "MIT",
+  "bin": {
+    "clovapi": "bin/clovapi.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "test": "node --test scripts/paths.test.js"
+  },
+  "files": [
+    "bin",
+    "scripts/install.js",
+    "scripts/paths.js",
+    "vendor",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "tar": "^7.4.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

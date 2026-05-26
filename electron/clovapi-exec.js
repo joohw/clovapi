@@ -3,6 +3,18 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { cliBinPath } = require("./config-paths");
 
+function isDevEnvironment() {
+  return process.env.ELECTRON_DEV === "1";
+}
+
+function developmentCandidates(exeName) {
+  return [
+    path.join(__dirname, "bin", exeName),
+    path.join(__dirname, "..", "core", exeName),
+    path.join(process.cwd(), "core", exeName),
+  ];
+}
+
 function packagedBundledCandidates(exeName) {
   const candidates = [];
   const resourcesPath = process.resourcesPath;
@@ -23,14 +35,12 @@ function packagedBundledCandidates(exeName) {
 
 function buildBundledCandidates(extraCandidates = []) {
   const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
-  const defaults = [
-    cliBinPath(),
-    ...packagedBundledCandidates(exeName),
-    path.join(__dirname, "bin", exeName),
-    path.join(__dirname, "..", "switcher", exeName),
-    path.join(process.cwd(), "switcher", exeName),
-  ];
-  return [...extraCandidates, ...defaults].filter(Boolean);
+  const userPath = cliBinPath();
+  const extras = extraCandidates.filter(Boolean);
+  const defaults = isDevEnvironment()
+    ? [...developmentCandidates(exeName), ...extras, userPath, ...packagedBundledCandidates(exeName)]
+    : [userPath, ...extras, ...packagedBundledCandidates(exeName), ...developmentCandidates(exeName)];
+  return defaults.filter(Boolean);
 }
 
 function resolveClovapiExecutable(options = {}) {
@@ -44,9 +54,29 @@ function resolveClovapiExecutable(options = {}) {
       /* ignore */
     }
   }
-  for (const candidate of buildBundledCandidates(options.extraCandidates)) {
+  if (isDevEnvironment()) {
+    for (const candidate of buildBundledCandidates(options.extraCandidates)) {
+      try {
+        if (candidate && fs.existsSync(candidate)) return candidate;
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  const userPath = cliBinPath();
+  try {
+    if (fs.existsSync(userPath)) return userPath;
+  } catch {
+    /* ignore */
+  }
+  const localCandidates = buildBundledCandidates(options.extraCandidates).filter(
+    (candidate) => path.resolve(candidate) !== path.resolve(userPath)
+  );
+  for (const candidate of localCandidates) {
     try {
-      if (candidate && fs.existsSync(candidate)) return candidate;
+      if (candidate && fs.existsSync(candidate)) {
+        return candidate;
+      }
     } catch {
       /* ignore */
     }

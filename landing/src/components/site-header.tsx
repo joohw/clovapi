@@ -35,7 +35,7 @@ export function SiteHeader() {
     return [
       { text: t("header.home"), to: "/" },
       { text: t("header.guides"), to: "/guides" },
-      { text: t("header.download"), to: "/download" },
+      { text: t("header.blog"), to: "/blog" },
       { text: t("header.skill"), to: "/skill" },
     ];
   }, [t]);

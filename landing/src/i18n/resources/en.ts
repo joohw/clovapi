@@ -4,7 +4,6 @@ const en = {
     agents: "Agents",
     guides: "Guides",
     blog: "Blog",
-    download: "Download",
     skill: "Skill",
     backHome: "Back to home",
     github: "GitHub",
@@ -17,8 +16,8 @@ const en = {
   home: {
     title: "Manage agent APIs with ease",
     subtitle:
-      "Built around a local proxy: after switch, agent requests go through localhost while clovapi routes upstream and transcodes API formats.",
-    quickStart: "Quick start",
+      "Built-in local proxy: turn Claude Code and Codex subscriptions into a local API in one click, and switch agent APIs just as easily.",
+    quickStart: "Install CLI",
     quickStartHint:
       "The added API profile is served to your target Agent CLI via the local proxy",
     useCaseAlt: "ClovAPI Switcher desktop app managing API upstreams for Claude Code, Codex, and other agents",
@@ -101,7 +100,8 @@ const en = {
   },
   blog: {
     indexTitle: "Blog",
-    indexSubtitle: "Local proxy architecture, agent CLI API switching practices, and deep dives on Claude Code / Codex upstream setup.",
+    indexSubtitle:
+      "Inspired by Reddit and community threads: OAuth bans, proxy sprawl, tier routing, multi-agent switches, and Cursor terminal workflows.",
     empty: "No posts yet.",
     backToBlog: "← Back to blog",
     viewGuides: "View setup guides →",
@@ -130,18 +130,6 @@ const en = {
     whenCcSwitchBody:
       "You need MCP/Skills/Prompts sync across CLIs, Gemini CLI support, or a fuller desktop ops panel (session search, cloud sync, optional proxy takeover).",
     agentsLink: "Browse supported agents →",
-  },
-  download: {
-    title: "Download clovapi",
-    subtitle: "Download the desktop app for macOS and Windows from the official R2 mirror.",
-    macTitle: "macOS desktop",
-    macBody: "Universal DMG for Apple Silicon and Intel Macs, mirrored at downloads.clovapi.com.",
-    windowsTitle: "Windows desktop",
-    windowsBody: "x64 desktop installer for Windows, published from the release workflow.",
-    downloadMac: "Download macOS",
-    downloadWindows: "Download Windows",
-    desktopLatest: "Desktop latest",
-    pathsTitle: "Public mirror paths",
   },
   skill: {
     agentHintTitle: "Install ClovAPI Skill",

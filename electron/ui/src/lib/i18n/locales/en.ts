@@ -3,7 +3,7 @@ const en = {
     subtitle: "Manage local Agent APIs in one place — ClaudeCli / CodexCli subscriptions supported",
   },
   tabs: {
-    cli: "Agents",
+    cli: "CLI",
     profiles: "API",
     callLogs: "Call logs",
     systemLogs: "System logs",

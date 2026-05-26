@@ -5,7 +5,7 @@ const zh = {
     subtitle: "一键管理本地所有 Agent 的 API，支持 ClaudeCli / CodexCli 订阅",
   },
   tabs: {
-    cli: "Agent 管理",
+    cli: "CLI",
     profiles: "API 管理",
     callLogs: "调用日志",
     systemLogs: "系统日志",

@@ -35,9 +35,6 @@ export function HomeFooter() {
         </div>
 
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <Link href="/agents" className="text-muted-foreground hover:text-foreground">
-            {t("header.agents")}
-          </Link>
           <Link href="/guides" className="text-muted-foreground hover:text-foreground">
             {t("header.guides")}
           </Link>

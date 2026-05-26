@@ -42,7 +42,14 @@ clovapi --help
 ### Homebrew (tap formula)
 
 ```bash
-brew install joohw/homebrew-tap/clovapi
+brew install joohw/tap/clovapi
+```
+
+If you already installed an older formula:
+
+```bash
+brew update
+brew upgrade clovapi
 ```
 
 ### winget

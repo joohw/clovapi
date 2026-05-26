@@ -1,14 +1,14 @@
+[English](../switcher/README.md) | 中文 · [仓库首页](../README.md)
+
 # clovapi — 按 CLI 管理 API profiles
+
+**参考笔记：** [Harbor 与各 Agent 的 API 控制](harbor-agents.zh.md) · [English](harbor-agents.md) · [Agent 仓库索引（`ref/` 复刻）](agent-repos.zh.md)
 
 小型跨平台 CLI：**保存按 CLI 维度的上游 API 配置**（Base URL、密钥、`api_style`、模型），并**写入**你使用的各类编程 Agent 二进制对应的配置——Claude Code、Codex、OpenCode、OpenClaw、Hermes、Kimi Code CLI 等。
 
 流程：**`clovapi add --name …`**（保存并探测连通性）→ **`clovapi switch --cli …`** 或交互式 **`clovapi switch`**（每次下发到单一 CLI 配置）。
 
 **Claude Code** 的环境变量写法与社区 **cc-switch** / **ccswitch** 一致；详见下文 **与社区 cc-switch / ccswitch 的对比**。
-
-**其他语言：** [English — canonical](../../switcher/README.md) · [Documentation index（文档索引）](README.md)
-
-**参考笔记：** [Harbor 与各 Agent 的 API 控制](harbor-agents.zh.md) · [English](harbor-agents.md) · [Agent 仓库索引（`ref/` 复刻）](agent-repos.zh.md)
 
 ## 命令
 

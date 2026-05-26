@@ -1,6 +1,6 @@
-# clovapi — per-CLI API profiles → local CLIs
+English | [中文](README.zh.md)
 
-**Language / 语言:** English · [中文](README.zh.md)
+# clovapi — per-CLI API profiles → local CLIs
 
 **Website / 官网:** https://clovapi.com — [agents](https://clovapi.com/agents) · [guides](https://clovapi.com/guides) · [Agent Skill](https://clovapi.com/skill)
 

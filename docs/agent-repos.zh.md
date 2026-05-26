@@ -16,6 +16,7 @@ repos=(
   harbor-framework/harbor
   Hyper66666/claude-code-sourcemap
   anthropics/claude-code
+  huangdijia/ccswitch
   anthropics/claude-agent-sdk
   openai/codex
   openai/openai-agents-python
@@ -47,6 +48,7 @@ for spec in "${repos[@]}"; do
   case "$spec" in
     Hyper66666/claude-code-sourcemap) name="claude-code" ;;
     anthropics/claude-code)             name="claude-code-official" ;;
+    huangdijia/ccswitch)                name="ccswitch" ;;
     anthropics/claude-agent-sdk)        name="claude-agent-sdk" ;;
     openai/codex)                       name="codexcli" ;;
     openai/openai-agents-python)        name="openai-agents-python" ;;
@@ -142,6 +144,7 @@ OpenAI 早期实验项目（已被 Agents SDK 取代）：https://github.com/ope
 |----------|--------|------|
 | `ref/claude-code` | https://github.com/Hyper66666/claude-code-sourcemap | 第三方 npm source-map 还原；**非** Anthropic 官方源码 |
 | `ref/claude-code-official` | https://github.com/anthropics/claude-code | 官方仓库 — **仅插件/文档**；CLI 本体为闭源 npm `@anthropic-ai/claude-code` |
+| `ref/ccswitch` | https://github.com/huangdijia/ccswitch | 社区 Claude Code 配置切换工具；与 clovapi switcher 同款 `env.ANTHROPIC_AUTH_TOKEN` 写法 |
 
 Harbor agent：`claude-code` → 运行闭源 `claude` CLI。
 
@@ -167,7 +170,7 @@ Switcher 当前会写入配置的 CLI（见 `switcher/internal/apply/target_*.go
 
 | CLI | 对应上游仓库 |
 |-----|-------------|
-| Claude Code | （闭源 CLI；插件见 `ref/claude-code-official`） |
+| Claude Code | （闭源 CLI；插件见 `ref/claude-code-official`；社区切换器见 `ref/ccswitch`） |
 | Codex | `ref/codexcli` |
 | OpenCode | `ref/opencode` |
 | OpenClaw | `ref/openclaw` |

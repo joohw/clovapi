@@ -16,6 +16,7 @@ repos=(
   harbor-framework/harbor
   Hyper66666/claude-code-sourcemap
   anthropics/claude-code
+  huangdijia/ccswitch
   anthropics/claude-agent-sdk
   openai/codex
   openai/openai-agents-python
@@ -47,6 +48,7 @@ for spec in "${repos[@]}"; do
   case "$spec" in
     Hyper66666/claude-code-sourcemap) name="claude-code" ;;
     anthropics/claude-code)             name="claude-code-official" ;;
+    huangdijia/ccswitch)                name="ccswitch" ;;
     anthropics/claude-agent-sdk)        name="claude-agent-sdk" ;;
     openai/codex)                       name="codexcli" ;;
     openai/openai-agents-python)        name="openai-agents-python" ;;
@@ -142,6 +144,7 @@ Older OpenAI experiment (superseded by Agents SDK): https://github.com/openai/sw
 |-----------|--------|-------|
 | `ref/claude-code` | https://github.com/Hyper66666/claude-code-sourcemap | Third-party npm source-map restore; **not** official Anthropic source |
 | `ref/claude-code-official` | https://github.com/anthropics/claude-code | Official repo — **plugins / docs only**; CLI body ships as proprietary npm `@anthropic-ai/claude-code` |
+| `ref/ccswitch` | https://github.com/huangdijia/ccswitch | Community Claude Code profile switcher; same `env.ANTHROPIC_AUTH_TOKEN` pattern as clovapi switcher |
 
 Harbor agent: `claude-code` → runs the proprietary `claude` CLI.
 
@@ -167,7 +170,7 @@ Switcher currently writes config for these CLIs (see `switcher/internal/apply/ta
 
 | CLI | Typical upstream repo |
 |-----|----------------------|
-| Claude Code | (proprietary CLI; see `ref/claude-code-official` plugins) |
+| Claude Code | (proprietary CLI; see `ref/claude-code-official` plugins; community switcher: `ref/ccswitch`) |
 | Codex | `ref/codexcli` |
 | OpenCode | `ref/opencode` |
 | OpenClaw | `ref/openclaw` |

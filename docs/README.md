@@ -1,9 +1,11 @@
-# clovapi CLI switcher — documentation index / 文档索引
+English | [中文](README.zh.md) · [Home（仓库首页）](../README.md)
+
+# clovapi — 文档索引 / documentation index
 
 | Language | Document |
 |----------|----------|
-| English | [`switcher/README.md`](../../switcher/README.md) (canonical, next to the Go module) |
-| 中文 | [`README.zh.md`](README.zh.md) |
+| 中文 | [`README.zh.md`](README.zh.md) · [`switcher/README.zh.md`](../switcher/README.zh.md) (full CLI docs) |
+| English | [`switcher/README.md`](../switcher/README.md) |
 
 ## Reference notes
 

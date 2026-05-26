@@ -1,8 +1,10 @@
+[English](README.md) | 中文
+
 # clovapi — 按 CLI 管理 API profiles
 
-**语言 / Language:** [English](README.md) · 中文
-
 **官网：** https://clovapi.com — [支持的 Agent](https://clovapi.com/agents) · [配置教程](https://clovapi.com/guides) · [Agent Skill](https://clovapi.com/skill)
+
+**参考笔记：** [Harbor 与各 Agent 的 API 控制](../docs/harbor-agents.zh.md) · [English](../docs/harbor-agents.md) · [Agent 仓库索引（`ref/` 复刻）](../docs/agent-repos.zh.md)
 
 ---
 

@@ -29,21 +29,61 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check existing CLI release
+        id: existing_cli_release
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "complete=false" >> "$GITHUB_OUTPUT"
+          if [[ "${GITHUB_REF_NAME:-}" != v* ]]; then
+            exit 0
+          fi
+
+          version="${GITHUB_REF_NAME#v}"
+          required_assets=(
+            "checksums.txt"
+            "clovapi_${version}_darwin_amd64.tar.gz"
+            "clovapi_${version}_darwin_arm64.tar.gz"
+            "clovapi_${version}_linux_amd64.tar.gz"
+            "clovapi_${version}_linux_arm64.tar.gz"
+            "clovapi_${version}_windows_amd64.zip"
+            "clovapi_${version}_windows_arm64.zip"
+          )
+
+          if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json assets > /tmp/clovapi-release.json 2>/dev/null; then
+            exit 0
+          fi
+
+          for asset in "${required_assets[@]}"; do
+            if ! jq -e --arg name "$asset" '.assets | any(.name == $name)' /tmp/clovapi-release.json >/dev/null; then
+              exit 0
+            fi
+          done
+
+          echo "complete=true" >> "$GITHUB_OUTPUT"
+          echo "Release $GITHUB_REF_NAME already has all CLI assets; skipping GoReleaser publish."
+
       - name: Setup Go
+        if: steps.existing_cli_release.outputs.complete != 'true'
         uses: actions/setup-go@v5
         with:
           go-version-file: core/go.mod
 
       - name: Run tests
+        if: steps.existing_cli_release.outputs.complete != 'true'
         run: go test ./...
 
       - name: Setup GoReleaser
+        if: steps.existing_cli_release.outputs.complete != 'true'
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
           install-only: true
 
       - name: GoReleaser release
+        if: steps.existing_cli_release.outputs.complete != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
@@ -56,6 +96,7 @@ jobs:
 
       - name: Decide R2 publish
         id: r2_gate
+        if: steps.existing_cli_release.outputs.complete != 'true'
         working-directory: .
         run: |
           if [ -n "${{ secrets.R2_ACCOUNT_ID }}" ] && [ -n "${{ secrets.R2_ACCESS_KEY_ID }}" ] && [ -n "${{ secrets.R2_SECRET_ACCESS_KEY }}" ] && [ -n "${{ secrets.R2_BUCKET }}" ]; then
@@ -308,8 +349,21 @@ jobs:
             echo "package.json version already $target_version, skip npm version"
           fi
 
-      - name: Publish npm package
+      - name: Check published npm version
+        id: npm_version
         if: ${{ steps.npm_gate.outputs.publish == 'true' }}
+        working-directory: npm
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if npm view "@clovapi/cli@${version}" version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "@clovapi/cli ${version} is already published; skipping npm publish."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish npm package
+        if: ${{ steps.npm_gate.outputs.publish == 'true' && steps.npm_version.outputs.exists != 'true' }}
         working-directory: npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

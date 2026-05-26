@@ -38,6 +38,16 @@ function forceLightModeForWindow(win) {
   });
 }
 
+function windowIconPath() {
+  if (process.platform === "win32") {
+    return path.join(__dirname, "assets", "icon.ico");
+  }
+  if (process.platform === "darwin") {
+    return path.join(__dirname, "assets", "icon.icns");
+  }
+  return path.join(__dirname, "assets", "app-icon-1024.png");
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 700,
@@ -46,6 +56,7 @@ function createWindow() {
     minHeight: 560,
     autoHideMenuBar: true,
     backgroundColor: WINDOW_BG_TOP,
+    icon: windowIconPath(),
     title: "ClovAPI Switcher",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),

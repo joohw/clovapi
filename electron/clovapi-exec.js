@@ -3,10 +3,29 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { cliBinPath } = require("./config-paths");
 
+function packagedBundledCandidates(exeName) {
+  const candidates = [];
+  const resourcesPath = process.resourcesPath;
+  if (resourcesPath) {
+    candidates.push(path.join(resourcesPath, "bin", exeName));
+  }
+  try {
+    const { app } = require("electron");
+    const appPath = app?.getAppPath?.();
+    if (appPath) {
+      candidates.push(path.join(appPath, "bin", exeName));
+    }
+  } catch {
+    /* not running inside Electron */
+  }
+  return candidates;
+}
+
 function buildBundledCandidates(extraCandidates = []) {
   const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
   const defaults = [
     cliBinPath(),
+    ...packagedBundledCandidates(exeName),
     path.join(__dirname, "bin", exeName),
     path.join(__dirname, "..", "switcher", exeName),
     path.join(process.cwd(), "switcher", exeName),

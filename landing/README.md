@@ -36,7 +36,7 @@ npm run deploy
 Pushes to `main` that touch **`landing/**` only** trigger automated deploy via `.github/workflows/deploy-landing.yml` when these GitHub secrets are set:
 
 - `DOCKER_REGISTRY`, `DOCKER_USERNAME`, `DOCKER_PASSWORD`
-- `SSH_HOST`, `SSH_PORT`, `SSH_USERNAME`, `SSH_PASSWORD`
+- `SSH_HOST`, `SSH_USERNAME`, `SSH_PASSWORD` (`SSH_PORT` defaults to `22`)
 
 `core/` / CLI releases use `.github/workflows/release-switcher.yml` on `v*` tags — landing-only commits do not run that workflow.
 

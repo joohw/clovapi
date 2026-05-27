@@ -72,6 +72,16 @@ type ProxyLogsBridge = {
   clear(scope?: "calls" | "system" | "all"): Promise<ProxyLogsResult>;
 };
 
+type AppEventPayload =
+  | { type: "open-tab"; tab: "cli" | "profiles" | "call-logs" | "sessions" | "system-logs" | "settings" }
+  | { type: "open-profiles-vendor"; vendorName: string }
+  | { type: "profiles-changed" }
+  | { type: "proxy-status-changed" };
+
+type DesktopBridge = {
+  onAppEvent(callback: (payload: AppEventPayload) => void): () => void;
+};
+
 type ProxyConfig = {
   enabled?: boolean;
   host?: string;
@@ -173,6 +183,7 @@ declare global {
     clovapiProfiles?: ProfilesBridge;
     clovapiProxy?: ProxyBridge;
     clovapiProxyLogs?: ProxyLogsBridge;
+    clovapiDesktop?: DesktopBridge;
   }
 }
 

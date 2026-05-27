@@ -1,6 +1,7 @@
 import { detectCliPath, detectOllamaInstalled, setRunning } from "./cli";
 import { loadVendorCatalog } from "./catalog";
 import { loadModelTests } from "./model-tests";
+import { openProfilesVendor, setActiveTab } from "./navigation";
 import { loadProfilesFromDisk } from "./profiles";
 import { refreshProxyLogs, refreshProxyStatus } from "./proxy";
 import { refreshSubscriptions } from "./subscriptions";
@@ -13,6 +14,33 @@ export async function initApp() {
   await refreshSubscriptions();
   await refreshProxyStatus();
   await refreshProxyLogs();
+
+  const desktopBridge = window.clovapiDesktop;
+  if (desktopBridge?.onAppEvent) {
+    desktopBridge.onAppEvent((payload) => {
+      if (!payload || typeof payload !== "object") return;
+      if (payload.type === "open-tab") {
+        setActiveTab(payload.tab);
+        return;
+      }
+      if (payload.type === "open-profiles-vendor") {
+        void (async () => {
+          await loadProfilesFromDisk();
+          setActiveTab("profiles");
+          openProfilesVendor(payload.vendorName);
+        })();
+        return;
+      }
+      if (payload.type === "proxy-status-changed") {
+        void refreshProxyStatus();
+        void refreshProxyLogs();
+        return;
+      }
+      if (payload.type === "profiles-changed") {
+        void loadProfilesFromDisk();
+      }
+    });
+  }
 
   const bridge = window.clovapiCli;
   if (bridge) {

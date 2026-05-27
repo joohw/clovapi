@@ -88,6 +88,14 @@ contextBridge.exposeInMainWorld("clovapiProxyLogs", {
   },
 });
 
+contextBridge.exposeInMainWorld("clovapiDesktop", {
+  onAppEvent(callback) {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on("app:event", listener);
+    return () => ipcRenderer.removeListener("app:event", listener);
+  },
+});
+
 contextBridge.exposeInMainWorld("clovapiProfiles", {
   load() {
     return ipcRenderer.invoke("profiles:load");

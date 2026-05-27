@@ -9,12 +9,34 @@ const devDir = path.join(coreDir, ".dev");
 const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
 const statePath = path.join(devDir, "current.json");
 const pollMs = 800;
+const buildInfoVersionVar = "github.com/clovapi/switcher/internal/buildinfo.Version";
+const devVersion = resolveDevVersion();
 
 let lastFingerprint = "";
 let buildTimer = null;
 let building = false;
 let pending = false;
 let readyPrinted = false;
+
+function resolveDevVersion() {
+  const result = spawnSync("git", ["tag", "--sort=-v:refname"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
+  const tags = String(result.stdout || "")
+    .split(/\r?\n/)
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+
+  for (const tag of tags) {
+    const match = tag.match(/^v?(\d+)\.(\d+)\.(\d+)$/);
+    if (match) {
+      const [, major, minor, patch] = match;
+      return `dev${major}.${minor}.${Number(patch) + 1}`;
+    }
+  }
+  return "dev0.1.0";
+}
 
 function shouldTrack(filePath) {
   const rel = path.relative(coreDir, filePath);
@@ -74,8 +96,8 @@ function build() {
   fs.mkdirSync(devDir, { recursive: true });
   const suffix = `${Date.now()}-${process.pid}`;
   const outPath = path.join(devDir, `clovapi-dev-${suffix}${process.platform === "win32" ? ".exe" : ""}`);
-  console.log(`[core-watch] building ${outPath}`);
-  const result = spawnSync("go", ["build", "-o", outPath, "./cmd/clovapi"], {
+  console.log(`[core-watch] building ${outPath} (${devVersion})`);
+  const result = spawnSync("go", ["build", `-ldflags=-X ${buildInfoVersionVar}=${devVersion}`, "-o", outPath, "./cmd/clovapi"], {
     cwd: coreDir,
     stdio: "inherit",
   });

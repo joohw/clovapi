@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, nativeTheme, shell } = require("electron");
+const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, nativeTheme } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
@@ -11,6 +11,7 @@ const {
   coreDevStatePath,
   resolveClovapiExecutable: resolveBundledClovapiExecutable,
 } = require("./clovapi-exec");
+const { buildTrayMenuModel, isValidTrayTab, trayStatusSummary, trayTooltip } = require("./tray-menu");
 const { cliBinPath } = require("./config-paths");
 const { sanitizeForIpc } = require("./ipc-utils");
 
@@ -18,7 +19,9 @@ const { sanitizeForIpc } = require("./ipc-utils");
 app.commandLine.appendSwitch("enable-features", "OverlayScrollbar,FluentOverlayScrollbar");
 
 let mainWindow = null;
+let tray = null;
 let runningProcess = null;
+let quitting = false;
 const THEME_STORAGE_KEY = "clovapi-theme";
 /** Matches renderer page background (title bar flash before paint). */
 const WINDOW_BG_TOP = "#FBF9F9";
@@ -52,6 +55,260 @@ function windowIconPath() {
   return path.join(__dirname, "assets", "app-icon-1024.png");
 }
 
+function trayIconPath() {
+  if (process.platform === "win32") {
+    return path.join(__dirname, "assets", "icon.ico");
+  }
+  if (process.platform === "darwin") {
+    return path.join(__dirname, "assets", "tray-iconTemplate@2x.png");
+  }
+  return path.join(__dirname, "assets", "app-icon.iconset", "icon_32x32.png");
+}
+
+function createTrayImage() {
+  const img = nativeImage.createFromPath(trayIconPath());
+  if (img.isEmpty()) {
+    return nativeImage.createFromPath(windowIconPath());
+  }
+  if (process.platform === "darwin") {
+    img.setTemplateImage(true);
+    return img;
+  }
+  return img.resize({ width: 18, height: 18 });
+}
+
+function dispatchRendererEvent(payload) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send("app:event", payload);
+}
+
+function showMainWindow(options = {}) {
+  const tab = isValidTrayTab(options?.tab) ? options.tab : null;
+  const vendorName = String(options?.vendorName || "").trim();
+  const eventPayload =
+    options?.eventPayload && typeof options.eventPayload === "object"
+      ? options.eventPayload
+      : vendorName
+        ? { type: "open-profiles-vendor", vendorName }
+        : tab
+          ? { type: "open-tab", tab }
+          : null;
+  let created = false;
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    created = true;
+  }
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  if (process.platform === "darwin") app.dock?.show();
+  mainWindow.focus();
+  if (!eventPayload) return;
+  const sendAppEvent = () => dispatchRendererEvent(eventPayload);
+  if (created || mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.once("did-finish-load", sendAppEvent);
+    return;
+  }
+  sendAppEvent();
+}
+
+function hideMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.hide();
+}
+
+function toggleMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed() || !mainWindow.isVisible()) {
+    showMainWindow();
+    return;
+  }
+  hideMainWindow();
+}
+
+async function readTrayProxyState() {
+  try {
+    const cfg = await proxyManager.loadProxyConfig();
+    const status = await proxyManager.status();
+    return {
+      ok: true,
+      running: Boolean(status?.running),
+      managed: Boolean(status?.managed),
+      external: Boolean(status?.external),
+      port: Number(status?.port) || Number(cfg?.port) || 27483,
+      host: String(status?.host || cfg?.host || "127.0.0.1"),
+      baseUrl: String(status?.baseUrl || ""),
+      error: String(status?.error || ""),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      running: false,
+      managed: false,
+      external: false,
+      port: 27483,
+      host: "127.0.0.1",
+      baseUrl: "",
+      error: error instanceof Error ? error.message : "Failed to read proxy status",
+    };
+  }
+}
+
+async function readTrayDesktopState() {
+  try {
+    const result = await clovapiDesktop.loadProfiles();
+    if (!result?.ok) {
+      return {
+        ok: false,
+        profiles: [],
+        active: {},
+        error: String(result?.error || "").trim(),
+      };
+    }
+    return {
+      ok: true,
+      profiles: Array.isArray(result?.profiles) ? result.profiles : [],
+      active: result?.active && typeof result.active === "object" ? result.active : {},
+      error: "",
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      profiles: [],
+      active: {},
+      error: error instanceof Error ? error.message : "Failed to read desktop profiles",
+    };
+  }
+}
+
+async function switchTrayAgentModel(cliKind, providerId, modelId) {
+  const kind = String(cliKind || "").trim();
+  const provider = String(providerId || "").trim();
+  const model = String(modelId || "").trim();
+  if (!kind || !provider || !model) return;
+
+  const loaded = await clovapiDesktop.loadProfiles();
+  if (!loaded?.ok) {
+    emitOutput("stderr", `[tray] failed to load profiles: ${loaded?.error || "unknown error"}\n`);
+    return;
+  }
+
+  const active = loaded.active && typeof loaded.active === "object" ? { ...loaded.active } : {};
+  active[kind] = { provider_id: provider, model_id: model };
+  const saved = await clovapiDesktop.saveProfiles({
+    profiles: Array.isArray(loaded.profiles) ? loaded.profiles : [],
+    active,
+    proxy: loaded.proxy,
+  });
+  if (!saved?.ok) {
+    emitOutput("stderr", `[tray] failed to switch ${kind} model: ${saved?.error || "unknown error"}\n`);
+    return;
+  }
+
+  dispatchRendererEvent({ type: "profiles-changed" });
+  await updateTrayMenu();
+}
+
+async function updateTrayMenu() {
+  if (!tray) return;
+  const [state, desktop] = await Promise.all([readTrayProxyState(), readTrayDesktopState()]);
+  const model = buildTrayMenuModel({
+    visible: Boolean(mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()),
+    running: state.running,
+    port: state.port,
+    external: state.external,
+    managed: state.managed,
+    error: state.error,
+    profiles: desktop.profiles,
+    active: desktop.active,
+  });
+  tray.setToolTip(trayTooltip(trayStatusSummary(state)));
+  const template = [
+    {
+      label: model.windowLabel,
+      click: () => toggleMainWindow(),
+    },
+    {
+      label: model.profilesLabel,
+      click: () => showMainWindow({ tab: "profiles" }),
+    },
+    {
+      label: model.settingsLabel,
+      click: () => showMainWindow({ tab: "settings" }),
+    },
+    {
+      label: model.logsLabel,
+      click: () => showMainWindow({ tab: "call-logs" }),
+    },
+    { type: "separator" },
+    {
+      label: model.statusLabel,
+      enabled: false,
+    },
+    ...(model.hasBindings
+      ? model.bindings.map((binding) => ({
+          label: binding.summaryLabel,
+          submenu: binding.modelOptions.length
+            ? [
+                { label: binding.detailLabel, enabled: false },
+                { type: "separator" },
+                ...binding.modelOptions.map((option) => ({
+                  label: option.label,
+                  type: "checkbox",
+                  checked: option.checked,
+                  click: () => {
+                    void switchTrayAgentModel(binding.cliKind, option.providerId, option.modelId);
+                  },
+                })),
+                { type: "separator" },
+                {
+                  label: "Open Provider",
+                  click: () => showMainWindow({ vendorName: binding.vendorName }),
+                },
+              ]
+            : [
+                { label: binding.detailLabel, enabled: false },
+                { label: "No compatible models", enabled: false },
+                { type: "separator" },
+                {
+                  label: "Open Provider",
+                  click: () => showMainWindow({ vendorName: binding.vendorName }),
+                },
+              ],
+        }))
+      : [{ label: "No active agents configured", enabled: false }]),
+    ...(model.canStartProxy
+      ? [
+          {
+            label: model.startProxyLabel,
+            enabled: true,
+            click: async () => {
+              await proxyManager.start();
+              dispatchRendererEvent({ type: "proxy-status-changed" });
+              await updateTrayMenu();
+            },
+          },
+        ]
+      : []),
+    { type: "separator" },
+    {
+      label: model.quitLabel,
+      click: () => {
+        quitting = true;
+        app.quit();
+      },
+    },
+  ];
+  tray.setContextMenu(Menu.buildFromTemplate(template));
+}
+
+function createTray() {
+  if (tray) return tray;
+  tray = new Tray(createTrayImage());
+  tray.on("click", () => toggleMainWindow());
+  void updateTrayMenu();
+  return tray;
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 700,
@@ -69,6 +326,22 @@ function createWindow() {
     }
   });
   forceLightModeForWindow(mainWindow);
+
+  mainWindow.on("close", (event) => {
+    if (quitting) return;
+    event.preventDefault();
+    hideMainWindow();
+  });
+  mainWindow.on("show", () => {
+    void updateTrayMenu();
+  });
+  mainWindow.on("hide", () => {
+    void updateTrayMenu();
+  });
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+    void updateTrayMenu();
+  });
 
   const devUrl = process.env.ELECTRON_DEV === "1" ? process.env.VITE_DEV_SERVER_URL || "http://localhost:5173" : "";
   if (devUrl) {
@@ -366,7 +639,9 @@ ipcMain.handle("profiles:load", async () => {
 
 ipcMain.handle("profiles:save", async (_event, payload) => {
   try {
-    return await clovapiDesktop.saveProfiles(payload);
+    const result = await clovapiDesktop.saveProfiles(payload);
+    await updateTrayMenu();
+    return result;
   } catch (error) {
     return {
       ok: false,
@@ -583,7 +858,10 @@ ipcMain.handle("proxy:health", async () => {
 ipcMain.handle("proxy:start", async (_event, payload) => {
   try {
     const port = Number(payload?.port) || undefined;
-    return await proxyManager.start({ port });
+    const result = await proxyManager.start({ port });
+    dispatchRendererEvent({ type: "proxy-status-changed" });
+    await updateTrayMenu();
+    return result;
   } catch (error) {
     return {
       ok: false,
@@ -594,7 +872,10 @@ ipcMain.handle("proxy:start", async (_event, payload) => {
 
 ipcMain.handle("proxy:stop", async () => {
   try {
-    return await proxyManager.stop();
+    const result = await proxyManager.stop();
+    dispatchRendererEvent({ type: "proxy-status-changed" });
+    await updateTrayMenu();
+    return result;
   } catch (error) {
     return {
       ok: false,
@@ -724,6 +1005,7 @@ ipcMain.handle("cli:tool-status", async () => {
 app.whenReady().then(async () => {
   nativeTheme.themeSource = "light";
   createWindow();
+  createTray();
   watchCoreDevBinary();
   try {
     const cfg = await proxyManager.loadProxyConfig();
@@ -731,10 +1013,18 @@ app.whenReady().then(async () => {
   } catch {
     // Non-fatal on startup
   }
+  await updateTrayMenu();
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+    showMainWindow();
   });
+});
+
+app.on("before-quit", () => {
+  quitting = true;
 });
 
 app.on("window-all-closed", () => {
@@ -744,5 +1034,9 @@ app.on("window-all-closed", () => {
     coreDevWatcher = null;
   }
   void proxyManager.stop();
-  if (process.platform !== "darwin") app.quit();
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+  app.quit();
 });

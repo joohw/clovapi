@@ -9,7 +9,10 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const assetsDir = path.join(rootDir, "assets");
 const iconsetDir = path.join(assetsDir, "app-icon.iconset");
 const sourceSvg = path.join(assetsDir, "app-icon.svg");
+const trayTemplateSvg = path.join(assetsDir, "tray-icon-template.svg");
+const trayTemplatePng = path.join(assetsDir, "tray-iconTemplate@2x.png");
 const basePng = path.join(assetsDir, "app-icon-1024.png");
+const trimmedPng = path.join(assetsDir, "app-icon-trimmed.png");
 const icnsOut = path.join(assetsDir, "icon.icns");
 const icoOut = path.join(assetsDir, "icon.ico");
 
@@ -37,6 +40,8 @@ async function main() {
 
   const baseBuffer = await renderSvgPng(1024);
   fs.writeFileSync(basePng, baseBuffer);
+  await sharp(baseBuffer).trim().png().toFile(trimmedPng);
+  await sharp(trayTemplateSvg).resize(32, 32).png().toFile(trayTemplatePng);
 
   await Promise.all(
     ICONSET_SIZES.map(async ({ name, size }) => {
@@ -58,6 +63,8 @@ async function main() {
   console.log(`  ${icnsOut}`);
   console.log(`  ${icoOut}`);
   console.log(`  ${basePng}`);
+  console.log(`  ${trimmedPng}`);
+  console.log(`  ${trayTemplatePng}`);
 }
 
 main().catch((error) => {

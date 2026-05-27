@@ -15,7 +15,7 @@
     "prepare:cli:win": "node scripts/prepare-win-cli.mjs",
     "build:mac": "npm run build:ui && npm run build:icons && npm run prepare:cli:darwin && electron-builder --mac dmg",
     "build:win": "npm run build:ui && npm run prepare:cli:win && electron-builder --win nsis",
-    "test": "node --test proxy-manager.test.js clovapi-exec.test.js",
+    "test": "node --test proxy-manager.test.js clovapi-exec.test.js tray-menu.test.js",
     "start": "npm run build:ui && electron ."
   },
   "devDependencies": {

@@ -195,6 +195,7 @@ func decodeOpenAIResponsesSSERecord(rec SSERecord, st *SSEUpstreamDecodeState) [
 		if strings.Contains(recordType, "response") {
 			st.ResponsesStarted = true
 		}
+		rec = normalizeOpenAIResponsesSSERecord(recordType, payload, rec)
 		ev := wireExtension(ExtOpenAIResponsesSSEEvent, rec)
 		if recordType == "response.completed" || strings.TrimSpace(fmt.Sprint(payload["status"])) == "completed" {
 			if inTok, outTok, ok := sseUsageTokens(responsesUsageMap(payload)); ok {
@@ -214,6 +215,35 @@ func decodeOpenAIResponsesSSERecord(rec SSERecord, st *SSEUpstreamDecodeState) [
 		return []ResponseEvent{ev}
 	}
 	return out
+}
+
+func normalizeOpenAIResponsesSSERecord(recordType string, payload map[string]any, rec SSERecord) SSERecord {
+	if payload == nil {
+		return rec
+	}
+	if recordType != "response.completed" && strings.TrimSpace(fmt.Sprint(payload["status"])) != "completed" {
+		return rec
+	}
+	changed := false
+	if rsp, ok := payload["response"].(map[string]any); ok && rsp != nil {
+		if _, exists := rsp["output"]; exists && rsp["output"] == nil {
+			rsp["output"] = []any{}
+			changed = true
+		}
+	}
+	if _, exists := payload["output"]; exists && payload["output"] == nil {
+		payload["output"] = []any{}
+		changed = true
+	}
+	if !changed {
+		return rec
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return rec
+	}
+	rec.Data = string(data)
+	return rec
 }
 
 func responsesUsageMap(payload map[string]any) any {

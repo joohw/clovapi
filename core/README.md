@@ -145,13 +145,18 @@ Paths expand correctly on Windows (user profile / AppData).
 
 ## Release pipeline
 
-Tag `vX.Y.Z` triggers `.github/workflows/release-switcher.yml`. With Cloudflare R2 secrets configured, artifacts are mirrored to `https://downloads.clovapi.com`:
+Tag `vX.Y.Z` triggers `.github/workflows/release-switcher.yml` (core CLI, npm, winget). With Cloudflare R2 secrets configured, CLI artifacts are mirrored to `https://downloads.clovapi.com`:
 
 | Artifact | R2 path |
 |----------|---------|
 | CLI archives + `checksums.txt` | `/clovapi/vX.Y.Z/` |
 | CLI latest pointer | `/clovapi/latest.txt` |
 | install script | `/install.sh`, `/clovapi/install.sh` |
+
+Desktop builds use `.github/workflows/release-desktop.yml` on `main` pushes to `electron/**` (see `electron/README.md`).
+
+| Artifact | R2 path |
+|----------|---------|
 | macOS desktop | `/desktop/latest/clovapi-desktop-darwin-universal.dmg` |
 | Windows desktop | `/desktop/latest/clovapi-desktop-windows-x64.exe` |
 

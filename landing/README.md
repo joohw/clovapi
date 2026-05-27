@@ -40,6 +40,8 @@ Pushes to `main` that touch **`landing/**` only** trigger automated deploy via `
 
 `core/` / CLI releases use `.github/workflows/release-switcher.yml` on `v*` tags — landing-only commits do not run that workflow.
 
+Desktop shell releases use `.github/workflows/release-desktop.yml` on `electron/**` commits to `main`.
+
 Manual deploy: run the **deploy-landing** workflow (optional `tag` input, default `latest`).
 
 Hardcoded in code (`landing/src/lib/site.ts`, `landing/src/lib/downloads.ts`):

@@ -151,12 +151,17 @@ clovapi switch --cli codex   # 无参数时复用 active 绑定，或进入交�
 
 ## 发布流水线
 
-打 `vX.Y.Z` tag 触发 `.github/workflows/release-switcher.yml`：
+打 `vX.Y.Z` tag 触发 `.github/workflows/release-switcher.yml`（core CLI、npm、winget）：
 
 | 产物 | 构建 | R2 路径（公开域名 `downloads.clovapi.com`） |
 |------|------|---------------------------------------------|
 | CLI 压缩包 | GoReleaser | `/clovapi/vX.Y.Z/*`、`/clovapi/latest.txt` |
 | install.sh | 同上 | `/install.sh`、`/clovapi/install.sh` |
+
+桌面客户端由 `.github/workflows/release-desktop.yml` 独立发布：`main` 上 `electron/**` 有变更时构建（见 `electron/README.md`）。
+
+| 产物 | 构建 | R2 路径 |
+|------|------|---------|
 | macOS Desktop | electron-builder (macOS runner) | `/desktop/latest/clovapi-desktop-darwin-universal.dmg` |
 | Windows Desktop | electron-builder (Windows runner) | `/desktop/latest/clovapi-desktop-windows-x64.exe` |
 

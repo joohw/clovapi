@@ -916,8 +916,9 @@ func RemoveLocalProxyStubs(s *Store) {
 	s.List = filtered
 }
 
-// ingressStylePriority is the preferred proxy ingress wire order for multi-style CLIs:
-// messages (claude) → responses → chat → gemini (only when upstream is gemini).
+// ingressStylePriority is the preferred proxy ingress wire order for multi-style CLIs.
+// Upstream provider styles are converted by the local proxy; agent configs should
+// stay on the agent's preferred ingress shape.
 var ingressStylePriority = []apistyle.Style{
 	apistyle.Claude,
 	apistyle.OpenAIResponses,
@@ -964,26 +965,14 @@ func CliIngressStyle(kind agentkind.Kind) apistyle.Style {
 	return pickPreferredIngressStyle(ingressStylesForCLI(kind))
 }
 
-// IngressStyleForCLI picks proxy ingress style from CLI kind and vendor/model wire style.
-// Priority: provider-native subscriptions first, then messages (claude) → responses → chat;
-// gemini only when upstream is gemini.
+// IngressStyleForCLI picks the agent's preferred proxy ingress style.
+// Provider/model wire styles are egress concerns handled by the local proxy.
 func IngressStyleForCLI(kind agentkind.Kind, hit VendorModelHit) apistyle.Style {
 	supported := ingressStylesForCLI(kind)
 	if len(supported) == 1 {
 		return supported[0]
 	}
-
-	modelStyle := firstStyle(hit.Model.APIStyle, hit.Vendor.APIStyle)
-	providerID := ProviderIDFromStoreProfile(hit.Vendor)
-
-	if providerID == provider.CodexProviderID {
-		if ingressStyleSupported(supported, apistyle.OpenAIResponses) {
-			return apistyle.OpenAIResponses
-		}
-	}
-	if modelStyle == apistyle.Gemini && ingressStyleSupported(supported, apistyle.Gemini) {
-		return apistyle.Gemini
-	}
+	_ = hit
 	return pickPreferredIngressStyle(supported)
 }
 

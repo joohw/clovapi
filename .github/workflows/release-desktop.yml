@@ -1,0 +1,174 @@
+name: release-desktop
+
+# Electron shell only — independent from release-switcher (core/CLI releases on v* tags).
+# Pushes that touch only core/, landing/, npm/, etc. do not trigger this workflow.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "electron/**"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Desktop version without leading v (default: electron/package.json)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  R2_PUBLIC_BASE_URL: https://downloads.clovapi.com
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.r2_gate.outputs.publish }}
+      tag: ${{ steps.release_tag.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Decide R2 publish
+        id: r2_gate
+        run: |
+          if [ -n "${{ secrets.R2_ACCOUNT_ID }}" ] && [ -n "${{ secrets.R2_ACCESS_KEY_ID }}" ] && [ -n "${{ secrets.R2_SECRET_ACCESS_KEY }}" ] && [ -n "${{ secrets.R2_BUCKET }}" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve desktop release tag
+        id: release_tag
+        if: steps.r2_gate.outputs.publish == 'true'
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${INPUT_VERSION:-}" ]]; then
+            echo "tag=v${INPUT_VERSION#v}" >> "$GITHUB_OUTPUT"
+          else
+            version="$(node -p "require('./electron/package.json').version")"
+            echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+          fi
+
+  desktop-mac:
+    runs-on: macos-latest
+    needs: prepare
+    if: needs.prepare.outputs.publish == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync desktop version from input
+        if: github.event.inputs.version != ''
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+        run: node scripts/sync-desktop-version.mjs
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: core/go.mod
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: electron/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install icon build dependencies
+        run: pip install pillow
+
+      - name: Build macOS desktop
+        working-directory: electron
+        run: |
+          npm ci
+          npm run build:mac
+
+      - name: Install awscli
+        run: pip install --upgrade awscli
+
+      - name: Upload macOS desktop to R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_SESSION_TOKEN: ${{ secrets.R2_SESSION_TOKEN }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ARTIFACT_PREFIX: ${{ secrets.R2_ARTIFACT_PREFIX }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/r2-publish.sh
+          ./scripts/r2-publish.sh desktop \
+            --tag "${{ needs.prepare.outputs.tag }}" \
+            --file electron/dist/clovapi-desktop-darwin-universal.dmg \
+            --name clovapi-desktop-darwin-universal.dmg
+
+  desktop-win:
+    runs-on: windows-latest
+    needs: prepare
+    if: needs.prepare.outputs.publish == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync desktop version from input
+        if: github.event.inputs.version != ''
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+        run: node scripts/sync-desktop-version.mjs
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: core/go.mod
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: electron/package-lock.json
+
+      - name: Build Windows desktop
+        working-directory: electron
+        shell: bash
+        run: |
+          npm ci
+          npm run build:win
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install awscli
+        shell: bash
+        run: pip install --upgrade awscli
+
+      - name: Upload Windows desktop to R2
+        shell: bash
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_SESSION_TOKEN: ${{ secrets.R2_SESSION_TOKEN }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ARTIFACT_PREFIX: ${{ secrets.R2_ARTIFACT_PREFIX }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/r2-publish.sh
+          ./scripts/r2-publish.sh desktop \
+            --tag "${{ needs.prepare.outputs.tag }}" \
+            --file electron/dist/clovapi-desktop-windows-x64.exe \
+            --name clovapi-desktop-windows-x64.exe

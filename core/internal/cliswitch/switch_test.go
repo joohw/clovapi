@@ -34,7 +34,7 @@ func TestCodexCanResolveClaudeSubscriptionSelection(t *testing.T) {
 	}
 }
 
-func TestOpenCodeUsesResponsesForCodexSubscription(t *testing.T) {
+func TestMultiStyleCLIsUsePreferredIngressForCodexSubscription(t *testing.T) {
 	hit := profile.VendorModelHit{
 		Vendor: profile.Profile{
 			Name:                   provider.CodexVendorName,
@@ -48,7 +48,36 @@ func TestOpenCodeUsesResponsesForCodexSubscription(t *testing.T) {
 			APIStyle: apistyle.OpenAIResponses,
 		},
 	}
-	if got := profile.IngressStyleForCLI(agentkind.OpenCode, hit); got != apistyle.OpenAIResponses {
-		t.Fatalf("opencode codex ingress = %s, want %s", got, apistyle.OpenAIResponses)
+	if got := profile.IngressStyleForCLI(agentkind.OpenCode, hit); got != apistyle.Claude {
+		t.Fatalf("opencode codex ingress = %s, want %s", got, apistyle.Claude)
+	}
+	if got := profile.IngressStyleForCLI(agentkind.KimiCode, hit); got != apistyle.Claude {
+		t.Fatalf("kimi codex ingress = %s, want %s", got, apistyle.Claude)
+	}
+}
+
+func TestKimiCanResolveOpenAICompatibleCustomModel(t *testing.T) {
+	s := &profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:     provider.CustomAPIVendorName,
+			Kind:     "api",
+			APIStyle: apistyle.OpenAIResponses,
+			BaseURL:  "https://example.test/v1",
+			APIKey:   "sk-test",
+			Models: []profile.Model{{
+				ID:       "gpt-5.4-mini",
+				Model:    "gpt-5.4-mini",
+				APIStyle: apistyle.OpenAIResponses,
+			}},
+		}},
+	}
+
+	selection, err := ResolveSelection(s, agentkind.KimiCode, provider.CustomAPIVendorName, "gpt-5.4-mini")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if selection.ProviderID != provider.CustomAPIProviderID || selection.ModelID != "gpt-5.4-mini" {
+		t.Fatalf("selection = %+v", selection)
 	}
 }

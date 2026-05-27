@@ -1,0 +1,50 @@
+{
+  "model": "claude-opus-4-6",
+  "max_tokens": 1024,
+  "stream": true,
+  "messages": [
+    {
+      "role": "user",
+      "content": "展示规划能力：为 clovapi 项目创建一个三步检查计划。请调用 update_plan 工具。"
+    }
+  ],
+  "tools": [
+    {
+      "name": "update_plan",
+      "description": "Updates the task plan. Provide an optional explanation and a list of plan items, each with a step and status. At most one step can be in_progress at a time.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "explanation": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "array",
+            "description": "The list of steps",
+            "items": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "One of: pending, in_progress, completed"
+                },
+                "step": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "step",
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "plan"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

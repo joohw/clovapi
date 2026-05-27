@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/clovapi/switcher/internal/agentkind"
-	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/apply"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
@@ -96,12 +95,13 @@ func VendorCompatibleWithCLI(kind agentkind.Kind, vendor profile.Profile) bool {
 		}
 	}
 	if providerID == provider.OllamaProviderID || providerID == provider.CustomAPIProviderID {
-		return len(CompatibleModelsForCLI(kind, vendor)) > 0
+		return len(apply.SupportedStyles(kind)) > 0
 	}
 	return false
 }
 
-// CompatibleModelsForCLI lists vendor models whose ingress style works with kind.
+// CompatibleModelsForCLI lists vendor models usable by kind. The local proxy
+// converts each model's upstream style into the agent's preferred ingress style.
 func CompatibleModelsForCLI(kind agentkind.Kind, vendor profile.Profile) []profile.Model {
 	var out []profile.Model
 	for i, raw := range vendor.Models {
@@ -127,22 +127,7 @@ func ModelCompatibleWithCLI(kind agentkind.Kind, vendor profile.Profile, model p
 	if providerID == provider.ClaudeCodeProviderID || providerID == provider.CodexProviderID {
 		return true
 	}
-	modelStyle := modelStyleOrDefault(model, vendor)
-	switch kind {
-	case agentkind.ClaudeCode, agentkind.KimiCode:
-		return modelStyle == apistyle.Claude || modelStyle == ""
-	case agentkind.Codex:
-		return modelStyle == apistyle.OpenAIResponses || modelStyle == apistyle.OpenAIChat || modelStyle == ""
-	default:
-		return true
-	}
-}
-
-func modelStyleOrDefault(model profile.Model, vendor profile.Profile) apistyle.Style {
-	if strings.TrimSpace(string(model.APIStyle)) != "" {
-		return model.APIStyle
-	}
-	return vendor.APIStyle
+	return true
 }
 
 // ResolveSelection resolves a vendor/model pair to provider/model identity,

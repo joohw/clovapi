@@ -56,3 +56,13 @@ clovapi --help
 ```
 
 Change it in the UI to run any local command-line tool.
+
+## Release
+
+Pushes to `main` that touch **`electron/**` only** trigger `.github/workflows/release-desktop.yml` when R2 secrets are configured (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`).
+
+- R2 tag defaults to `electron/package.json` `version` (for example `v0.1.0`)
+- Manual run: **release-desktop** workflow with optional `version` input
+- Bundled Go CLI is built from `core/` at checkout HEAD; core-only commits do not trigger this workflow
+
+`release-switcher` (`v*` tags) covers core CLI / npm / winget only — not the Electron shell.

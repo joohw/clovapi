@@ -12,7 +12,7 @@ import (
 )
 
 // CodexProviderID is the Codex model_providers block id written by clovapi.
-const CodexProviderID = "clovapi-relay"
+const CodexProviderID = "clovapi"
 
 type codexTarget struct{}
 
@@ -57,7 +57,7 @@ func (codexTarget) Apply(p profile.Profile) error {
 		root["model_providers"] = mp
 	}
 	mp[CodexProviderID] = map[string]any{
-		"name":                      "CLOVAPI relay",
+		"name":                      "clovapi",
 		"base_url":                  ensureWireV1BaseURL(p.BaseURL),
 		"wire_api":                  "responses",
 		"experimental_bearer_token": p.APIKey,

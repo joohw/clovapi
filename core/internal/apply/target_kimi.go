@@ -15,6 +15,8 @@ import (
 // defaultKimiMaxContextSize satisfies Kimi Code CLI config validation (models.*.max_context_size).
 const defaultKimiMaxContextSize = 200000
 
+const kimiRelayProviderID = "clovapi"
+
 type kimiTarget struct{}
 
 func (kimiTarget) Kind() agentkind.Kind { return agentkind.KimiCode }
@@ -54,7 +56,7 @@ func (kimiTarget) Apply(p profile.Profile) error {
 	root["default_model"] = key
 
 	provs := ensureSubMap(root, "providers")
-	provs["clovapi"] = map[string]any{
+	provs[kimiRelayProviderID] = map[string]any{
 		"type":     kimiProviderType(p.APIStyle),
 		"base_url": kimiWireBaseURL(p.BaseURL, p.APIStyle),
 		"api_key":  p.APIKey,
@@ -94,7 +96,7 @@ func (kimiTarget) ResetDefault() error {
 		return fmt.Errorf("parse kimi config.toml: %w", err)
 	}
 	if provs, _ := root["providers"].(map[string]any); provs != nil {
-		delete(provs, "clovapi")
+		delete(provs, kimiRelayProviderID)
 		if len(provs) == 0 {
 			delete(root, "providers")
 		} else {
@@ -108,7 +110,7 @@ func (kimiTarget) ResetDefault() error {
 			if ent == nil {
 				continue
 			}
-			if pv, _ := ent["provider"].(string); pv == "clovapi" {
+			if pv, _ := ent["provider"].(string); pv == kimiRelayProviderID {
 				delete(models, mk)
 				removedKeys = append(removedKeys, mk)
 			}
@@ -136,7 +138,7 @@ func (kimiTarget) ResetDefault() error {
 
 func kimiModelEntry(modelID string, existing map[string]any) map[string]any {
 	ent := map[string]any{
-		"provider":         "clovapi",
+		"provider":         kimiRelayProviderID,
 		"model":            modelID,
 		"max_context_size": defaultKimiMaxContextSize,
 	}

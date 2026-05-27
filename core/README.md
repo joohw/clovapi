@@ -83,10 +83,10 @@ State file: `profiles.json` (0600). It stores **`profiles`** (all saved rows) an
 ## Apply behavior (summary)
 
 - **claude-code** + `claude`: writes `~/.claude/settings.json` with **`env.ANTHROPIC_AUTH_TOKEN`** and **`ANTHROPIC_BASE_URL`** (same pattern as ccswitch). **`ANTHROPIC_API_KEY` is removed** from `env` so Claude Code does not show “Auth conflict: Both a token and an API key are set”.
-- **codex** + `openai-responses`: merges `~/.codex/config.toml` — sets `[model_providers.clovapi-relay]` (`base_url`, `wire_api`, `experimental_bearer_token`), `model_provider = "clovapi-relay"`, and top-level **`model`** from the saved profile.
+- **codex** + `openai-responses`: merges `~/.codex/config.toml` — sets `[model_providers.clovapi]` (`base_url`, `wire_api`, `experimental_bearer_token`), `model_provider = "clovapi"`, and top-level **`model`** from the saved profile.
 - **opencode** + any supported style: matches [OpenCode config loading](https://opencode.ai/docs/config) — **global** files under `~/.config/opencode/` (Windows: `%AppData%\opencode\` first, then `~/.config\opencode\`) are **merged** in order **`config.json` → `opencode.json` → `opencode.jsonc`** (later wins on conflicts). clovapi **writes the same file OpenCode edits** (`globalConfigFile` in upstream): first existing among **`opencode.jsonc`**, **`opencode.json`**, **`config.json`**, or creates **`opencode.jsonc`** if none exist — so new settings override legacy `config.json`. **Anthropic**-shaped gateways: `provider.anthropic.options` + `model` `anthropic/…`. **OpenAI**-shaped gateways: **`provider.clovapi`** + **`npm`**, `options`, `models`, top-level **`model`** `clovapi/…`. **Gemini** relay: `provider.gemini` + `model` `gemini/…`. **Project** `opencode.json` / `.opencode/` still override globals; if switching “does nothing”, check the repo’s project config or `OPENCODE_CONFIG` / `OPENCODE_CONFIG_CONTENT`. Optional **`CLOVAPI_SWITCHER_OPENCODE_DIR`** forces the global config directory (tests use this).
 - **openclaw** + any supported style: merges **`~/.openclaw/openclaw.json`** (override with **`OPENCLAW_CONFIG_PATH`**): `models.mode=merge`, **`models.providers.clovapi`** (`baseUrl`, `apiKey`, `api` = `anthropic-messages` \| `openai-completions` \| `openai-responses` \| `google-generative-ai`), **`agents.defaults.model.primary`** `clovapi/<model-id>`. File must be **valid JSON** for merge (JSON5 comments are not parsed).
-- **hermes** + any supported style: merges **`~/.hermes/config.yaml`** — `model.default`, `model.provider` (`anthropic` \| `custom` \| `gemini`), `model.base_url`, `model.api_key`.
+- **hermes** + any supported style: merges **`~/.hermes/config.yaml`** — `model.default`, `model.provider` (`anthropic` \| `clovapi` \| `gemini`), `model.base_url`, `model.api_key`.
 - **kimi-code** + any supported style: merges **`~/.kimi/config.toml`** — `default_model`, **`[providers.clovapi]`** (`type` maps from api-style), **`[models.<id>]`** with `provider = "clovapi"` and `model` from the profile.
 
 **cc-switch / ccswitch** only target Claude Code JSON; OpenCode / OpenClaw / Hermes / Kimi are **clovapi-only** adapters (aligned with each upstream’s docs).
@@ -202,7 +202,7 @@ clovapi add --api-style openai-responses \
 clovapi switch --cli codex
 ```
 
-`switch` writes `~/.codex/config.toml` with provider **`clovapi-relay`**, sets **`model`** from the binding, and points **`model_provider`** at that block.
+`switch` writes `~/.codex/config.toml` with provider **`clovapi`**, sets **`model`** from the binding, and points **`model_provider`** at that block.
 
 ### Still seeing 401 or auth conflict?
 

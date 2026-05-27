@@ -107,10 +107,18 @@ func MaterializePlainUpstreamEvents(egress apistyle.Style, status int, plain []b
 
 	ev, err := DecodeNonStreamJSONResponseForStyle(egress, plain)
 	if err != nil {
+		msg := err.Error()
+		code := DecodeFailCode
+		if status >= 400 {
+			code = UpstreamErrorCode
+			if upstream := strings.TrimSpace(string(plain)); upstream != "" {
+				msg = upstream
+			}
+		}
 		return []ResponseEvent{{
 			Type:    RespError,
-			Message: err.Error(),
-			Code:    DecodeFailCode,
+			Message: msg,
+			Code:    code,
 		}}
 	}
 	return ev

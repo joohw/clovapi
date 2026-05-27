@@ -89,10 +89,10 @@ clovapi switch --cli codex   # 无参数时复用 active 绑定，或进入交�
 ## 下发行为摘要
 
 - **claude-code** + `claude`：写入 `~/.claude/settings.json`，设置 **`env.ANTHROPIC_AUTH_TOKEN`** 与 **`ANTHROPIC_BASE_URL`**（与 ccswitch 同款）。从 `env` 中**移除 `ANTHROPIC_API_KEY`**，避免 Claude Code 提示「Auth conflict: Both a token and an API key are set」。
-- **codex** + `openai-responses`：合并 `~/.codex/config.toml`——配置 `[model_providers.clovapi-relay]`（`base_url`、`wire_api`、`experimental_bearer_token`）、`model_provider = "clovapi-relay"`，以及顶层 **`model`**（来自已保存的绑定）。
+- **codex** + `openai-responses`：合并 `~/.codex/config.toml`——配置 `[model_providers.clovapi]`（`base_url`、`wire_api`、`experimental_bearer_token`）、`model_provider = "clovapi"`，以及顶层 **`model`**（来自已保存的绑定）。
 - **opencode** + 任意支持的风格：与 [OpenCode 配置加载说明](https://opencode.ai/docs/config) 一致——**全局**文件位于 `~/.config/opencode/`（Windows：优先 `%AppData%\opencode\`，其次 `~/.config\opencode\`），按 **`config.json` → `opencode.json` → `opencode.jsonc`** 合并（后者覆盖冲突项）。clovapi **写入与 OpenCode 自身相同的全局文件**（上游中的 `globalConfigFile`）：在 **`opencode.jsonc`**、**`opencode.json`**、**`config.json`** 中取首个已存在的，若都不存在则新建 **`opencode.jsonc`**，从而使新设置优先于旧版 `config.json`。**Anthropic** 形态网关：`provider.anthropic.options` + `model` `anthropic/…`。**OpenAI** 形态：**`provider.clovapi`** + **`npm`**、`options`、`models`，顶层 **`model`** `clovapi/…`。**Gemini** 中继：`provider.gemini` + `model` `gemini/…`。**项目级** `opencode.json` / `.opencode/` 仍会覆盖全局；若「切换无效」，请检查仓库内项目配置或 `OPENCODE_CONFIG` / `OPENCODE_CONFIG_CONTENT`。可选环境变量 **`CLOVAPI_SWITCHER_OPENCODE_DIR`** 可强制指定全局配置目录（测试中使用）。
 - **openclaw** + 任意支持的风格：合并 **`~/.openclaw/openclaw.json`**（可用 **`OPENCLAW_CONFIG_PATH`** 覆盖）：`models.mode=merge`，**`models.providers.clovapi`**（`baseUrl`、`apiKey`、`api` = `anthropic-messages` \| `openai-completions` \| `openai-responses` \| `google-generative-ai`），**`agents.defaults.model.primary`** `clovapi/<model-id>`。合并要求文件为**合法 JSON**（JSON5 注释无法被解析）。
-- **hermes** + 任意支持的风格：合并 **`~/.hermes/config.yaml`**——`model.default`、`model.provider`（`anthropic` \| `custom` \| `gemini`）、`model.base_url`、`model.api_key`。
+- **hermes** + 任意支持的风格：合并 **`~/.hermes/config.yaml`**——`model.default`、`model.provider`（`anthropic` \| `clovapi` \| `gemini`）、`model.base_url`、`model.api_key`。
 - **kimi-code** + 任意支持的风格：合并 **`~/.kimi/config.toml`**——`default_model`、**`[providers.clovapi]`**（`type` 由 api-style 映射）、**`[models.<id>]`** 中 `provider = "clovapi"`、`model` 与必填的 **`max_context_size`**（默认 200000，若条目已存在则保留原值）。
 
 **cc-switch / ccswitch** 只处理 Claude Code 的 JSON；OpenCode / OpenClaw / Hermes / Kimi 为 **clovapi 独有**适配（与各上游文档对齐）。
@@ -219,7 +219,7 @@ clovapi add --api-style openai-responses \
 clovapi switch --cli codex
 ```
 
-`switch` 会写入 `~/.codex/config.toml`，提供 **`clovapi-relay`** 提供商，根据绑定设置 **`model`**，并将 **`model_provider`** 指向该块。
+`switch` 会写入 `~/.codex/config.toml`，提供 **`clovapi`** 提供商，根据绑定设置 **`model`**，并将 **`model_provider`** 指向该块。
 
 ### 仍出现 401 或认证冲突？
 

@@ -163,7 +163,7 @@ func (openCodeTarget) ResetDefault() error {
 func openCodeRelayEntry(p profile.Profile, npm, modelSeg string) map[string]any {
 	return map[string]any{
 		"npm":  npm,
-		"name": "CLOVAPI relay",
+		"name": "clovapi",
 		"options": map[string]any{
 			"baseURL": ensureOpenCodeSDKBaseURL(p.BaseURL),
 			"apiKey":  p.APIKey,

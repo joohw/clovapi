@@ -216,6 +216,21 @@ func (e *StreamIngressEncoder) encodeOpenAIResponses(ev ResponseEvent) ([][]byte
 			return nil, false, nil
 		}
 		return e.responses.onFinish()
+	case RespToolStart:
+		if e.responses != nil && e.responses.wireLifecyclePreserved {
+			return nil, false, nil
+		}
+		return e.responses.onToolStart(ev)
+	case RespToolDelta:
+		if e.responses != nil && e.responses.wireLifecyclePreserved {
+			return nil, false, nil
+		}
+		return e.responses.onToolDelta(ev)
+	case RespToolEnd:
+		if e.responses != nil && e.responses.wireLifecyclePreserved {
+			return nil, false, nil
+		}
+		return e.responses.onToolEnd(ev)
 	default:
 		return nil, false, nil
 	}
@@ -441,6 +456,16 @@ type responsesStreamEncoder struct {
 	text                   strings.Builder
 	seq                    int
 	wireLifecyclePreserved bool
+	toolCalls              []*responsesToolCallState
+	activeTool             *responsesToolCallState
+}
+
+type responsesToolCallState struct {
+	ItemID      string
+	CallID      string
+	Name        string
+	Arguments   strings.Builder
+	OutputIndex int
 }
 
 func newResponsesStreamEncoder() *responsesStreamEncoder {
@@ -493,11 +518,113 @@ func (r *responsesStreamEncoder) onFinish() ([][]byte, bool, error) {
 	return r.closeStream()
 }
 
+func (r *responsesStreamEncoder) onToolStart(ev ResponseEvent) ([][]byte, bool, error) {
+	started, err := r.ensureStarted()
+	if err != nil {
+		return nil, true, err
+	}
+	name := strings.TrimSpace(ev.Name)
+	if name == "" {
+		name = "tool"
+	}
+	tool := &responsesToolCallState{
+		ItemID:      responsesFunctionItemID(ev.ID),
+		CallID:      responsesToolCallID(ev.ID),
+		Name:        name,
+		OutputIndex: len(r.toolCalls) + 1,
+	}
+	r.toolCalls = append(r.toolCalls, tool)
+	r.activeTool = tool
+	added, err := formatOpenAIResponsesEventSSE("response.output_item.added", map[string]any{
+		"type": "response.output_item.added",
+		"item": map[string]any{
+			"id":        tool.ItemID,
+			"type":      "function_call",
+			"status":    "in_progress",
+			"call_id":   tool.CallID,
+			"name":      tool.Name,
+			"arguments": "",
+		},
+		"output_index":    tool.OutputIndex,
+		"sequence_number": r.nextSeq(),
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	chunks := append([][]byte(nil), started...)
+	chunks = append(chunks, added)
+	return chunks, false, nil
+}
+
+func (r *responsesStreamEncoder) onToolDelta(ev ResponseEvent) ([][]byte, bool, error) {
+	if r.activeTool == nil {
+		chunks, done, err := r.onToolStart(ResponseEvent{Type: RespToolStart, ID: ev.ID, Name: ev.Name})
+		if err != nil || done {
+			return chunks, done, err
+		}
+		extra, done, err := r.onToolDelta(ev)
+		return append(chunks, extra...), done, err
+	}
+	tool := r.activeTool
+	fragment := ev.ArgsFragment
+	tool.Arguments.WriteString(fragment)
+	if fragment == "" {
+		return nil, false, nil
+	}
+	delta, err := formatOpenAIResponsesEventSSE("response.function_call_arguments.delta", map[string]any{
+		"type":            "response.function_call_arguments.delta",
+		"item_id":         tool.ItemID,
+		"output_index":    tool.OutputIndex,
+		"delta":           fragment,
+		"sequence_number": r.nextSeq(),
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	return [][]byte{delta}, false, nil
+}
+
+func (r *responsesStreamEncoder) onToolEnd(ev ResponseEvent) ([][]byte, bool, error) {
+	tool := r.activeTool
+	if tool == nil {
+		return nil, false, nil
+	}
+	args := tool.Arguments.String()
+	argsDone, err := formatOpenAIResponsesEventSSE("response.function_call_arguments.done", map[string]any{
+		"type":            "response.function_call_arguments.done",
+		"item_id":         tool.ItemID,
+		"output_index":    tool.OutputIndex,
+		"arguments":       args,
+		"sequence_number": r.nextSeq(),
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	itemDone, err := formatOpenAIResponsesEventSSE("response.output_item.done", map[string]any{
+		"type": "response.output_item.done",
+		"item": map[string]any{
+			"id":        tool.ItemID,
+			"type":      "function_call",
+			"status":    "completed",
+			"call_id":   tool.CallID,
+			"name":      tool.Name,
+			"arguments": args,
+		},
+		"output_index":    tool.OutputIndex,
+		"sequence_number": r.nextSeq(),
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	r.activeTool = nil
+	return [][]byte{argsDone, itemDone}, false, nil
+}
+
 func (r *responsesStreamEncoder) finishIfOpen() ([][]byte, error) {
 	if r.finished {
 		return nil, nil
 	}
-	if r.started || r.text.Len() > 0 {
+	if r.started || r.text.Len() > 0 || len(r.toolCalls) > 0 {
 		chunks, _, err := r.closeStream()
 		return chunks, err
 	}
@@ -654,4 +781,26 @@ func (r *responsesStreamEncoder) closeStream() ([][]byte, bool, error) {
 	}
 	chunks = append(chunks, completed)
 	return chunks, false, nil
+}
+
+func responsesToolCallID(id string) string {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return "call_" + strings.ToLower(strconv.FormatInt(time.Now().UnixNano(), 36))
+	}
+	if strings.HasPrefix(id, "call_") {
+		return id
+	}
+	return "call_" + id
+}
+
+func responsesFunctionItemID(id string) string {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return "fc_" + strings.ToLower(strconv.FormatInt(time.Now().UnixNano(), 36))
+	}
+	if strings.HasPrefix(id, "fc_") {
+		return id
+	}
+	return "fc_" + id
 }

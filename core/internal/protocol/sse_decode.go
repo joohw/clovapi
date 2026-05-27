@@ -13,6 +13,13 @@ type SSEUpstreamDecodeState struct {
 	OpenAIChatStarted     bool
 	ResponsesStarted      bool
 	ResponsesHasTextDelta bool // incremental output_text.delta already forwarded
+	ClaudeBlocks          map[int]*claudeSSEBlockState
+}
+
+type claudeSSEBlockState struct {
+	Type string
+	ID   string
+	Name string
 }
 
 // DecodeSSEStreamRecord maps one parsed SSE wire record into normalized ResponseEvent slices using egress SSE semantics (Electron decodeSseStream per style).
@@ -23,7 +30,7 @@ func DecodeSSEStreamRecord(egress apistyle.Style, rec SSERecord, st *SSEUpstream
 	}
 	switch style {
 	case apistyle.Claude:
-		return decodeClaudeSSERecord(rec)
+		return decodeClaudeSSERecord(rec, st)
 	case apistyle.OpenAIChat:
 		return decodeOpenAIChatSSERecord(rec, &st.OpenAIChatStarted)
 	case apistyle.OpenAIResponses:
@@ -33,7 +40,7 @@ func DecodeSSEStreamRecord(egress apistyle.Style, rec SSERecord, st *SSEUpstream
 	}
 }
 
-func decodeClaudeSSERecord(rec SSERecord) []ResponseEvent {
+func decodeClaudeSSERecord(rec SSERecord, st *SSEUpstreamDecodeState) []ResponseEvent {
 	if strings.TrimSpace(rec.Data) == "[DONE]" {
 		return nil
 	}
@@ -48,13 +55,13 @@ func decodeClaudeSSERecord(rec SSERecord) []ResponseEvent {
 		}
 		return []ResponseEvent{em}
 	}
-	if evs := decodeClaudeStreamPayload(rec, payload); len(evs) > 0 {
+	if evs := decodeClaudeStreamPayload(rec, payload, st); len(evs) > 0 {
 		return evs
 	}
 	return []ResponseEvent{wireExtension(ExtAnthropicSSEEvent, rec)}
 }
 
-func decodeClaudeStreamPayload(rec SSERecord, payload map[string]any) []ResponseEvent {
+func decodeClaudeStreamPayload(rec SSERecord, payload map[string]any, st *SSEUpstreamDecodeState) []ResponseEvent {
 	if payload == nil {
 		return nil
 	}
@@ -68,11 +75,60 @@ func decodeClaudeStreamPayload(rec SSERecord, payload map[string]any) []Response
 			wireExtension(ExtAnthropicSSEEvent, rec),
 			{Type: RespMessageStart, Role: string(RoleAssistant), Model: model},
 		}
-	case "content_block_delta":
-		text := sseClaudeDeltaText(payload)
+	case "content_block_start":
 		evs := []ResponseEvent{wireExtension(ExtAnthropicSSEEvent, rec)}
-		if text != "" {
+		index, ok := ssePayloadIndex(payload)
+		if !ok {
+			return evs
+		}
+		block, _ := payload["content_block"].(map[string]any)
+		if block == nil {
+			return evs
+		}
+		typ := strings.TrimSpace(fmt.Sprint(block["type"]))
+		if st.ClaudeBlocks == nil {
+			st.ClaudeBlocks = map[int]*claudeSSEBlockState{}
+		}
+		st.ClaudeBlocks[index] = &claudeSSEBlockState{
+			Type: typ,
+			ID:   strings.TrimSpace(fmt.Sprint(block["id"])),
+			Name: strings.TrimSpace(fmt.Sprint(block["name"])),
+		}
+		if typ == "tool_use" {
+			evs = append(evs, ResponseEvent{
+				Type: RespToolStart,
+				ID:   st.ClaudeBlocks[index].ID,
+				Name: st.ClaudeBlocks[index].Name,
+			})
+		}
+		return evs
+	case "content_block_delta":
+		evs := []ResponseEvent{wireExtension(ExtAnthropicSSEEvent, rec)}
+		index, _ := ssePayloadIndex(payload)
+		block := (*claudeSSEBlockState)(nil)
+		if st.ClaudeBlocks != nil {
+			block = st.ClaudeBlocks[index]
+		}
+		if block != nil && block.Type == "tool_use" {
+			if args := sseClaudeDeltaPartialJSON(payload); args != "" {
+				evs = append(evs, ResponseEvent{Type: RespToolDelta, ID: block.ID, Name: block.Name, ArgsFragment: args})
+			}
+			return evs
+		}
+		if text := sseClaudeDeltaText(payload); text != "" {
 			evs = append(evs, ResponseEvent{Type: RespTextDelta, Text: text})
+		}
+		return evs
+	case "content_block_stop":
+		evs := []ResponseEvent{wireExtension(ExtAnthropicSSEEvent, rec)}
+		index, ok := ssePayloadIndex(payload)
+		if !ok || st.ClaudeBlocks == nil {
+			return evs
+		}
+		block := st.ClaudeBlocks[index]
+		delete(st.ClaudeBlocks, index)
+		if block != nil && block.Type == "tool_use" {
+			evs = append(evs, ResponseEvent{Type: RespToolEnd, ID: block.ID, Name: block.Name})
 		}
 		return evs
 	case "message_delta":
@@ -119,12 +175,30 @@ func sseClaudeDeltaText(payload map[string]any) string {
 	}
 	txt := delta["text"]
 	if txt != nil && fmt.Sprint(txt) != "<nil>" {
-		return strings.TrimSpace(fmt.Sprint(txt))
-	}
-	if pj := delta["partial_json"]; pj != nil {
-		return strings.TrimSpace(fmt.Sprint(pj))
+		return fmt.Sprint(txt)
 	}
 	return ""
+}
+
+func sseClaudeDeltaPartialJSON(payload map[string]any) string {
+	delta, ok := payload["delta"].(map[string]any)
+	if !ok || delta == nil {
+		return ""
+	}
+	if pj := delta["partial_json"]; pj != nil && fmt.Sprint(pj) != "<nil>" {
+		return fmt.Sprint(pj)
+	}
+	return ""
+}
+
+func ssePayloadIndex(payload map[string]any) (int, bool) {
+	if payload == nil {
+		return 0, false
+	}
+	if n, ok := coerceIntPointer(payload["index"]); ok && n != nil {
+		return *n, true
+	}
+	return 0, false
 }
 
 func decodeOpenAIChatSSERecord(rec SSERecord, started *bool) []ResponseEvent {
@@ -221,20 +295,11 @@ func normalizeOpenAIResponsesSSERecord(recordType string, payload map[string]any
 	if payload == nil {
 		return rec
 	}
-	if recordType != "response.completed" && strings.TrimSpace(fmt.Sprint(payload["status"])) != "completed" {
+	if !isResponsesWirePreservationEvent(recordType) && strings.TrimSpace(fmt.Sprint(payload["status"])) != "completed" {
 		return rec
 	}
 	changed := false
-	if rsp, ok := payload["response"].(map[string]any); ok && rsp != nil {
-		if _, exists := rsp["output"]; exists && rsp["output"] == nil {
-			rsp["output"] = []any{}
-			changed = true
-		}
-	}
-	if _, exists := payload["output"]; exists && payload["output"] == nil {
-		payload["output"] = []any{}
-		changed = true
-	}
+	changed = normalizeResponsesArrayFields(payload) || changed
 	if !changed {
 		return rec
 	}
@@ -244,6 +309,55 @@ func normalizeOpenAIResponsesSSERecord(recordType string, payload map[string]any
 	}
 	rec.Data = string(data)
 	return rec
+}
+
+func normalizeResponsesArrayFields(value any) bool {
+	obj, ok := value.(map[string]any)
+	if !ok || obj == nil {
+		return false
+	}
+	changed := false
+	if isResponsesResponseObject(obj) {
+		if _, exists := obj["output"]; !exists {
+			obj["output"] = []any{}
+			changed = true
+		}
+	}
+	for _, key := range []string{"output", "content", "annotations", "logprobs"} {
+		if _, exists := obj[key]; exists && obj[key] == nil {
+			obj[key] = []any{}
+			changed = true
+		}
+	}
+	for _, key := range []string{"response", "item", "part"} {
+		if child, ok := obj[key].(map[string]any); ok && child != nil {
+			changed = normalizeResponsesArrayFields(child) || changed
+		}
+	}
+	for _, key := range []string{"output", "content"} {
+		items, ok := obj[key].([]any)
+		if !ok {
+			continue
+		}
+		for _, item := range items {
+			changed = normalizeResponsesArrayFields(item) || changed
+		}
+	}
+	return changed
+}
+
+func isResponsesResponseObject(obj map[string]any) bool {
+	if strings.TrimSpace(fmt.Sprint(obj["object"])) == "response" {
+		return true
+	}
+	if _, hasStatus := obj["status"]; !hasStatus {
+		return false
+	}
+	if _, hasModel := obj["model"]; hasModel {
+		return true
+	}
+	_, hasUsage := obj["usage"]
+	return hasUsage
 }
 
 func responsesUsageMap(payload map[string]any) any {

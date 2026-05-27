@@ -45,7 +45,7 @@ func ValidateRequestExtensionsForEgress(egress apistyle.Style, r Request) error 
 		}
 	}
 	for _, ext := range r.Extensions {
-		if ext.Kind == ExtOpenAIResponsesInputString || ext.Kind == ExtOpenAIResponsesRequestField {
+		if ext.Kind == ExtOpenAIResponsesInputString || ext.Kind == ExtOpenAIResponsesRequestField || ext.Kind == ExtAnthropicRequestField {
 			continue
 		}
 		if !extensionSupportedByStyle(style, ext.Kind) {

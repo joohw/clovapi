@@ -34,6 +34,31 @@ func TestCodexCanResolveClaudeSubscriptionSelection(t *testing.T) {
 	}
 }
 
+func TestKimiCanResolveCodexSubscriptionSelection(t *testing.T) {
+	s := &profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:                   provider.CodexVendorName,
+			Kind:                   "subscription",
+			SubscriptionProviderID: provider.CodexProviderID,
+			APIStyle:               apistyle.OpenAIResponses,
+			Models: []profile.Model{{
+				ID:       "gpt-5.4",
+				Model:    "gpt-5.4",
+				APIStyle: apistyle.OpenAIResponses,
+			}},
+		}},
+	}
+
+	selection, err := ResolveSelection(s, agentkind.KimiCode, provider.CodexVendorName, "gpt-5.4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if selection.ProviderID != provider.CodexProviderID || selection.ModelID != "gpt-5.4" {
+		t.Fatalf("selection = %+v", selection)
+	}
+}
+
 func TestMultiStyleCLIsUsePreferredIngressForCodexSubscription(t *testing.T) {
 	hit := profile.VendorModelHit{
 		Vendor: profile.Profile{

@@ -260,6 +260,10 @@ type claudeStreamEncoder struct {
 	model                  string
 	started                bool
 	blockOpen              bool
+	blockIndex             int
+	nextBlockIndex         int
+	toolBlockOpen          bool
+	toolUseEmitted         bool
 	inputTokens            int
 	outputTokens           int
 	hasUsage               bool
@@ -304,14 +308,14 @@ func (c *claudeStreamEncoder) feed(ev ResponseEvent) (chunks [][]byte, done bool
 		}
 		return [][]byte{b}, true, nil
 	case RespTextDelta:
-		cs, ierr := c.ensureStarted()
+		cs, ierr := c.ensureTextStarted()
 		if ierr != nil {
 			return nil, true, ierr
 		}
 		chunks := append([][]byte(nil), cs...)
 		delta, ferr := formatClaudeSSE("content_block_delta", map[string]any{
 			"type":  "content_block_delta",
-			"index": 0,
+			"index": c.blockIndex,
 			"delta": map[string]any{"type": "text_delta", "text": ev.Text},
 		})
 		if ferr != nil {
@@ -327,8 +331,14 @@ func (c *claudeStreamEncoder) feed(ev ResponseEvent) (chunks [][]byte, done bool
 		}
 		c.hasUsage = c.hasUsage || ev.InputTokens != 0 || ev.OutputTokens != 0
 		return nil, false, nil
+	case RespToolStart:
+		return c.startToolBlock(ev)
+	case RespToolDelta:
+		return c.deltaToolBlock(ev)
+	case RespToolEnd:
+		return c.endToolBlock()
 	case RespFinish:
-		cs, ierr := c.ensureStarted()
+		cs, ierr := c.ensureMessageStarted()
 		if ierr != nil {
 			return nil, true, ierr
 		}
@@ -344,46 +354,62 @@ func (c *claudeStreamEncoder) feed(ev ResponseEvent) (chunks [][]byte, done bool
 }
 
 func (c *claudeStreamEncoder) ensureStarted() ([][]byte, error) {
+	return c.ensureTextStarted()
+}
+
+func (c *claudeStreamEncoder) ensureMessageStarted() ([][]byte, error) {
 	if c.started {
 		return nil, nil
 	}
 	c.started = true
-	c.blockOpen = true
 	msPayload := claudeMessageStartPayload(c.messageID, c.model)
 
 	b1, err := formatClaudeSSE("message_start", msPayload)
 	if err != nil {
 		return nil, err
 	}
+	return [][]byte{b1}, nil
+}
+
+func (c *claudeStreamEncoder) ensureTextStarted() ([][]byte, error) {
+	started, err := c.ensureMessageStarted()
+	if err != nil {
+		return nil, err
+	}
+	if c.blockOpen {
+		return started, nil
+	}
+	c.blockOpen = true
+	c.toolBlockOpen = false
+	c.blockIndex = c.nextBlockIndex
+	c.nextBlockIndex++
 	b2, err := formatClaudeSSE("content_block_start", map[string]any{
 		"type":          "content_block_start",
-		"index":         0,
+		"index":         c.blockIndex,
 		"content_block": map[string]any{"type": "text", "text": ""},
 	})
 	if err != nil {
 		return nil, err
 	}
-	return [][]byte{b1, b2}, nil
+	return append(started, b2), nil
 }
 
 func (c *claudeStreamEncoder) closeBlocks(reason string) ([][]byte, error) {
-	if !c.blockOpen {
-		return nil, nil
-	}
-	ch := make([][]byte, 0, 4)
-
-	b3, err := formatClaudeSSE("content_block_stop", map[string]any{
-		"type":  "content_block_stop",
-		"index": 0,
-	})
+	closeChunk, err := c.closeContentBlock()
 	if err != nil {
 		return nil, err
 	}
-	ch = append(ch, b3)
-
+	ch := append([][]byte(nil), closeChunk...)
+	if !c.started {
+		return ch, nil
+	}
+	stopReason := strings.TrimSpace(reason)
+	if c.toolUseEmitted && (stopReason == "" || stopReason == "end_turn" || stopReason == "completed") {
+		stopReason = "tool_use"
+	}
 	deltaPayload := map[string]any{
 		"type":  "message_delta",
-		"delta": map[string]any{"stop_reason": strings.TrimSpace(reason)},
+		"delta": map[string]any{"stop_reason": stopReason},
 	}
 	if c.hasUsage {
 		deltaPayload["usage"] = map[string]any{"output_tokens": c.outputTokens}
@@ -402,8 +428,95 @@ func (c *claudeStreamEncoder) closeBlocks(reason string) ([][]byte, error) {
 		return nil, err
 	}
 	ch = append(ch, b5)
-	c.blockOpen = false
 	return ch, nil
+}
+
+func (c *claudeStreamEncoder) closeContentBlock() ([][]byte, error) {
+	if !c.blockOpen {
+		return nil, nil
+	}
+	b3, err := formatClaudeSSE("content_block_stop", map[string]any{
+		"type":  "content_block_stop",
+		"index": c.blockIndex,
+	})
+	if err != nil {
+		return nil, err
+	}
+	c.blockOpen = false
+	c.toolBlockOpen = false
+	return [][]byte{b3}, nil
+}
+
+func (c *claudeStreamEncoder) startToolBlock(ev ResponseEvent) ([][]byte, bool, error) {
+	started, err := c.ensureMessageStarted()
+	if err != nil {
+		return nil, true, err
+	}
+	chunks := append([][]byte(nil), started...)
+	closed, err := c.closeContentBlock()
+	if err != nil {
+		return nil, true, err
+	}
+	chunks = append(chunks, closed...)
+	c.blockOpen = true
+	c.toolBlockOpen = true
+	c.toolUseEmitted = true
+	c.blockIndex = c.nextBlockIndex
+	c.nextBlockIndex++
+	id := strings.TrimSpace(ev.ID)
+	if id == "" {
+		id = "toolu_" + strings.ToLower(strconv.FormatInt(time.Now().UnixNano(), 36))
+	}
+	name := strings.TrimSpace(ev.Name)
+	if name == "" {
+		name = "tool"
+	}
+	start, err := formatClaudeSSE("content_block_start", map[string]any{
+		"type":  "content_block_start",
+		"index": c.blockIndex,
+		"content_block": map[string]any{
+			"type":  "tool_use",
+			"id":    id,
+			"name":  name,
+			"input": map[string]any{},
+		},
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	chunks = append(chunks, start)
+	return chunks, false, nil
+}
+
+func (c *claudeStreamEncoder) deltaToolBlock(ev ResponseEvent) ([][]byte, bool, error) {
+	if !c.blockOpen || !c.toolBlockOpen {
+		chunks, done, err := c.startToolBlock(ResponseEvent{Type: RespToolStart, ID: ev.ID, Name: ev.Name})
+		if err != nil || done {
+			return chunks, done, err
+		}
+		extra, done, err := c.deltaToolBlock(ev)
+		return append(chunks, extra...), done, err
+	}
+	if ev.ArgsFragment == "" {
+		return nil, false, nil
+	}
+	delta, err := formatClaudeSSE("content_block_delta", map[string]any{
+		"type":  "content_block_delta",
+		"index": c.blockIndex,
+		"delta": map[string]any{"type": "input_json_delta", "partial_json": ev.ArgsFragment},
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	return [][]byte{delta}, false, nil
+}
+
+func (c *claudeStreamEncoder) endToolBlock() ([][]byte, bool, error) {
+	chunks, err := c.closeContentBlock()
+	if err != nil {
+		return nil, true, err
+	}
+	return chunks, false, nil
 }
 
 func claudeMessageStartPayload(messageID, model string) map[string]any {

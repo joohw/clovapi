@@ -17,11 +17,16 @@ func EncodeRequestClaude(r Request) ([]byte, error) {
 	if r.Meta != nil && r.Meta.ClaudeOAuthEncodingCompatibility && maxTok > claudeOAuthMaxOutputTokens {
 		maxTok = claudeOAuthMaxOutputTokens
 	}
-	cm := ClaudeAPIMessages(r.Messages)
+	var messagesWire any
+	if len(r.InputSlots) > 0 {
+		messagesWire = claudeMessagesWireFromInputSlots(r.InputSlots)
+	} else {
+		messagesWire = cmPayload(ClaudeAPIMessages(r.Messages))
+	}
 	payload := map[string]any{
 		"model":      r.Model,
 		"max_tokens": maxTok,
-		"messages":   cmPayload(cm),
+		"messages":   messagesWire,
 		"stream":     true,
 	}
 	if r.Temperature != nil {
@@ -42,6 +47,9 @@ func EncodeRequestClaude(r Request) ([]byte, error) {
 	} else if system != "" {
 		payload["system"] = system
 	}
+	if err := applyRequestFieldExtensions(payload, r.Extensions, ExtAnthropicRequestField); err != nil {
+		return nil, err
+	}
 	return json.Marshal(payload)
 }
 
@@ -59,16 +67,21 @@ func cmPayload(msgs []Message) []map[string]string {
 
 // EncodeRequestOpenAIChat maps IR to POST /chat/completions JSON.
 func EncodeRequestOpenAIChat(r Request) ([]byte, error) {
-	msgs := make([]map[string]any, 0, len(r.Messages))
-	for _, m := range r.Messages {
-		msg := map[string]any{"role": string(m.Role), "content": m.Content}
-		if strings.TrimSpace(m.ToolCallID) != "" {
-			msg["tool_call_id"] = m.ToolCallID
+	var msgs []map[string]any
+	if len(r.InputSlots) > 0 {
+		msgs = openAIChatMessagesFromInputSlots(r.InputSlots)
+	} else {
+		msgs = make([]map[string]any, 0, len(r.Messages))
+		for _, m := range r.Messages {
+			msg := map[string]any{"role": string(m.Role), "content": m.Content}
+			if strings.TrimSpace(m.ToolCallID) != "" {
+				msg["tool_call_id"] = m.ToolCallID
+			}
+			if strings.TrimSpace(m.Name) != "" {
+				msg["name"] = m.Name
+			}
+			msgs = append(msgs, msg)
 		}
-		if strings.TrimSpace(m.Name) != "" {
-			msg["name"] = m.Name
-		}
-		msgs = append(msgs, msg)
 	}
 	body := map[string]any{
 		"model":    r.Model,
@@ -145,7 +158,7 @@ func EncodeRequestOpenAIResponses(r Request) ([]byte, error) {
 		}
 		body["tools"] = tools
 	}
-	if err := applyRequestFieldExtensions(body, r.Extensions); err != nil {
+	if err := applyRequestFieldExtensions(body, r.Extensions, ExtOpenAIResponsesRequestField); err != nil {
 		return nil, err
 	}
 	return json.Marshal(body)

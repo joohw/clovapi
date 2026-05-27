@@ -134,6 +134,16 @@ func decodeResponsesInputSlots(input any) ([]InputSlot, []Message, []ExtensionNo
 			msgCopy := msg
 			slots = append(slots, InputSlot{Message: &msgCopy})
 			msgs = append(msgs, msg)
+		case "function_call":
+			if tc := toolCallFromResponsesItem(m); tc != nil {
+				slots = append(slots, InputSlot{ToolCall: tc})
+				continue
+			}
+		case "function_call_output":
+			if tr := toolResultFromResponsesItem(m); tr != nil {
+				slots = append(slots, InputSlot{ToolResult: tr})
+				continue
+			}
 		default:
 			ext, err := inputItemExtension(m)
 			if err != nil {
@@ -157,15 +167,8 @@ func responsesInputWireFromIR(r Request) any {
 	if len(r.InputSlots) > 0 {
 		out := make([]any, 0, len(r.InputSlots))
 		for _, slot := range r.InputSlots {
-			if slot.Message != nil {
-				out = append(out, messageToResponsesInputItem(*slot.Message))
-				continue
-			}
-			if slot.Extension != nil && slot.Extension.Kind == ExtOpenAIResponsesInputItem {
-				var item map[string]any
-				if json.Unmarshal(slot.Extension.Payload, &item) == nil && item != nil {
-					out = append(out, item)
-				}
+			if item, ok := inputSlotToResponsesWire(slot); ok {
+				out = append(out, item)
 			}
 		}
 		return out
@@ -202,26 +205,4 @@ func messagesToResponsesInputArray(msgs []Message) []any {
 		out = append(out, messageToResponsesInputItem(m))
 	}
 	return out
-}
-
-func applyRequestFieldExtensions(body map[string]any, extensions []ExtensionNode) error {
-	for _, ext := range extensions {
-		if ext.Kind != ExtOpenAIResponsesRequestField {
-			continue
-		}
-		var field RequestFieldPayload
-		if err := json.Unmarshal(ext.Payload, &field); err != nil {
-			return err
-		}
-		key := strings.TrimSpace(field.Key)
-		if key == "" {
-			continue
-		}
-		var value any
-		if err := json.Unmarshal(field.Value, &value); err != nil {
-			return err
-		}
-		body[key] = value
-	}
-	return nil
 }

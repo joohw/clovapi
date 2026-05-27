@@ -80,19 +80,8 @@ func VendorCompatibleWithCLI(kind agentkind.Kind, vendor profile.Profile) bool {
 	if providerID == "" {
 		return false
 	}
-	switch kind {
-	case agentkind.ClaudeCode, agentkind.KimiCode:
-		if providerID == provider.ClaudeCodeProviderID {
-			return true
-		}
-	case agentkind.Codex:
-		if providerID == provider.CodexProviderID || providerID == provider.ClaudeCodeProviderID {
-			return true
-		}
-	default:
-		if providerID == provider.ClaudeCodeProviderID || providerID == provider.CodexProviderID {
-			return true
-		}
+	if providerID == provider.ClaudeCodeProviderID || providerID == provider.CodexProviderID {
+		return len(apply.SupportedStyles(kind)) > 0
 	}
 	if providerID == provider.OllamaProviderID || providerID == provider.CustomAPIProviderID {
 		return len(apply.SupportedStyles(kind)) > 0

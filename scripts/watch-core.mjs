@@ -19,6 +19,22 @@ let pending = false;
 let readyPrinted = false;
 
 function resolveDevVersion() {
+  const fallback = resolveTaggedNextDevVersion();
+  const source = path.join(coreDir, "internal", "buildinfo", "buildinfo.go");
+  try {
+    const text = fs.readFileSync(source, "utf8");
+    const match = text.match(/Version\s*=\s*"([^"]+)"/);
+    const version = String(match?.[1] || "").trim();
+    if (/^dev\d+\.\d+\.\d+$/.test(version)) {
+      return version;
+    }
+  } catch {
+    // Fall back to tag-derived dev version when the source file is unavailable.
+  }
+  return fallback;
+}
+
+function resolveTaggedNextDevVersion() {
   const result = spawnSync("git", ["tag", "--sort=-v:refname"], {
     cwd: repoRoot,
     encoding: "utf8",

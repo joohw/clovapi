@@ -31,6 +31,19 @@ type Tool struct {
 	Parameters  map[string]any `json:"parameters,omitempty"`
 }
 
+// ToolCall is a portable assistant tool invocation (cross-style IR).
+type ToolCall struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Arguments string `json:"arguments,omitempty"` // JSON object string
+}
+
+// ToolResult is a portable tool output tied to a prior ToolCall.ID.
+type ToolResult struct {
+	CallID string `json:"call_id"`
+	Output string `json:"output"`
+}
+
 // Metadata carries cross-style fields and egress encoding compatibility knobs.
 type Metadata struct {
 	System                           string `json:"system,omitempty"`
@@ -48,7 +61,7 @@ type Request struct {
 	MaxTokens   *int      `json:"max_tokens,omitempty"`
 	Temperature *float64  `json:"temperature,omitempty"`
 	Meta        *Metadata `json:"metadata,omitempty"`
-	// InputSlots preserves ordered OpenAI Responses input (messages interleaved with tool items).
+	// InputSlots preserves ordered conversation (messages interleaved with tool calls/results).
 	InputSlots []InputSlot `json:"-"`
 	// Extensions preserves request-level wire fields not mapped to common IR fields.
 	Extensions []ExtensionNode `json:"-"`

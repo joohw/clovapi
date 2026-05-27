@@ -69,6 +69,7 @@ func DecodeRequestClaude(body []byte) (Request, error) {
 	}
 	msgsAny, _ := raw["messages"].([]any)
 	msgList, sys := PartitionSystemMessages(msgsAny, raw["system"])
+	inputSlots := decodeClaudeInputSlots(msgsAny)
 	tools, _ := mapClaudeTools(raw["tools"])
 	var meta *Metadata
 	if sys != "" {
@@ -87,7 +88,11 @@ func DecodeRequestClaude(body []byte) (Request, error) {
 		}
 	}
 	req := NewRequest(jsonStringField(raw, "model"), msgList, streamDefault(streamPtr), maxTok, tempPtr, meta)
+	req.InputSlots = inputSlots
 	req.Tools = tools
+	if err := appendClaudeRequestFieldExtensions(&req, raw); err != nil {
+		return Request{}, err
+	}
 	return req, nil
 }
 

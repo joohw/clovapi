@@ -110,6 +110,44 @@ func TestDecodeOpenAIResponsesWireEventsNormalizeNullIterableFields(t *testing.T
 	}
 }
 
+func TestDecodeOpenAIResponsesPreservesFunctionCallArgumentEvents(t *testing.T) {
+	records := []SSERecord{
+		{
+			Event: "response.function_call_arguments.delta",
+			Data:  `{"type":"response.function_call_arguments.delta","delta":"{\"command\"","item_id":"fc_test","output_index":0,"sequence_number":3}`,
+		},
+		{
+			Event: "response.function_call_arguments.done",
+			Data:  `{"type":"response.function_call_arguments.done","arguments":"{\"command\":\"date\"}","item_id":"fc_test","output_index":0,"sequence_number":4}`,
+		},
+	}
+	var st SSEUpstreamDecodeState
+	enc := NewStreamIngressEncoder(apistyle.OpenAIResponses)
+	var raw strings.Builder
+	for _, rec := range records {
+		for _, ev := range DecodeSSEStreamRecord(apistyle.OpenAIResponses, rec, &st) {
+			chunks, _, err := enc.EncodeEvent(ev)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, chunk := range chunks {
+				raw.Write(chunk)
+			}
+		}
+	}
+	got := raw.String()
+	for _, want := range []string{
+		`event: response.function_call_arguments.delta`,
+		`event: response.function_call_arguments.done`,
+		`"delta":"{\"command\""`,
+		`"arguments":"{\"command\":\"date\"}"`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("replayed Responses tool argument event missing %s in %s", want, got)
+		}
+	}
+}
+
 func TestClaudeToolUseStreamsAsOpenAIResponsesFunctionCall(t *testing.T) {
 	records := []SSERecord{
 		{Event: "message_start", Data: `{"type":"message_start","message":{"model":"claude-opus-4-6","role":"assistant","content":[]}}`},
@@ -304,6 +342,34 @@ func TestTooldefFixturesDecodeEncode(t *testing.T) {
 		if strings.Contains(codexFixtureRaw, optionalWire) && !strings.Contains(codexReplay, optionalWire) {
 			t.Fatalf("Codex fixture replay missing fixture wire event %s in %s", optionalWire, codexReplay)
 		}
+	}
+}
+
+func TestLongCodexResponsesFixtureEncodesClaudeToolUse(t *testing.T) {
+	req := readProtocolTestdata(t, "requests/codex-to-claude-long-request-with-tools.json")
+	ir, err := DecodeRequestClaude(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ir.Tools) == 0 {
+		t.Fatalf("long Claude ingress fixture has no tools")
+	}
+
+	records := parseProtocolSSEFixture(t, "sse/codex-to-claude-long-upstream-response.sse")
+	claudeRaw := encodeDecodedSSE(t, apistyle.OpenAIResponses, apistyle.Claude, records, false)
+	for _, want := range []string{
+		`"type":"tool_use"`,
+		`"type":"input_json_delta"`,
+		`"name":"Shell"`,
+		`"partial_json":"{\"command\"`,
+		`"stop_reason":"tool_use"`,
+	} {
+		if !strings.Contains(claudeRaw, want) {
+			t.Fatalf("Codex long fixture encoded to Claude missing %s in %s", want, claudeRaw)
+		}
+	}
+	if strings.Contains(claudeRaw, `response.function_call_arguments`) {
+		t.Fatalf("Responses wire events leaked into Claude output: %s", claudeRaw)
 	}
 }
 

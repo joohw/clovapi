@@ -14,12 +14,20 @@ type SSEUpstreamDecodeState struct {
 	ResponsesStarted      bool
 	ResponsesHasTextDelta bool // incremental output_text.delta already forwarded
 	ClaudeBlocks          map[int]*claudeSSEBlockState
+	ResponsesTools        map[string]*responsesSSEToolState
 }
 
 type claudeSSEBlockState struct {
 	Type string
 	ID   string
 	Name string
+}
+
+type responsesSSEToolState struct {
+	ID       string
+	Name     string
+	Args     strings.Builder
+	SawDelta bool
 }
 
 // DecodeSSEStreamRecord maps one parsed SSE wire record into normalized ResponseEvent slices using egress SSE semantics (Electron decodeSseStream per style).
@@ -271,13 +279,18 @@ func decodeOpenAIResponsesSSERecord(rec SSERecord, st *SSEUpstreamDecodeState) [
 		}
 		rec = normalizeOpenAIResponsesSSERecord(recordType, payload, rec)
 		ev := wireExtension(ExtOpenAIResponsesSSEEvent, rec)
+		toolEvents := responsesToolEventsFromWire(recordType, payload, st)
 		if recordType == "response.completed" || strings.TrimSpace(fmt.Sprint(payload["status"])) == "completed" {
 			if inTok, outTok, ok := sseUsageTokens(responsesUsageMap(payload)); ok {
-				return []ResponseEvent{ev, {Type: RespUsage, InputTokens: inTok, OutputTokens: outTok}, {Type: RespFinish, Reason: "completed"}}
+				out := append([]ResponseEvent{ev}, toolEvents...)
+				out = append(out, ResponseEvent{Type: RespUsage, InputTokens: inTok, OutputTokens: outTok}, ResponseEvent{Type: RespFinish, Reason: "completed"})
+				return out
 			}
-			return []ResponseEvent{ev, {Type: RespFinish, Reason: "completed"}}
+			out := append([]ResponseEvent{ev}, toolEvents...)
+			out = append(out, ResponseEvent{Type: RespFinish, Reason: "completed"})
+			return out
 		}
-		return []ResponseEvent{ev}
+		return append([]ResponseEvent{ev}, toolEvents...)
 	}
 	if strings.Contains(recordType, "output_text.delta") || strings.Contains(recordType, "text.delta") {
 		txt := responsesExtractDeltaText(payload)
@@ -309,6 +322,87 @@ func normalizeOpenAIResponsesSSERecord(recordType string, payload map[string]any
 	}
 	rec.Data = string(data)
 	return rec
+}
+
+func responsesToolEventsFromWire(recordType string, payload map[string]any, st *SSEUpstreamDecodeState) []ResponseEvent {
+	if payload == nil || st == nil {
+		return nil
+	}
+	if st.ResponsesTools == nil {
+		st.ResponsesTools = map[string]*responsesSSEToolState{}
+	}
+	switch recordType {
+	case "response.output_item.added":
+		item, _ := payload["item"].(map[string]any)
+		if strings.TrimSpace(fmt.Sprint(item["type"])) != "function_call" {
+			return nil
+		}
+		itemID := strings.TrimSpace(fmt.Sprint(item["id"]))
+		if itemID == "" {
+			return nil
+		}
+		callID := strings.TrimSpace(fmt.Sprint(item["call_id"]))
+		if callID == "" {
+			callID = itemID
+		}
+		name := strings.TrimSpace(fmt.Sprint(item["name"]))
+		st.ResponsesTools[itemID] = &responsesSSEToolState{ID: callID, Name: name}
+		return []ResponseEvent{{Type: RespToolStart, ID: callID, Name: name}}
+	case "response.function_call_arguments.delta":
+		itemID := strings.TrimSpace(fmt.Sprint(payload["item_id"]))
+		tool := st.ResponsesTools[itemID]
+		if tool == nil {
+			return nil
+		}
+		fragment := fmt.Sprint(payload["delta"])
+		if fragment == "<nil>" {
+			fragment = ""
+		}
+		tool.Args.WriteString(fragment)
+		tool.SawDelta = true
+		if fragment == "" {
+			return nil
+		}
+		return []ResponseEvent{{Type: RespToolDelta, ID: tool.ID, Name: tool.Name, ArgsFragment: fragment}}
+	case "response.function_call_arguments.done":
+		itemID := strings.TrimSpace(fmt.Sprint(payload["item_id"]))
+		tool := st.ResponsesTools[itemID]
+		if tool == nil || tool.SawDelta {
+			return nil
+		}
+		args := strings.TrimSpace(fmt.Sprint(payload["arguments"]))
+		if args == "" || args == "<nil>" {
+			return nil
+		}
+		tool.Args.WriteString(args)
+		return []ResponseEvent{{Type: RespToolDelta, ID: tool.ID, Name: tool.Name, ArgsFragment: args}}
+	case "response.output_item.done":
+		item, _ := payload["item"].(map[string]any)
+		if strings.TrimSpace(fmt.Sprint(item["type"])) != "function_call" {
+			return nil
+		}
+		itemID := strings.TrimSpace(fmt.Sprint(item["id"]))
+		tool := st.ResponsesTools[itemID]
+		if tool == nil {
+			callID := strings.TrimSpace(fmt.Sprint(item["call_id"]))
+			if callID == "" {
+				callID = itemID
+			}
+			tool = &responsesSSEToolState{ID: callID, Name: strings.TrimSpace(fmt.Sprint(item["name"]))}
+		}
+		var out []ResponseEvent
+		if !tool.SawDelta && tool.Args.Len() == 0 {
+			args := strings.TrimSpace(fmt.Sprint(item["arguments"]))
+			if args != "" && args != "<nil>" {
+				out = append(out, ResponseEvent{Type: RespToolDelta, ID: tool.ID, Name: tool.Name, ArgsFragment: args})
+			}
+		}
+		out = append(out, ResponseEvent{Type: RespToolEnd, ID: tool.ID, Name: tool.Name})
+		delete(st.ResponsesTools, itemID)
+		return out
+	default:
+		return nil
+	}
 }
 
 func normalizeResponsesArrayFields(value any) bool {
@@ -468,7 +562,8 @@ func isResponsesWirePreservationEvent(recordType string) bool {
 	case "response.created", "response.in_progress", "response.completed",
 		"response.output_item.added", "response.output_item.done",
 		"response.content_part.added", "response.content_part.done",
-		"response.output_text.done":
+		"response.output_text.done",
+		"response.function_call_arguments.delta", "response.function_call_arguments.done":
 		return true
 	default:
 		return false

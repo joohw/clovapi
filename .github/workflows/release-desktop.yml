@@ -68,11 +68,6 @@ jobs:
           RELEASE_VERSION: ${{ github.event.inputs.version }}
         run: node scripts/sync-desktop-version.mjs
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: core/go.mod
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -127,11 +122,6 @@ jobs:
         env:
           RELEASE_VERSION: ${{ github.event.inputs.version }}
         run: node scripts/sync-desktop-version.mjs
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: core/go.mod
 
       - name: Setup Node
         uses: actions/setup-node@v4

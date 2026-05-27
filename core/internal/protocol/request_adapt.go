@@ -19,6 +19,10 @@ func AdaptRequestForEgress(r *Request, egress apistyle.Style) {
 	if style == apistyle.OpenAIResponses {
 		return
 	}
+	if requestHasToolInputSlots(r.InputSlots) {
+		r.Extensions = filterRequestExtensionsForEgress(style, r.Extensions)
+		return
+	}
 	if len(r.InputSlots) > 0 {
 		messages := make([]Message, 0, len(r.InputSlots))
 		for _, slot := range r.InputSlots {
@@ -69,23 +73,8 @@ func portableMessageFromInputExtension(ext *ExtensionNode) (Message, bool) {
 	}
 	typ := strings.ToLower(strings.TrimSpace(fmt.Sprint(item["type"])))
 	switch typ {
-	case "function_call":
-		name := strings.TrimSpace(fmt.Sprint(item["name"]))
-		args := strings.TrimSpace(fmt.Sprint(item["arguments"]))
-		text := strings.TrimSpace("tool call " + name)
-		if args != "" {
-			text += " arguments " + args
-		}
-		return Message{Role: RoleAssistant, Content: text}, true
-	case "function_call_output":
-		output := strings.TrimSpace(TextContent(item["output"]))
-		if output == "" {
-			output = strings.TrimSpace(fmt.Sprint(item["output"]))
-		}
-		if output == "" {
-			return Message{}, false
-		}
-		return Message{Role: RoleUser, Content: "tool response " + output}, true
+	case "function_call", "function_call_output":
+		return Message{}, false
 	default:
 		text := strings.TrimSpace(TextContent(item["content"]))
 		if text == "" {

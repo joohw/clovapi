@@ -8,11 +8,25 @@ const repoRoot = path.resolve(electronDir, "..");
 const coreDir = path.join(repoRoot, "core");
 const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
 const coreBin = path.join(coreDir, exeName);
-const electronBinDir = path.join(electronDir, "bin");
-const electronBin = path.join(electronBinDir, exeName);
 const buildInfoVersionVar = "github.com/clovapi/switcher/internal/buildinfo.Version";
 
 function resolveDevVersion() {
+  const fallback = resolveTaggedNextDevVersion();
+  const source = path.join(coreDir, "internal", "buildinfo", "buildinfo.go");
+  try {
+    const text = fs.readFileSync(source, "utf8");
+    const match = text.match(/Version\s*=\s*"([^"]+)"/);
+    const version = String(match?.[1] || "").trim();
+    if (/^dev\d+\.\d+\.\d+$/.test(version)) {
+      return version;
+    }
+  } catch {
+    // Fall back to tag-derived dev version when the source file is unavailable.
+  }
+  return fallback;
+}
+
+function resolveTaggedNextDevVersion() {
   const result = spawnSync("git", ["tag", "--sort=-v:refname"], {
     cwd: repoRoot,
     encoding: "utf8",
@@ -41,7 +55,5 @@ function run(command, args, options = {}) {
 
 const devVersion = resolveDevVersion();
 run("go", ["build", `-ldflags=-X ${buildInfoVersionVar}=${devVersion}`, "-o", coreBin, "./cmd/clovapi"], { cwd: coreDir });
-fs.mkdirSync(electronBinDir, { recursive: true });
-fs.copyFileSync(coreBin, electronBin);
-fs.chmodSync(electronBin, 0o755);
-console.log(`Dev clovapi ${devVersion} ready:\n  ${coreBin}\n  ${electronBin}`);
+fs.chmodSync(coreBin, 0o755);
+console.log(`Dev clovapi ${devVersion} ready:\n  ${coreBin}`);

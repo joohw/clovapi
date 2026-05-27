@@ -11,10 +11,8 @@
     "dev": "concurrently -k \"npm run dev:ui\" \"wait-on tcp:5173 && cross-env ELECTRON_DEV=1 electron .\"",
     "build:ui": "vite build --config ui/vite.config.mjs",
     "build:icons": "node scripts/build-icons.mjs",
-    "prepare:cli:darwin": "node scripts/prepare-darwin-cli.mjs",
-    "prepare:cli:win": "node scripts/prepare-win-cli.mjs",
-    "build:mac": "npm run build:ui && npm run build:icons && npm run prepare:cli:darwin && electron-builder --mac dmg",
-    "build:win": "npm run build:ui && npm run prepare:cli:win && electron-builder --win nsis",
+    "build:mac": "npm run build:ui && npm run build:icons && electron-builder --mac dmg",
+    "build:win": "npm run build:ui && electron-builder --win nsis",
     "test": "node --test proxy-manager.test.js clovapi-exec.test.js tray-menu.test.js",
     "start": "npm run build:ui && electron ."
   },
@@ -75,13 +73,7 @@
       ],
       "identity": null,
       "hardenedRuntime": false,
-      "gatekeeperAssess": false,
-      "extraResources": [
-        {
-          "from": "bin/clovapi",
-          "to": "bin/clovapi"
-        }
-      ]
+      "gatekeeperAssess": false
     },
     "dmg": {
       "artifactName": "clovapi-desktop-darwin-universal.${ext}"
@@ -92,12 +84,6 @@
         {
           "target": "nsis",
           "arch": ["x64"]
-        }
-      ],
-      "extraResources": [
-        {
-          "from": "bin/clovapi.exe",
-          "to": "bin/clovapi.exe"
         }
       ],
       "artifactName": "clovapi-desktop-windows-${arch}.${ext}"

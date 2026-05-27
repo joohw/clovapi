@@ -63,6 +63,6 @@ Pushes to `main` that touch **`electron/**` only** trigger `.github/workflows/re
 
 - R2 tag defaults to `electron/package.json` `version` (for example `v0.1.0`)
 - Manual run: **release-desktop** workflow with optional `version` input
-- Bundled Go CLI is built from `core/` at checkout HEAD; core-only commits do not trigger this workflow
+- Desktop does not bundle the Go CLI; packaged apps download the core CLI online into the shared clovapi config bin directory
 
 `release-switcher` (`v*` tags) covers core CLI / npm / winget only — not the Electron shell.

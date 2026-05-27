@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { GITHUB_REPO_URL } from "@/lib/site";
 import { applyThemeMode, initThemeMode, persistThemeMode, type ThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +41,7 @@ export function SiteHeader() {
     ];
   }, [t]);
 
-  const githubUrl = (process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/joohw/clovapi").trim();
+  const githubUrl = GITHUB_REPO_URL;
   const isEnglish = i18n.resolvedLanguage?.toLowerCase().startsWith("en");
 
   function toggleTheme() {

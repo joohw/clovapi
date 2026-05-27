@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/components/ui/toast-provider";
+import { resolveClientPublicSiteUrl } from "@/lib/site";
 import styles from "@/app/page.module.css";
 
 export default function SkillPage() {
@@ -15,7 +16,7 @@ export default function SkillPage() {
   }, []);
 
   const skillUrl = useMemo(() => {
-    const origin = (process.env.NEXT_PUBLIC_SITE_URL || "").trim().replace(/\/+$/, "") || clientOrigin || "https://clovapi.com";
+    const origin = resolveClientPublicSiteUrl(clientOrigin);
     return `${origin}/skill?format=md`;
   }, [clientOrigin]);
 

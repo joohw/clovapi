@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { actionButtonGridClass } from "@/components/home/client-download-buttons";
 import { getDesktopDownloadUrls } from "@/lib/downloads";
+import { GITHUB_REPO_URL } from "@/lib/site";
 
 export function HomeCta() {
   const { t } = useTranslation();
   const { mac, windows } = getDesktopDownloadUrls();
-  const githubUrl = (process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/joohw/clovapi").trim();
+  const githubUrl = GITHUB_REPO_URL;
 
   return (
     <section className="relative z-[1] px-5 py-12 sm:px-6 md:py-16">

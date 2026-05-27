@@ -3,21 +3,19 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { GITHUB_REPO_URL, resolveClientPublicSiteUrl } from "@/lib/site";
 
 export function HomeFooter() {
   const { t } = useTranslation();
   const [clientOrigin, setClientOrigin] = useState("");
 
-  const publicSiteUrl = useMemo(
-    () => (process.env.NEXT_PUBLIC_SITE_URL || "").trim().replace(/\/+$/, "") || clientOrigin || "/",
-    [clientOrigin],
-  );
+  const publicSiteUrl = useMemo(() => resolveClientPublicSiteUrl(clientOrigin), [clientOrigin]);
 
   useEffect(() => {
     setClientOrigin(window.location.origin);
   }, []);
 
-  const githubUrl = (process.env.NEXT_PUBLIC_GITHUB_URL || "https://github.com/joohw/clovapi").trim();
+  const githubUrl = GITHUB_REPO_URL;
 
   return (
     <footer className="relative z-[1] px-5 py-10 sm:px-6">

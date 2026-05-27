@@ -74,10 +74,77 @@ function isTruthy(value) {
   return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
 }
 
+function loadDeployConfig(configPath) {
+  if (hasFlag("--from-env") || isTruthy(process.env.DEPLOY_FROM_ENV)) {
+    return {
+      DOCKER_REGISTRY: process.env.DOCKER_REGISTRY || "",
+      DOCKER_USERNAME: process.env.DOCKER_USERNAME || "",
+      DOCKER_PASSWORD: process.env.DOCKER_PASSWORD || "",
+      DOCKER_IMAGE_NAME: process.env.DOCKER_IMAGE_NAME || "",
+      DOCKER_IMAGE_TAG: process.env.DOCKER_IMAGE_TAG || "",
+      SSH_HOST: process.env.SSH_HOST || "",
+      SSH_PORT: process.env.SSH_PORT || "",
+      SSH_USERNAME: process.env.SSH_USERNAME || "",
+      SSH_PASSWORD: process.env.SSH_PASSWORD || "",
+      REMOTE_CONTAINER_NAME: process.env.REMOTE_CONTAINER_NAME || "",
+      REMOTE_FRONTEND_PORT: process.env.REMOTE_FRONTEND_PORT || "",
+      REMOTE_HOST_PORT: process.env.REMOTE_HOST_PORT || "",
+      DEPLOY_SKIP_IMAGE_UPDATE: process.env.DEPLOY_SKIP_IMAGE_UPDATE || "",
+      DEPLOY_DOCKER_PLATFORM: process.env.DEPLOY_DOCKER_PLATFORM || "",
+      DEPLOY_DOCKER_PULL_BASE: process.env.DEPLOY_DOCKER_PULL_BASE || "",
+    };
+  }
+  return parseEnvFile(configPath).env;
+}
+
+function loadRuntimeEnv(envFilePath) {
+  if (process.env.LANDING_RUNTIME_ENV != null) {
+    const raw = process.env.LANDING_RUNTIME_ENV;
+    return { raw: raw.endsWith("\n") ? raw : raw ? `${raw}\n` : "" };
+  }
+  if (!fs.existsSync(envFilePath)) {
+    return { raw: "" };
+  }
+  return parseEnvFile(envFilePath);
+}
+
+function prepareBuildEnv(landingRoot, runtimeEnvRaw) {
+  if (!String(runtimeEnvRaw || "").trim()) {
+    return { envPath: null, dockerignorePath: null, restoredDockerignore: null };
+  }
+  const envPath = path.resolve(landingRoot, ".env");
+  const dockerignorePath = path.resolve(landingRoot, ".dockerignore");
+  fs.writeFileSync(envPath, runtimeEnvRaw.endsWith("\n") ? runtimeEnvRaw : `${runtimeEnvRaw}\n`);
+
+  let restoredDockerignore = null;
+  if (fs.existsSync(dockerignorePath)) {
+    const content = fs.readFileSync(dockerignorePath, "utf8");
+    if (/\n\.env\*\n/.test(`\n${content}\n`)) {
+      restoredDockerignore = content;
+      fs.writeFileSync(
+        dockerignorePath,
+        content.replace(/^\.env\*$/m, ".env.deploy*"),
+      );
+    }
+  }
+
+  return { envPath, dockerignorePath, restoredDockerignore };
+}
+
+function cleanupBuildEnv({ envPath, dockerignorePath, restoredDockerignore, removeEnv }) {
+  if (restoredDockerignore != null && dockerignorePath) {
+    fs.writeFileSync(dockerignorePath, restoredDockerignore);
+  }
+  if (removeEnv && envPath && fs.existsSync(envPath)) {
+    fs.unlinkSync(envPath);
+  }
+}
+
 function printHelp() {
   console.log(`Usage: npm run deploy -- [options]
 
 Options:
+  --from-env            Read deploy credentials from environment variables (for CI)
   --config <path>       Deploy config file (default: landing/.env.deploy)
   --env-file <path>     Runtime env file sent to remote docker (default: landing/.env)
   --tag <tag>           Image tag (default: latest or DOCKER_IMAGE_TAG)
@@ -190,8 +257,10 @@ async function main() {
     throw new Error(`dockerfile not found: ${dockerfilePath}`);
   }
 
-  const { env: deployEnv } = parseEnvFile(configPath);
-  const { raw: runtimeEnvRaw } = parseEnvFile(envFilePath);
+  const deployEnv = loadDeployConfig(configPath);
+  const runtimeEnvFromVar = process.env.LANDING_RUNTIME_ENV != null;
+  const { raw: runtimeEnvRaw } = loadRuntimeEnv(envFilePath);
+  const hasRuntimeEnv = Boolean(String(runtimeEnvRaw || "").trim());
 
   const registry = deployEnv.DOCKER_REGISTRY || "";
   const dockerUsername = deployEnv.DOCKER_USERNAME || "";
@@ -234,11 +303,14 @@ async function main() {
         "unset REG_PASS",
         `docker pull ${shEscape(imageRef)}`,
       ].join(" && ");
+  const dockerRunCommand = hasRuntimeEnv
+    ? `docker run -d --name ${shEscape(containerName)} --restart unless-stopped -p ${shEscape(`${frontendHostPort}:3000`)} --env-file /dev/stdin ${shEscape(imageRef)}`
+    : `docker run -d --name ${shEscape(containerName)} --restart unless-stopped -p ${shEscape(`${frontendHostPort}:3000`)} ${shEscape(imageRef)}`;
   const remoteCommand = [
     "set -e",
     remoteImagePrepare,
     `(docker rm -f ${shEscape(containerName)} >/dev/null 2>&1 || true)`,
-    `docker run -d --name ${shEscape(containerName)} --restart unless-stopped -p ${shEscape(`${frontendHostPort}:3000`)} --env-file /dev/stdin ${shEscape(imageRef)}`,
+    dockerRunCommand,
   ].join(" && ");
 
   console.log("Deploy plan:");
@@ -248,7 +320,7 @@ async function main() {
   console.log(`- remote: ${sshUser}@${sshHost}:${sshPort}`);
   console.log(`- container: ${containerName}`);
   console.log(`- ports: frontend ${frontendHostPort}->3000`);
-  console.log(`- env file: ${path.relative(repoRoot, envFilePath)}`);
+  console.log(`- runtime env: ${hasRuntimeEnv ? path.relative(repoRoot, envFilePath) : "none"}`);
   console.log(`- docker platform: ${dockerPlatform}`);
   console.log(`- image update: ${skipImageUpdate ? "disabled" : "enabled"}`);
   if (!skipImageUpdate) {
@@ -265,7 +337,15 @@ async function main() {
     const buildArgs = pullBaseImages
       ? ["build", "--platform", dockerPlatform, "--pull=true", "-f", dockerfilePath, "-t", imageRef, landingRoot]
       : ["build", "--platform", dockerPlatform, "--pull=false", "-f", dockerfilePath, "-t", imageRef, landingRoot];
-    await run("docker", buildArgs, { cwd: repoRoot });
+    const buildEnvState = prepareBuildEnv(landingRoot, runtimeEnvRaw);
+    try {
+      await run("docker", buildArgs, { cwd: repoRoot });
+    } finally {
+      cleanupBuildEnv({
+        ...buildEnvState,
+        removeEnv: runtimeEnvFromVar,
+      });
+    }
 
     // 2. Login and push
     console.log("\n[2/6] Logging in to registry...");
@@ -287,14 +367,18 @@ async function main() {
   }
 
   // 3/4/5/6 on remote through SSH, env injected via stdin (no file persisted)
-  console.log("\n[4-6/6] SSH to server, pull image, and run container with runtime env...");
+  console.log("\n[4-6/6] SSH to server, pull image, and run container...");
   await runRemoteWithStdin({
     sshHost,
     sshPort,
     sshUser,
     sshPassword,
     remoteCommand,
-    stdinContent: runtimeEnvRaw.endsWith("\n") ? runtimeEnvRaw : `${runtimeEnvRaw}\n`,
+    stdinContent: hasRuntimeEnv
+      ? runtimeEnvRaw.endsWith("\n")
+        ? runtimeEnvRaw
+        : `${runtimeEnvRaw}\n`
+      : null,
   });
 
   console.log("\nDeploy completed.");

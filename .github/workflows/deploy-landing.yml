@@ -1,0 +1,72 @@
+name: deploy-landing
+
+# Landing site only — independent from release-switcher (core/CLI releases on v* tags).
+# Pushes that touch only core/, electron/, npm/, etc. do not trigger this workflow.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "landing/**"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Docker image tag (default: latest)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Decide landing deploy
+        id: deploy_gate
+        run: |
+          if [ -n "${{ secrets.DOCKER_USERNAME }}" ] && [ -n "${{ secrets.DOCKER_PASSWORD }}" ] && [ -n "${{ secrets.SSH_HOST }}" ] && [ -n "${{ secrets.SSH_USERNAME }}" ] && [ -n "${{ secrets.SSH_PASSWORD }}" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "Landing deploy secrets incomplete; skipping."
+          fi
+
+      - name: Setup Node
+        if: steps.deploy_gate.outputs.deploy == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deploy dependencies
+        if: steps.deploy_gate.outputs.deploy == 'true'
+        run: npm install
+
+      - name: Resolve image tag
+        if: steps.deploy_gate.outputs.deploy == 'true'
+        id: image_tag
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${INPUT_TAG:-}" ]]; then
+            echo "tag=${INPUT_TAG}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy landing site
+        if: steps.deploy_gate.outputs.deploy == 'true'
+        env:
+          DEPLOY_FROM_ENV: "1"
+          DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: npm run deploy -- --from-env --tag "${{ steps.image_tag.outputs.tag }}"

@@ -17,7 +17,7 @@ All env files for this app live in `landing/`:
 
 | File | Purpose |
 |------|---------|
-| `.env.example` | Runtime template — copy to `.env.local` (dev) or `.env` (deploy) |
+| `.env.example` | 可选运行时变量（R2 本地发布等）；站点 URL 等已硬编码 |
 | `.env.deploy.example` | Deploy credentials template — copy to `.env.deploy` |
 
 Local development:
@@ -26,16 +26,27 @@ Local development:
 cp .env.example .env.local
 ```
 
-Deploy (from repo root; reads `landing/.env.deploy` + `landing/.env`):
+Deploy (from repo root; reads `landing/.env.deploy`; optional `landing/.env` for extra runtime vars):
 
 ```bash
 cd ..
 npm run deploy
 ```
 
-- `PUBLIC_SITE_URL` / `NEXT_PUBLIC_SITE_URL`: public website URL for canonical/sitemap/skill links
-- `NEXT_PUBLIC_GITHUB_URL`: GitHub repo link (optional)
-- `NEXT_PUBLIC_DESKTOP_DOWNLOAD_*`: desktop client download URLs (optional)
+Pushes to `main` that touch **`landing/**` only** trigger automated deploy via `.github/workflows/deploy-landing.yml` when these GitHub secrets are set:
+
+- `DOCKER_REGISTRY`, `DOCKER_USERNAME`, `DOCKER_PASSWORD`
+- `SSH_HOST`, `SSH_PORT`, `SSH_USERNAME`, `SSH_PASSWORD`
+
+`core/` / CLI releases use `.github/workflows/release-switcher.yml` on `v*` tags — landing-only commits do not run that workflow.
+
+Manual deploy: run the **deploy-landing** workflow (optional `tag` input, default `latest`).
+
+Hardcoded in code (`landing/src/lib/site.ts`, `landing/src/lib/downloads.ts`):
+
+- Site URL: `https://clovapi.com`
+- GitHub: `https://github.com/joohw/clovapi`
+- Desktop downloads: `https://downloads.clovapi.com/desktop/latest/...`
 
 ## Build & Run
 

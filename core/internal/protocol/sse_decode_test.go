@@ -112,10 +112,13 @@ func TestDecodeOpenAIResponsesWireEventsNormalizeNullIterableFields(t *testing.T
 func TestClaudeToolUseStreamsAsOpenAIResponsesFunctionCall(t *testing.T) {
 	records := []SSERecord{
 		{Event: "message_start", Data: `{"type":"message_start","message":{"model":"claude-opus-4-6","role":"assistant","content":[]}}`},
-		{Event: "content_block_start", Data: `{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_test","name":"exec_command","input":{}}}`},
-		{Event: "content_block_delta", Data: `{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"cmd\""}}`},
-		{Event: "content_block_delta", Data: `{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":":\"pwd\"}"}}`},
+		{Event: "content_block_start", Data: `{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}`},
+		{Event: "content_block_delta", Data: `{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"准备执行"}}`},
 		{Event: "content_block_stop", Data: `{"type":"content_block_stop","index":0}`},
+		{Event: "content_block_start", Data: `{"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_test","name":"exec_command","input":{}}}`},
+		{Event: "content_block_delta", Data: `{"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\"cmd\""}}`},
+		{Event: "content_block_delta", Data: `{"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":":\"pwd\"}"}}`},
+		{Event: "content_block_stop", Data: `{"type":"content_block_stop","index":1}`},
 		{Event: "message_delta", Data: `{"type":"message_delta","delta":{"stop_reason":"tool_use"}}`},
 	}
 
@@ -151,5 +154,10 @@ func TestClaudeToolUseStreamsAsOpenAIResponsesFunctionCall(t *testing.T) {
 	}
 	if strings.Contains(raw, `"text":"{\"cmd\""`) {
 		t.Fatalf("tool arguments leaked as output text: %s", raw)
+	}
+	textDoneAt := strings.Index(raw, `"type":"response.output_text.done"`)
+	toolAddedAt := strings.Index(raw, `"type":"function_call"`)
+	if textDoneAt < 0 || toolAddedAt < 0 || textDoneAt > toolAddedAt {
+		t.Fatalf("text item must close before function_call starts: %s", raw)
 	}
 }

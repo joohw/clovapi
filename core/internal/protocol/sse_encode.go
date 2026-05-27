@@ -453,6 +453,10 @@ type responsesStreamEncoder struct {
 	model                  string
 	started                bool
 	finished               bool
+	textStarted            bool
+	textClosed             bool
+	textOutputIndex        int
+	nextOutputIndex        int
 	text                   strings.Builder
 	seq                    int
 	wireLifecyclePreserved bool
@@ -497,7 +501,7 @@ func (r *responsesStreamEncoder) onTextDelta(text string) ([][]byte, bool, error
 	if strings.TrimSpace(text) == "" {
 		return nil, false, nil
 	}
-	started, err := r.ensureStarted()
+	started, err := r.ensureTextStarted()
 	if err != nil {
 		return nil, true, err
 	}
@@ -523,6 +527,14 @@ func (r *responsesStreamEncoder) onToolStart(ev ResponseEvent) ([][]byte, bool, 
 	if err != nil {
 		return nil, true, err
 	}
+	chunks := append([][]byte(nil), started...)
+	if r.textStarted && !r.textClosed {
+		closeText, _, err := r.closeTextItem()
+		if err != nil {
+			return nil, true, err
+		}
+		chunks = append(chunks, closeText...)
+	}
 	name := strings.TrimSpace(ev.Name)
 	if name == "" {
 		name = "tool"
@@ -531,8 +543,9 @@ func (r *responsesStreamEncoder) onToolStart(ev ResponseEvent) ([][]byte, bool, 
 		ItemID:      responsesFunctionItemID(ev.ID),
 		CallID:      responsesToolCallID(ev.ID),
 		Name:        name,
-		OutputIndex: len(r.toolCalls) + 1,
+		OutputIndex: r.nextOutputIndex,
 	}
+	r.nextOutputIndex++
 	r.toolCalls = append(r.toolCalls, tool)
 	r.activeTool = tool
 	added, err := formatOpenAIResponsesEventSSE("response.output_item.added", map[string]any{
@@ -551,7 +564,6 @@ func (r *responsesStreamEncoder) onToolStart(ev ResponseEvent) ([][]byte, bool, 
 	if err != nil {
 		return nil, true, err
 	}
-	chunks := append([][]byte(nil), started...)
 	chunks = append(chunks, added)
 	return chunks, false, nil
 }
@@ -669,6 +681,21 @@ func (r *responsesStreamEncoder) ensureStarted() ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	return [][]byte{created, inProgress}, nil
+}
+
+func (r *responsesStreamEncoder) ensureTextStarted() ([][]byte, error) {
+	started, err := r.ensureStarted()
+	if err != nil {
+		return nil, err
+	}
+	if r.textStarted {
+		return started, nil
+	}
+	r.textStarted = true
+	r.textClosed = false
+	r.textOutputIndex = r.nextOutputIndex
+	r.nextOutputIndex++
 	itemAdded, err := formatOpenAIResponsesEventSSE("response.output_item.added", map[string]any{
 		"type": "response.output_item.added",
 		"item": map[string]any{
@@ -678,7 +705,7 @@ func (r *responsesStreamEncoder) ensureStarted() ([][]byte, error) {
 			"content": []any{},
 			"role":    string(RoleAssistant),
 		},
-		"output_index":    0,
+		"output_index":    r.textOutputIndex,
 		"sequence_number": r.nextSeq(),
 	})
 	if err != nil {
@@ -688,7 +715,7 @@ func (r *responsesStreamEncoder) ensureStarted() ([][]byte, error) {
 		"type":            "response.content_part.added",
 		"content_index":   0,
 		"item_id":         r.messageID,
-		"output_index":    0,
+		"output_index":    r.textOutputIndex,
 		"sequence_number": r.nextSeq(),
 		"part": map[string]any{
 			"type":        "output_text",
@@ -700,7 +727,9 @@ func (r *responsesStreamEncoder) ensureStarted() ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return [][]byte{created, inProgress, itemAdded, partAdded}, nil
+	chunks := append([][]byte(nil), started...)
+	chunks = append(chunks, itemAdded, partAdded)
+	return chunks, nil
 }
 
 func (r *responsesStreamEncoder) closeStream() ([][]byte, bool, error) {
@@ -708,18 +737,49 @@ func (r *responsesStreamEncoder) closeStream() ([][]byte, bool, error) {
 		return nil, false, nil
 	}
 	r.finished = true
+	chunks := make([][]byte, 0, 5)
+	if r.textStarted && !r.textClosed {
+		textChunks, _, err := r.closeTextItem()
+		if err != nil {
+			return nil, true, err
+		}
+		chunks = append(chunks, textChunks...)
+	}
 	model := strings.TrimSpace(r.model)
 	if model == "" {
 		model = "clovapi-proxy"
 	}
+	completed, err := formatOpenAIResponsesEventSSE("response.completed", map[string]any{
+		"type": "response.completed",
+		"response": map[string]any{
+			"id":     "resp_" + r.messageID,
+			"object": "response",
+			"model":  model,
+			"status": "completed",
+			"output": []any{},
+		},
+		"sequence_number": r.nextSeq(),
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	chunks = append(chunks, completed)
+	return chunks, false, nil
+}
+
+func (r *responsesStreamEncoder) closeTextItem() ([][]byte, bool, error) {
+	if !r.textStarted || r.textClosed {
+		return nil, false, nil
+	}
+	r.textClosed = true
 	fullText := r.text.String()
-	chunks := make([][]byte, 0, 5)
+	chunks := make([][]byte, 0, 3)
 	textDone, err := formatOpenAIResponsesEventSSE("response.output_text.done", map[string]any{
 		"type":            "response.output_text.done",
 		"content_index":   0,
 		"item_id":         r.messageID,
 		"logprobs":        []any{},
-		"output_index":    0,
+		"output_index":    r.textOutputIndex,
 		"sequence_number": r.nextSeq(),
 		"text":            fullText,
 	})
@@ -731,7 +791,7 @@ func (r *responsesStreamEncoder) closeStream() ([][]byte, bool, error) {
 		"type":            "response.content_part.done",
 		"content_index":   0,
 		"item_id":         r.messageID,
-		"output_index":    0,
+		"output_index":    r.textOutputIndex,
 		"sequence_number": r.nextSeq(),
 		"part": map[string]any{
 			"type":        "output_text",
@@ -758,28 +818,13 @@ func (r *responsesStreamEncoder) closeStream() ([][]byte, bool, error) {
 			}},
 			"role": string(RoleAssistant),
 		},
-		"output_index":    0,
+		"output_index":    r.textOutputIndex,
 		"sequence_number": r.nextSeq(),
 	})
 	if err != nil {
 		return nil, true, err
 	}
 	chunks = append(chunks, itemDone)
-	completed, err := formatOpenAIResponsesEventSSE("response.completed", map[string]any{
-		"type": "response.completed",
-		"response": map[string]any{
-			"id":     "resp_" + r.messageID,
-			"object": "response",
-			"model":  model,
-			"status": "completed",
-			"output": []any{},
-		},
-		"sequence_number": r.nextSeq(),
-	})
-	if err != nil {
-		return nil, true, err
-	}
-	chunks = append(chunks, completed)
 	return chunks, false, nil
 }
 

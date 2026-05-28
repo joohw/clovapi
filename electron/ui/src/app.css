@@ -95,6 +95,14 @@
       "Microsoft YaHei",
       sans-serif;
   }
+
+  .electron-window-chrome {
+    padding-top: env(titlebar-area-height, 32px);
+  }
+
+  .electron-titlebar-drag {
+    -webkit-app-region: drag;
+  }
 }
 
 [data-sonner-toaster] {

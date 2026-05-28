@@ -56,8 +56,10 @@
   </div>
 {/if}
 
-<main class="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-5 py-5">
-  <header class="mb-5 shrink-0">
+<main
+  class="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-5 py-5 {inElectron ? 'electron-window-chrome' : ''}"
+>
+  <header class="mb-5 shrink-0 {inElectron ? 'electron-titlebar-drag' : ''}">
     <h1 class="text-lg font-semibold tracking-tight">ClovAPI Switcher</h1>
     <p class="mt-1 text-xs text-muted-foreground">{copy.subtitle}</p>
   </header>

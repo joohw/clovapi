@@ -26,6 +26,9 @@ export async function refreshAppVersion() {
   try {
     const version = await window.clovapiEnv?.getVersion?.();
     store.appVersion = String(version || "").trim();
+    if (store.appVersion) {
+      document.title = `ClovAPI Switcher v${store.appVersion}`;
+    }
   } catch {
     store.appVersion = "";
   }

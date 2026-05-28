@@ -44,6 +44,44 @@ let quitting = false;
 const THEME_STORAGE_KEY = "clovapi-theme";
 /** Matches renderer page background (title bar flash before paint). */
 const WINDOW_BG_TOP = "#FBF9F9";
+const TITLE_BAR_OVERLAY_HEIGHT = 32;
+
+function windowTitle() {
+  return `ClovAPI Switcher v${app.getVersion()}`;
+}
+
+function buildBrowserWindowOptions() {
+  const options = {
+    width: 700,
+    height: 760,
+    minWidth: 640,
+    minHeight: 560,
+    autoHideMenuBar: true,
+    backgroundColor: WINDOW_BG_TOP,
+    icon: windowIconPath(),
+    title: windowTitle(),
+    webPreferences: {
+      preload: path.resolve(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  };
+
+  if (process.platform === "win32") {
+    options.titleBarStyle = "hidden";
+    options.titleBarOverlay = {
+      color: WINDOW_BG_TOP,
+      symbolColor: "#353535",
+      height: TITLE_BAR_OVERLAY_HEIGHT,
+    };
+    options.backgroundMaterial = "none";
+  } else if (process.platform === "darwin") {
+    options.titleBarStyle = "hiddenInset";
+  }
+
+  return options;
+}
 let coreDevWatcher = null;
 let coreDevRestartTimer = null;
 
@@ -338,22 +376,7 @@ function createTray() {
 }
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 700,
-    height: 760,
-    minWidth: 640,
-    minHeight: 560,
-    autoHideMenuBar: true,
-    backgroundColor: WINDOW_BG_TOP,
-    icon: windowIconPath(),
-    title: "ClovAPI Switcher",
-    webPreferences: {
-      preload: path.resolve(__dirname, "preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
-    },
-  });
+  mainWindow = new BrowserWindow(buildBrowserWindowOptions());
   if (isElectronDev) {
     mainWindow.webContents.on("preload-error", (_event, preloadPath, error) => {
       emitOutput("stderr", `[dev] preload failed (${preloadPath}): ${error?.message || error}\n`);

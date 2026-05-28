@@ -82,7 +82,6 @@
     lines={electronDev ? [copy.versionLine, copy.updateDisabledInDev] : [copy.versionLine]}
     testStatus={electronDev ? "" : rowTestStatus(coreUpdateCheck?.status)}
     testSummary={electronDev ? "" : coreUpdateCheck?.summary || ""}
-    testDetail={electronDev ? "" : coreUpdateCheck?.detail || ""}
   >
     {#snippet actions()}
       {#if !electronDev}

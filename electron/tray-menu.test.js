@@ -96,7 +96,6 @@ test("resolveActiveBindings maps active selections to vendor/model labels", () =
 
 test("buildTrayMenuModel exposes safe proxy actions and active models", () => {
   const running = buildTrayMenuModel({
-    visible: true,
     running: true,
     managed: true,
     port: 27483,
@@ -109,7 +108,7 @@ test("buildTrayMenuModel exposes safe proxy actions and active models", () => {
     ],
     active: { hermes: { provider_id: "custom-api", model_id: "gpt-4.1" } },
   });
-  assert.equal(running.windowLabel, "Hide ClovAPI Switcher");
+  assert.equal(running.windowLabel, "Show ClovAPI Switcher");
   assert.equal(running.canStartProxy, false);
   assert.equal(running.startProxyLabel, "Start Proxy on :27483");
   assert.match(running.statusLabel, /Proxy running/);
@@ -125,7 +124,7 @@ test("buildTrayMenuModel exposes safe proxy actions and active models", () => {
   ]);
   assert.equal("canStopProxy" in running, false);
 
-  const stopped = buildTrayMenuModel({ visible: false, running: false, port: 3000 });
+  const stopped = buildTrayMenuModel({ running: false, port: 3000 });
   assert.equal(stopped.windowLabel, "Show ClovAPI Switcher");
   assert.equal(stopped.canStartProxy, true);
   assert.equal(stopped.startProxyLabel, "Start Proxy on :3000");

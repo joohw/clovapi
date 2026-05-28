@@ -166,13 +166,12 @@ function resolveActiveBindings(state = {}) {
 }
 
 function buildTrayMenuModel(state = {}) {
-  const visible = Boolean(state.visible);
   const running = Boolean(state.running);
   const port = Number(state.port) || 27483;
   const bindings = resolveActiveBindings(state);
 
   return {
-    windowLabel: visible ? "Hide ClovAPI Switcher" : "Show ClovAPI Switcher",
+    windowLabel: "Show ClovAPI Switcher",
     profilesLabel: "Open Profiles",
     settingsLabel: "Open Settings",
     logsLabel: "Open Call Logs",

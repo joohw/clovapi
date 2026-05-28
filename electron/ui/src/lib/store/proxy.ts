@@ -209,7 +209,7 @@ export async function checkCoreUpdate() {
       store.coreUpdateCheck = {
         status: "fail",
         summary: result?.error || t("toast.coreUpdateCheckFailed"),
-        detail: JSON.stringify(detail, null, 2),
+        detail: "",
       };
       return;
     }
@@ -270,7 +270,7 @@ export async function installCoreUpdate() {
       store.coreUpdateCheck = {
         status: "fail",
         summary: result?.error || t("toast.coreUpdateInstallFailed"),
-        detail: JSON.stringify(detail, null, 2),
+        detail: "",
       };
       toast.error(result?.error || t("toast.coreUpdateInstallFailed"));
       return;
@@ -289,7 +289,7 @@ export async function installCoreUpdate() {
       store.coreUpdateCheck = {
         status: "pass",
         summary: t("proxy.updateInstalled", { version: detail.latest_version || store.coreVersion }),
-        detail: detail.target_path ? t("proxy.updateInstalledPath", { path: detail.target_path }) : "",
+        detail: "",
         testedAt: Date.now(),
       };
       toast.success(t("toast.coreUpdateInstalled"));

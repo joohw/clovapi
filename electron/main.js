@@ -20,8 +20,14 @@ app.commandLine.appendSwitch("enable-features", "OverlayScrollbar,FluentOverlayS
 fs.mkdirSync(electronUserDataDir(), { recursive: true });
 app.setPath("userData", electronUserDataDir());
 
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
+
 let mainWindow = null;
 let tray = null;
+let trayContextMenu = null;
 let runningProcess = null;
 let quitting = false;
 const THEME_STORAGE_KEY = "clovapi-theme";
@@ -105,6 +111,7 @@ function showMainWindow(options = {}) {
   mainWindow.show();
   if (process.platform === "darwin") app.dock?.show();
   mainWindow.focus();
+  void updateTrayMenu();
   if (!eventPayload) return;
   const sendAppEvent = () => dispatchRendererEvent(eventPayload);
   if (created || mainWindow.webContents.isLoading()) {
@@ -117,14 +124,7 @@ function showMainWindow(options = {}) {
 function hideMainWindow() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   mainWindow.hide();
-}
-
-function toggleMainWindow() {
-  if (!mainWindow || mainWindow.isDestroyed() || !mainWindow.isVisible()) {
-    showMainWindow();
-    return;
-  }
-  hideMainWindow();
+  void updateTrayMenu();
 }
 
 async function readTrayProxyState() {
@@ -214,7 +214,6 @@ async function updateTrayMenu() {
   if (!tray) return;
   const [state, desktop] = await Promise.all([readTrayProxyState(), readTrayDesktopState()]);
   const model = buildTrayMenuModel({
-    visible: Boolean(mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()),
     running: state.running,
     port: state.port,
     external: state.external,
@@ -227,7 +226,7 @@ async function updateTrayMenu() {
   const template = [
     {
       label: model.windowLabel,
-      click: () => toggleMainWindow(),
+      click: () => showMainWindow(),
     },
     {
       label: model.profilesLabel,
@@ -300,13 +299,29 @@ async function updateTrayMenu() {
       },
     },
   ];
-  tray.setContextMenu(Menu.buildFromTemplate(template));
+  trayContextMenu = Menu.buildFromTemplate(template);
+  if (process.platform === "darwin") {
+    tray.setContextMenu(trayContextMenu);
+  }
+}
+
+function openTrayContextMenu() {
+  if (!tray || !trayContextMenu) return;
+  tray.popUpContextMenu(trayContextMenu);
 }
 
 function createTray() {
   if (tray) return tray;
   tray = new Tray(createTrayImage());
-  tray.on("click", () => toggleMainWindow());
+  tray.on("click", () => showMainWindow());
+  if (process.platform !== "darwin") {
+    tray.on("right-click", () => {
+      void (async () => {
+        await updateTrayMenu();
+        openTrayContextMenu();
+      })();
+    });
+  }
   void updateTrayMenu();
   return tray;
 }
@@ -1019,25 +1034,31 @@ ipcMain.handle("cli:tool-status", async () => {
   return { ok: false, available: false, source: "none", path: "", error: "No bundled or system clovapi found" };
 });
 
-app.whenReady().then(async () => {
-  nativeTheme.themeSource = "light";
-  createWindow();
-  createTray();
-  watchCoreDevBinary();
-  try {
-    await proxyManager.autostartIfAllowed();
-  } catch {
-    // Non-fatal on startup
-  }
-  await updateTrayMenu();
-
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+if (gotSingleInstanceLock) {
+  app.on("second-instance", () => {
     showMainWindow();
   });
-});
+
+  app.whenReady().then(async () => {
+    nativeTheme.themeSource = "light";
+    createWindow();
+    createTray();
+    watchCoreDevBinary();
+    try {
+      await proxyManager.autostartIfAllowed();
+    } catch {
+      // Non-fatal on startup
+    }
+    await updateTrayMenu();
+
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+      showMainWindow();
+    });
+  });
+}
 
 app.on("before-quit", () => {
   quitting = true;

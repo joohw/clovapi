@@ -39,7 +39,6 @@ const zh = {
     empty: "(空)",
     noOutput: "(无输出)",
     loading: "加载中…",
-    viewDetails: "查看详情",
   },
   vendor: {
     claudeSubscription: "Claude 订阅",
@@ -125,7 +124,6 @@ const zh = {
     updateUpToDate: "已是最新版本",
     updateAvailable: "有可用更新 · v{latest}",
     updateInstalled: "已更新至 v{version}",
-    updateInstalledPath: "安装路径 {path}",
     updateDisabledInDev: "开发模式不检查更新",
     pathHint: "/{providerId}/{modelId}/{apiStyle}",
   },

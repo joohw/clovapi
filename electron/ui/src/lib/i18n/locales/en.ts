@@ -37,7 +37,6 @@ const en = {
     empty: "(empty)",
     noOutput: "(no output)",
     loading: "Loading…",
-    viewDetails: "View details",
   },
   vendor: {
     claudeSubscription: "Claude Subscription",
@@ -127,7 +126,6 @@ const en = {
     updateUpToDate: "Up to date",
     updateAvailable: "Update available · v{latest}",
     updateInstalled: "Updated to v{version}",
-    updateInstalledPath: "Installed at {path}",
     updateDisabledInDev: "Update checks are disabled in dev mode",
     pathHint: "/{providerId}/{modelId}/{apiStyle}",
   },

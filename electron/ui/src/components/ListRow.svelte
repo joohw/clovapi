@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { cn } from "$lib/utils.js";
-  import { i18n, t } from "../lib/i18n";
   import type { ModelTestStatus } from "../global";
 
   let {
@@ -10,7 +9,6 @@
     showStatusDot = false,
     testStatus = "",
     testSummary = "",
-    testDetail = "",
     muted = false,
     indent = false,
     linesNowrap = false,
@@ -24,7 +22,6 @@
     showStatusDot?: boolean;
     testStatus?: "" | ModelTestStatus;
     testSummary?: string;
-    testDetail?: string;
     muted?: boolean;
     indent?: boolean;
     linesNowrap?: boolean;
@@ -53,10 +50,6 @@
       testStatus !== "pass" && testStatus !== "fail" && testStatus !== "testing" && "text-muted-foreground",
     ),
   );
-  const viewDetailsLabel = $derived.by(() => {
-    void i18n.locale;
-    return t("common.viewDetails");
-  });
 </script>
 
 {#snippet titleRow(clickable: boolean)}
@@ -121,16 +114,6 @@
           {line}
         </p>
       {/each}
-      {#if testDetail && (testStatus === "pass" || testStatus === "fail")}
-        <details class="group text-xs">
-          <summary class="cursor-pointer text-muted-foreground hover:text-foreground">{viewDetailsLabel}</summary>
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <pre
-            class="mt-1.5 max-h-48 overflow-auto rounded-md border border-border bg-muted/40 p-2 font-mono text-[11px] leading-relaxed break-words whitespace-pre-wrap"
-            tabindex="0"
-          >{testDetail}</pre>
-        </details>
-      {/if}
     </div>
   </div>
   <div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">

@@ -30,6 +30,10 @@ export function setActiveTab(tab: TabId) {
   if (store.activeTab === "system-logs" && tab !== "system-logs") {
     store.proxySystemLogSelectedId = null;
   }
+  if (store.activeTab === "settings" && tab !== "settings") {
+    store.coreUpdateCheck = null;
+    store.proxyHealthTest = null;
+  }
   store.activeTab = tab;
   if (tab === "profiles") {
     void (async () => {

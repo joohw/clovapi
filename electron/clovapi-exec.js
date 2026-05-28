@@ -4,6 +4,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawn, spawnSync } = require("node:child_process");
 const { cliBinPath } = require("./config-paths");
+const { installBinaryWindows } = require("./cli-win-replace");
 
 const DOWNLOAD_BASE = "https://downloads.clovapi.com/clovapi";
 const PLATFORM_MAP = {
@@ -224,8 +225,12 @@ function installOnlineCliSync() {
       }
       const target = cliBinPath();
       fs.mkdirSync(path.dirname(target), { recursive: true });
-      fs.copyFileSync(extracted, target);
-      if (process.platform !== "win32") fs.chmodSync(target, 0o755);
+      if (process.platform === "win32") {
+        installBinaryWindows(extracted, target);
+      } else {
+        fs.copyFileSync(extracted, target);
+        fs.chmodSync(target, 0o755);
+      }
       fs.writeFileSync(path.join(path.dirname(target), "version.txt"), `${version}\n`, { mode: 0o600 });
       return target;
     } catch (error) {

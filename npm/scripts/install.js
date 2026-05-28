@@ -15,6 +15,7 @@ const {
   exeName,
   vendorBinPath,
 } = require("./paths");
+const { installBinaryWindows } = require("./win-replace");
 
 const PLATFORM_MAP = {
   darwin: "darwin",
@@ -155,12 +156,14 @@ async function withInstallLock(fn) {
 }
 
 function installBinary(sourcePath, targetPath) {
+  if (process.platform === "win32") {
+    installBinaryWindows(sourcePath, targetPath);
+    return;
+  }
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
   const tmpPath = path.join(path.dirname(targetPath), `.clovapi-install-${process.pid}-${Date.now()}`);
   fs.copyFileSync(sourcePath, tmpPath);
-  if (process.platform !== "win32") {
-    fs.chmodSync(tmpPath, 0o755);
-  }
+  fs.chmodSync(tmpPath, 0o755);
   try {
     fs.renameSync(tmpPath, targetPath);
   } catch {

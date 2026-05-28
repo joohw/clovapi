@@ -19,6 +19,7 @@
     "bin",
     "scripts/install.js",
     "scripts/paths.js",
+    "scripts/win-replace.js",
     "vendor",
     "README.md"
   ],

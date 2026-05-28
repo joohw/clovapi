@@ -612,6 +612,13 @@ ipcMain.handle("cli:update", async (_event, payload) => {
   if (!executable) {
     return { ok: false, error: "clovapi executable not found" };
   }
+  if (!payload?.check) {
+    try {
+      await proxyManager.stop({ suppressAutostart: true });
+    } catch {
+      /* best effort before replacing the user-managed CLI binary */
+    }
+  }
   const args = ["update", "--json"];
   if (payload?.check) args.push("--check");
   if (payload?.version) args.push("--version", String(payload.version));

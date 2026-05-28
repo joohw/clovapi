@@ -1012,7 +1012,7 @@ ipcMain.handle("proxy-logs:list", async (_event, payload) => {
     system = [];
   }
   if (!system.length) {
-    system = proxyLogger.listSystem();
+    system = await proxyLogger.listSystem();
   }
   if (!requestsLoaded) {
     try {
@@ -1034,7 +1034,7 @@ ipcMain.handle("proxy-logs:list", async (_event, payload) => {
 ipcMain.handle("proxy-logs:clear", async (_event, payload) => {
   const scope = String(payload?.scope || "all").trim().toLowerCase();
   if (scope === "system" || scope === "all") {
-    proxyLogger.clearSystem();
+    await proxyLogger.clearSystem();
   }
   if (scope === "calls" || scope === "all") {
     try {

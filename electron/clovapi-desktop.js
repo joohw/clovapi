@@ -1,4 +1,4 @@
-const { runClovapiArgs, runClovapiArgsAsync } = require("./clovapi-exec");
+const { runClovapiArgsAsync } = require("./clovapi-exec");
 
 function parseDesktopStdout(result) {
   const text = String(result.stdout || "").trim();
@@ -10,21 +10,6 @@ function parseDesktopStdout(result) {
   } catch {
     return { ok: false, error: "invalid JSON from clovapi desktop" };
   }
-}
-
-function runDesktop(args, options = {}) {
-  const result = runClovapiArgs(["desktop", ...args], {
-    timeout: options.timeout ?? 30000,
-    input: options.input,
-  });
-  if (result.error && result.error.code === "ETIMEDOUT") {
-    return { ok: false, error: "clovapi desktop timed out" };
-  }
-  if (!result.ok) {
-    const message = String(result.stderr || result.stdout || "clovapi desktop failed").trim();
-    return { ok: false, error: message || "clovapi desktop failed" };
-  }
-  return parseDesktopStdout(result);
 }
 
 async function runDesktopAsync(args, options = {}) {
@@ -43,22 +28,22 @@ async function runDesktopAsync(args, options = {}) {
 }
 
 function loadProfiles() {
-  return runDesktop(["profiles", "load"]);
+  return runDesktopAsync(["profiles", "load"]);
 }
 
 function loadProxyConfig() {
-  return runDesktop(["proxy", "load"], { timeout: 10000 });
+  return runDesktopAsync(["proxy", "load"], { timeout: 10000 });
 }
 
 function saveProxyConfig(payload) {
-  return runDesktop(["proxy", "save"], {
+  return runDesktopAsync(["proxy", "save"], {
     input: JSON.stringify(payload || {}),
     timeout: 10000,
   });
 }
 
 function saveProfiles(payload) {
-  return runDesktop(["profiles", "save"], {
+  return runDesktopAsync(["profiles", "save"], {
     input: JSON.stringify(payload || {}),
     timeout: 15000,
   });
@@ -88,7 +73,7 @@ async function switchProviderModel(cliKind, providerId, modelId) {
 }
 
 function listVendorModels(vendorName) {
-  return runDesktop(["vendor", "list-models", "--vendor", String(vendorName || "")], {
+  return runDesktopAsync(["vendor", "list-models", "--vendor", String(vendorName || "")], {
     timeout: 45000,
   });
 }
@@ -115,7 +100,7 @@ async function testBinding(payload) {
 }
 
 function modelAdapters() {
-  return runDesktop(["vendor", "catalog"], { timeout: 10000 });
+  return runDesktopAsync(["vendor", "catalog"], { timeout: 10000 });
 }
 
 function vendorCatalog() {
@@ -123,31 +108,30 @@ function vendorCatalog() {
 }
 
 function whichCommand(command) {
-  return runDesktop(["agents", "which", "--command", String(command || "")], { timeout: 10000 });
+  return runDesktopAsync(["agents", "which", "--command", String(command || "")], { timeout: 10000 });
 }
 
 function agentStatus() {
-  return runDesktop(["agents", "status"], { timeout: 10000 });
+  return runDesktopAsync(["agents", "status"], { timeout: 10000 });
 }
 
 function authStatus() {
-  return runDesktop(["auth", "status"], { timeout: 10000 });
+  return runDesktopAsync(["auth", "status"], { timeout: 10000 });
 }
 
 function authLogout(provider) {
-  return runDesktop(["auth", "logout", "--provider", String(provider || "")], {
+  return runDesktopAsync(["auth", "logout", "--provider", String(provider || "")], {
     timeout: 15000,
   });
 }
 
 function queryVendorUsage(vendorName) {
-  return runDesktop(["vendor", "usage", "--vendor", String(vendorName || "")], {
+  return runDesktopAsync(["vendor", "usage", "--vendor", String(vendorName || "")], {
     timeout: 20000,
   });
 }
 
 module.exports = {
-  runDesktop,
   runDesktopAsync,
   loadProfiles,
   loadProxyConfig,

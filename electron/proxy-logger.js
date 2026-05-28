@@ -1,11 +1,12 @@
 const systemLogsStore = require("./system-logs-store");
 
-function listSystem() {
-  return systemLogsStore.readSystemLogs(0).map((entry) => ({ ...entry }));
+async function listSystem() {
+  const entries = await systemLogsStore.readSystemLogs(0);
+  return entries.map((entry) => ({ ...entry }));
 }
 
-function clearSystem() {
-  systemLogsStore.clearSystemLogsFile();
+async function clearSystem() {
+  await systemLogsStore.clearSystemLogsFile();
 }
 
 module.exports = {

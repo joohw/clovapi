@@ -1,6 +1,6 @@
 const fs = require("node:fs");
 const { logsDir, callLogsDBPath } = require("./config-paths");
-const { runClovapiArgs } = require("./clovapi-exec");
+const { runClovapiArgsAsync } = require("./clovapi-exec");
 
 const DEFAULT_CALL_LOG_PAGE_SIZE = 20;
 
@@ -10,9 +10,9 @@ function normalizePage(input = {}) {
   return { limit, offset };
 }
 
-function readCallLogsViaCLI(options = {}) {
+async function readCallLogsViaCLI(options = {}) {
   const { limit, offset } = normalizePage(options);
-  const result = runClovapiArgs(
+  const result = await runClovapiArgsAsync(
     ["proxy", "logs", "list", "--json", "--limit", String(limit + 1), "--offset", String(offset)],
     { timeout: 8000 },
   );
@@ -29,8 +29,8 @@ function readCallLogsViaCLI(options = {}) {
   }
 }
 
-function readCallLogSessionsViaCLI(limit = 100) {
-  const result = runClovapiArgs(
+async function readCallLogSessionsViaCLI(limit = 100) {
+  const result = await runClovapiArgsAsync(
     ["proxy", "logs", "sessions", "--json", "--limit", String(Number(limit) || 100)],
     { timeout: 8000 },
   );
@@ -47,7 +47,7 @@ function readCallLogSessionsViaCLI(limit = 100) {
 
 async function readCallLogs(options = {}) {
   if (fs.existsSync(callLogsDBPath())) {
-    const viaCLI = readCallLogsViaCLI(options);
+    const viaCLI = await readCallLogsViaCLI(options);
     if (viaCLI.entries.length || viaCLI.offset > 0) return viaCLI;
   }
   return readCallLogsViaCLI(options);
@@ -58,7 +58,7 @@ async function readCallLogSessions(limit = 100) {
 }
 
 async function clearCallLogsFile() {
-  runClovapiArgs(["proxy", "logs", "clear", "--yes"], { timeout: 8000 });
+  await runClovapiArgsAsync(["proxy", "logs", "clear", "--yes"], { timeout: 8000 });
 }
 
 module.exports = {

@@ -1,7 +1,7 @@
-const { runClovapiArgs } = require("./clovapi-exec");
+const { runClovapiArgsAsync } = require("./clovapi-exec");
 
-function readSystemLogs(limit = 0) {
-  const result = runClovapiArgs(
+async function readSystemLogs(limit = 0) {
+  const result = await runClovapiArgsAsync(
     ["proxy", "syslogs", "list", "--json", "--limit", String(Number(limit) || 0)],
     { timeout: 8000 },
   );
@@ -16,12 +16,12 @@ function readSystemLogs(limit = 0) {
   }
 }
 
-function clearSystemLogsFile() {
-  runClovapiArgs(["proxy", "syslogs", "clear", "--yes"], { timeout: 8000 });
+async function clearSystemLogsFile() {
+  await runClovapiArgsAsync(["proxy", "syslogs", "clear", "--yes"], { timeout: 8000 });
 }
 
-function logProfilesSaved() {
-  runClovapiArgs(["proxy", "syslogs", "log-profiles"], { timeout: 8000 });
+async function logProfilesSaved() {
+  await runClovapiArgsAsync(["proxy", "syslogs", "log-profiles"], { timeout: 8000 });
 }
 
 module.exports = {

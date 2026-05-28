@@ -46,9 +46,10 @@ type Model struct {
 
 // ProxyConfig describes the built-in local proxy/daemon endpoint.
 type ProxyConfig struct {
-	Enabled bool   `json:"enabled"`
-	Host    string `json:"host"`
-	Port    int    `json:"port"`
+	Enabled        bool   `json:"enabled"`
+	Host           string `json:"host"`
+	Port           int    `json:"port"`
+	DebugLocalOnly bool   `json:"debug_local_only,omitempty"`
 }
 
 // ActiveSelection is the persisted provider/model selected for one local agent.

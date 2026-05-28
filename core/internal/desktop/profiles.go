@@ -10,6 +10,10 @@ import (
 	"github.com/clovapi/switcher/internal/profile"
 )
 
+func boolPtr(v bool) *bool {
+	return &v
+}
+
 type UIModel struct {
 	ID       string `json:"id"`
 	Label    string `json:"label"`
@@ -33,9 +37,10 @@ type UIVendor struct {
 }
 
 type UIProxyConfig struct {
-	Enabled bool   `json:"enabled"`
-	Host    string `json:"host"`
-	Port    int    `json:"port"`
+	Enabled        bool   `json:"enabled"`
+	Host           string `json:"host"`
+	Port           int    `json:"port"`
+	DebugLocalOnly *bool  `json:"debugLocalOnly,omitempty"`
 }
 
 type LoadResult struct {
@@ -145,9 +150,10 @@ func storeToUI(s *profile.Store) LoadResult {
 		Version: s.Version,
 		Active:  active,
 		Proxy: UIProxyConfig{
-			Enabled: s.Proxy.Enabled,
-			Host:    s.Proxy.Host,
-			Port:    s.Proxy.Port,
+			Enabled:        s.Proxy.Enabled,
+			Host:           s.Proxy.Host,
+			Port:           s.Proxy.Port,
+			DebugLocalOnly: boolPtr(s.Proxy.DebugLocalOnly),
 		},
 		Profiles: profiles,
 	}
@@ -197,9 +203,13 @@ func SaveProfiles(input SaveInput) SaveResult {
 		}
 		if input.Proxy != nil {
 			current.Proxy = profile.ProxyConfig{
-				Enabled: input.Proxy.Enabled,
-				Host:    strings.TrimSpace(input.Proxy.Host),
-				Port:    input.Proxy.Port,
+				Enabled:        input.Proxy.Enabled,
+				Host:           strings.TrimSpace(input.Proxy.Host),
+				Port:           input.Proxy.Port,
+				DebugLocalOnly: current.Proxy.DebugLocalOnly,
+			}
+			if input.Proxy.DebugLocalOnly != nil {
+				current.Proxy.DebugLocalOnly = *input.Proxy.DebugLocalOnly
 			}
 		}
 		return true, nil
@@ -229,9 +239,10 @@ func proxyConfigFromStore(s *profile.Store) UIProxyConfig {
 		return UIProxyConfig{}
 	}
 	return UIProxyConfig{
-		Enabled: s.Proxy.Enabled,
-		Host:    s.Proxy.Host,
-		Port:    s.Proxy.Port,
+		Enabled:        s.Proxy.Enabled,
+		Host:           s.Proxy.Host,
+		Port:           s.Proxy.Port,
+		DebugLocalOnly: boolPtr(s.Proxy.DebugLocalOnly),
 	}
 }
 
@@ -248,9 +259,13 @@ func LoadProxyConfig() ProxyConfigResult {
 func SaveProxyConfig(input UIProxyConfig) ProxyConfigResult {
 	saved, err := profile.WithLockedDesktopStore(func(current *profile.Store) (bool, error) {
 		current.Proxy = profile.ProxyConfig{
-			Enabled: input.Enabled,
-			Host:    strings.TrimSpace(input.Host),
-			Port:    input.Port,
+			Enabled:        input.Enabled,
+			Host:           strings.TrimSpace(input.Host),
+			Port:           input.Port,
+			DebugLocalOnly: current.Proxy.DebugLocalOnly,
+		}
+		if input.DebugLocalOnly != nil {
+			current.Proxy.DebugLocalOnly = *input.DebugLocalOnly
 		}
 		return true, nil
 	})

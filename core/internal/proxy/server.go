@@ -85,7 +85,7 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 
 func (s *Server) localOnly(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !isLocalRequest(r) {
+		if s.Config.DebugLocalOnly && !isLocalRequest(r) {
 			writeJSON(w, http.StatusForbidden, map[string]string{"error": "debug endpoints are only available from loopback clients"})
 			return
 		}

@@ -96,6 +96,7 @@ type ProxyConfig = {
   enabled?: boolean;
   host?: string;
   port?: number;
+  debugLocalOnly?: boolean;
 };
 
 type ProxyStatusResult = {

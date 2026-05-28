@@ -56,17 +56,37 @@ test("redactSecrets masks bearer-ish tokens", () => {
   assert.match(out, /\[redacted\]/);
 });
 
-test("start — external proxy: no spawn when /health OK", async () => {
+test("start — invokes proxy start even when /health already OK", async () => {
+  let sawSpawn = false;
+  class FakeProcess extends EventEmitter {
+    stdout = new EventEmitter();
+    stderr = new EventEmitter();
+    pid = 42_002;
+    killed = false;
+    exitCode = null;
+    signalCode = null;
+    kill() {
+      /* keep alive until test ends */
+    }
+  }
+
+  const fakeChild = new FakeProcess();
   const mgr = createGoProxyManager({
-    resolveExecutable: async () => "should-not-run",
+    resolveExecutable: async () => "/opt/bin/clovapi",
     loadProxyConfigFn: async () => ({ host: "127.0.0.1", port: 57901 }),
-    spawnFn() {
-      assert.fail("spawn must not be called when proxy already serves /health");
-    },
     fetchHealth: async () => ({ ok: true, body: { ok: true, service: "clovapi-core-proxy" } }),
-    fetchCallLogSupport: async () => ({ ok: true, supports: true }),
+    spawnFn(executable, args) {
+      sawSpawn = true;
+      assert.equal(executable, "/opt/bin/clovapi");
+      assert.deepEqual(args, ["proxy", "start", "--host", "127.0.0.1", "--port", "57901"]);
+      queueMicrotask(() => {
+        fakeChild.emit("close", 0, null);
+      });
+      return /** @type {any} */ (fakeChild);
+    },
   });
   const st = await mgr.start({ port: 57901 });
+  assert.ok(sawSpawn);
   assert.equal(st.ok, true);
   assert.equal(st.running, true);
   assert.equal(st.managed, false);
@@ -89,17 +109,10 @@ test("start — invokes spawnFn with proxy start argv", async () => {
   }
 
   const fakeChild = new FakeProcess();
-  let tick = 0;
   const mgr = createGoProxyManager({
     resolveExecutable: async () => "/opt/bin/clovapi",
     loadProxyConfigFn: async () => ({ host: "127.0.0.1", port: 58901 }),
-    healthPollMs: 1,
-    healthDeadlineMs: 2000,
-    fetchHealth: async () => {
-      tick += 1;
-      return { ok: tick >= 3, body: tick >= 3 ? { ok: true, service: "clovapi-core-proxy" } : {} };
-    },
-    fetchCallLogSupport: async () => ({ ok: true, supports: true }),
+    fetchHealth: async () => ({ ok: true, body: { ok: true, service: "clovapi-core-proxy" } }),
     spawnFn(executable, args) {
       sawSpawn = true;
       assert.equal(executable, "/opt/bin/clovapi");

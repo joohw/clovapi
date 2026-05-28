@@ -143,36 +143,6 @@ async function defaultFetchHealth(url) {
   }
 }
 
-/** @param {ProxyBindConfig} cfg */
-function callLogUrl(cfg) {
-  const { host, port } = buildProxyServeArgs(cfg);
-  const clientHost = healthClientHost(host);
-  return `http://${clientHost}:${port}/__debug/call-log`;
-}
-
-/** @type {(url: string) => Promise<{ ok: boolean; supports: boolean; error?: string }>} */
-async function defaultFetchCallLogSupport(url) {
-  const target = String(url || "").trim();
-  if (!target) {
-    return { ok: false, supports: false, error: "call-log URL is empty" };
-  }
-  const ac = new AbortController();
-  const timer = setTimeout(() => ac.abort(), 2500);
-  try {
-    const res = await fetch(target, { signal: ac.signal });
-    if (!res.ok) {
-      return { ok: false, supports: false, error: `call-log status ${res.status}` };
-    }
-    const json = await res.json();
-    return { ok: true, supports: Array.isArray(json?.entries) };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "call-log request failed";
-    return { ok: false, supports: false, error: msg };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 /** @param {ProxyBindConfig} cfg @param {number} [skipPid] */
 function releaseBindPort(cfg, skipPid = 0) {
   const port = Number(cfg?.port) || DEFAULT_PORT;
@@ -212,7 +182,6 @@ function releaseBindPort(cfg, skipPid = 0) {
  * @property {() => Promise<string>} resolveExecutable Zero when missing.
  * @property {typeof spawn} [spawnFn]
  * @property {typeof defaultFetchHealth} [fetchHealth]
- * @property {typeof defaultFetchCallLogSupport} [fetchCallLogSupport]
  * @property {number} [healthPollMs]
  * @property {number} [healthDeadlineMs]
  * @property {() => Promise<{ host: string; port: number; enabled?: boolean }>} [loadProxyConfigFn]
@@ -225,7 +194,6 @@ function createGoProxyManager(deps) {
   const resolveExecutable = deps.resolveExecutable;
   const spawnFn = deps.spawnFn || spawn;
   const fetchHealth = deps.fetchHealth || defaultFetchHealth;
-  const fetchCallLogSupport = deps.fetchCallLogSupport || defaultFetchCallLogSupport;
   const healthPollMs = Number(deps.healthPollMs) > 0 ? Number(deps.healthPollMs) : 80;
   const healthDeadlineMs = Number(deps.healthDeadlineMs) > 0 ? Number(deps.healthDeadlineMs) : 15_000;
 
@@ -467,31 +435,7 @@ function createGoProxyManager(deps) {
     await killManagedSubtree(pid);
   }
 
-  /** @param {ProxyBindConfig} cfg */
-  async function proxySupportsCallLog(cfg) {
-    const result = await fetchCallLogSupport(callLogUrl(cfg));
-    return Boolean(result.supports);
-  }
-
-  /** @param {ProxyBindConfig} cfg @param {{ host: string; port: number; baseUrl: string }} urls */
-  async function acceptExternalProxy(cfg, urls) {
-    if (!(await proxySupportsCallLog(cfg))) {
-      return null;
-    }
-    return {
-      ok: true,
-      alreadyRunning: true,
-      running: true,
-      managed: false,
-      pid: null,
-      external: true,
-      port: urls.port,
-      host: urls.host,
-      baseUrl: urls.baseUrl,
-    };
-  }
-
-  /** @param {ProxyBindConfig} cfg @param {string} reason */
+  /** @param {ProxyBindConfig} cfg @param {string} [_reason] */
   async function replaceStaleExternalProxy(cfg, _reason) {
     await stopProxyOnPort(cfg);
     await releaseBindPort(cfg, managedPidOrNull() ?? 0);
@@ -532,54 +476,7 @@ function createGoProxyManager(deps) {
     };
     const urls = snapshotBaseUrls(merged);
     let hProbe = await fetchHealth(healthUrl(merged));
-    const ownedAlive = ownsHealthyManagedPid();
-
-    hProbe = await maybeReplaceStaleDevProxy(merged, hProbe, ownedAlive);
-
-    if (hProbe.ok && !ownedAlive) {
-      const external = await acceptExternalProxy(merged, urls);
-      if (external) return external;
-      await replaceStaleExternalProxy(
-        merged,
-        "replacing stale external proxy without call-log support",
-      );
-    }
-
-    if (hProbe.ok && ownedAlive && managedPidOrNull() != null) {
-      if (await proxySupportsCallLog(merged)) {
-        return {
-          ok: true,
-          alreadyRunning: true,
-          running: true,
-          managed: true,
-          pid: managedPidOrNull(),
-          port: urls.port,
-          host: urls.host,
-          baseUrl: urls.baseUrl,
-        };
-      }
-      await stopManaged("managed-proxy-without-call-log-support");
-      await new Promise((r) => setTimeout(r, 140));
-    }
-
-    if (ownedAlive && !hProbe.ok) {
-      try {
-        await waitForHealthy(merged);
-        return {
-          ok: true,
-          alreadyRunning: true,
-          running: true,
-          managed: true,
-          pid: managedPidOrNull(),
-          port: urls.port,
-          host: urls.host,
-          baseUrl: urls.baseUrl,
-        };
-      } catch {
-        await stopManaged("unhealthy-managed-child");
-        await new Promise((r) => setTimeout(r, 140));
-      }
-    }
+    hProbe = await maybeReplaceStaleDevProxy(merged, hProbe, false);
 
     const exe = await resolveExecutable();
     if (!exe) {
@@ -598,15 +495,10 @@ function createGoProxyManager(deps) {
 
     try {
       await launchProxyDaemon(exe, merged);
-      await waitForHealthy(merged);
     } catch (e) {
       consecutiveStartFailures += 1;
       const errMsg = e instanceof Error ? e.message : String(e);
       const hc = await fetchHealth(healthUrl(merged));
-      if (hc.ok === true) {
-        const external = await acceptExternalProxy(merged, urls);
-        if (external) return { ...external, alreadyRunning: false };
-      }
       return {
         ok: false,
         running: Boolean(hc.ok),
@@ -620,19 +512,18 @@ function createGoProxyManager(deps) {
       };
     }
 
-    const external = await acceptExternalProxy(merged, urls);
-    if (external) {
-      return { ...external, alreadyRunning: false };
-    }
+    const hc = await fetchHealth(healthUrl(merged));
     return {
-      ok: false,
-      running: true,
+      ok: hc.ok === true,
+      alreadyRunning: Boolean(hProbe.ok),
+      running: hc.ok === true,
       managed: false,
       pid: null,
+      external: hc.ok === true,
       port: urls.port,
       host: urls.host,
       baseUrl: urls.baseUrl,
-      error: "proxy started but call-log support probe failed",
+      error: hc.ok ? "" : String(hc.error || "proxy health check failed after start"),
     };
   }
 
@@ -687,40 +578,6 @@ function createGoProxyManager(deps) {
   }
 
   async function ensureRunning(payload = {}) {
-    const base = await loadProxyConfig();
-    const mergedCfg = {
-      ...base,
-      ...(Number(payload.port) > 0 ? { port: Number(payload.port) } : {}),
-    };
-    const urls = snapshotBaseUrls(mergedCfg);
-    let hi = await fetchHealth(healthUrl(mergedCfg));
-    if (hi.ok === true) {
-      const owns = ownsHealthyManagedPid();
-      hi = await maybeReplaceStaleDevProxy(mergedCfg, hi, owns);
-    }
-    if (hi.ok === true) {
-      const owns = ownsHealthyManagedPid();
-      if (await proxySupportsCallLog(mergedCfg)) {
-        return {
-          ok: true,
-          running: true,
-          managed: Boolean(owns),
-          pid: managedPidOrNull(),
-          port: urls.port,
-          host: urls.host,
-          baseUrl: urls.baseUrl,
-        };
-      }
-      if (owns) {
-        await stopManaged("managed-proxy-without-call-log-support");
-        await new Promise((resolve) => setTimeout(resolve, 140));
-      } else {
-        await replaceStaleExternalProxy(
-          mergedCfg,
-          "replacing stale external proxy without call-log support",
-        );
-      }
-    }
     const started = await start(payload);
     if (!started.ok) {
       return started;
@@ -730,9 +587,9 @@ function createGoProxyManager(deps) {
       running: Boolean(started.running),
       managed: Boolean(started.managed),
       pid: started.pid ?? null,
-      port: started.port ?? urls.port,
-      host: started.host ?? urls.host,
-      baseUrl: started.baseUrl ?? urls.baseUrl,
+      port: started.port,
+      host: started.host,
+      baseUrl: started.baseUrl,
     };
   }
 
@@ -760,9 +617,7 @@ module.exports = {
   buildProxyStopArgs,
   normalizeBindHost,
   healthClientHost,
-  reachableLoopbackHost,
   healthUrl,
-  callLogUrl,
   redactSecrets,
   createGoProxyManager,
 };

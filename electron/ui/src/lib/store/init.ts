@@ -3,11 +3,11 @@ import { loadVendorCatalog } from "./catalog";
 import { loadModelTests } from "./model-tests";
 import { openProfilesVendor, setActiveTab } from "./navigation";
 import { loadProfilesFromDisk } from "./profiles";
-import { refreshProxyLogs, refreshProxyStatus } from "./proxy";
+import { refreshProxyLogs, refreshProxyStatus, autoUpdateCoreOnStartup } from "./proxy";
 import { refreshSubscriptions } from "./subscriptions";
 import { refreshAppVersion, waitForDesktopBridge } from "./app-version";
 import { startAppUpdatePolling } from "./desktop-update";
-import { isElectronRenderer } from "../constants";
+import { isElectronDev, isElectronRenderer } from "../constants";
 import { store } from "./state.svelte";
 
 export async function initApp() {
@@ -59,5 +59,9 @@ export async function initApp() {
     store.clovapiAvailable = Boolean(tool?.available);
     await detectCliPath();
     await detectOllamaInstalled();
+  }
+
+  if (isElectronRenderer() && !isElectronDev()) {
+    void autoUpdateCoreOnStartup();
   }
 }

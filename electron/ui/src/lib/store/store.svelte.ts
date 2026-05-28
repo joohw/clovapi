@@ -40,6 +40,7 @@ export {
   runProxyHealthTest,
   checkCoreUpdate,
   installCoreUpdate,
+  autoUpdateCoreOnStartup,
 } from "./proxy";
 export { checkAppUpdate, installAppUpdate, startAppUpdatePolling } from "./desktop-update";
 export {

@@ -11,6 +11,37 @@ type UpdateDetail = {
   up_to_date?: boolean;
 };
 
+type CoreUpdateOptions = {
+  silent?: boolean;
+};
+
+function applyCoreUpdateCheckDetail(detail: UpdateDetail, silent: boolean) {
+  if (detail.up_to_date) {
+    store.coreUpdateAvailable = false;
+    store.coreLatestVersion = "";
+    if (!silent) {
+      store.coreUpdateCheck = {
+        status: "pass",
+        summary: t("proxy.updateUpToDate"),
+        detail: "",
+        testedAt: Date.now(),
+      };
+    }
+    return;
+  }
+
+  store.coreUpdateAvailable = true;
+  store.coreLatestVersion = detail.latest_version || "";
+  if (!silent) {
+    store.coreUpdateCheck = {
+      status: "pass",
+      summary: t("proxy.updateAvailable", { latest: detail.latest_version || "?" }),
+      detail: "",
+      testedAt: Date.now(),
+    };
+  }
+}
+
 function parseVersionFromHealthBody(body: unknown): string {
   if (!body || typeof body !== "object") return "";
   const version = (body as { version?: unknown }).version;
@@ -177,21 +208,27 @@ export async function runProxyHealthTest() {
   }
 }
 
-export async function checkCoreUpdate() {
-  if (isElectronDev()) return;
-  if (store.coreUpdateCheck?.status === "testing" || store.coreUpdating) return;
+export async function checkCoreUpdate(options: CoreUpdateOptions = {}) {
+  const silent = options.silent === true;
+  if (isElectronDev()) return false;
+  if (store.coreUpdating) return false;
+  if (!silent && store.coreUpdateCheck?.status === "testing") return false;
 
   const bridge = window.clovapiCli;
   if (!bridge?.updateCli) {
-    toast.error(t("toast.coreUpdateUnsupported"));
-    return;
+    if (!silent) {
+      toast.error(t("toast.coreUpdateUnsupported"));
+    }
+    return false;
   }
 
-  store.coreUpdateCheck = {
-    status: "testing",
-    summary: t("common.testing"),
-    detail: "",
-  };
+  if (!silent) {
+    store.coreUpdateCheck = {
+      status: "testing",
+      summary: t("common.testing"),
+      detail: "",
+    };
+  }
 
   try {
     const result = await bridge.updateCli({ check: true });
@@ -206,61 +243,54 @@ export async function checkCoreUpdate() {
     if (!result?.ok) {
       store.coreUpdateAvailable = false;
       store.coreLatestVersion = "";
-      store.coreUpdateCheck = {
-        status: "fail",
-        summary: result?.error || t("toast.coreUpdateCheckFailed"),
-        detail: "",
-      };
-      return;
+      if (!silent) {
+        store.coreUpdateCheck = {
+          status: "fail",
+          summary: result?.error || t("toast.coreUpdateCheckFailed"),
+          detail: "",
+        };
+      }
+      return false;
     }
 
-    if (detail.up_to_date) {
-      store.coreUpdateAvailable = false;
-      store.coreLatestVersion = "";
-      store.coreUpdateCheck = {
-        status: "pass",
-        summary: t("proxy.updateUpToDate"),
-        detail: "",
-        testedAt: Date.now(),
-      };
-      return;
-    }
-
-    store.coreUpdateAvailable = true;
-    store.coreLatestVersion = detail.latest_version || "";
-    store.coreUpdateCheck = {
-      status: "pass",
-      summary: t("proxy.updateAvailable", { latest: detail.latest_version || "?" }),
-      detail: "",
-      testedAt: Date.now(),
-    };
+    applyCoreUpdateCheckDetail(detail, silent);
+    return store.coreUpdateAvailable;
   } catch (error) {
     store.coreUpdateAvailable = false;
     store.coreLatestVersion = "";
-    store.coreUpdateCheck = {
-      status: "fail",
-      summary: error instanceof Error ? error.message : t("toast.coreUpdateCheckFailed"),
-      detail: "",
-    };
+    if (!silent) {
+      store.coreUpdateCheck = {
+        status: "fail",
+        summary: error instanceof Error ? error.message : t("toast.coreUpdateCheckFailed"),
+        detail: "",
+      };
+    }
+    return false;
   }
 }
 
-export async function installCoreUpdate() {
-  if (isElectronDev()) return;
-  if (store.coreUpdating || store.coreUpdateCheck?.status === "testing") return;
+export async function installCoreUpdate(options: CoreUpdateOptions = {}) {
+  const silent = options.silent === true;
+  if (isElectronDev()) return false;
+  if (store.coreUpdating) return false;
+  if (!silent && store.coreUpdateCheck?.status === "testing") return false;
 
   const bridge = window.clovapiCli;
   if (!bridge?.updateCli) {
-    toast.error(t("toast.coreUpdateUnsupported"));
-    return;
+    if (!silent) {
+      toast.error(t("toast.coreUpdateUnsupported"));
+    }
+    return false;
   }
 
   store.coreUpdating = true;
-  store.coreUpdateCheck = {
-    status: "testing",
-    summary: t("proxy.updating"),
-    detail: "",
-  };
+  if (!silent) {
+    store.coreUpdateCheck = {
+      status: "testing",
+      summary: t("proxy.updating"),
+      detail: "",
+    };
+  }
 
   try {
     const result = await bridge.updateCli({});
@@ -273,7 +303,7 @@ export async function installCoreUpdate() {
         detail: "",
       };
       toast.error(result?.error || t("toast.coreUpdateInstallFailed"));
-      return;
+      return false;
     }
 
     if (detail.latest_version) {
@@ -295,7 +325,7 @@ export async function installCoreUpdate() {
       toast.success(t("toast.coreUpdateInstalled"));
       await restartLocalProxy();
       await refreshCoreVersion();
-      return;
+      return true;
     }
 
     store.coreUpdateCheck = {
@@ -304,6 +334,7 @@ export async function installCoreUpdate() {
       detail: "",
       testedAt: Date.now(),
     };
+    return false;
   } catch (error) {
     store.coreUpdateCheck = {
       status: "fail",
@@ -311,9 +342,17 @@ export async function installCoreUpdate() {
       detail: "",
     };
     toast.error(error instanceof Error ? error.message : t("toast.coreUpdateInstallFailed"));
+    return false;
   } finally {
     store.coreUpdating = false;
   }
+}
+
+export async function autoUpdateCoreOnStartup() {
+  if (isElectronDev()) return;
+  const updateAvailable = await checkCoreUpdate({ silent: true });
+  if (!updateAvailable) return;
+  await installCoreUpdate({ silent: true });
 }
 
 export async function restartLocalProxy() {

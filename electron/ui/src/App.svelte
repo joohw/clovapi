@@ -9,12 +9,15 @@
   import SettingsPanel from "./components/SettingsPanel.svelte";
   import ProfileDialog from "./components/ProfileDialog.svelte";
   import ModelDialog from "./components/ModelDialog.svelte";
+  import { Button } from "$lib/components/ui/button/index.js";
   import { Toaster } from "$lib/components/ui/sonner/index.js";
+  import ArrowUpIcon from "@lucide/svelte/icons/arrow-up";
   import { i18n, t } from "./lib/i18n";
-  import { initApp, setActiveTab, store, type TabId } from "./lib/store.svelte";
+  import { initApp, installAppUpdate, setActiveTab, store, type TabId } from "./lib/store.svelte";
   import { isElectronRenderer } from "./lib/constants";
 
   const inElectron = isElectronRenderer();
+  const showAppUpdateBadge = $derived(inElectron && store.appUpdateAvailable);
 
   onMount(() => {
     void initApp();
@@ -46,6 +49,9 @@
         settings: t("tabs.settings"),
       },
       browserBanner: t("toast.profilesBridgeBrowser"),
+      updateBadge: t("app.updateBadge", {
+        latest: store.appLatestVersion || store.appVersion || "?",
+      }),
     };
   });
 </script>
@@ -56,12 +62,35 @@
   </div>
 {/if}
 
+{#if inElectron}
+  <div class="electron-titlebar-drag-region" aria-hidden="true"></div>
+{/if}
+
 <main
   class="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-5 py-5 {inElectron ? 'electron-window-chrome' : ''}"
 >
-  <header class="mb-5 shrink-0 {inElectron ? 'electron-titlebar-drag' : ''}">
-    <h1 class="text-lg font-semibold tracking-tight">ClovAPI Switcher</h1>
-    <p class="mt-1 text-xs text-muted-foreground">{copy.subtitle}</p>
+  <header class="mb-5 shrink-0 select-none {inElectron ? 'pt-4' : ''}">
+    <div class="flex items-center justify-between gap-3">
+      <div class="min-w-0 flex-1 {inElectron ? 'electron-titlebar-drag' : ''}">
+        <h1 class="text-lg font-semibold tracking-tight">ClovAPI Switcher</h1>
+        <p class="mt-1 text-xs text-muted-foreground">{copy.subtitle}</p>
+      </div>
+      {#if showAppUpdateBadge}
+        <div class="electron-no-drag shrink-0">
+          <Button
+            variant="default"
+            size="icon-sm"
+            class="rounded-full"
+            aria-label={copy.updateBadge}
+            title={copy.updateBadge}
+            disabled={store.appUpdating}
+            onclick={() => void installAppUpdate()}
+          >
+            <ArrowUpIcon />
+          </Button>
+        </div>
+      {/if}
+    </div>
   </header>
 
   <Tabs.Root value={store.activeTab} onValueChange={onTabChange} class="flex min-h-0 flex-1 flex-col gap-4">

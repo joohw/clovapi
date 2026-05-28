@@ -3,6 +3,7 @@ import type { MessageTree } from "./en";
 const zh = {
   app: {
     subtitle: "一键管理本地所有 Agent 的 API，支持 ClaudeCli / CodexCli 订阅",
+    updateBadge: "安装更新 v{latest}",
   },
   tabs: {
     cli: "CLI",

@@ -1,7 +1,12 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { compareVersions, isNewerVersion, normalizeVersion } = require("./desktop-update");
+const {
+  compareVersions,
+  installerDownloadUrl,
+  isNewerVersion,
+  normalizeVersion,
+} = require("./desktop-update");
 
 test("normalizeVersion strips leading v", () => {
   assert.equal(normalizeVersion("v0.1.3"), "0.1.3");
@@ -19,4 +24,15 @@ test("isNewerVersion detects newer desktop releases", () => {
   assert.equal(isNewerVersion("0.1.4", "0.1.3"), true);
   assert.equal(isNewerVersion("0.1.3", "0.1.3"), false);
   assert.equal(isNewerVersion("0.1.2", "0.1.3"), false);
+});
+
+test("installerDownloadUrl uses versioned desktop path", () => {
+  assert.equal(
+    installerDownloadUrl("v0.1.5", "win32"),
+    "https://downloads.clovapi.com/desktop/v0.1.5/clovapi-desktop-windows-x64.exe",
+  );
+  assert.equal(
+    installerDownloadUrl("0.1.5", "darwin"),
+    "https://downloads.clovapi.com/desktop/v0.1.5/clovapi-desktop-darwin-universal.dmg",
+  );
 });

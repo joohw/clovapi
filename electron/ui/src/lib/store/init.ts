@@ -6,6 +6,7 @@ import { loadProfilesFromDisk } from "./profiles";
 import { refreshProxyLogs, refreshProxyStatus } from "./proxy";
 import { refreshSubscriptions } from "./subscriptions";
 import { refreshAppVersion, waitForDesktopBridge } from "./app-version";
+import { startAppUpdatePolling } from "./desktop-update";
 import { isElectronRenderer } from "../constants";
 import { store } from "./state.svelte";
 
@@ -14,6 +15,7 @@ export async function initApp() {
     await waitForDesktopBridge();
   }
   await refreshAppVersion();
+  startAppUpdatePolling();
   store.modelTests = loadModelTests();
   await loadVendorCatalog();
   await loadProfilesFromDisk();

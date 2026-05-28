@@ -106,10 +106,10 @@ publish_desktop() {
   local latest="s3://${R2_BUCKET}/desktop/latest/${name}"
 
   log "upload desktop ${name} -> ${versioned}"
-  aws_r2 cp "$file" "$versioned"
-  aws_r2 cp "$file" "$latest"
+  aws_r2 cp "$file" "$versioned" --cache-control "public, max-age=31536000, immutable"
+  aws_r2 cp "$file" "$latest" --cache-control "no-cache, must-revalidate"
   printf '%s' "$tag" > /tmp/desktop-latest.txt
-  aws_r2 cp /tmp/desktop-latest.txt "s3://${R2_BUCKET}/desktop/latest.txt"
+  aws_r2 cp /tmp/desktop-latest.txt "s3://${R2_BUCKET}/desktop/latest.txt" --cache-control "no-cache, must-revalidate"
   log "desktop latest -> ${PUBLIC_BASE}/desktop/latest/${name} (${tag})"
 }
 

@@ -6,7 +6,7 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 const { URL } = require("node:url");
 
-const DEFAULT_DOWNLOAD_BASE = "https://downloads.clovapi.com/desktop/latest";
+const DEFAULT_DOWNLOAD_ROOT = "https://downloads.clovapi.com/desktop";
 const DEFAULT_LATEST_URL = "https://downloads.clovapi.com/desktop/latest.txt";
 
 const INSTALLER_BY_PLATFORM = {
@@ -42,8 +42,20 @@ function latestDesktopUrl() {
   return String(process.env.CLOVAPI_DESKTOP_LATEST_URL || DEFAULT_LATEST_URL).trim();
 }
 
-function downloadBaseUrl() {
-  return String(process.env.CLOVAPI_DESKTOP_DOWNLOAD_BASE || DEFAULT_DOWNLOAD_BASE).replace(/\/+$/, "");
+function desktopDownloadRoot() {
+  const override = String(process.env.CLOVAPI_DESKTOP_DOWNLOAD_ROOT || "").trim();
+  if (override) return override.replace(/\/+$/, "");
+  const legacyBase = String(process.env.CLOVAPI_DESKTOP_DOWNLOAD_BASE || "").trim().replace(/\/+$/, "");
+  if (legacyBase.endsWith("/latest")) {
+    return legacyBase.slice(0, -"/latest".length);
+  }
+  return DEFAULT_DOWNLOAD_ROOT;
+}
+
+function normalizeTag(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  return trimmed.startsWith("v") ? trimmed : `v${trimmed}`;
 }
 
 function installerFileName(platform = process.platform) {
@@ -54,8 +66,12 @@ function installerFileName(platform = process.platform) {
   return name;
 }
 
-function installerDownloadUrl(platform = process.platform) {
-  return `${downloadBaseUrl()}/${installerFileName(platform)}`;
+function installerDownloadUrl(versionTag, platform = process.platform) {
+  const tag = normalizeTag(versionTag);
+  if (!tag) {
+    throw new Error("Desktop version tag is required.");
+  }
+  return `${desktopDownloadRoot()}/${tag}/${installerFileName(platform)}`;
 }
 
 function fetchText(url, timeoutMs = 15_000) {
@@ -158,7 +174,7 @@ async function checkDesktopUpdate(currentVersion) {
     latest_version: latest,
     latest_tag: latestTag,
     up_to_date: upToDate,
-    download_url: upToDate ? "" : installerDownloadUrl(),
+    download_url: upToDate ? "" : installerDownloadUrl(latestTag),
     installer_name: installerFileName(),
   };
 }
@@ -183,19 +199,22 @@ function launchInstaller(installerPath) {
 }
 
 async function downloadAndLaunchDesktopUpdate() {
+  const latestTag = await fetchLatestDesktopVersion();
   const fileName = installerFileName();
-  const url = installerDownloadUrl();
+  const url = installerDownloadUrl(latestTag);
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clovapi-desktop-update-"));
   const installerPath = path.join(tmpDir, fileName);
   await downloadFile(url, installerPath);
   launchInstaller(installerPath);
-  return { ok: true, path: installerPath, url };
+  return { ok: true, path: installerPath, url, latest_tag: latestTag };
 }
 
 module.exports = {
   compareVersions,
   isNewerVersion,
   normalizeVersion,
+  normalizeTag,
+  desktopDownloadRoot,
   installerDownloadUrl,
   fetchLatestDesktopVersion,
   checkDesktopUpdate,

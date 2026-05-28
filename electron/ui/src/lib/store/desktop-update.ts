@@ -9,21 +9,62 @@ type DesktopUpdateDetail = {
   up_to_date?: boolean;
 };
 
-export async function checkAppUpdate() {
-  if (isElectronDev()) return;
-  if (store.appUpdateCheck?.status === "testing" || store.appUpdating) return;
+type CheckAppUpdateOptions = {
+  silent?: boolean;
+};
 
-  const bridge = window.clovapiDesktop;
-  if (!bridge?.checkUpdate) {
-    toast.error(t("toast.appUpdateUnsupported"));
+const APP_UPDATE_CHECK_INTERVAL_MS = 600_000;
+
+let appUpdateTimer: ReturnType<typeof setInterval> | null = null;
+
+function applyAppUpdateDetail(detail: DesktopUpdateDetail, silent: boolean) {
+  if (detail.up_to_date) {
+    store.appUpdateAvailable = false;
+    store.appLatestVersion = "";
+    if (!silent) {
+      store.appUpdateCheck = {
+        status: "pass",
+        summary: t("proxy.updateUpToDate"),
+        detail: "",
+        testedAt: Date.now(),
+      };
+    }
     return;
   }
 
-  store.appUpdateCheck = {
-    status: "testing",
-    summary: t("common.testing"),
-    detail: "",
-  };
+  store.appUpdateAvailable = true;
+  store.appLatestVersion = detail.latest_version || "";
+  if (!silent) {
+    store.appUpdateCheck = {
+      status: "pass",
+      summary: t("proxy.updateAvailable", { latest: detail.latest_version || "?" }),
+      detail: "",
+      testedAt: Date.now(),
+    };
+  }
+}
+
+export async function checkAppUpdate(options: CheckAppUpdateOptions = {}) {
+  const silent = options.silent === true;
+  if (isElectronDev()) return;
+  if (store.appUpdating) return;
+  if (!silent && store.appUpdateCheck?.status === "testing") return;
+
+  const bridge = window.clovapiDesktop;
+  if (!bridge?.checkUpdate) {
+    if (!silent) {
+      toast.error(t("toast.appUpdateUnsupported"));
+    }
+    return;
+  }
+
+  if (!silent) {
+    store.appUpdateCheck = {
+      status: "testing",
+      summary: t("common.testing"),
+      detail: "",
+    };
+  }
 
   try {
     const result = await bridge.checkUpdate();
@@ -32,43 +73,41 @@ export async function checkAppUpdate() {
     if (!result?.ok) {
       store.appUpdateAvailable = false;
       store.appLatestVersion = "";
-      store.appUpdateCheck = {
-        status: "fail",
-        summary: result?.error || t("toast.appUpdateCheckFailed"),
-        detail: "",
-      };
+      if (!silent) {
+        store.appUpdateCheck = {
+          status: "fail",
+          summary: result?.error || t("toast.appUpdateCheckFailed"),
+          detail: "",
+        };
+      }
       return;
     }
 
-    if (detail.up_to_date) {
-      store.appUpdateAvailable = false;
-      store.appLatestVersion = "";
-      store.appUpdateCheck = {
-        status: "pass",
-        summary: t("proxy.updateUpToDate"),
-        detail: "",
-        testedAt: Date.now(),
-      };
-      return;
-    }
-
-    store.appUpdateAvailable = true;
-    store.appLatestVersion = detail.latest_version || "";
-    store.appUpdateCheck = {
-      status: "pass",
-      summary: t("proxy.updateAvailable", { latest: detail.latest_version || "?" }),
-      detail: "",
-      testedAt: Date.now(),
-    };
+    applyAppUpdateDetail(detail, silent);
   } catch (error) {
     store.appUpdateAvailable = false;
     store.appLatestVersion = "";
-    store.appUpdateCheck = {
-      status: "fail",
-      summary: error instanceof Error ? error.message : t("toast.appUpdateCheckFailed"),
-      detail: "",
-    };
+    if (!silent) {
+      store.appUpdateCheck = {
+        status: "fail",
+        summary: error instanceof Error ? error.message : t("toast.appUpdateCheckFailed"),
+        detail: "",
+      };
+    }
   }
+}
+
+export function startAppUpdatePolling() {
+  if (isElectronDev()) return;
+  if (appUpdateTimer) {
+    clearInterval(appUpdateTimer);
+    appUpdateTimer = null;
+  }
+
+  void checkAppUpdate({ silent: true });
+  appUpdateTimer = setInterval(() => {
+    void checkAppUpdate({ silent: true });
+  }, APP_UPDATE_CHECK_INTERVAL_MS);
 }
 
 export async function installAppUpdate() {

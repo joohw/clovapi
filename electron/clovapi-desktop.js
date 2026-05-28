@@ -64,6 +64,29 @@ function saveProfiles(payload) {
   });
 }
 
+async function switchProviderModel(cliKind, providerId, modelId) {
+  const result = await runClovapiArgsAsync(
+    [
+      "switch",
+      "--cli",
+      String(cliKind || ""),
+      "--provider",
+      String(providerId || ""),
+      "--model",
+      String(modelId || ""),
+    ],
+    { timeout: 45000 },
+  );
+  if (result.error && result.error.code === "ETIMEDOUT") {
+    return { ok: false, error: "clovapi switch timed out" };
+  }
+  if (!result.ok) {
+    const message = String(result.stderr || result.stdout || "clovapi switch failed").trim();
+    return { ok: false, error: message || "clovapi switch failed" };
+  }
+  return { ok: true, stdout: result.stdout, stderr: result.stderr };
+}
+
 function listVendorModels(vendorName) {
   return runDesktop(["vendor", "list-models", "--vendor", String(vendorName || "")], {
     timeout: 45000,
@@ -122,6 +145,7 @@ module.exports = {
   loadProxyConfig,
   saveProxyConfig,
   saveProfiles,
+  switchProviderModel,
   listVendorModels,
   testBinding,
   modelAdapters,

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -72,14 +73,36 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
-	mux.HandleFunc("/__debug/call-log", s.handleDebugCallLog)
-	mux.HandleFunc("/__debug/system-log", s.handleDebugSystemLog)
-	mux.HandleFunc("/__debug/transform-request", s.handleDebugTransform)
-	mux.HandleFunc("/__debug/resolve-route", s.handleDebugResolveRoute)
-	mux.HandleFunc("/__debug/shutdown", s.handleDebugShutdown)
+	mux.HandleFunc("/__debug/call-log", s.localOnly(s.handleDebugCallLog))
+	mux.HandleFunc("/__debug/system-log", s.localOnly(s.handleDebugSystemLog))
+	mux.HandleFunc("/__debug/transform-request", s.localOnly(s.handleDebugTransform))
+	mux.HandleFunc("/__debug/resolve-route", s.localOnly(s.handleDebugResolveRoute))
+	mux.HandleFunc("/__debug/shutdown", s.localOnly(s.handleDebugShutdown))
 	mux.HandleFunc("/", s.handleProxy)
 	s.Server = &http.Server{Addr: cfg.Host + ":" + strconv.Itoa(cfg.Port), Handler: mux}
 	return s
+}
+
+func (s *Server) localOnly(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !isLocalRequest(r) {
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": "debug endpoints are only available from loopback clients"})
+			return
+		}
+		next(w, r)
+	}
+}
+
+func isLocalRequest(r *http.Request) bool {
+	if r == nil {
+		return false
+	}
+	host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
+	if err != nil {
+		host = strings.TrimSpace(r.RemoteAddr)
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 func (s *Server) loadStore() (*profile.Store, error) {

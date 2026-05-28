@@ -11,6 +11,7 @@ export const BLOG_POSTS: BlogPostDef[] = [
   { slug: "desktop-app-vs-cli-workflow", priority: 0.78 },
   { slug: "switch-opencode-upstream-with-clovapi", priority: 0.76 },
   { slug: "anthropic-oauth-ban-agent-workflow", priority: 0.75 },
+  { slug: "claude-code-third-party-fingerprint", priority: 0.745 },
   { slug: "stop-diy-proxy-sprawl-for-agent-cli", priority: 0.74 },
   { slug: "claude-code-tier-routing-on-a-budget", priority: 0.73 },
   { slug: "switch-between-claude-codex-opencode", priority: 0.72 },

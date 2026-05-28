@@ -41,6 +41,7 @@ export {
   checkCoreUpdate,
   installCoreUpdate,
 } from "./proxy";
+export { checkAppUpdate, installAppUpdate } from "./desktop-update";
 export {
   setActiveTab,
   openProfilesVendor,

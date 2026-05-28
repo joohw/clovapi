@@ -80,6 +80,17 @@ type AppEventPayload =
 
 type DesktopBridge = {
   onAppEvent(callback: (payload: AppEventPayload) => void): () => void;
+  checkUpdate?(): Promise<{
+    ok?: boolean;
+    error?: string;
+    detail?: {
+      current_version?: string;
+      latest_version?: string;
+      up_to_date?: boolean;
+      download_url?: string;
+    };
+  }>;
+  installUpdate?(): Promise<{ ok?: boolean; error?: string }>;
 };
 
 type ProxyConfig = {

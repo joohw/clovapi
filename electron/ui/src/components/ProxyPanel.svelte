@@ -4,7 +4,9 @@
   import { isElectronDev } from "../lib/constants";
   import { i18n, t } from "../lib/i18n";
   import {
+    checkAppUpdate,
     checkCoreUpdate,
+    installAppUpdate,
     installCoreUpdate,
     restartLocalProxy,
     runProxyHealthTest,
@@ -35,6 +37,7 @@
       restart: t("proxy.restart"),
       checkUpdate: t("proxy.checkUpdate"),
       installUpdate: t("proxy.installUpdate"),
+      appInstallUpdate: t("proxy.appInstallUpdate"),
       updating: t("proxy.updating"),
       updateDisabledInDev: t("proxy.updateDisabledInDev"),
     };
@@ -44,6 +47,9 @@
 
   const proxyHealthTest = $derived(store.proxyHealthTest);
   const proxyHealthTesting = $derived(proxyHealthTest?.status === "testing");
+  const appUpdateCheck = $derived(store.appUpdateCheck);
+  const appUpdateTesting = $derived(appUpdateCheck?.status === "testing" || store.appUpdating);
+  const appUpdateBusy = $derived(store.running || appUpdateTesting);
   const coreUpdateCheck = $derived(store.coreUpdateCheck);
   const coreUpdateTesting = $derived(coreUpdateCheck?.status === "testing" || store.coreUpdating);
   const coreUpdateBusy = $derived(store.running || coreUpdateTesting);
@@ -77,8 +83,29 @@
     {/snippet}
   </ListRow>
 
-  <ListRow title={copy.appVersion} lines={[copy.appVersionLine]}>
-    {#snippet actions()}{/snippet}
+  <ListRow
+    title={copy.appVersion}
+    lines={electronDev ? [copy.appVersionLine, copy.updateDisabledInDev] : [copy.appVersionLine]}
+    testStatus={electronDev ? "" : rowTestStatus(appUpdateCheck?.status)}
+    testSummary={electronDev ? "" : appUpdateCheck?.summary || ""}
+  >
+    {#snippet actions()}
+      {#if !electronDev}
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={appUpdateBusy}
+          onclick={() => void checkAppUpdate()}
+        >
+          {appUpdateTesting && !store.appUpdating ? copy.testing : copy.checkUpdate}
+        </Button>
+        {#if store.appUpdateAvailable}
+          <Button size="sm" disabled={appUpdateBusy} onclick={() => void installAppUpdate()}>
+            {store.appUpdating ? copy.updating : copy.appInstallUpdate}
+          </Button>
+        {/if}
+      {/if}
+    {/snippet}
   </ListRow>
 
   <ListRow

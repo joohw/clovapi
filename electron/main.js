@@ -12,6 +12,7 @@ const {
 } = require("./clovapi-exec");
 const { buildTrayMenuModel, isValidTrayTab, trayStatusSummary, trayTooltip } = require("./tray-menu");
 const { cliBinPath, electronDevUserDataDir, electronUserDataDir } = require("./config-paths");
+const { checkDesktopUpdate, downloadAndLaunchDesktopUpdate } = require("./desktop-update");
 const { sanitizeForIpc } = require("./ipc-utils");
 
 const isElectronDev =
@@ -593,6 +594,49 @@ function stopRunningProcess() {
 }
 
 ipcMain.handle("app:version", () => app.getVersion());
+
+ipcMain.handle("desktop:check-update", async () => {
+  if (isElectronDev) {
+    return {
+      ok: false,
+      error: "Desktop update is disabled in Electron dev mode (ELECTRON_DEV=1).",
+    };
+  }
+  try {
+    const detail = await checkDesktopUpdate(app.getVersion());
+    if (!detail.ok) {
+      return { ok: false, error: detail.error || "Failed to check desktop update." };
+    }
+    return { ok: true, detail: sanitizeForIpc(detail) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to check desktop update.",
+    };
+  }
+});
+
+ipcMain.handle("desktop:install-update", async () => {
+  if (isElectronDev) {
+    return {
+      ok: false,
+      error: "Desktop update is disabled in Electron dev mode (ELECTRON_DEV=1).",
+    };
+  }
+  try {
+    const detail = await downloadAndLaunchDesktopUpdate();
+    setTimeout(() => {
+      quitting = true;
+      app.quit();
+    }, 400);
+    return { ok: true, detail: sanitizeForIpc(detail) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to install desktop update.",
+    };
+  }
+});
 
 ipcMain.handle("cli:run", async (_event, payload) => {
   if (runningProcess) {

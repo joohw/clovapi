@@ -33,6 +33,7 @@ export function setActiveTab(tab: TabId) {
   }
   if (store.activeTab === "settings" && tab !== "settings") {
     store.coreUpdateCheck = null;
+    store.appUpdateCheck = null;
     store.proxyHealthTest = null;
   }
   store.activeTab = tab;

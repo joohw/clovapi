@@ -102,6 +102,12 @@ try {
       ipcRenderer.on("app:event", listener);
       return () => ipcRenderer.removeListener("app:event", listener);
     },
+    checkUpdate() {
+      return ipcRenderer.invoke("desktop:check-update");
+    },
+    installUpdate() {
+      return ipcRenderer.invoke("desktop:install-update");
+    },
   });
 
   contextBridge.exposeInMainWorld("clovapiProfiles", {

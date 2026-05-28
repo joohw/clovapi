@@ -185,6 +185,13 @@ func findListenPID(port int) (int, error) {
 	return 0, errors.New("no listener found")
 }
 
+var (
+	probeProxyHealthForStop = probeProxyHealth
+	processAliveForStop     = processAlive
+	killProcessTreeForStop  = killProcessTree
+	findListenPIDForStop    = findListenPID
+)
+
 func waitProxyDown(cfg profile.ProxyConfig, deadline time.Duration) error {
 	deadlineAt := time.Now().Add(deadline)
 	for time.Now().Before(deadlineAt) {
@@ -200,8 +207,19 @@ func waitProxyDown(cfg profile.ProxyConfig, deadline time.Duration) error {
 	return fmt.Errorf("proxy still healthy at %s", proxyHealthURL(cfg))
 }
 
+func verifyPortListenerIsClovapiProxy(cfg profile.ProxyConfig, pid int) error {
+	ok, err := probeProxyHealthForStop(cfg)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return nil
+	}
+	return fmt.Errorf("refusing to stop process %d listening on %s: health endpoint does not identify as clovapi proxy", pid, proxyBaseURL(cfg))
+}
+
 func runProxyStop(cfg profile.ProxyConfig, verbose bool) error {
-	wasHealthy, _ := probeProxyHealth(cfg)
+	wasHealthy, _ := probeProxyHealthForStop(cfg)
 
 	if wasHealthy {
 		_ = shutdownProxyViaHTTP(cfg)
@@ -210,16 +228,19 @@ func runProxyStop(cfg profile.ProxyConfig, verbose bool) error {
 
 	rec, pidErr := readProxyPIDFile()
 	if pidErr == nil && rec.PID > 0 {
-		if processAlive(rec.PID) {
-			if err := killProcessTree(rec.PID); err != nil && verbose {
+		if processAliveForStop(rec.PID) {
+			if err := killProcessTreeForStop(rec.PID); err != nil && verbose {
 				fmt.Fprintf(os.Stderr, "warning: kill proxy pid %d: %v\n", rec.PID, err)
 			}
 		}
 	}
 
-	if listenPID, err := findListenPID(cfg.Port); err == nil && listenPID > 0 {
+	if listenPID, err := findListenPIDForStop(cfg.Port); err == nil && listenPID > 0 {
 		if pidErr != nil || listenPID != rec.PID {
-			_ = killProcessTree(listenPID)
+			if err := verifyPortListenerIsClovapiProxy(cfg, listenPID); err != nil {
+				return err
+			}
+			_ = killProcessTreeForStop(listenPID)
 		}
 	}
 

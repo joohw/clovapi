@@ -29,7 +29,7 @@ The proxy inspects the model name on **every HTTP request** and picks a backend.
 clovapi does not ship a hard-coded “Opus→free / Haiku→local” table (no hidden magic). A simpler loop:
 
 1. **`clovapi add --name deepseek-flash`** — bind a cheap model and gateway.
-2. **`clovapi switch --cli claude-code deepseek-flash`** — the whole Claude Code session uses that upstream; the proxy transcodes Messages format.
+2. **`clovapi switch --cli claude-code --vendor "Custom API" --model deepseek-chat`** — the whole Claude Code session uses that upstream; the proxy transcodes Messages format.
 3. When you need Opus-grade quality, **`switch` back to an official profile** (desktop OAuth or Anthropic API profile).
 
 Whether sub-agents get cheaper depends on whether that **single upstream** is fast enough end-to-end. Many reports say DeepSeek V4 Flash covering ~80% of daily coding already beats maintaining tier tables.

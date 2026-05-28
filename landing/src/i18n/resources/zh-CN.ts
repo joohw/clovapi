@@ -51,7 +51,7 @@ const zhCN = {
       },
       opensource: {
         title: "开源跨平台",
-        description: "Go 编写，支持 npm、Homebrew、winget 安装；配置保存在 ~/.config/clovapi。",
+        description: "Go 编写，支持 npm 或桌面客户端下载；配置保存在 ~/.config/clovapi。",
       },
     },
     downloadMac: "下载 macOS 客户端",

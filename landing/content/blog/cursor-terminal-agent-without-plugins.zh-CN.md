@@ -35,7 +35,7 @@ date: 2026-05-31
 并启动与 CLI 同源的 **Go 代理**，默认 `http://127.0.0.1:27483`。你在 Cursor 终端里只需：
 
 ```bash
-clovapi switch --cli claude-code my-profile
+clovapi switch --cli claude-code --vendor "Custom API" --model <model-id>
 claude
 ```
 

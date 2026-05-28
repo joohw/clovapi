@@ -902,6 +902,19 @@ func SaveDesktop(s *Store) error {
 	return Save(s)
 }
 
+// WithLockedDesktopStore performs a desktop-normalized read-modify-write
+// transaction on profiles.json.
+func WithLockedDesktopStore(fn func(*Store) (bool, error)) (*Store, error) {
+	return WithLockedStore(func(s *Store) (bool, error) {
+		NormalizeDesktopStore(s)
+		changed, err := fn(s)
+		if changed {
+			NormalizeDesktopStore(s)
+		}
+		return changed, err
+	})
+}
+
 // RemoveLocalProxyStubs drops ephemeral __local_proxy_* profiles.
 func RemoveLocalProxyStubs(s *Store) {
 	if s == nil {

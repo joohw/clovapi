@@ -96,8 +96,7 @@ func Reset() error {
 	return Save(emptyStore())
 }
 
-// Load reads profiles.json or returns an empty store if missing.
-func Load() (*Store, error) {
+func loadNoLock() (*Store, error) {
 	p, err := cfgpkg.ProfilesPath()
 	if err != nil {
 		return nil, err
@@ -124,6 +123,11 @@ func Load() (*Store, error) {
 	}
 	ensureProxyDefaults(&s, oldVersion)
 	return &s, nil
+}
+
+// Load reads profiles.json or returns an empty store if missing.
+func Load() (*Store, error) {
+	return loadNoLock()
 }
 
 type legacyStoreCompat struct {
@@ -169,8 +173,7 @@ func migrateLegacyAPIStyles(s *Store) {
 	}
 }
 
-// Save writes atomically with 0600.
-func Save(s *Store) error {
+func saveNoLock(s *Store) error {
 	if s.Version == 0 {
 		s.Version = StoreVersion
 	}
@@ -201,6 +204,40 @@ func Save(s *Store) error {
 	}
 	syslog.Write("system", s.LogSavedMessage())
 	return nil
+}
+
+// Save writes atomically with 0600.
+func Save(s *Store) error {
+	unlock, err := lockProfiles()
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	return saveNoLock(s)
+}
+
+// WithLockedStore performs a read-modify-write transaction on profiles.json.
+// The callback returns whether the modified store should be persisted.
+func WithLockedStore(fn func(*Store) (bool, error)) (*Store, error) {
+	unlock, err := lockProfiles()
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+	s, err := loadNoLock()
+	if err != nil {
+		return nil, err
+	}
+	changed, err := fn(s)
+	if err != nil {
+		return nil, err
+	}
+	if changed {
+		if err := saveNoLock(s); err != nil {
+			return nil, err
+		}
+	}
+	return s, nil
 }
 
 func (s *Store) LogSavedMessage() string {

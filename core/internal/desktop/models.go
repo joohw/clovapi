@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -51,13 +50,6 @@ var authProviders = []struct {
 }{
 	{ID: provider.ClaudeCodeProviderID, Label: provider.ClaudeCodeVendorName, Command: "claude"},
 	{ID: provider.CodexProviderID, Label: provider.CodexVendorName, Command: "codex"},
-}
-
-func resolveCommandPath(name string) (path string, installed bool) {
-	if p, err := exec.LookPath(name); err == nil && strings.TrimSpace(p) != "" {
-		return p, true
-	}
-	return "", false
 }
 
 func claudeAuthPath() (string, error) {
@@ -207,7 +199,7 @@ func providerLoggedIn(providerID string, data map[string]any) bool {
 func AuthStatus() AuthStatusResult {
 	items := make([]AuthStatusItem, 0, len(authProviders))
 	for _, cfg := range authProviders {
-		cmdPath, installed := resolveCommandPath(cfg.Command)
+		cmdPath, installed := ResolveCommandPath(cfg.Command)
 		item := AuthStatusItem{
 			OK:        true,
 			ID:        cfg.ID,
@@ -280,15 +272,12 @@ func AuthLogout(providerID string) AuthLogoutResult {
 		return AuthLogoutResult{OK: false, Error: err.Error()}
 	}
 
-	s, err := profile.LoadDesktop()
+	s, err := profile.WithLockedDesktopStore(func(s *profile.Store) (bool, error) {
+		profile.EnsureDefaultOllamaProfile(s)
+		return clearSubscriptionProviderState(s, providerID), nil
+	})
 	if err != nil {
 		return AuthLogoutResult{OK: false, Error: err.Error()}
-	}
-	profile.EnsureDefaultOllamaProfile(s)
-	if clearSubscriptionProviderState(s, providerID) {
-		if err := profile.SaveDesktop(s); err != nil {
-			return AuthLogoutResult{OK: false, Error: err.Error()}
-		}
 	}
 	out := storeToUI(s)
 	return AuthLogoutResult{
@@ -624,15 +613,22 @@ func ListVendorModels(vendorName string) ListModelsResult {
 		return ListModelsResult{OK: false, Error: "未拉取到任何模型"}
 	}
 
-	idx := s.Index(vendor.Name)
-	merged := profile.MergeVendorModels(vendor.Models, fetched)
-	if idx >= 0 {
-		s.List[idx].Models = merged
-	} else {
-		vendor.Models = merged
-		s.Upsert(vendor)
-	}
-	if err := profile.SaveDesktop(s); err != nil {
+	s, err = profile.WithLockedDesktopStore(func(latest *profile.Store) (bool, error) {
+		latestVendor, ok := profile.FindStoreVendorProfile(latest, name)
+		if !ok {
+			return false, fmt.Errorf("未找到供应商: %s", name)
+		}
+		merged := profile.MergeVendorModels(latestVendor.Models, fetched)
+		idx := latest.Index(latestVendor.Name)
+		if idx >= 0 {
+			latest.List[idx].Models = merged
+		} else {
+			latestVendor.Models = merged
+			latest.Upsert(latestVendor)
+		}
+		return true, nil
+	})
+	if err != nil {
 		return ListModelsResult{OK: false, Error: err.Error()}
 	}
 

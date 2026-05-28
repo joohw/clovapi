@@ -21,13 +21,13 @@ The agent keeps stable paths; switching upstream means switching a clovapi profi
 ```bash
 npm i -g @clovapi/cli
 clovapi add --name codex-official
-clovapi switch --cli codex codex-official
+clovapi switch --cli codex --vendor "Codex Subscription" --model gpt-5.5
 ```
 
 `add` probes connectivity first. For a third-party gateway, enter base URL, API key, and model ID in the interactive flow. Official subscription and vendor APIs are distinguished by **profile name**:
 
 ```bash
-clovapi switch --cli codex my-gateway
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
 ```
 
 ## Share the profile library with Claude Code

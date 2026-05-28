@@ -31,8 +31,7 @@ func runSwitch(sc *bufio.Scanner, s *profile.Store, kind agentkind.Kind, resetFl
 			return err
 		}
 		syslog.LogCLIReset(kind)
-		s.ClearActive(string(kind))
-		if err := profile.Save(s); err != nil {
+		if err := clearActiveBinding(kind); err != nil {
 			return err
 		}
 		fmt.Printf("Reset %s to default (cleared clovapi relay bindings).\n", kind)
@@ -61,8 +60,7 @@ func runSwitch(sc *bufio.Scanner, s *profile.Store, kind agentkind.Kind, resetFl
 			if err := apply.ResetDefault(kind); err != nil {
 				return err
 			}
-			s.ClearActive(string(kind))
-			if err := profile.Save(s); err != nil {
+			if err := clearActiveBinding(kind); err != nil {
 				return err
 			}
 			fmt.Printf("Reset %s to default (cleared clovapi relay bindings).\n", kind)
@@ -89,14 +87,27 @@ func runSwitch(sc *bufio.Scanner, s *profile.Store, kind agentkind.Kind, resetFl
 		if err := apply.ResetDefault(kind); err != nil {
 			return err
 		}
-		s.ClearActive(string(kind))
-		if err := profile.Save(s); err != nil {
+		if err := clearActiveBinding(kind); err != nil {
 			return err
 		}
 		fmt.Printf("Reset %s to default (cleared clovapi relay bindings).\n", kind)
 		return nil
 	}
 	return applyProviderModelSwitch(kind, picked.selection.ProviderID, picked.selection.ModelID)
+}
+
+func clearActiveBinding(kind agentkind.Kind) error {
+	_, err := profile.WithLockedStore(func(s *profile.Store) (bool, error) {
+		if s.Active == nil {
+			return false, nil
+		}
+		if _, ok := s.Active[string(kind)]; !ok {
+			return false, nil
+		}
+		s.ClearActive(string(kind))
+		return true, nil
+	})
+	return err
 }
 
 type switchPick struct {

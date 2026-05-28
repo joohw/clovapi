@@ -34,9 +34,9 @@ Change upstreams in profiles (base URL, key)—**no** extra Node/Python proxy pe
 
 ```bash
 clovapi add --name deepseek
-clovapi switch --cli claude-code deepseek
+clovapi switch --cli claude-code --vendor "Custom API" --model deepseek-chat
 # same profiles.json
-clovapi switch --cli codex openrouter-prod
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
 ```
 
 ## Versus “router” projects

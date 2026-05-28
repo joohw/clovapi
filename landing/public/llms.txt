@@ -21,7 +21,7 @@
 
 ## 核心能力
 - 内置本地代理：Agent CLI 请求经 127.0.0.1 转发，由同一代理内核完成 anthropic / openai-responses / gemini 等形态转码
-- CLI + 桌面客户端：npm / Homebrew / winget 安装 CLI，或使用 macOS / Windows 桌面端
+- CLI + 桌面客户端：npm 安装 CLI，或使用 macOS / Windows 桌面端
 - 官方订阅与第三方 API 统一 add / switch
 
 ## 支持的 Agent CLI
@@ -32,7 +32,7 @@
 ## CLI 工作流
 - 安装: npm i -g @clovapi/cli
 - 保存 profile: clovapi add --name <NAME>
-- 下发到 CLI: clovapi switch --cli <KIND> [PROFILE]
+- 下发到 CLI: clovapi switch --cli <KIND> --vendor "Custom API" --model <MODEL_ID>
 - 本地代理: clovapi proxy start
 
 ## 与 cc-switch 对比

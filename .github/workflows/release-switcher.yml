@@ -1,6 +1,6 @@
 name: release-switcher
 
-# Core CLI release only (GoReleaser, R2 CLI, npm, winget) — v* tags or manual dispatch.
+# Core CLI release only (GoReleaser, R2 CLI, npm) — v* tags or manual dispatch.
 # Desktop shell: release-desktop.yml | Landing site: deploy-landing.yml
 on:
   push:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version without leading v (for npm/winget only)"
+        description: "Release version without leading v (for npm only)"
         required: false
         type: string
 
@@ -88,13 +88,7 @@ jobs:
         if: steps.existing_cli_release.outputs.complete != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
-        run: |
-          if [ -n "$HOMEBREW_TAP_GITHUB_TOKEN" ]; then
-            goreleaser release --clean --config .goreleaser.yaml
-          else
-            goreleaser release --clean --config .goreleaser.yaml --skip=homebrew
-          fi
+        run: goreleaser release --clean --config .goreleaser.yaml
 
       - name: Decide R2 publish
         id: r2_gate
@@ -219,61 +213,3 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
-
-  winget:
-    runs-on: windows-latest
-    needs: goreleaser
-    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-    defaults:
-      run:
-        shell: pwsh
-    steps:
-      - name: Decide winget submit
-        id: winget_gate
-        working-directory: .
-        run: |
-          if ([string]::IsNullOrWhiteSpace("${{ secrets.WINGET_CREATE_TOKEN }}")) {
-            Write-Host "WINGET_CREATE_TOKEN is empty, skip winget submit."
-            "submit=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            exit 0
-          }
-
-          $manifestPath = "manifests/c/Clovapi/Clovapi"
-          $manifestApi = "https://api.github.com/repos/microsoft/winget-pkgs/contents/$manifestPath"
-          $headers = @{
-            "Accept" = "application/vnd.github+json"
-            "User-Agent" = "clovapi-release-workflow"
-          }
-
-          try {
-            Invoke-RestMethod -Uri $manifestApi -Headers $headers -Method Get | Out-Null
-            Write-Host "Found winget package path '$manifestPath', will submit update."
-            "submit=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          } catch {
-            $statusCode = $null
-            if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
-              $statusCode = [int]$_.Exception.Response.StatusCode
-            }
-            if ($statusCode -eq 404) {
-              Write-Warning "winget package path '$manifestPath' not found in microsoft/winget-pkgs. Skip automated update until first manifest PR is merged."
-              "submit=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            } else {
-              throw
-            }
-          }
-
-      - name: Checkout
-        if: ${{ steps.winget_gate.outputs.submit == 'true' }}
-        uses: actions/checkout@v4
-
-      - name: Install wingetcreate
-        if: ${{ steps.winget_gate.outputs.submit == 'true' }}
-        run: winget install --id Microsoft.WingetCreate --source winget --accept-source-agreements --accept-package-agreements
-
-      - name: Submit winget update PR
-        if: ${{ steps.winget_gate.outputs.submit == 'true' }}
-        env:
-          WINGET_CREATE_TOKEN: ${{ secrets.WINGET_CREATE_TOKEN }}
-        run: |
-          $version = "${env:GITHUB_REF_NAME}".TrimStart("v")
-          wingetcreate update Clovapi.Clovapi --version $version --submit --token $env:WINGET_CREATE_TOKEN

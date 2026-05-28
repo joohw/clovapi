@@ -1,6 +1,6 @@
 # @clovapi/cli
 
-Install `clovapi` as a global npm command:
+Install `clovapi` as the global command entry:
 
 ```bash
 npm i -g @clovapi/cli
@@ -9,7 +9,13 @@ clovapi --help
 
 **Website:** https://clovapi.com — setup guides, supported agents, and Claude Code / Codex API switching docs.
 
-The package downloads platform binaries and verifies SHA256 checksums.
+The npm package provides the `clovapi` launcher on your PATH. During install it downloads the platform core binary, verifies SHA256 checksums, and stores the canonical binary under your user config directory:
+
+- macOS/Linux: `~/.config/clovapi/bin/clovapi`
+- Windows: `%APPDATA%\clovapi\bin\clovapi.exe`
+
+The launcher always prefers that user-managed binary, so `clovapi update` and the desktop app update the same executable.
+
 By default it tries:
 
 1. `https://downloads.clovapi.com/clovapi/vX.Y.Z` (R2 public mirror)

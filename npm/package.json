@@ -1,7 +1,7 @@
 {
   "name": "@clovapi/cli",
   "version": "0.1.11",
-  "description": "Install clovapi CLI from GitHub Releases",
+  "description": "Global npm launcher for the clovapi CLI",
   "repository": {
     "type": "git",
     "url": "https://github.com/joohw/clovapi.git",

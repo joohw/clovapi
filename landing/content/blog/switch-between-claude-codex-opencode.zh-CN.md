@@ -31,9 +31,9 @@ clovapi add --name claude-official
 clovapi add --name codex-team
 clovapi add --name opencode-local
 
-clovapi switch --cli claude-code claude-official
-clovapi switch --cli codex codex-team
-clovapi switch --cli opencode opencode-local
+clovapi switch --cli claude-code --vendor "Claude Subscription" --model claude-sonnet-4-20250514
+clovapi switch --cli codex --vendor "Codex Subscription" --model gpt-5.5
+clovapi switch --cli opencode --vendor "Custom API" --model <model-id>
 ```
 
 `list` 输出会显示矩阵：每个 CLI 支持哪些 API 形态、当前绑定谁。这与社区里「AgentHub / Hermes 的 `/model --provider`」诉求类似，但 clovapi 更贴近 **已存在的 Claude/Codex/OpenCode 官方配置路径**。

@@ -22,7 +22,7 @@ export function AgentGuideContent({ agent }: AgentGuideContentProps) {
   const workflowLines = [
     "npm i -g @clovapi/cli",
     "clovapi add --name prod",
-    `clovapi switch --cli ${agent.cliFlag} prod`,
+    `clovapi switch --cli ${agent.cliFlag} --vendor "Custom API" --model <model-id>`,
   ];
   const relatedGuides = guidesForAgent(agent.slug);
 

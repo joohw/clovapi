@@ -24,7 +24,7 @@ export const AGENT_PAGES: AgentPageDef[] = [
   { slug: "opencode", cliFlag: "opencode", icon: "/agenticons/opencode.svg", apiStyleKey: "chatCompletions" },
   { slug: "openclaw", cliFlag: "openclaw", icon: "/agenticons/opencode.svg", apiStyleKey: "chatCompletions" },
   { slug: "hermes", cliFlag: "hermes", icon: "/agenticons/opencode.svg", apiStyleKey: "anthropicMessages" },
-  { slug: "kimi-cli", cliFlag: "kimi-cli", icon: "/agenticons/opencode.svg", apiStyleKey: "chatCompletions" },
+  { slug: "kimi-cli", cliFlag: "kimi-code", icon: "/agenticons/opencode.svg", apiStyleKey: "chatCompletions" },
 ];
 
 export function agentBySlug(slug: string): AgentPageDef | undefined {
@@ -214,7 +214,7 @@ export const FAQ_ITEMS: Record<AppLanguage, FaqItem[]> = {
     },
     {
       question: "如何安装？",
-      answer: "可通过 npm（npm i -g @clovapi/cli）、Homebrew 或 winget 安装 CLI，也可下载 macOS / Windows 桌面客户端进行图形化管理。",
+      answer: "可通过 npm（npm i -g @clovapi/cli）安装 CLI，也可下载 macOS / Windows 桌面客户端进行图形化管理。",
     },
   ],
   en: [
@@ -241,7 +241,7 @@ export const FAQ_ITEMS: Record<AppLanguage, FaqItem[]> = {
     {
       question: "How do I install clovapi?",
       answer:
-        "Install the CLI via npm (npm i -g @clovapi/cli), Homebrew, or winget — or download the macOS / Windows desktop app for a GUI workflow.",
+        "Install the CLI via npm (npm i -g @clovapi/cli), or download the macOS / Windows desktop app for a GUI workflow.",
     },
   ],
 };

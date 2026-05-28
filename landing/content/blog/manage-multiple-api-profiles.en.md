@@ -24,8 +24,8 @@ clovapi add --name deepseek
 clovapi add --name openrouter-prod
 clovapi add --name claude-official
 
-clovapi switch --cli claude-code claude-official
-clovapi switch --cli codex openrouter-prod
+clovapi switch --cli claude-code --vendor "Claude Subscription" --model claude-sonnet-4-20250514
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
 ```
 
 `add` probes connectivity before persisting. `switch` touches **one** CLI at a time—you will not rewrite Codex when you only meant to change Claude Code.

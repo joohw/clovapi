@@ -13,7 +13,7 @@ clovapi models upstreams as **profiles** with two commands:
 ```bash
 npm i -g @clovapi/cli
 clovapi add --name deepseek
-clovapi switch --cli claude-code deepseek
+clovapi switch --cli claude-code --vendor "Custom API" --model deepseek-chat
 ```
 
 `add` probes connectivity before saving; `switch` writes Claude Code config and routes traffic through the local proxy. The agent always talks to localhost — no need to memorize Anthropic env var combinations.
@@ -33,7 +33,7 @@ Step-by-step guides: [Claude Code + DeepSeek](/guides/claude-code-deepseek) and 
 Keep `official`, `deepseek`, and `openrouter-prod` side by side. To swap upstreams:
 
 ```bash
-clovapi switch --cli claude-code openrouter-prod
+clovapi switch --cli claude-code --vendor "Custom API" --model <openrouter-model-slug>
 ```
 
 No Claude Code reinstall, no shell `export` cleanup, no accidental keys in dotfiles.

@@ -57,42 +57,20 @@ func (openCodeTarget) Apply(p profile.Profile) error {
 
 	switch p.APIStyle {
 	case apistyle.Claude:
-		ent := map[string]any{}
-		if cur, ok := prov["anthropic"].(map[string]any); ok && cur != nil {
-			ent = cur
-		}
-		opts := map[string]any{}
-		if o, ok := ent["options"].(map[string]any); ok && o != nil {
-			opts = o
-		}
-		opts["baseURL"] = ensureAnthropicWireBaseURL(p.BaseURL)
-		opts["apiKey"] = p.APIKey
-		ent["options"] = opts
-		prov["anthropic"] = ent
-		root["model"] = "anthropic/" + seg
+		prov[opencodeRelayID] = openCodeRelayEntry(p, "@ai-sdk/anthropic", seg, ensureAnthropicWireBaseURL(p.BaseURL))
+		root["model"] = opencodeRelayID + "/" + seg
 
 	case apistyle.OpenAIChat:
-		prov[opencodeRelayID] = openCodeRelayEntry(p, "@ai-sdk/openai-compatible", seg)
+		prov[opencodeRelayID] = openCodeRelayEntry(p, "@ai-sdk/openai-compatible", seg, ensureOpenCodeSDKBaseURL(p.BaseURL))
 		root["model"] = opencodeRelayID + "/" + seg
 
 	case apistyle.OpenAIResponses:
-		prov[opencodeRelayID] = openCodeRelayEntry(p, "@ai-sdk/openai", seg)
+		prov[opencodeRelayID] = openCodeRelayEntry(p, "@ai-sdk/openai", seg, ensureOpenCodeSDKBaseURL(p.BaseURL))
 		root["model"] = opencodeRelayID + "/" + seg
 
 	case apistyle.Gemini:
-		ent := map[string]any{}
-		if cur, ok := prov["gemini"].(map[string]any); ok && cur != nil {
-			ent = cur
-		}
-		opts := map[string]any{}
-		if o, ok := ent["options"].(map[string]any); ok && o != nil {
-			opts = o
-		}
-		opts["baseURL"] = ensureOpenCodeSDKBaseURL(p.BaseURL)
-		opts["apiKey"] = p.APIKey
-		ent["options"] = opts
-		prov["gemini"] = ent
-		root["model"] = "gemini/" + seg
+		prov[opencodeRelayID] = openCodeRelayEntry(p, "@ai-sdk/google", seg, ensureOpenCodeSDKBaseURL(p.BaseURL))
+		root["model"] = opencodeRelayID + "/" + seg
 
 	default:
 		return fmt.Errorf("unsupported api style %q for opencode", p.APIStyle)
@@ -124,28 +102,6 @@ func (openCodeTarget) ResetDefault() error {
 	prov, _ := root["provider"].(map[string]any)
 	if prov != nil {
 		delete(prov, opencodeRelayID)
-		for _, id := range []string{"anthropic", "gemini"} {
-			ent, _ := prov[id].(map[string]any)
-			if ent == nil {
-				continue
-			}
-			opts, _ := ent["options"].(map[string]any)
-			if opts == nil {
-				continue
-			}
-			delete(opts, "baseURL")
-			delete(opts, "apiKey")
-			if len(opts) == 0 {
-				delete(ent, "options")
-			} else {
-				ent["options"] = opts
-			}
-			if len(ent) == 0 {
-				delete(prov, id)
-			} else {
-				prov[id] = ent
-			}
-		}
 		if len(prov) == 0 {
 			delete(root, "provider")
 		} else {
@@ -160,12 +116,12 @@ func (openCodeTarget) ResetDefault() error {
 	return writeFileAtomic(writePath, out, 0o600)
 }
 
-func openCodeRelayEntry(p profile.Profile, npm, modelSeg string) map[string]any {
+func openCodeRelayEntry(p profile.Profile, npm, modelSeg, baseURL string) map[string]any {
 	return map[string]any{
 		"npm":  npm,
 		"name": "clovapi",
 		"options": map[string]any{
-			"baseURL": ensureOpenCodeSDKBaseURL(p.BaseURL),
+			"baseURL": baseURL,
 			"apiKey":  p.APIKey,
 		},
 		"models": map[string]any{

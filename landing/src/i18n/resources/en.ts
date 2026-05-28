@@ -51,7 +51,7 @@ const en = {
       },
       opensource: {
         title: "Open source & cross-platform",
-        description: "Written in Go. Install via npm, Homebrew, or winget. Config lives in ~/.config/clovapi.",
+        description: "Written in Go. Install via npm or the desktop app. Config lives in ~/.config/clovapi.",
       },
     },
     downloadMac: "Download for macOS",

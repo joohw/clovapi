@@ -8,7 +8,7 @@ date: 2026-05-26
 
 ## What clovapi does for OpenCode
 
-Running `clovapi switch --cli opencode <profile>` will:
+Running `clovapi switch --cli opencode <VENDOR/MODEL>` will:
 
 1. Resolve OpenCode’s **global** config directory (Windows: `%AppData%\opencode\` first, else `~/.config/opencode/`).
 2. Pick or create `opencode.jsonc` (or an existing `opencode.json` / `config.json`).
@@ -22,7 +22,7 @@ If a switch “does nothing”, check for project-level `opencode.json` override
 ```bash
 npm i -g @clovapi/cli
 clovapi add --name my-gateway
-clovapi switch --cli opencode my-gateway
+clovapi switch --cli opencode "Custom API/<model-id>"
 ```
 
 During `add`, confirm the API style (Anthropic-compatible, OpenAI-compatible, Gemini, …). `switch` maps it into OpenCode’s provider layout. Keep multiple profiles and swap by name.
@@ -32,9 +32,9 @@ During `add`, confirm the API style (Anthropic-compatible, OpenAI-compatible, Ge
 OpenCode is one supported CLI among several:
 
 ```bash
-clovapi switch --cli claude-code deepseek
-clovapi switch --cli codex openrouter-prod
-clovapi switch --cli opencode my-gateway
+clovapi switch --cli claude-code --vendor "Custom API" --model deepseek-chat
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
+clovapi switch --cli opencode "Custom API/<model-id>"
 ```
 
 `clovapi list` shows the active profile per CLI and the API-style matrix.

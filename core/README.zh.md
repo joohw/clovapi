@@ -39,24 +39,7 @@ npm i -g @clovapi/cli
 clovapi --help
 ```
 
-### Homebrew（tap formula）
-
-```bash
-brew install joohw/tap/clovapi
-```
-
-如果已经安装过旧版本：
-
-```bash
-brew update
-brew upgrade clovapi
-```
-
-### winget
-
-```powershell
-winget install Clovapi.Clovapi
-```
+npm 包是推荐的 shell 命令入口。它会把轻量 `clovapi` launcher 安装到 PATH，并把真实 core 二进制统一放在 `~/.config/clovapi/bin/clovapi`，与 `clovapi update` 和桌面端使用同一位置。
 
 在仓库根目录：
 
@@ -151,7 +134,7 @@ clovapi switch --cli codex   # 无参数时复用 active 绑定，或进入交�
 
 ## 发布流水线
 
-打 `vX.Y.Z` tag 触发 `.github/workflows/release-switcher.yml`（core CLI、npm、winget）：
+打 `vX.Y.Z` tag 触发 `.github/workflows/release-switcher.yml`（core CLI 与 npm）：
 
 | 产物 | 构建 | R2 路径（公开域名 `downloads.clovapi.com`） |
 |------|------|---------------------------------------------|

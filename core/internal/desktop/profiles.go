@@ -155,26 +155,17 @@ func storeToUI(s *profile.Store) LoadResult {
 
 // LoadProfiles loads and normalizes profiles.json for the desktop UI.
 func LoadProfiles() LoadResult {
-	s, err := profile.LoadDesktop()
+	s, err := profile.WithLockedDesktopStore(func(s *profile.Store) (bool, error) {
+		return profile.EnsureDefaultOllamaProfile(s) || profile.SanitizeActiveBindings(s), nil
+	})
 	if err != nil {
 		return LoadResult{OK: false, Error: err.Error()}
-	}
-	changed := profile.EnsureDefaultOllamaProfile(s) || profile.SanitizeActiveBindings(s)
-	if changed {
-		if err := profile.SaveDesktop(s); err != nil {
-			return LoadResult{OK: false, Error: err.Error()}
-		}
 	}
 	return storeToUI(s)
 }
 
 // SaveProfiles merges UI payload into the on-disk store.
 func SaveProfiles(input SaveInput) SaveResult {
-	current, err := profile.LoadDesktop()
-	if err != nil {
-		return SaveResult{OK: false, Error: err.Error()}
-	}
-
 	incoming := make([]profile.Profile, 0, len(input.Profiles))
 	incomingNames := map[string]struct{}{}
 	for _, v := range input.Profiles {
@@ -186,31 +177,34 @@ func SaveProfiles(input SaveInput) SaveResult {
 		incomingNames[strings.ToLower(p.Name)] = struct{}{}
 	}
 
-	preserved := make([]profile.Profile, 0)
-	for _, p := range current.List {
-		name := strings.TrimSpace(p.Name)
-		if strings.HasPrefix(name, "__") {
-			if _, seen := incomingNames[strings.ToLower(name)]; !seen {
-				preserved = append(preserved, p)
+	current, err := profile.WithLockedDesktopStore(func(current *profile.Store) (bool, error) {
+		preserved := make([]profile.Profile, 0)
+		for _, p := range current.List {
+			name := strings.TrimSpace(p.Name)
+			if strings.HasPrefix(name, "__") {
+				if _, seen := incomingNames[strings.ToLower(name)]; !seen {
+					preserved = append(preserved, p)
+				}
 			}
 		}
-	}
-	current.List = append(incoming, preserved...)
+		current.List = append(incoming, preserved...)
 
-	if input.Active != nil {
-		current.Active = map[string]profile.ActiveSelection{}
-		for k, v := range input.Active {
-			current.Active[k] = v
+		if input.Active != nil {
+			current.Active = map[string]profile.ActiveSelection{}
+			for k, v := range input.Active {
+				current.Active[k] = v
+			}
 		}
-	}
-	if input.Proxy != nil {
-		current.Proxy = profile.ProxyConfig{
-			Enabled: input.Proxy.Enabled,
-			Host:    strings.TrimSpace(input.Proxy.Host),
-			Port:    input.Proxy.Port,
+		if input.Proxy != nil {
+			current.Proxy = profile.ProxyConfig{
+				Enabled: input.Proxy.Enabled,
+				Host:    strings.TrimSpace(input.Proxy.Host),
+				Port:    input.Proxy.Port,
+			}
 		}
-	}
-	if err := profile.SaveDesktop(current); err != nil {
+		return true, nil
+	})
+	if err != nil {
 		return SaveResult{OK: false, Error: err.Error()}
 	}
 	out := storeToUI(current)
@@ -252,19 +246,14 @@ func LoadProxyConfig() ProxyConfigResult {
 
 // SaveProxyConfig merges proxy settings into profiles.json.
 func SaveProxyConfig(input UIProxyConfig) ProxyConfigResult {
-	current, err := profile.LoadDesktop()
-	if err != nil {
-		return ProxyConfigResult{OK: false, Error: err.Error()}
-	}
-	current.Proxy = profile.ProxyConfig{
-		Enabled: input.Enabled,
-		Host:    strings.TrimSpace(input.Host),
-		Port:    input.Port,
-	}
-	if err := profile.SaveDesktop(current); err != nil {
-		return ProxyConfigResult{OK: false, Error: err.Error()}
-	}
-	saved, err := profile.LoadDesktop()
+	saved, err := profile.WithLockedDesktopStore(func(current *profile.Store) (bool, error) {
+		current.Proxy = profile.ProxyConfig{
+			Enabled: input.Enabled,
+			Host:    strings.TrimSpace(input.Host),
+			Port:    input.Port,
+		}
+		return true, nil
+	})
 	if err != nil {
 		return ProxyConfigResult{OK: false, Error: err.Error()}
 	}
@@ -276,9 +265,9 @@ func SaveProxyConfig(input UIProxyConfig) ProxyConfigResult {
 // per-agent binding strings (e.g. codex/gpt-5.4 or @model:Vendor/model-id).
 func ParseSaveInput(data []byte) (SaveInput, error) {
 	var raw struct {
-		Profiles []UIVendor          `json:"profiles"`
+		Profiles []UIVendor                 `json:"profiles"`
 		Active   map[string]json.RawMessage `json:"active"`
-		Proxy    *UIProxyConfig      `json:"proxy"`
+		Proxy    *UIProxyConfig             `json:"proxy"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return SaveInput{}, fmt.Errorf("parse save payload: %w", err)

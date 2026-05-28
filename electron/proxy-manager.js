@@ -616,6 +616,7 @@ module.exports = {
   buildProxyServeArgs,
   buildProxyStopArgs,
   normalizeBindHost,
+  reachableLoopbackHost,
   healthClientHost,
   healthUrl,
   redactSecrets,

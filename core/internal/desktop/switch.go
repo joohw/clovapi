@@ -57,9 +57,12 @@ func ApplyProviderModel(kind agentkind.Kind, providerID, modelID string) error {
 		return err
 	}
 
-	s.SetActive(string(kind), providerID, pathModelID)
-	profile.RemoveLocalProxyStubs(s)
-	return profile.SaveDesktop(s)
+	_, err = profile.WithLockedDesktopStore(func(latest *profile.Store) (bool, error) {
+		latest.SetActive(string(kind), providerID, pathModelID)
+		profile.RemoveLocalProxyStubs(latest)
+		return true, nil
+	})
+	return err
 }
 
 // ApplyBinding is deprecated compatibility for old --binding callers.

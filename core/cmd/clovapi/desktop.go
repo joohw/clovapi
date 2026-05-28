@@ -18,7 +18,7 @@ func cmdDesktop() *cobra.Command {
 		Use:   "desktop",
 		Short: "Desktop shell JSON API (profiles, auth, tests)",
 	}
-	c.AddCommand(cmdDesktopProfiles(), cmdDesktopProxy(), cmdDesktopVendor(), cmdDesktopAuth())
+	c.AddCommand(cmdDesktopProfiles(), cmdDesktopProxy(), cmdDesktopVendor(), cmdDesktopAuth(), cmdDesktopAgents())
 	return c
 }
 
@@ -233,6 +233,38 @@ func cmdDesktopAuthLogout() *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&providerID, "provider", "", "Provider id: claude-code|codex")
+	return c
+}
+
+func cmdDesktopAgents() *cobra.Command {
+	c := &cobra.Command{
+		Use:   "agents",
+		Short: "Detect local agent CLI installations",
+	}
+	c.AddCommand(cmdDesktopAgentsStatus(), cmdDesktopAgentsWhich())
+	return c
+}
+
+func cmdDesktopAgentsStatus() *cobra.Command {
+	return &cobra.Command{
+		Use:   "status",
+		Short: "List local agent CLI installation status",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return writeDesktopJSON(desktop.AgentStatus())
+		},
+	}
+}
+
+func cmdDesktopAgentsWhich() *cobra.Command {
+	var command string
+	c := &cobra.Command{
+		Use:   "which",
+		Short: "Resolve one local agent CLI command",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return writeDesktopJSON(desktop.CommandWhich(command))
+		},
+	}
+	c.Flags().StringVar(&command, "command", "", "Command name to resolve")
 	return c
 }
 

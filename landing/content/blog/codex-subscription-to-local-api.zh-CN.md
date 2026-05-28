@@ -21,13 +21,13 @@ Agent 侧配置路径稳定，换上游只动 clovapi profile。
 ```bash
 npm i -g @clovapi/cli
 clovapi add --name codex-official
-clovapi switch --cli codex codex-official
+clovapi switch --cli codex --vendor "Codex Subscription" --model gpt-5.5
 ```
 
 `add` 会探测连通性；若你接入第三方，在交互流程里填写 Base URL、API Key 与模型 ID 即可。官方订阅与第三方 API 都以 **profile 名称** 区分，切换时：
 
 ```bash
-clovapi switch --cli codex my-gateway
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
 ```
 
 ## 与 Claude Code 共用 profile 库

@@ -6,6 +6,7 @@ const { createGoProxyManager } = require("./proxy-manager");
 const proxyLogger = require("./proxy-logger");
 const callLogsStore = require("./call-logs-store");
 const clovapiDesktop = require("./clovapi-desktop");
+const { applyTrayModelSwitch } = require("./tray-model-switch");
 const {
   coreDevStatePath,
   resolveClovapiExecutable: resolveBundledClovapiExecutable,
@@ -232,31 +233,15 @@ async function readTrayDesktopState() {
 }
 
 async function switchTrayAgentModel(cliKind, providerId, modelId) {
-  const kind = String(cliKind || "").trim();
-  const provider = String(providerId || "").trim();
-  const model = String(modelId || "").trim();
-  if (!kind || !provider || !model) return;
-
-  const loaded = await clovapiDesktop.loadProfiles();
-  if (!loaded?.ok) {
-    emitOutput("stderr", `[tray] failed to load profiles: ${loaded?.error || "unknown error"}\n`);
-    return;
-  }
-
-  const active = loaded.active && typeof loaded.active === "object" ? { ...loaded.active } : {};
-  active[kind] = { provider_id: provider, model_id: model };
-  const saved = await clovapiDesktop.saveProfiles({
-    profiles: Array.isArray(loaded.profiles) ? loaded.profiles : [],
-    active,
-    proxy: loaded.proxy,
+  await applyTrayModelSwitch({
+    desktop: clovapiDesktop,
+    cliKind,
+    providerId,
+    modelId,
+    emitOutput,
+    dispatchRendererEvent,
+    updateTrayMenu,
   });
-  if (!saved?.ok) {
-    emitOutput("stderr", `[tray] failed to switch ${kind} model: ${saved?.error || "unknown error"}\n`);
-    return;
-  }
-
-  dispatchRendererEvent({ type: "profiles-changed" });
-  await updateTrayMenu();
 }
 
 async function updateTrayMenu() {
@@ -873,7 +858,7 @@ ipcMain.handle("cli:default-cwd", async () => {
 ipcMain.handle("cli:which", async (_event, payload) => {
   const command = String(payload?.command || "").trim();
   if (!command) return { ok: false, exists: false, path: "" };
-  return resolveCommandPath(command);
+  return clovapiDesktop.whichCommand(command);
 });
 
 /** providerId -> child process (each subscription login is independent). */

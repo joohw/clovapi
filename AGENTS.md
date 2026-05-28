@@ -21,7 +21,7 @@ This repository does **not** ship a remote multi-tenant API gateway — no billi
 - **CLI / proxy**: Go 1.22+ (`core/`)
 - **Desktop**: Electron, Svelte 5, Vite (`electron/ui/`)
 - **Website**: Next.js (`landing/`)
-- **Install**: `npm i -g @clovapi/cli`, Homebrew, winget; see `core/README.md` and `npm/README.md`
+- **Install**: `npm i -g @clovapi/cli` or desktop app; see `core/README.md` and `npm/README.md`
 
 ## Architecture (core)
 

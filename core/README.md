@@ -39,24 +39,7 @@ npm i -g @clovapi/cli
 clovapi --help
 ```
 
-### Homebrew (tap formula)
-
-```bash
-brew install joohw/tap/clovapi
-```
-
-If you already installed an older formula:
-
-```bash
-brew update
-brew upgrade clovapi
-```
-
-### winget
-
-```powershell
-winget install Clovapi.Clovapi
-```
+The npm package is the recommended shell entrypoint. It installs a lightweight `clovapi` launcher on your PATH and keeps the real core binary in `~/.config/clovapi/bin/clovapi`, the same location used by `clovapi update` and the desktop app.
 
 From repo root:
 
@@ -145,7 +128,7 @@ Paths expand correctly on Windows (user profile / AppData).
 
 ## Release pipeline
 
-Tag `vX.Y.Z` triggers `.github/workflows/release-switcher.yml` (core CLI, npm, winget). With Cloudflare R2 secrets configured, CLI artifacts are mirrored to `https://downloads.clovapi.com`:
+Tag `vX.Y.Z` triggers `.github/workflows/release-switcher.yml` (core CLI and npm). With Cloudflare R2 secrets configured, CLI artifacts are mirrored to `https://downloads.clovapi.com`:
 
 | Artifact | R2 path |
 |----------|---------|
@@ -164,7 +147,7 @@ GitHub Actions secrets: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_K
 
 Local upload: `./scripts/r2-publish.sh` (see `core/README.zh.md`).
 
-`npm i -g @clovapi/cli`, `clovapi update`, and `landing/public/install.sh` prefer R2; GitHub Releases is the fallback. Homebrew and winget jobs run when their tokens are set.
+`npm i -g @clovapi/cli`, `clovapi update`, and `landing/public/install.sh` prefer R2; GitHub Releases is the fallback.
 
 ## DeepSeek + Claude Code (Anthropic-compatible)
 

@@ -13,7 +13,7 @@ import styles from "@/app/page.module.css";
 const WORKFLOW_LINES = [
   { prompt: true, text: "npm i -g @clovapi/cli" },
   { prompt: true, text: "clovapi add --name prod" },
-  { prompt: true, text: "clovapi switch --cli claude-code prod" },
+  { prompt: true, text: 'clovapi switch --cli claude-code --vendor "Custom API" --model <model-id>' },
 ] as const;
 
 export function HomeHero() {

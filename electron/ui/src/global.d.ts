@@ -26,7 +26,7 @@ type CliBridge = {
     stdout?: string;
     stderr?: string;
   }>;
-  which(command: string): Promise<{ exists?: boolean; path?: string }>;
+  which(command: string): Promise<{ ok?: boolean; exists?: boolean; path?: string; error?: string }>;
   onOutput(callback: (payload: unknown) => void): () => void;
   onExit(callback: (payload: { code?: number | null }) => void): () => void;
 };

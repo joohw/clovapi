@@ -168,10 +168,6 @@ func cmdSet() *cobra.Command {
 			}
 			fmt.Println("OK")
 
-			s, err := profile.Load()
-			if err != nil {
-				return err
-			}
 			p := profile.Profile{
 				Name:     name,
 				APIStyle: st,
@@ -179,9 +175,12 @@ func cmdSet() *cobra.Command {
 				APIKey:   apiKey,
 				Model:    model,
 			}
-			existed := s.Index(p.Name) >= 0
-			s.Upsert(p)
-			if err := profile.Save(s); err != nil {
+			existed := false
+			if _, err := profile.WithLockedStore(func(s *profile.Store) (bool, error) {
+				existed = s.Index(p.Name) >= 0
+				s.Upsert(p)
+				return true, nil
+			}); err != nil {
 				return err
 			}
 			if existed {
@@ -207,14 +206,20 @@ func cmdRemove() *cobra.Command {
 		Short: "Remove one saved profile from the profiles list",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			s, err := profile.Load()
-			if err != nil {
+			removed := false
+			if _, err := profile.WithLockedStore(func(s *profile.Store) (bool, error) {
+				removed = s.Remove(args[0])
+				if !removed {
+					return false, nil
+				}
+				return true, nil
+			}); err != nil {
 				return err
 			}
-			if !s.Remove(args[0]) {
+			if !removed {
 				return fmt.Errorf("profile %q not found", args[0])
 			}
-			return profile.Save(s)
+			return nil
 		},
 	}
 	c.Aliases = []string{"rm", "delete"}

@@ -39,23 +39,6 @@ archives:
 checksum:
   name_template: checksums.txt
 
-brews:
-  - name: clovapi
-    ids:
-      - default
-    repository:
-      owner: joohw
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    commit_author:
-      name: clovapi-bot
-      email: bot@clovapi.dev
-    homepage: "https://github.com/joohw/clovapi"
-    description: "CLI profile switcher for coding agents"
-    license: "MIT"
-    test: |
-      system "#{bin}/clovapi", "--help"
-
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
 

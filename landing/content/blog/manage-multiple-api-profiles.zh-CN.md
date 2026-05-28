@@ -24,8 +24,8 @@ clovapi add --name deepseek
 clovapi add --name openrouter-prod
 clovapi add --name claude-official
 
-clovapi switch --cli claude-code claude-official
-clovapi switch --cli codex openrouter-prod
+clovapi switch --cli claude-code --vendor "Claude Subscription" --model claude-sonnet-4-20250514
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
 ```
 
 `add` 在写入前会探测连通性，避免保存无效 Key。`switch` 只影响**一个** CLI——不会误改 Codex 当你只想换 Claude Code。

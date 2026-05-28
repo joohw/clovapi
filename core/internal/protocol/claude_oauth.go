@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/clovapi/switcher/internal/protocolcompat"
 	"github.com/google/uuid"
 )
 
@@ -85,6 +86,9 @@ func EncodeClaudeOAuthCompatibleRawRequest(body []byte, r Request) ([]byte, erro
 
 	system := CollectSystemPrompt(r)
 	system = stripClaudeOAuthBillingText(system)
+	if r.Meta != nil && r.Meta.ScrubHermesIdentity {
+		system = protocolcompat.ScrubHermesIdentitySystemText(system)
+	}
 	if system != "" && !strings.Contains(system, claudeOAuthSystemBootstrap) {
 		system = claudeOAuthSystemBootstrap + "\n\n" + system
 	} else if system == "" {

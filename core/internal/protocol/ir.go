@@ -50,6 +50,7 @@ type Metadata struct {
 	Instructions                     string `json:"instructions,omitempty"`
 	OpenAIResponsesOmitSampling      bool   `json:"openai_responses_omit_sampling,omitempty"`
 	ClaudeOAuthEncodingCompatibility bool   `json:"claude_oauth_encoding_compatibility,omitempty"`
+	ScrubHermesIdentity              bool   `json:"scrub_hermes_identity,omitempty"`
 }
 
 // Request is normalized IR consumed by egress encoders.

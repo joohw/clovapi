@@ -554,7 +554,9 @@ func applyUpstreamRequestPolicy(r *protocol.Request, source string) {
 	case "subscription:codex":
 		ensureProtocolMeta(r).OpenAIResponsesOmitSampling = true
 	case "subscription:claude-code":
-		ensureProtocolMeta(r).ClaudeOAuthEncodingCompatibility = true
+		meta := ensureProtocolMeta(r)
+		meta.ClaudeOAuthEncodingCompatibility = true
+		meta.ScrubHermesIdentity = true
 	}
 }
 

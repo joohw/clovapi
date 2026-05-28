@@ -69,7 +69,7 @@
 <main
   class="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-5 py-5 {inElectron ? 'electron-window-chrome' : ''}"
 >
-  <header class="mb-5 shrink-0 select-none {inElectron ? 'pt-4' : ''}">
+  <header class="mb-5 shrink-0 select-none {inElectron ? 'pt-8' : ''}">
     <div class="flex items-center justify-between gap-3">
       <div class="min-w-0 flex-1 {inElectron ? 'electron-titlebar-drag' : ''}">
         <h1 class="text-lg font-semibold tracking-tight">ClovAPI Switcher</h1>

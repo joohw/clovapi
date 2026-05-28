@@ -25,8 +25,8 @@ Download macOS / Windows builds from the home page—the installer bundles the `
 
 ## When the CLI wins
 
-- **Automation**: `clovapi switch --cli codex prod` in CI, devcontainers, or remote SSH hosts.
-- **Speed**: if you already know profile names, one command beats opening a window.
+- **Automation**: `clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>` in CI, devcontainers, or remote SSH hosts.
+- **Speed**: if you already know the vendor and model ID, one command beats opening a window.
 - **Terminal-native flow**: fits tmux, Makefiles, and `clovapi update` for self-updates.
 
 Install:
@@ -34,7 +34,7 @@ Install:
 ```bash
 npm i -g @clovapi/cli
 clovapi add --name prod
-clovapi switch --cli claude-code prod
+clovapi switch --cli claude-code --vendor "Custom API" --model <model-id>
 ```
 
 ## Mixing both is fine

@@ -31,9 +31,9 @@ clovapi add --name claude-official
 clovapi add --name codex-team
 clovapi add --name opencode-local
 
-clovapi switch --cli claude-code claude-official
-clovapi switch --cli codex codex-team
-clovapi switch --cli opencode opencode-local
+clovapi switch --cli claude-code --vendor "Claude Subscription" --model claude-sonnet-4-20250514
+clovapi switch --cli codex --vendor "Codex Subscription" --model gpt-5.5
+clovapi switch --cli opencode --vendor "Custom API" --model <model-id>
 ```
 
 `list` shows the matrix: supported API styles per CLI and current bindings—similar spirit to AgentHub or Hermes `/model --provider` discussions, but aligned with **official Claude/Codex/OpenCode config locations**.

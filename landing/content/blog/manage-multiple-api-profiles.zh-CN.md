@@ -15,7 +15,7 @@ date: 2026-05-24
 - `profiles`：所有已保存的上游列表。
 - `active`：每个 CLI 最近一次 `switch` 使用的 profile 名。
 
-因此「DeepSeek 配置」只存一份，既可以 `switch --cli claude-code deepseek`，也可以在准备好 Codex 适配后 `switch --cli codex deepseek`（若上游兼容）。
+因此「DeepSeek 配置」只存一份，既可以 `switch --cli claude-code --vendor "Custom API" --model deepseek-chat`，也可以在准备好 Codex 适配后 `switch --cli codex --vendor "Custom API" --model deepseek-chat`（若上游兼容）。
 
 ## 工作流：先 add，再按 CLI switch
 
@@ -24,8 +24,8 @@ clovapi add --name deepseek
 clovapi add --name openrouter-prod
 clovapi add --name claude-official
 
-clovapi switch --cli claude-code claude-official
-clovapi switch --cli codex openrouter-prod
+clovapi switch --cli claude-code --vendor "Claude Subscription" --model claude-sonnet-4-20250514
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
 ```
 
 `add` 在写入前会探测连通性，避免保存无效 Key。`switch` 只影响**一个** CLI——不会误改 Codex 当你只想换 Claude Code。

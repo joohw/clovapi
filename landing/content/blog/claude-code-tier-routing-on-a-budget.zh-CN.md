@@ -29,8 +29,8 @@ MODEL_HAIKU=ollama/llama3.1
 clovapi 不内建「Opus→免费 / Haiku→本地」的硬编码表（避免隐藏魔法）。更直接的做法：
 
 1. **`clovapi add --name deepseek-flash`** — 绑定廉价模型与网关。
-2. **`clovapi switch --cli claude-code deepseek-flash`** — 整段 Claude Code 会话走该上游；代理按 Messages 形态转码。
-3. 需要 Opus 级质量时 **`switch` 回官方 profile**（桌面端 OAuth 或 Anthropic API profile）。
+2. **`clovapi switch --cli claude-code --vendor "Custom API" --model deepseek-chat`** — 整段 Claude Code 会话走该上游；代理按 Messages 形态转码。
+3. 需要 Opus 级质量时 **`switch` 回官方订阅模型绑定**（桌面端 OAuth 或 Anthropic API profile）。
 
 子代理是否变便宜，取决于你选的**单一上游**是否在全流程中够快够稳。许多开发者反馈：DeepSeek V4 Flash 承担 80% 日常编码后，账单已足够低，不必再维护 tier 路由表。
 

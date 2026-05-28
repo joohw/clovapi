@@ -34,9 +34,9 @@ clovapi 在 `switch` 时启动**同一个** Go 代理进程（默认 `127.0.0.1:
 
 ```bash
 clovapi add --name deepseek
-clovapi switch --cli claude-code deepseek
+clovapi switch --cli claude-code --vendor "Custom API" --model deepseek-chat
 # 同一 profiles.json
-clovapi switch --cli codex openrouter-prod
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
 ```
 
 ## 和「路由器」项目的差异

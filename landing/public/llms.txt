@@ -32,7 +32,7 @@
 ## CLI 工作流
 - 安装: npm i -g @clovapi/cli
 - 保存 profile: clovapi add --name <NAME>
-- 下发到 CLI: clovapi switch --cli <KIND> [PROFILE]
+- 下发到 CLI: clovapi switch --cli <KIND> --vendor "Custom API" --model <MODEL_ID>
 - 本地代理: clovapi proxy start
 
 ## 与 cc-switch 对比

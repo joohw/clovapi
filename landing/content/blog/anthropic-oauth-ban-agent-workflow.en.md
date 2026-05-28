@@ -21,7 +21,7 @@ Anthropic’s supported path remains **Claude Code CLI** with subscription or AP
 Good when you accept the official client experience but want fast switches to a team gateway or third-party API.
 
 ```bash
-clovapi switch --cli claude-code my-team-gateway
+clovapi switch --cli claude-code --vendor "Custom API" --model <model-id>
 ```
 
 ## Path B: API keys into OpenCode and other CLIs
@@ -38,9 +38,9 @@ One `profiles.json` backs multiple agents:
 
 ```bash
 clovapi list
-clovapi switch --cli claude-code deepseek
-clovapi switch --cli codex openrouter-prod
-clovapi switch --cli opencode local-ollama
+clovapi switch --cli claude-code --vendor "Custom API" --model deepseek-chat
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
+clovapi switch --cli opencode --vendor Ollama --model llama3.1
 ```
 
 You change which upstream the active agent eats—not reinstall three env-var scripts.

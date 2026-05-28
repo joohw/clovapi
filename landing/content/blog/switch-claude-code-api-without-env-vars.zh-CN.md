@@ -13,7 +13,7 @@ clovapi 把上游抽象为 **profile**，用两条命令完成闭环：
 ```bash
 npm i -g @clovapi/cli
 clovapi add --name deepseek
-clovapi switch --cli claude-code deepseek
+clovapi switch --cli claude-code --vendor "Custom API" --model deepseek-chat
 ```
 
 `add` 在持久化前会探测连通性；`switch` 把 profile 写入 Claude Code 所需配置，并经由本地代理转发请求。Agent 侧始终连 localhost，无需你记住 Anthropic 环境变量组合。
@@ -33,7 +33,7 @@ clovapi switch --cli claude-code deepseek
 你可以同时保存 `official`、`deepseek`、`openrouter-prod` 等 profile。需要换上游时：
 
 ```bash
-clovapi switch --cli claude-code openrouter-prod
+clovapi switch --cli claude-code --vendor "Custom API" --model <openrouter-model-slug>
 ```
 
 不需要卸载 Claude Code、不需要清理 shell profile 里的 export，也不会误把 Key 提交进 dotfiles。

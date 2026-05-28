@@ -21,7 +21,7 @@ Anthropic 明确支持的路径仍是 **Claude Code CLI** 配合订阅或 API。
 适合：你接受「Claude 官方客户端体验」，只想快速切第三方 API 或团队网关。
 
 ```bash
-clovapi switch --cli claude-code my-team-gateway
+clovapi switch --cli claude-code --vendor "Custom API" --model <model-id>
 ```
 
 ## 路径 B：API Key 进 OpenCode / 其他 CLI
@@ -38,9 +38,9 @@ clovapi 用一份 `profiles.json` 服务多 CLI：
 
 ```bash
 clovapi list
-clovapi switch --cli claude-code deepseek
-clovapi switch --cli codex openrouter-prod
-clovapi switch --cli opencode local-ollama
+clovapi switch --cli claude-code --vendor "Custom API" --model deepseek-chat
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
+clovapi switch --cli opencode --vendor Ollama --model llama3.1
 ```
 
 换的是「当前 Agent 吃哪条上游」，不是重装三套环境变量。

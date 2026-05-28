@@ -25,8 +25,8 @@ clovapi 提供两种入口：**终端 CLI**（`npm i -g @clovapi/cli`）与 **Cl
 
 ## 适合用 CLI 的场景
 
-- **脚本与自动化**：在 CI、devcontainer 或 SSH 机器上 `clovapi switch --cli codex prod`。
-- **快速切换**：已熟悉 profile 名称时，一条命令比打开 GUI 更快。
+- **脚本与自动化**：在 CI、devcontainer 或 SSH 机器上 `clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>`。
+- **快速切换**：已熟悉 vendor 与 model ID 时，一条命令比打开 GUI 更快。
 - **与现有终端工作流共存**：配合 tmux、Makefile、`clovapi update` 自更新等。
 
 安装：
@@ -34,7 +34,7 @@ clovapi 提供两种入口：**终端 CLI**（`npm i -g @clovapi/cli`）与 **Cl
 ```bash
 npm i -g @clovapi/cli
 clovapi add --name prod
-clovapi switch --cli claude-code prod
+clovapi switch --cli claude-code --vendor "Custom API" --model <model-id>
 ```
 
 ## 可以混用

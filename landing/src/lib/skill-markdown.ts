@@ -18,7 +18,7 @@ Site: ${baseUrl}
 \`\`\`bash
 npm i -g @clovapi/cli
 clovapi add --name prod
-clovapi switch --cli claude-code prod
+clovapi switch --cli claude-code --vendor "Custom API" --model <model-id>
 \`\`\`
 
 Supported CLIs include Claude Code, Codex, OpenCode, OpenClaw, Hermes, and Kimi Code CLI.

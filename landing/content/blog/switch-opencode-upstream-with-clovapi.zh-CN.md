@@ -8,7 +8,7 @@ date: 2026-05-26
 
 ## clovapi 如何写入 OpenCode
 
-执行 `clovapi switch --cli opencode <profile>` 时，clovapi 会：
+执行 `clovapi switch --cli opencode <VENDOR/MODEL>` 时，clovapi 会：
 
 1. 定位 OpenCode **全局**配置目录（Windows 优先 `%AppData%\opencode\`，否则 `~/.config/opencode/`）。
 2. 在 `opencode.jsonc` / `opencode.json` / `config.json` 中选择已有文件或创建 `opencode.jsonc`。
@@ -22,22 +22,22 @@ date: 2026-05-26
 ```bash
 npm i -g @clovapi/cli
 clovapi add --name my-gateway
-clovapi switch --cli opencode my-gateway
+clovapi switch --cli opencode "Custom API/<model-id>"
 ```
 
-`add` 阶段选择或确认 API 形态（Anthropic 兼容、OpenAI 兼容、Gemini 等），`switch` 会映射到 OpenCode 的 provider 结构。多个 profile 可并存，切换只需改 profile 名。
+`add` 阶段选择或确认 API 形态（Anthropic 兼容、OpenAI 兼容、Gemini 等），`switch` 会把选中的 vendor/model 绑定映射到 OpenCode 的 provider 结构。多个模型可并存，切换只需改绑定。
 
 ## 与其他 CLI 并列管理
 
 OpenCode 只是 clovapi 支持的 CLI 之一。同一台机器上你还可以：
 
 ```bash
-clovapi switch --cli claude-code deepseek
-clovapi switch --cli codex openrouter-prod
-clovapi switch --cli opencode my-gateway
+clovapi switch --cli claude-code --vendor "Custom API" --model deepseek-chat
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
+clovapi switch --cli opencode "Custom API/<model-id>"
 ```
 
-`clovapi list` 会展示各 CLI 当前绑定的 profile 与 API 形态矩阵。
+`clovapi list` 会展示各 CLI 当前绑定的 vendor/model 与 API 形态矩阵。
 
 ## 延伸阅读
 

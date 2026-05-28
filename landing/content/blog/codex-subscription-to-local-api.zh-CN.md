@@ -14,25 +14,25 @@ Codex 绑定的是 **openai-responses** 形态，不是通用 Chat Completions�
 2. 启动内置本地代理，Codex 进程只连 `localhost`。
 3. 由代理把 Responses 形态请求转码并转发到你保存的上游。
 
-Agent 侧配置路径稳定，换上游只动 clovapi profile。
+Agent 侧配置路径稳定，换上游只动 clovapi 的 vendor/model 绑定。
 
 ## 推荐命令
 
 ```bash
 npm i -g @clovapi/cli
 clovapi add --name codex-official
-clovapi switch --cli codex codex-official
+clovapi switch --cli codex --vendor "Codex Subscription" --model gpt-5.5
 ```
 
-`add` 会探测连通性；若你接入第三方，在交互流程里填写 Base URL、API Key 与模型 ID 即可。官方订阅与第三方 API 都以 **profile 名称** 区分，切换时：
+`add` 会探测连通性；若你接入第三方，在交互流程里填写 Base URL、API Key 与模型 ID 即可。官方订阅与第三方 API 都以 **vendor/model 绑定** 区分，切换时：
 
 ```bash
-clovapi switch --cli codex my-gateway
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
 ```
 
 ## 与 Claude Code 共用 profile 库
 
-`profiles.json` 里保存的是**上游**而非某个 CLI 独占。你可以为 Claude Code 保存 `deepseek`，为 Codex 保存 `openrouter-prod`，各自 `switch` 到对应 CLI。桌面端与 CLI 读写同一份配置，适合在 GUI 里点选、在终端里脚本化。
+`profiles.json` 里保存的是**上游**而非某个 CLI 独占。你可以给 Claude Code 绑定 `Custom API/deepseek-chat`，给 Codex 绑定 `Custom API/<responses-model-id>`。桌面端与 CLI 读写同一份配置，适合在 GUI 里点选、在终端里脚本化。
 
 ## 延伸阅读
 

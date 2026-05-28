@@ -24,7 +24,7 @@ export const AGENT_PAGES: AgentPageDef[] = [
   { slug: "opencode", cliFlag: "opencode", icon: "/agenticons/opencode.svg", apiStyleKey: "chatCompletions" },
   { slug: "openclaw", cliFlag: "openclaw", icon: "/agenticons/opencode.svg", apiStyleKey: "chatCompletions" },
   { slug: "hermes", cliFlag: "hermes", icon: "/agenticons/opencode.svg", apiStyleKey: "anthropicMessages" },
-  { slug: "kimi-cli", cliFlag: "kimi-cli", icon: "/agenticons/opencode.svg", apiStyleKey: "chatCompletions" },
+  { slug: "kimi-cli", cliFlag: "kimi-code", icon: "/agenticons/opencode.svg", apiStyleKey: "chatCompletions" },
 ];
 
 export function agentBySlug(slug: string): AgentPageDef | undefined {

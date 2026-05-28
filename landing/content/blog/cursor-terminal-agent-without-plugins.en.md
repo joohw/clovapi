@@ -33,7 +33,7 @@ Typical failures:
 It starts the same **Go proxy** the CLI uses (default `http://127.0.0.1:27483`). In Cursor’s terminal:
 
 ```bash
-clovapi switch --cli claude-code my-profile
+clovapi switch --cli claude-code --vendor "Custom API" --model <model-id>
 claude
 ```
 

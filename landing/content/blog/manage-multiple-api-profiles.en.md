@@ -15,7 +15,7 @@ Typical layout:
 - `profiles`: every saved upstream.
 - `active`: the profile name last applied to each CLI via `switch`.
 
-So your DeepSeek settings are stored once—you might `switch --cli claude-code deepseek` today and, when ready, point Codex at the same profile if the upstream fits.
+So your DeepSeek settings are stored once—you might `switch --cli claude-code --vendor "Custom API" --model deepseek-chat` today and, when ready, point Codex at the same vendor/model binding if the upstream fits.
 
 ## Workflow: add once, switch per CLI
 
@@ -24,8 +24,8 @@ clovapi add --name deepseek
 clovapi add --name openrouter-prod
 clovapi add --name claude-official
 
-clovapi switch --cli claude-code claude-official
-clovapi switch --cli codex openrouter-prod
+clovapi switch --cli claude-code --vendor "Claude Subscription" --model claude-sonnet-4-20250514
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
 ```
 
 `add` probes connectivity before persisting. `switch` touches **one** CLI at a time—you will not rewrite Codex when you only meant to change Claude Code.

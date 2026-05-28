@@ -14,25 +14,25 @@ Codex is tied to the **openai-responses** format, not generic Chat Completions. 
 2. Starts the built-in local proxy so Codex only talks to `localhost`.
 3. Transcodes and forwards Responses-shaped requests to the profile you saved.
 
-The agent keeps stable paths; switching upstream means switching a clovapi profile.
+The agent keeps stable paths; switching upstream means switching a clovapi vendor/model binding.
 
 ## Suggested commands
 
 ```bash
 npm i -g @clovapi/cli
 clovapi add --name codex-official
-clovapi switch --cli codex codex-official
+clovapi switch --cli codex --vendor "Codex Subscription" --model gpt-5.5
 ```
 
-`add` probes connectivity first. For a third-party gateway, enter base URL, API key, and model ID in the interactive flow. Official subscription and vendor APIs are distinguished by **profile name**:
+`add` probes connectivity first. For a third-party gateway, enter base URL, API key, and model ID in the interactive flow. Official subscription and vendor APIs are distinguished by **vendor/model binding**:
 
 ```bash
-clovapi switch --cli codex my-gateway
+clovapi switch --cli codex --vendor "Custom API" --model <responses-model-id>
 ```
 
 ## Share the profile library with Claude Code
 
-`profiles.json` stores **upstreams**, not per-CLI silos. You might keep `deepseek` for Claude Code and `openrouter-prod` for Codex, each applied with `switch`. The desktop app and CLI read the same file—pick profiles in the GUI or automate in the terminal.
+`profiles.json` stores **upstreams**, not per-CLI silos. You might bind `Custom API/deepseek-chat` for Claude Code and `Custom API/<responses-model-id>` for Codex. The desktop app and CLI read the same file, so you can pick bindings in the GUI or automate them in the terminal.
 
 ## Read more
 

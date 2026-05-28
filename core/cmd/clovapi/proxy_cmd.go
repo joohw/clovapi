@@ -138,10 +138,19 @@ func spawnDetachedProxyServe(cfg profile.ProxyConfig) (int, error) {
 		return 0, err
 	}
 	_ = logFile.Close()
+	if err := writeProxyPIDFile(cmd.Process.Pid, cfg); err != nil {
+		return cmd.Process.Pid, fmt.Errorf("proxy started (pid %d) but failed to write pid file: %w", cmd.Process.Pid, err)
+	}
 	return cmd.Process.Pid, nil
 }
 
 func runProxyForeground(cfg profile.ProxyConfig) error {
+	pid := os.Getpid()
+	if err := writeProxyPIDFile(pid, cfg); err != nil {
+		return err
+	}
+	defer removeProxyPIDFileIfPID(pid)
+
 	server := coreproxy.NewServer(cfg)
 	syslog.LogProxyStarted(server.Config.Host, server.Config.Port)
 	fmt.Printf("clovapi core proxy listening on %s\n", proxyBaseURL(server.Config))
@@ -207,8 +216,19 @@ func ensureProxyRunning() error {
 }
 
 func shouldSkipAutoProxy(cmd *cobra.Command) bool {
-	if cmd != nil && cmd.Name() == "start" && cmd.Parent() != nil && cmd.Parent().Name() == "proxy" {
-		return true
+	if cmd != nil && cmd.Parent() != nil && cmd.Parent().Name() == "proxy" {
+		switch cmd.Name() {
+		case "start", "stop", "status", "config", "logs", "syslogs":
+			return true
+		}
+	}
+	// proxy logs/syslogs subcommands (list, read, …)
+	for c := cmd; c != nil; c = c.Parent() {
+		if c.Name() == "logs" || c.Name() == "syslogs" {
+			if p := c.Parent(); p != nil && p.Name() == "proxy" {
+				return true
+			}
+		}
 	}
 	if cmd != nil &&
 		cmd.Name() == "test" &&

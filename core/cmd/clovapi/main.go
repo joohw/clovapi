@@ -381,6 +381,19 @@ func cmdProxy() *cobra.Command {
 	}
 	start.Flags().StringVar(&host, "host", "", "Host to listen on (default from profiles.json proxy.host)")
 	start.Flags().IntVar(&port, "port", 0, "Port to listen on (default from profiles.json proxy.port)")
+	stop := &cobra.Command{
+		Use:   "stop",
+		Short: "Stop the background local proxy (graceful shutdown, then kill if needed)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := resolveProxyConfig(host, port)
+			if err != nil {
+				return err
+			}
+			return runProxyStop(cfg, true)
+		},
+	}
+	stop.Flags().StringVar(&host, "host", "", "Host the proxy listens on (default from profiles.json proxy.host)")
+	stop.Flags().IntVar(&port, "port", 0, "Port the proxy listens on (default from profiles.json proxy.port)")
 	status := &cobra.Command{
 		Use:   "status",
 		Short: "Check whether the local proxy responds to /health",
@@ -424,7 +437,7 @@ func cmdProxy() *cobra.Command {
 			return nil
 		},
 	}
-	c.AddCommand(start, status, config, cmdProxyLogs(), cmdProxySyslogs())
+	c.AddCommand(start, stop, status, config, cmdProxyLogs(), cmdProxySyslogs())
 	return c
 }
 
@@ -437,7 +450,7 @@ func cmdProxySyslogs() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "syslogs",
 		Short: "Read and append persisted system logs (SQLite)",
-		Long:  "System logs are stored in ~/.config/clovapi/call-logs/system-logs.sqlite.",
+		Long:  "System logs are stored in ~/.config/clovapi/logs/system-logs.sqlite.",
 	}
 
 	listCmd := &cobra.Command{
@@ -552,7 +565,7 @@ func cmdProxyLogs() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "logs",
 		Short: "Read and export persisted proxy call logs (SQLite)",
-		Long:  "Call logs are stored in ~/.config/clovapi/call-logs/call-logs.sqlite. Existing JSONL shards are imported once on first open.",
+		Long:  "Call logs are stored in ~/.config/clovapi/logs/call-logs.sqlite.",
 	}
 
 	pathCmd := &cobra.Command{

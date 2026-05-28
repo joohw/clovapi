@@ -36,28 +36,71 @@ function resolveCoreDevBinary() {
   return "";
 }
 
-function developmentCandidates(exeName) {
-  return [
-    path.join(__dirname, "..", "core", exeName),
-    path.join(process.cwd(), "core", exeName),
-    resolveCoreDevBinary(),
-    path.join(__dirname, "bin", exeName),
-  ];
+function developmentCandidates() {
+  const devWatchBinary = resolveCoreDevBinary();
+  return devWatchBinary ? [devWatchBinary] : [];
 }
 
-function packagedBundledCandidates(exeName) {
-  void exeName;
-  return [];
-}
-
-function buildBundledCandidates(extraCandidates = []) {
-  const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
+function buildDevCandidates(extraCandidates = []) {
   const userPath = cliBinPath();
-  const extras = extraCandidates.filter(Boolean);
-  const defaults = isDevEnvironment()
-    ? [...developmentCandidates(exeName), ...extras, userPath, ...packagedBundledCandidates(exeName)]
-    : [userPath, ...extras, ...packagedBundledCandidates(exeName), ...developmentCandidates(exeName)];
-  return defaults.filter(Boolean);
+  return [...extraCandidates.filter(Boolean), ...developmentCandidates(), userPath].filter(Boolean);
+}
+
+function resolveClovapiExecutable(options = {}) {
+  const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
+  const extraCandidates = Array.isArray(options.extraCandidates) ? options.extraCandidates : [];
+
+  if (isDevEnvironment()) {
+    if (process.env.CLOVAPI_ELECTRON_CLI_PATH) {
+      try {
+        if (fs.existsSync(process.env.CLOVAPI_ELECTRON_CLI_PATH)) {
+          return process.env.CLOVAPI_ELECTRON_CLI_PATH;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    for (const candidate of buildDevCandidates(extraCandidates)) {
+      try {
+        if (candidate && fs.existsSync(candidate)) return candidate;
+      } catch {
+        /* ignore */
+      }
+    }
+  } else {
+    const userPath = cliBinPath();
+    try {
+      if (fs.existsSync(userPath)) return userPath;
+    } catch {
+      /* ignore */
+    }
+    try {
+      const installed = installOnlineCliSync();
+      if (installed && fs.existsSync(installed)) return installed;
+    } catch {
+      /* fall through to PATH candidates */
+    }
+  }
+
+  try {
+    const resolver = process.platform === "win32" ? "where" : "which";
+    const result = spawnSync(resolver, [exeName], {
+      encoding: "utf8",
+      windowsHide: true,
+      shell: process.platform === "win32",
+    });
+    if (result.status === 0) {
+      const resolved =
+        String(result.stdout || "")
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean)[0] || "";
+      if (resolved && fs.existsSync(resolved)) return resolved;
+    }
+  } catch {
+    /* ignore */
+  }
+  return "";
 }
 
 function runDownloadCommand(args, options = {}) {
@@ -192,73 +235,6 @@ function installOnlineCliSync() {
   throw lastError || new Error("all CLI download sources failed");
 }
 
-function resolveClovapiExecutable(options = {}) {
-  const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
-  if (process.env.CLOVAPI_ELECTRON_CLI_PATH) {
-    try {
-      if (fs.existsSync(process.env.CLOVAPI_ELECTRON_CLI_PATH)) {
-        return process.env.CLOVAPI_ELECTRON_CLI_PATH;
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-  if (isDevEnvironment()) {
-    for (const candidate of buildBundledCandidates(options.extraCandidates)) {
-      try {
-        if (candidate && fs.existsSync(candidate)) return candidate;
-      } catch {
-        /* ignore */
-      }
-    }
-  }
-  const userPath = cliBinPath();
-  try {
-    if (fs.existsSync(userPath)) return userPath;
-  } catch {
-    /* ignore */
-  }
-  const localCandidates = buildBundledCandidates(options.extraCandidates).filter(
-    (candidate) => path.resolve(candidate) !== path.resolve(userPath)
-  );
-  for (const candidate of localCandidates) {
-    try {
-      if (candidate && fs.existsSync(candidate)) {
-        return candidate;
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-  if (!isDevEnvironment()) {
-    try {
-      const installed = installOnlineCliSync();
-      if (installed && fs.existsSync(installed)) return installed;
-    } catch {
-      /* fall through to PATH candidates */
-    }
-  }
-  try {
-    const resolver = process.platform === "win32" ? "where" : "which";
-    const result = spawnSync(resolver, [exeName], {
-      encoding: "utf8",
-      windowsHide: true,
-      shell: process.platform === "win32",
-    });
-    if (result.status === 0) {
-      const resolved =
-        String(result.stdout || "")
-          .split(/\r?\n/)
-          .map((line) => line.trim())
-          .filter(Boolean)[0] || "";
-      if (resolved && fs.existsSync(resolved)) return resolved;
-    }
-  } catch {
-    /* ignore */
-  }
-  return "";
-}
-
 function runClovapiArgs(args, options = {}) {
   const exe = resolveClovapiExecutable(options);
   if (!exe) {
@@ -358,9 +334,24 @@ function runClovapiArgsAsync(args, options = {}) {
   });
 }
 
+function readCoreExecutableVersion(exe) {
+  const target = String(exe || "").trim();
+  if (!target) return "";
+  const result = spawnSync(target, ["version"], {
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  const line = String(result.stdout || "")
+    .trim()
+    .split(/\r?\n/)[0];
+  const match = line.match(/^clovapi\s+(\S+)/);
+  return match?.[1]?.trim() || "";
+}
+
 module.exports = {
-  buildBundledCandidates,
+  buildDevCandidates,
   coreDevStatePath,
+  readCoreExecutableVersion,
   resolveClovapiExecutable,
   runClovapiArgs,
   runClovapiArgsAsync,

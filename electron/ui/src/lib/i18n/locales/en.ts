@@ -128,6 +128,7 @@ const en = {
     updateAvailable: "Update available · v{latest}",
     updateInstalled: "Updated to v{version}",
     updateInstalledPath: "Installed at {path}",
+    updateDisabledInDev: "Update checks are disabled in dev mode",
     pathHint: "/{providerId}/{modelId}/{apiStyle}",
   },
   callLogs: {

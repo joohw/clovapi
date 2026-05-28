@@ -18,6 +18,14 @@ test("buildProxyStartArgs — argv tokens fixed", () => {
   assert.equal(port, 1234);
 });
 
+test("buildProxyStopArgs — argv tokens fixed", () => {
+  const { buildProxyStopArgs } = require("./proxy-manager");
+  const { args, host, port } = buildProxyStopArgs({ host: "127.0.0.1", port: 1234 });
+  assert.deepEqual(args, ["proxy", "stop", "--host", "127.0.0.1", "--port", "1234"]);
+  assert.equal(host, "127.0.0.1");
+  assert.equal(port, 1234);
+});
+
 test("reachableLoopbackHost — bind-all maps to localhost health", () => {
   assert.equal(reachableLoopbackHost("0.0.0.0"), "127.0.0.1");
   assert.equal(reachableLoopbackHost("::"), "127.0.0.1");

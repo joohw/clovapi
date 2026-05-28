@@ -1,3 +1,4 @@
+import { isElectronDev } from "../constants";
 import { t } from "../i18n";
 import { store } from "./state.svelte";
 import { toast } from "../toast";
@@ -177,6 +178,7 @@ export async function runProxyHealthTest() {
 }
 
 export async function checkCoreUpdate() {
+  if (isElectronDev()) return;
   if (store.coreUpdateCheck?.status === "testing" || store.coreUpdating) return;
 
   const bridge = window.clovapiCli;
@@ -244,6 +246,7 @@ export async function checkCoreUpdate() {
 }
 
 export async function installCoreUpdate() {
+  if (isElectronDev()) return;
   if (store.coreUpdating || store.coreUpdateCheck?.status === "testing") return;
 
   const bridge = window.clovapiCli;
@@ -319,7 +322,7 @@ export async function restartLocalProxy() {
     toast.error(t("toast.proxyUnsupported"));
     return;
   }
-  await bridge.stop();
+  await bridge.stop({ suppressAutostart: false });
   const result = await bridge.start(store.proxyPort);
   await refreshProxyStatus();
   if (result?.ok) toast.success(t("toast.proxyRestarted"));

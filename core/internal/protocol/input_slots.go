@@ -149,6 +149,9 @@ func claudeMessagesWireFromInputSlots(slots []InputSlot) []map[string]any {
 		switch {
 		case slot.Message != nil:
 			r := strings.ToLower(strings.TrimSpace(string(slot.Message.Role)))
+			if isSystemLikeRole(r) {
+				continue
+			}
 			if r == "" {
 				r = string(RoleUser)
 			}
@@ -193,6 +196,9 @@ func openAIChatMessagesFromInputSlots(slots []InputSlot) []map[string]any {
 	for _, slot := range slots {
 		switch {
 		case slot.Message != nil:
+			if isSystemLikeRole(string(slot.Message.Role)) {
+				continue
+			}
 			msg := map[string]any{
 				"role":    string(slot.Message.Role),
 				"content": slot.Message.Content,

@@ -3,7 +3,6 @@ package syslog
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -27,17 +26,11 @@ CREATE TABLE IF NOT EXISTS system_logs (
 CREATE INDEX IF NOT EXISTS idx_system_logs_at ON system_logs(at DESC, id DESC);
 `
 
-const legacyImportMetaKey = "legacy_call_logs_import_v1"
-
 func DBPath() (string, error) {
 	return cfgpkg.SystemLogsDBPath()
 }
 
-func callLogsDBPath() (string, error) {
-	return cfgpkg.CallLogsDBPath()
-}
-
-func openDB(dbPath string, migrateLegacy bool) (*sql.DB, error) {
+func openDB(dbPath string) (*sql.DB, error) {
 	p := strings.TrimSpace(dbPath)
 	if p == "" {
 		return nil, errors.New("system log db path is empty")
@@ -59,87 +52,7 @@ func openDB(dbPath string, migrateLegacy bool) (*sql.DB, error) {
 		_ = db.Close()
 		return nil, err
 	}
-	if migrateLegacy {
-		if err := importLegacyIfNeeded(db); err != nil {
-			_ = db.Close()
-			return nil, err
-		}
-	}
 	return db, nil
-}
-
-func importLegacyIfNeeded(db *sql.DB) error {
-	if db == nil {
-		return errors.New("system log db is nil")
-	}
-	var value string
-	err := db.QueryRow(`SELECT value FROM system_log_meta WHERE key = ?`, legacyImportMetaKey).Scan(&value)
-	if err == nil && value == "done" {
-		return nil
-	}
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return err
-	}
-
-	callLogPath, err := callLogsDBPath()
-	if err != nil {
-		return err
-	}
-	if _, err := os.Stat(callLogPath); err != nil {
-		if os.IsNotExist(err) {
-			return markLegacyImported(db)
-		}
-		return err
-	}
-
-	legacyDSN := "file:" + callLogPath + "?mode=ro&_pragma=busy_timeout(5000)"
-	legacyDB, err := sql.Open("sqlite", legacyDSN)
-	if err != nil {
-		return err
-	}
-	defer legacyDB.Close()
-	if err := legacyDB.Ping(); err != nil {
-		return err
-	}
-
-	rows, err := legacyDB.Query(`SELECT at, stream, message FROM system_logs ORDER BY id ASC`)
-	if err != nil {
-		return markLegacyImported(db)
-	}
-	defer rows.Close()
-
-	imported := 0
-	for rows.Next() {
-		var entry Entry
-		if err := rows.Scan(&entry.At, &entry.Stream, &entry.Message); err != nil {
-			return err
-		}
-		if err := insertEntry(db, entry); err != nil {
-			return err
-		}
-		imported++
-	}
-	if err := rows.Err(); err != nil {
-		return err
-	}
-	if imported == 0 {
-		var legacyCount int
-		_ = legacyDB.QueryRow(`SELECT COUNT(*) FROM system_logs`).Scan(&legacyCount)
-		if legacyCount > 0 {
-			return fmt.Errorf("legacy system log import produced 0 rows")
-		}
-	}
-	return markLegacyImported(db)
-}
-
-func markLegacyImported(db *sql.DB) error {
-	_, err := db.Exec(
-		`INSERT INTO system_log_meta(key, value) VALUES(?, ?)
-		 ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
-		legacyImportMetaKey,
-		"done",
-	)
-	return err
 }
 
 func insertEntry(db *sql.DB, entry Entry) error {

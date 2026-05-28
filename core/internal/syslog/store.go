@@ -30,7 +30,7 @@ func NewStore() *Store {
 	if err != nil {
 		return &Store{}
 	}
-	db, err := openDB(dbPath, true)
+	db, err := openDB(dbPath)
 	if err != nil {
 		return &Store{dbPath: dbPath}
 	}
@@ -39,7 +39,7 @@ func NewStore() *Store {
 
 func newStoreAt(dir string) *Store {
 	dbPath := filepath.Join(strings.TrimSpace(dir), "system-logs.sqlite")
-	db, err := openDB(dbPath, false)
+	db, err := openDB(dbPath)
 	if err != nil {
 		return &Store{dbPath: dbPath}
 	}

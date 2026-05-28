@@ -12,6 +12,10 @@ function cloneForIpc(value) {
   );
 }
 
+contextBridge.exposeInMainWorld("clovapiEnv", {
+  isDev: process.env.ELECTRON_DEV === "1",
+});
+
 contextBridge.exposeInMainWorld("clovapiCli", {
   run(command, cwd, env) {
     return ipcRenderer.invoke("cli:run", { command, cwd, env });
@@ -74,8 +78,8 @@ contextBridge.exposeInMainWorld("clovapiProxy", {
   start(port) {
     return ipcRenderer.invoke("proxy:start", { port });
   },
-  stop() {
-    return ipcRenderer.invoke("proxy:stop");
+  stop(options) {
+    return ipcRenderer.invoke("proxy:stop", cloneForIpc(options || {}));
   },
 });
 

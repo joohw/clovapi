@@ -35,6 +35,7 @@ function withTempAppData(t) {
 
 test("resolveClovapiExecutable falls back to local candidate without writing canonical bin", (t) => {
   const root = withTempAppData(t);
+  process.env.ELECTRON_DEV = "1";
   const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
   const local = path.join(root, "bundle", exeName);
   fs.mkdirSync(path.dirname(local), { recursive: true });
@@ -54,11 +55,7 @@ test("resolveClovapiExecutable prefers existing canonical bin", (t) => {
   fs.mkdirSync(path.dirname(canonical), { recursive: true });
   fs.writeFileSync(canonical, "canonical cli");
 
-  const local = path.join(root, "bundle", exeName);
-  fs.mkdirSync(path.dirname(local), { recursive: true });
-  fs.writeFileSync(local, "local cli");
-
-  const resolved = resolveClovapiExecutable({ extraCandidates: [local] });
+  const resolved = resolveClovapiExecutable();
 
   assert.equal(resolved, canonical);
   assert.equal(fs.readFileSync(canonical, "utf8"), "canonical cli");
@@ -84,6 +81,7 @@ test("resolveClovapiExecutable prefers development candidates in dev mode", (t) 
 
 test("runClovapiArgsAsync captures output without spawnSync", async (t) => {
   const root = withTempAppData(t);
+  process.env.ELECTRON_DEV = "1";
   const exeName = process.platform === "win32" ? "clovapi.cmd" : "clovapi";
   const exe = path.join(root, exeName);
   if (process.platform === "win32") {

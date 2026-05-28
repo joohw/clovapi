@@ -1,4 +1,5 @@
 const { spawn } = require("node:child_process");
+const { readCoreExecutableVersion } = require("./clovapi-exec");
 const clovapiDesktop = require("./clovapi-desktop");
 
 const DEFAULT_PORT = 27483;
@@ -65,6 +66,14 @@ function buildProxyStartArgs(cfg) {
 /** @param {ProxyBindConfig} cfg */
 function buildProxyServeArgs(cfg) {
   return buildProxyStartArgs(cfg);
+}
+
+/** @param {ProxyBindConfig} cfg */
+function buildProxyStopArgs(cfg) {
+  const host = normalizeBindHost(cfg?.host);
+  const port = Number(cfg?.port) || DEFAULT_PORT;
+  const args = ["proxy", "stop", "--host", host, "--port", String(port)];
+  return { host, port, args };
 }
 
 /** @param {ProxyBindConfig} cfg */
@@ -222,6 +231,9 @@ function createGoProxyManager(deps) {
 
   /** @type {import('node:child_process').ChildProcessWithoutNullStreams | null} */
   let managedChild = null;
+  let autostartSuppressed = false;
+  let consecutiveStartFailures = 0;
+  const maxAutostartAttempts = 3;
 
   /** @returns {Promise<ProxyBindConfig & { enabled?: boolean }>} */
   async function loadProxyConfigFromDisk() {
@@ -304,9 +316,8 @@ function createGoProxyManager(deps) {
     throw new Error(lastErr);
   }
 
-  /** @param {string} exe @param {ProxyBindConfig} cfg */
-  function launchProxyDaemon(exe, cfg) {
-    const { args } = buildProxyStartArgs(cfg);
+  /** @param {string} exe @param {string[]} args @param {string} actionLabel */
+  function launchProxyCli(exe, args, actionLabel) {
     return new Promise((resolve, reject) => {
       const child = spawnFn(exe, args, {
         env: process.env,
@@ -327,11 +338,37 @@ function createGoProxyManager(deps) {
         }
         reject(
           new Error(
-            redactSecrets(errText.trim() || `proxy start exited with code ${String(code)}`),
+            redactSecrets(errText.trim() || `proxy ${actionLabel} exited with code ${String(code)}`),
           ),
         );
       });
     });
+  }
+
+  /** @param {string} exe @param {ProxyBindConfig} cfg */
+  function launchProxyDaemon(exe, cfg) {
+    const { args } = buildProxyStartArgs(cfg);
+    return launchProxyCli(exe, args, "start");
+  }
+
+  /** @param {string} exe @param {ProxyBindConfig} cfg */
+  function launchProxyStop(exe, cfg) {
+    const { args } = buildProxyStopArgs(cfg);
+    return launchProxyCli(exe, args, "stop");
+  }
+
+  /** @param {ProxyBindConfig} cfg */
+  async function stopProxyOnPort(cfg) {
+    const exe = await resolveExecutable();
+    if (!exe) {
+      return false;
+    }
+    try {
+      await launchProxyStop(exe, cfg);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** @param {string} exe @param {string[]} args */
@@ -455,15 +492,36 @@ function createGoProxyManager(deps) {
   }
 
   /** @param {ProxyBindConfig} cfg @param {string} reason */
-  async function replaceStaleExternalProxy(cfg, reason) {
+  async function replaceStaleExternalProxy(cfg, _reason) {
+    await stopProxyOnPort(cfg);
     await releaseBindPort(cfg, managedPidOrNull() ?? 0);
     await new Promise((resolve) => setTimeout(resolve, 280));
+  }
+
+  /** @param {ProxyBindConfig} cfg @param {{ ok?: boolean; body?: unknown }} healthProbe @param {boolean} ownedAlive */
+  async function maybeReplaceStaleDevProxy(cfg, healthProbe, ownedAlive) {
+    if (process.env.ELECTRON_DEV !== "1" || !healthProbe?.ok || ownedAlive) {
+      return healthProbe;
+    }
+    const runningVersion = String(healthProbe.body?.version || "").trim();
+    if (!runningVersion) {
+      return healthProbe;
+    }
+    const exe = await resolveExecutable();
+    const targetVersion = readCoreExecutableVersion(exe);
+    if (!targetVersion || runningVersion === targetVersion) {
+      return healthProbe;
+    }
+    await replaceStaleExternalProxy(cfg, `replacing stale dev proxy version ${runningVersion} -> ${targetVersion}`);
+    return fetchHealth(healthUrl(cfg));
   }
 
   /**
    * @param {{ port?: number; host?: string }} [options]
    */
   async function start(options = {}) {
+    autostartSuppressed = false;
+    consecutiveStartFailures = 0;
     const cfg = await loadProxyConfig();
     const merged = {
       ...cfg,
@@ -473,8 +531,10 @@ function createGoProxyManager(deps) {
         : {}),
     };
     const urls = snapshotBaseUrls(merged);
-    const hProbe = await fetchHealth(healthUrl(merged));
+    let hProbe = await fetchHealth(healthUrl(merged));
     const ownedAlive = ownsHealthyManagedPid();
+
+    hProbe = await maybeReplaceStaleDevProxy(merged, hProbe, ownedAlive);
 
     if (hProbe.ok && !ownedAlive) {
       const external = await acceptExternalProxy(merged, urls);
@@ -540,6 +600,7 @@ function createGoProxyManager(deps) {
       await launchProxyDaemon(exe, merged);
       await waitForHealthy(merged);
     } catch (e) {
+      consecutiveStartFailures += 1;
       const errMsg = e instanceof Error ? e.message : String(e);
       const hc = await fetchHealth(healthUrl(merged));
       if (hc.ok === true) {
@@ -555,6 +616,7 @@ function createGoProxyManager(deps) {
         host: urls.host,
         baseUrl: urls.baseUrl,
         error: redactSecrets(errMsg),
+        autostartBlocked: consecutiveStartFailures >= maxAutostartAttempts,
       };
     }
 
@@ -574,10 +636,19 @@ function createGoProxyManager(deps) {
     };
   }
 
-  async function stop() {
+  /**
+   * @param {{ suppressAutostart?: boolean }} [options]
+   */
+  async function stop(options = {}) {
+    const suppressAutostart = options.suppressAutostart !== false;
+    if (suppressAutostart) {
+      autostartSuppressed = true;
+    }
+    consecutiveStartFailures = 0;
     const hadManagedChild = ownsHealthyManagedPid();
     await stopManaged("user-stop");
     const cfg = await loadProxyConfig();
+    await stopProxyOnPort(cfg);
     const urls = snapshotBaseUrls(cfg);
     const hcAfter = await fetchHealth(healthUrl(cfg));
     return {
@@ -585,10 +656,34 @@ function createGoProxyManager(deps) {
       running: hcAfter.ok === true,
       managed: false,
       killedManaged: hadManagedChild,
+      autostartSuppressed: suppressAutostart,
       port: urls.port,
       host: urls.host,
       baseUrl: urls.baseUrl,
     };
+  }
+
+  function isAutostartSuppressed() {
+    return autostartSuppressed;
+  }
+
+  async function autostartIfAllowed(payload = {}) {
+    if (autostartSuppressed) {
+      return { ok: true, running: false, skipped: true, reason: "user-stopped" };
+    }
+    if (consecutiveStartFailures >= maxAutostartAttempts) {
+      return {
+        ok: false,
+        running: false,
+        skipped: true,
+        reason: "start-failures-capped",
+      };
+    }
+    const cfg = await loadProxyConfig();
+    if (cfg.enabled === false) {
+      return { ok: true, running: false, skipped: true, reason: "proxy-disabled" };
+    }
+    return start(payload);
   }
 
   async function ensureRunning(payload = {}) {
@@ -598,7 +693,11 @@ function createGoProxyManager(deps) {
       ...(Number(payload.port) > 0 ? { port: Number(payload.port) } : {}),
     };
     const urls = snapshotBaseUrls(mergedCfg);
-    const hi = await fetchHealth(healthUrl(mergedCfg));
+    let hi = await fetchHealth(healthUrl(mergedCfg));
+    if (hi.ok === true) {
+      const owns = ownsHealthyManagedPid();
+      hi = await maybeReplaceStaleDevProxy(mergedCfg, hi, owns);
+    }
     if (hi.ok === true) {
       const owns = ownsHealthyManagedPid();
       if (await proxySupportsCallLog(mergedCfg)) {
@@ -648,6 +747,8 @@ function createGoProxyManager(deps) {
     start,
     stop,
     ensureRunning,
+    autostartIfAllowed,
+    isAutostartSuppressed,
     healthUrlForConfig: (c) => healthUrl(c),
   };
 }
@@ -656,6 +757,7 @@ module.exports = {
   DEFAULT_PORT,
   DEFAULT_HOST,
   buildProxyServeArgs,
+  buildProxyStopArgs,
   normalizeBindHost,
   healthClientHost,
   reachableLoopbackHost,

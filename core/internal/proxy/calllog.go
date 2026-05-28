@@ -58,7 +58,6 @@ func NewCallLogStore() *CallLogStore {
 	if err != nil {
 		return &CallLogStore{dbPath: dbPath}
 	}
-	_ = importJSONLForConfiguredStore(db)
 	return &CallLogStore{dbPath: dbPath, db: db}
 }
 
@@ -68,7 +67,6 @@ func newCallLogStoreAt(dir string) *CallLogStore {
 	if err != nil {
 		return &CallLogStore{dbPath: dbPath}
 	}
-	_ = importJSONLIfNeeded(db, dir)
 	return &CallLogStore{dbPath: dbPath, db: db}
 }
 

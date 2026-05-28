@@ -16,17 +16,22 @@ function cliBinPath() {
   return path.join(configDir(), "bin", name);
 }
 
-function callLogsDir() {
-  return path.join(configDir(), "call-logs");
+function logsDir() {
+  return path.join(configDir(), "logs");
+}
+
+function electronUserDataDir() {
+  return path.join(configDir(), "desktop");
 }
 
 function callLogsDBPath() {
-  return path.join(callLogsDir(), "call-logs.sqlite");
+  return path.join(logsDir(), "call-logs.sqlite");
 }
 
 module.exports = {
   configDir,
   cliBinPath,
-  callLogsDir,
+  logsDir,
+  electronUserDataDir,
   callLogsDBPath,
 };

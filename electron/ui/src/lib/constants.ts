@@ -56,3 +56,8 @@ export const OLLAMA_DEFAULTS = {
   apiStyle: "openai-chat",
   apiKey: "ollama",
 } as const;
+
+/** True when the desktop shell runs with `ELECTRON_DEV=1` (npm run dev). */
+export function isElectronDev(): boolean {
+  return Boolean(window.clovapiEnv?.isDev);
+}

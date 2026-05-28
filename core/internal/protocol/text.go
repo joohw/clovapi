@@ -67,7 +67,16 @@ func SystemText(value any) string {
 	}
 }
 
-// PartitionSystemMessages splits system-role turns into concatenated top-level system text.
+func isSystemLikeRole(role string) bool {
+	switch strings.ToLower(strings.TrimSpace(role)) {
+	case "system", "developer":
+		return true
+	default:
+		return false
+	}
+}
+
+// PartitionSystemMessages splits system/developer-role turns into concatenated top-level system text.
 func PartitionSystemMessages(messages []any, extraSystem any) ([]Message, string) {
 	apiMessages := make([]Message, 0)
 	systemParts := make([]string, 0)
@@ -83,7 +92,7 @@ func PartitionSystemMessages(messages []any, extraSystem any) ([]Message, string
 		if role == "" {
 			role = "user"
 		}
-		if role == "system" {
+		if isSystemLikeRole(role) {
 			if tx := strings.TrimSpace(TextContent(m["content"])); tx != "" {
 				systemParts = append(systemParts, tx)
 			}
@@ -110,7 +119,7 @@ func PartitionSystemMessages(messages []any, extraSystem any) ([]Message, string
 	return apiMessages, system
 }
 
-// CollectSystemPrompt mirrors Electron collectSystemPrompt (metadata.system + system-role messages).
+// CollectSystemPrompt mirrors Electron collectSystemPrompt (metadata.system + system/developer turns).
 func CollectSystemPrompt(r Request) string {
 	parts := make([]string, 0)
 	if r.Meta != nil {
@@ -119,10 +128,18 @@ func CollectSystemPrompt(r Request) string {
 		}
 	}
 	for _, m := range r.Messages {
-		if strings.ToLower(strings.TrimSpace(string(m.Role))) != "system" {
+		if !isSystemLikeRole(string(m.Role)) {
 			continue
 		}
 		if tx := strings.TrimSpace(m.Content); tx != "" {
+			parts = append(parts, tx)
+		}
+	}
+	for _, slot := range r.InputSlots {
+		if slot.Message == nil || !isSystemLikeRole(string(slot.Message.Role)) {
+			continue
+		}
+		if tx := strings.TrimSpace(slot.Message.Content); tx != "" {
 			parts = append(parts, tx)
 		}
 	}

@@ -51,7 +51,15 @@ func DecodeRequestOpenAIResponses(body []byte) (Request, error) {
 	instructions := jsonStringField(raw, "instructions")
 	meta := &Metadata{Instructions: instructions}
 
-	slots, msgs, inputExt := decodeResponsesInputSlots(raw["input"])
+	slots, msgs, inputExt, systemParts := decodeResponsesInputSlots(raw["input"])
+	if len(systemParts) > 0 {
+		systemText := strings.Join(systemParts, "\n\n")
+		if existing := strings.TrimSpace(meta.System); existing != "" {
+			meta.System = existing + "\n\n" + systemText
+		} else {
+			meta.System = systemText
+		}
+	}
 	tools, _ := mapTools(raw["tools"])
 
 	var extensions []ExtensionNode
@@ -80,28 +88,29 @@ func DecodeRequestOpenAIResponses(body []byte) (Request, error) {
 	}, nil
 }
 
-func decodeResponsesInputSlots(input any) ([]InputSlot, []Message, []ExtensionNode) {
+func decodeResponsesInputSlots(input any) ([]InputSlot, []Message, []ExtensionNode, []string) {
 	slots := make([]InputSlot, 0)
 	msgs := make([]Message, 0)
 	var extensions []ExtensionNode
+	systemParts := make([]string, 0)
 	if input == nil {
-		return slots, msgs, extensions
+		return slots, msgs, extensions, systemParts
 	}
 	if s, ok := input.(string); ok {
 		s = strings.TrimSpace(s)
 		if s == "" {
-			return slots, msgs, extensions
+			return slots, msgs, extensions, systemParts
 		}
 		msg := Message{Role: RoleUser, Content: s}
 		slots = append(slots, InputSlot{Message: &msg})
 		msgs = append(msgs, msg)
 		payload, _ := json.Marshal(s)
 		extensions = append(extensions, ExtensionNode{Kind: ExtOpenAIResponsesInputString, Payload: payload})
-		return slots, msgs, extensions
+		return slots, msgs, extensions, systemParts
 	}
 	arr, ok := input.([]any)
 	if !ok || len(arr) == 0 {
-		return slots, msgs, extensions
+		return slots, msgs, extensions, systemParts
 	}
 	for _, item := range arr {
 		m, ok := item.(map[string]any)
@@ -118,7 +127,14 @@ func decodeResponsesInputSlots(input any) ([]InputSlot, []Message, []ExtensionNo
 			if role == "" {
 				role = "user"
 			}
-			msg := Message{Role: Role(role), Content: strings.TrimSpace(TextContent(m["content"]))}
+			content := strings.TrimSpace(TextContent(m["content"]))
+			if isSystemLikeRole(role) {
+				if content != "" {
+					systemParts = append(systemParts, content)
+				}
+				continue
+			}
+			msg := Message{Role: Role(role), Content: content}
 			msgCopy := msg
 			slots = append(slots, InputSlot{Message: &msgCopy})
 			msgs = append(msgs, msg)
@@ -152,7 +168,7 @@ func decodeResponsesInputSlots(input any) ([]InputSlot, []Message, []ExtensionNo
 			slots = append(slots, InputSlot{Extension: ext})
 		}
 	}
-	return slots, msgs, extensions
+	return slots, msgs, extensions, systemParts
 }
 
 func responsesInputWireFromIR(r Request) any {

@@ -7,16 +7,18 @@ const proxyLogger = require("./proxy-logger");
 const callLogsStore = require("./call-logs-store");
 const clovapiDesktop = require("./clovapi-desktop");
 const {
-  buildBundledCandidates,
   coreDevStatePath,
   resolveClovapiExecutable: resolveBundledClovapiExecutable,
 } = require("./clovapi-exec");
 const { buildTrayMenuModel, isValidTrayTab, trayStatusSummary, trayTooltip } = require("./tray-menu");
-const { cliBinPath } = require("./config-paths");
+const { cliBinPath, electronUserDataDir } = require("./config-paths");
 const { sanitizeForIpc } = require("./ipc-utils");
 
 // Overlay scrollbars float above content instead of reserving layout width (Windows/Linux).
 app.commandLine.appendSwitch("enable-features", "OverlayScrollbar,FluentOverlayScrollbar");
+
+fs.mkdirSync(electronUserDataDir(), { recursive: true });
+app.setPath("userData", electronUserDataDir());
 
 let mainWindow = null;
 let tray = null;
@@ -363,17 +365,8 @@ function emitOutput(type, chunk) {
   });
 }
 
-function getBundledCliCandidates() {
-  const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
-  return buildBundledCandidates([
-    process.env.CLOVAPI_ELECTRON_CLI_PATH,
-    path.join(process.resourcesPath || "", "bin", exeName),
-    path.join(app.getAppPath ? app.getAppPath() : "", "bin", exeName),
-  ]);
-}
-
 function resolveBundledCliPath() {
-  return resolveBundledClovapiExecutable({ extraCandidates: getBundledCliCandidates() });
+  return resolveBundledClovapiExecutable();
 }
 
 async function resolveClovapiExecutable() {
@@ -389,12 +382,21 @@ const proxyManager = createGoProxyManager({ resolveExecutable: resolveClovapiExe
 function scheduleCoreProxyRestart() {
   clearTimeout(coreDevRestartTimer);
   coreDevRestartTimer = setTimeout(async () => {
+    if (proxyManager.isAutostartSuppressed()) {
+      emitOutput("system", "[core-watch] core rebuilt; proxy autostart suppressed (user stopped)\n");
+      return;
+    }
     emitOutput("system", "[core-watch] core rebuilt; restarting proxy\n");
     try {
-      await proxyManager.stop();
+      await proxyManager.stop({ suppressAutostart: false });
       const cfg = await proxyManager.loadProxyConfig();
-      await proxyManager.start({ port: cfg.port, host: cfg.host });
-      emitOutput("system", "[core-watch] proxy restarted\n");
+      const result = await proxyManager.start({ port: cfg.port, host: cfg.host });
+      if (result?.ok) {
+        emitOutput("system", "[core-watch] proxy restarted\n");
+        dispatchRendererEvent({ type: "proxy-status-changed" });
+      } else {
+        emitOutput("stderr", `[core-watch] proxy restart failed: ${result?.error || "unknown"}\n`);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       emitOutput("stderr", `[core-watch] proxy restart failed: ${message}\n`);
@@ -599,6 +601,13 @@ ipcMain.handle("cli:run-clovapi", async (_event, payload) => {
 });
 
 ipcMain.handle("cli:update", async (_event, payload) => {
+  if (process.env.ELECTRON_DEV === "1") {
+    return {
+      ok: false,
+      error: "Core update is disabled in Electron dev mode (ELECTRON_DEV=1).",
+      detail: { dev_mode: true, check: Boolean(payload?.check) },
+    };
+  }
   const executable = await resolveClovapiExecutable();
   if (!executable) {
     return { ok: false, error: "clovapi executable not found" };
@@ -870,9 +879,10 @@ ipcMain.handle("proxy:start", async (_event, payload) => {
   }
 });
 
-ipcMain.handle("proxy:stop", async () => {
+ipcMain.handle("proxy:stop", async (_event, payload) => {
   try {
-    const result = await proxyManager.stop();
+    const suppressAutostart = payload?.suppressAutostart !== false;
+    const result = await proxyManager.stop({ suppressAutostart });
     dispatchRendererEvent({ type: "proxy-status-changed" });
     await updateTrayMenu();
     return result;
@@ -1008,8 +1018,7 @@ app.whenReady().then(async () => {
   createTray();
   watchCoreDevBinary();
   try {
-    const cfg = await proxyManager.loadProxyConfig();
-    await proxyManager.start({ port: cfg.port });
+    await proxyManager.autostartIfAllowed();
   } catch {
     // Non-fatal on startup
   }

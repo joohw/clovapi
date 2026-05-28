@@ -126,6 +126,7 @@ const zh = {
     updateAvailable: "有可用更新 · v{latest}",
     updateInstalled: "已更新至 v{version}",
     updateInstalledPath: "安装路径 {path}",
+    updateDisabledInDev: "开发模式不检查更新",
     pathHint: "/{providerId}/{modelId}/{apiStyle}",
   },
   callLogs: {

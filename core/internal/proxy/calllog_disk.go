@@ -16,7 +16,7 @@ import (
 
 const defaultCallLogUIListMax = 200
 
-// CallLogsDirPath returns the on-disk call log directory (~/.config/clovapi/call-logs).
+// CallLogsDirPath returns the on-disk log directory (~/.config/clovapi/logs).
 func CallLogsDirPath() (string, error) {
 	return cfgpkg.CallLogsDir()
 }
@@ -129,13 +129,6 @@ func discoverCallLogFiles(logsDir string) ([]string, error) {
 			}
 			return nil
 		})
-	}
-
-	configuredDir, cfgErr := cfgpkg.CallLogsDir()
-	if cfgErr == nil && filepath.Clean(logsDir) == filepath.Clean(configuredDir) {
-		if legacy, err := cfgpkg.CallLogsLegacyPath(); err == nil {
-			add(legacy)
-		}
 	}
 
 	sort.Strings(paths)

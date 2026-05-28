@@ -87,6 +87,9 @@ func portableMessageFromInputExtension(ext *ExtensionNode) (Message, bool) {
 			return Message{}, false
 		}
 		role := strings.ToLower(strings.TrimSpace(fmt.Sprint(item["role"])))
+		if isSystemLikeRole(role) {
+			return Message{}, false
+		}
 		if role != string(RoleAssistant) {
 			role = string(RoleUser)
 		}

@@ -34,7 +34,7 @@ CREATE INDEX IF NOT EXISTS idx_call_logs_started_at ON call_logs(started_at DESC
 CREATE INDEX IF NOT EXISTS idx_call_logs_session_id ON call_logs(session_id, started_at DESC);
 `
 
-// CallLogsDBPath returns the SQLite database path (~/.config/clovapi/call-logs/call-logs.sqlite).
+// CallLogsDBPath returns the SQLite database path (~/.config/clovapi/logs/call-logs.sqlite).
 func CallLogsDBPath() (string, error) {
 	return cfgpkg.CallLogsDBPath()
 }

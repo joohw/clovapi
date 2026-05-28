@@ -272,10 +272,53 @@ func SaveProxyConfig(input UIProxyConfig) ProxyConfigResult {
 }
 
 // ParseSaveInput decodes stdin JSON for profiles save.
+// active accepts both structured {provider_id, model_id} objects and legacy
+// per-agent binding strings (e.g. codex/gpt-5.4 or @model:Vendor/model-id).
 func ParseSaveInput(data []byte) (SaveInput, error) {
-	var input SaveInput
-	if err := json.Unmarshal(data, &input); err != nil {
+	var raw struct {
+		Profiles []UIVendor          `json:"profiles"`
+		Active   map[string]json.RawMessage `json:"active"`
+		Proxy    *UIProxyConfig      `json:"proxy"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return SaveInput{}, fmt.Errorf("parse save payload: %w", err)
+	}
+	input := SaveInput{
+		Profiles: raw.Profiles,
+		Active:   map[string]profile.ActiveSelection{},
+		Proxy:    raw.Proxy,
+	}
+	if raw.Active == nil {
+		return input, nil
+	}
+	legacyStore := &profile.Store{Active: map[string]profile.ActiveSelection{}}
+	for agent, payload := range raw.Active {
+		agent = strings.TrimSpace(agent)
+		if agent == "" {
+			continue
+		}
+		var sel profile.ActiveSelection
+		if err := json.Unmarshal(payload, &sel); err == nil {
+			sel.ProviderID = strings.TrimSpace(sel.ProviderID)
+			sel.ModelID = strings.TrimSpace(sel.ModelID)
+			if sel.ProviderID != "" && sel.ModelID != "" {
+				input.Active[agent] = sel
+				continue
+			}
+		}
+		var legacy string
+		if err := json.Unmarshal(payload, &legacy); err == nil {
+			if migrated, ok := legacyStore.ActiveSelectionFromLegacyValue(legacy); ok {
+				input.Active[agent] = migrated
+				continue
+			}
+			if parts := strings.SplitN(strings.TrimSpace(legacy), "/", 2); len(parts) == 2 {
+				input.Active[agent] = profile.ActiveSelection{
+					ProviderID: strings.TrimSpace(parts[0]),
+					ModelID:    strings.TrimSpace(parts[1]),
+				}
+			}
+		}
 	}
 	return input, nil
 }

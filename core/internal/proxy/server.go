@@ -76,6 +76,7 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 	mux.HandleFunc("/__debug/system-log", s.handleDebugSystemLog)
 	mux.HandleFunc("/__debug/transform-request", s.handleDebugTransform)
 	mux.HandleFunc("/__debug/resolve-route", s.handleDebugResolveRoute)
+	mux.HandleFunc("/__debug/shutdown", s.handleDebugShutdown)
 	mux.HandleFunc("/", s.handleProxy)
 	s.Server = &http.Server{Addr: cfg.Host + ":" + strconv.Itoa(cfg.Port), Handler: mux}
 	return s
@@ -115,6 +116,20 @@ func (s *Server) handleDebugSystemLog(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "GET or DELETE only"})
 	}
+}
+
+func (s *Server) handleDebugShutdown(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "POST only"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"ok": "shutting down"})
+	go func() {
+		syslog.LogProxyStopped("debug-shutdown")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = s.Shutdown(ctx)
+	}()
 }
 
 func (s *Server) handleDebugCallLog(w http.ResponseWriter, r *http.Request) {

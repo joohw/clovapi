@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button/index.js";
   import type { ModelTestStatus } from "../global";
+  import { isElectronDev } from "../lib/constants";
   import { i18n, t } from "../lib/i18n";
   import {
     checkCoreUpdate,
@@ -35,8 +36,11 @@
       checkUpdate: t("proxy.checkUpdate"),
       installUpdate: t("proxy.installUpdate"),
       updating: t("proxy.updating"),
+      updateDisabledInDev: t("proxy.updateDisabledInDev"),
     };
   });
+
+  const electronDev = isElectronDev();
 
   const proxyHealthTest = $derived(store.proxyHealthTest);
   const proxyHealthTesting = $derived(proxyHealthTest?.status === "testing");
@@ -75,24 +79,26 @@
 
   <ListRow
     title={copy.version}
-    lines={[copy.versionLine]}
-    testStatus={rowTestStatus(coreUpdateCheck?.status)}
-    testSummary={coreUpdateCheck?.summary || ""}
-    testDetail={coreUpdateCheck?.detail || ""}
+    lines={electronDev ? [copy.versionLine, copy.updateDisabledInDev] : [copy.versionLine]}
+    testStatus={electronDev ? "" : rowTestStatus(coreUpdateCheck?.status)}
+    testSummary={electronDev ? "" : coreUpdateCheck?.summary || ""}
+    testDetail={electronDev ? "" : coreUpdateCheck?.detail || ""}
   >
     {#snippet actions()}
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={coreUpdateBusy}
-        onclick={() => void checkCoreUpdate()}
-      >
-        {coreUpdateTesting && !store.coreUpdating ? copy.testing : copy.checkUpdate}
-      </Button>
-      {#if store.coreUpdateAvailable}
-        <Button size="sm" disabled={coreUpdateBusy} onclick={() => void installCoreUpdate()}>
-          {store.coreUpdating ? copy.updating : copy.installUpdate}
+      {#if !electronDev}
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={coreUpdateBusy}
+          onclick={() => void checkCoreUpdate()}
+        >
+          {coreUpdateTesting && !store.coreUpdating ? copy.testing : copy.checkUpdate}
         </Button>
+        {#if store.coreUpdateAvailable}
+          <Button size="sm" disabled={coreUpdateBusy} onclick={() => void installCoreUpdate()}>
+            {store.coreUpdating ? copy.updating : copy.installUpdate}
+          </Button>
+        {/if}
       {/if}
     {/snippet}
   </ListRow>

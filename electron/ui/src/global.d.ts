@@ -64,7 +64,7 @@ type ProxyBridge = {
   status(): Promise<ProxyStatusResult>;
   health(): Promise<ProxyHealthResult>;
   start(port?: number): Promise<ProxyStatusResult>;
-  stop(): Promise<{ ok?: boolean; error?: string }>;
+  stop(options?: { suppressAutostart?: boolean }): Promise<{ ok?: boolean; error?: string }>;
 };
 
 type ProxyLogsBridge = {
@@ -176,8 +176,13 @@ type ProfileTestResult = {
   error?: string;
 };
 
+type ClovapiEnvBridge = {
+  isDev?: boolean;
+};
+
 declare global {
   interface Window {
+    clovapiEnv?: ClovapiEnvBridge;
     clovapiCli?: CliBridge;
     clovapiSubscription?: SubscriptionBridge;
     clovapiProfiles?: ProfilesBridge;

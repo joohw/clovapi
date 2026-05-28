@@ -1,5 +1,5 @@
 const fs = require("node:fs");
-const { callLogsDir, callLogsDBPath } = require("./config-paths");
+const { logsDir, callLogsDBPath } = require("./config-paths");
 const { runClovapiArgs } = require("./clovapi-exec");
 
 const DEFAULT_CALL_LOG_PAGE_SIZE = 20;
@@ -62,7 +62,7 @@ async function clearCallLogsFile() {
 }
 
 module.exports = {
-  callLogsDir,
+  logsDir,
   callLogsDBPath,
   callLogsPath: callLogsDBPath,
   DEFAULT_CALL_LOG_PAGE_SIZE,

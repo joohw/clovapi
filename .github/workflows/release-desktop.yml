@@ -85,7 +85,35 @@ jobs:
 
       - name: Build macOS desktop
         working-directory: electron
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          set -euo pipefail
+          required_secrets=(
+            CSC_LINK
+            CSC_KEY_PASSWORD
+            APPLE_API_KEY_CONTENT
+            APPLE_API_KEY_ID
+            APPLE_API_ISSUER
+            APPLE_TEAM_ID
+          )
+          for secret_name in "${required_secrets[@]}"; do
+            if [ -z "${!secret_name:-}" ]; then
+              echo "::error::Missing required macOS signing secret: ${secret_name}"
+              exit 1
+            fi
+          done
+
+          mkdir -p "$RUNNER_TEMP/appstoreconnect"
+          export APPLE_API_KEY="$RUNNER_TEMP/appstoreconnect/AuthKey_${APPLE_API_KEY_ID}.p8"
+          printf '%s' "$APPLE_API_KEY_CONTENT" > "$APPLE_API_KEY"
+          chmod 600 "$APPLE_API_KEY"
+
           npm ci
           npm run build:mac
 

@@ -63,6 +63,11 @@
     "mac": {
       "icon": "assets/icon.icns",
       "category": "public.app-category.developer-tools",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": true,
       "target": [
         {
           "target": "dmg",
@@ -70,10 +75,7 @@
             "universal"
           ]
         }
-      ],
-      "identity": null,
-      "hardenedRuntime": false,
-      "gatekeeperAssess": false
+      ]
     },
     "dmg": {
       "artifactName": "clovapi-desktop-darwin-universal.${ext}"

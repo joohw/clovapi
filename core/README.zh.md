@@ -27,7 +27,7 @@
 
 ```bash
 cd core
-go build -o clovapi ./cmd/clovapi
+go build -o clovapi ./cmd
 ```
 
 ## 包管理器安装

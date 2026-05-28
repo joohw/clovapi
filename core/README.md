@@ -27,7 +27,7 @@ For **Claude Code**, env wiring matches community **cc-switch** / **ccswitch**; 
 
 ```bash
 cd core
-go build -o clovapi ./cmd/clovapi
+go build -o clovapi ./cmd
 ```
 
 ## Install (package managers)

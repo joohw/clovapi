@@ -29,7 +29,7 @@ func TestOpenCodeApplyAndResetPreserveStockProviderSettings(t *testing.T) {
 			stockBase:  "https://api.anthropic.example/v1",
 			stockKey:   "user-anthropic-key",
 			wantNPM:    "@ai-sdk/anthropic",
-			wantBase:   "http://127.0.0.1:8080/proxy/claude",
+			wantBase:   "http://127.0.0.1:8080/proxy/claude/v1",
 			profileURL: "http://127.0.0.1:8080/proxy/claude/v1",
 		},
 		{
@@ -109,6 +109,71 @@ func TestOpenCodeApplyAndResetPreserveStockProviderSettings(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOpenCodeApplyDoesNotPromoteLowerPrecedenceConfig(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv(envOpenCodeDirOverride, filepath.Join(dir, ".config", "opencode"))
+
+	configDir := filepath.Join(dir, ".config", "opencode")
+	if err := os.MkdirAll(configDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	legacyPath := filepath.Join(configDir, "config.json")
+	writablePath := filepath.Join(configDir, "opencode.jsonc")
+	writeOpenCodeTestConfig(t, legacyPath, map[string]any{
+		"provider": map[string]any{
+			"anthropic": map[string]any{
+				"options": map[string]any{
+					"baseURL": "https://api.anthropic.example/v1",
+					"apiKey":  "user-anthropic-key",
+				},
+			},
+		},
+	})
+	writeOpenCodeTestConfig(t, writablePath, map[string]any{
+		"theme": "dark",
+	})
+
+	p := profile.Profile{
+		CLI:      agentkind.OpenCode,
+		APIStyle: apistyle.Claude,
+		BaseURL:  "http://127.0.0.1:8080/proxy/claude/v1",
+		APIKey:   "clovapi-key",
+		Model:    "test-model",
+	}
+	if err := (openCodeTarget{}).Apply(p); err != nil {
+		t.Fatal(err)
+	}
+
+	applied := readOpenCodeTestConfig(t, writablePath)
+	providers := mapEntry(t, applied, "provider")
+	if _, ok := providers["anthropic"]; ok {
+		t.Fatalf("lower-precedence anthropic provider was promoted: %#v", providers["anthropic"])
+	}
+	if applied["theme"] != "dark" {
+		t.Fatalf("theme was not preserved: %v", applied["theme"])
+	}
+	if applied["model"] != opencodeRelayID+"/test-model" {
+		t.Fatalf("model after apply: %v", applied["model"])
+	}
+	assertOpenCodeStockProvider(t, readOpenCodeTestConfig(t, legacyPath), "anthropic", "https://api.anthropic.example/v1", "user-anthropic-key")
+
+	if err := (openCodeTarget{}).ResetDefault(); err != nil {
+		t.Fatal(err)
+	}
+	reset := readOpenCodeTestConfig(t, writablePath)
+	if _, ok := reset["provider"]; ok {
+		t.Fatalf("clovapi-only provider object should be removed after reset: %#v", reset["provider"])
+	}
+	if _, ok := reset["model"]; ok {
+		t.Fatalf("model still present after reset: %v", reset["model"])
+	}
+	if reset["theme"] != "dark" {
+		t.Fatalf("theme was not preserved after reset: %v", reset["theme"])
+	}
+	assertOpenCodeStockProvider(t, readOpenCodeTestConfig(t, legacyPath), "anthropic", "https://api.anthropic.example/v1", "user-anthropic-key")
 }
 
 func writeOpenCodeTestConfig(t *testing.T, path string, root map[string]any) {

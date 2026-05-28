@@ -113,7 +113,7 @@ function build() {
   const suffix = `${Date.now()}-${process.pid}`;
   const outPath = path.join(devDir, `clovapi-dev-${suffix}${process.platform === "win32" ? ".exe" : ""}`);
   console.log(`[core-watch] building ${outPath} (${devVersion})`);
-  const result = spawnSync("go", ["build", `-ldflags=-X ${buildInfoVersionVar}=${devVersion}`, "-o", outPath, "./cmd/clovapi"], {
+  const result = spawnSync("go", ["build", `-ldflags=-X ${buildInfoVersionVar}=${devVersion}`, "-o", outPath, "./cmd"], {
     cwd: coreDir,
     stdio: "inherit",
   });

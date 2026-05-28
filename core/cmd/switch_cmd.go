@@ -39,7 +39,7 @@ func runSwitch(sc *bufio.Scanner, s *profile.Store, kind agentkind.Kind, resetFl
 	}
 
 	if strings.TrimSpace(directBaseURL) != "" {
-		if strings.TrimSpace(bindingFlag) != "" || strings.TrimSpace(providerFlag) != "" || strings.TrimSpace(vendorFlag) != "" || strings.TrimSpace(modelFlag) != "" || strings.TrimSpace(positional) != "" {
+		if strings.TrimSpace(bindingFlag) != "" || strings.TrimSpace(providerFlag) != "" || strings.TrimSpace(vendorFlag) != "" || strings.TrimSpace(positional) != "" {
 			return fmt.Errorf("cannot combine --base-url with provider/model selection")
 		}
 		return applyDirectToCLI(kind, directBaseURL, directAPIKey, directModel, directAPIStyle)

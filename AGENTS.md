@@ -10,7 +10,7 @@ This repository does **not** ship a remote multi-tenant API gateway — no billi
 
 | Directory | Role |
 |-----------|------|
-| `core/` | Go CLI + local proxy core (`cmd/clovapi`, `internal/proxy`, `internal/apply`, `internal/protocol`) |
+| `core/` | Go CLI + local proxy core (`cmd`, `internal/proxy`, `internal/apply`, `internal/protocol`) |
 | `npm/` | npm launcher package (`@clovapi/cli`) that installs/calls the core binary |
 | `electron/` | Desktop app (Electron + Svelte 5 UI); invokes the same Go binary for proxy/switch |
 | `landing/` | Marketing site [clovapi.com](https://clovapi.com) (Next.js) |

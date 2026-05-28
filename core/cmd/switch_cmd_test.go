@@ -39,6 +39,17 @@ func TestResolveSwitchSelectionOrError(t *testing.T) {
 	}
 }
 
+func TestRunSwitchAllowsDirectEndpointModelFlag(t *testing.T) {
+	sc := switchScannerFrom(strings.NewReader(""))
+	err := runSwitch(sc, &profile.Store{}, agentkind.OpenCode, false, "", "", "", "test-model", "http://127.0.0.1:8080/proxy/openai/v1", "test-key", "test-model", "not-a-style", "")
+	if err == nil {
+		t.Fatal("expected invalid api style error")
+	}
+	if strings.Contains(err.Error(), "cannot combine --base-url") {
+		t.Fatalf("model flag was treated as conflicting with --base-url: %v", err)
+	}
+}
+
 func TestPromptModelForVendorSelection(t *testing.T) {
 	s := &profile.Store{
 		List: []profile.Profile{

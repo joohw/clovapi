@@ -106,6 +106,38 @@ func TestRunProxyStopRefusesForeignListenerWithStalePIDFile(t *testing.T) {
 	}
 }
 
+func TestRunProxyStopDoesNotKillReusedStalePID(t *testing.T) {
+	dir := t.TempDir()
+	config.SetDirOverride(dir)
+	t.Cleanup(func() { config.SetDirOverride("") })
+
+	cfg := profile.ProxyConfig{Host: "127.0.0.1", Port: 27483}
+	if err := writeProxyPIDFile(1111, cfg); err != nil {
+		t.Fatal(err)
+	}
+	var killed []int
+	restoreProxyStopHooks(t,
+		func(profile.ProxyConfig) (bool, error) { return false, nil },
+		func(pid int) bool { return pid == 1111 },
+		func(pid int) error {
+			killed = append(killed, pid)
+			return nil
+		},
+		func(int) (int, error) { return 4242, nil },
+	)
+
+	err := runProxyStop(cfg, false)
+	if err == nil {
+		t.Fatal("expected foreign listener error")
+	}
+	if !strings.Contains(err.Error(), "does not identify as clovapi proxy") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(killed) != 0 {
+		t.Fatalf("stale reused pid was killed: %v", killed)
+	}
+}
+
 func TestRunProxyStopKillsVerifiedClovapiListenerWithoutPIDFile(t *testing.T) {
 	dir := t.TempDir()
 	config.SetDirOverride(dir)

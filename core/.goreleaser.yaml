@@ -10,7 +10,7 @@ before:
 
 builds:
   - id: clovapi
-    main: ./cmd/clovapi
+    main: ./cmd
     binary: clovapi
     env:
       - CGO_ENABLED=0

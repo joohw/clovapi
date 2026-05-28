@@ -54,6 +54,6 @@ function run(command, args, options = {}) {
 }
 
 const devVersion = resolveDevVersion();
-run("go", ["build", `-ldflags=-X ${buildInfoVersionVar}=${devVersion}`, "-o", coreBin, "./cmd/clovapi"], { cwd: coreDir });
+run("go", ["build", `-ldflags=-X ${buildInfoVersionVar}=${devVersion}`, "-o", coreBin, "./cmd"], { cwd: coreDir });
 fs.chmodSync(coreBin, 0o755);
 console.log(`Dev clovapi ${devVersion} ready:\n  ${coreBin}`);

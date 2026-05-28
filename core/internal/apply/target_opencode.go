@@ -32,15 +32,7 @@ func (openCodeTarget) Apply(p profile.Profile) error {
 	if p.CLI != agentkind.OpenCode {
 		return fmt.Errorf("wrong cli %q for opencode target", p.CLI)
 	}
-	dir, err := OpenCodeGlobalDir()
-	if err != nil {
-		return err
-	}
-	root, err := loadOpenCodeGlobalMerged(dir)
-	if err != nil {
-		return err
-	}
-	writePath, err := OpenCodeWritableConfigPath()
+	root, writePath, err := loadOpenCodeWritableRoot()
 	if err != nil {
 		return err
 	}
@@ -57,7 +49,7 @@ func (openCodeTarget) Apply(p profile.Profile) error {
 
 	switch p.APIStyle {
 	case apistyle.Claude:
-		prov[opencodeRelayID] = openCodeRelayEntry(p, "@ai-sdk/anthropic", seg, ensureAnthropicWireBaseURL(p.BaseURL))
+		prov[opencodeRelayID] = openCodeRelayEntry(p, "@ai-sdk/anthropic", seg, ensureOpenCodeSDKBaseURL(p.BaseURL))
 		root["model"] = opencodeRelayID + "/" + seg
 
 	case apistyle.OpenAIChat:
@@ -84,36 +76,53 @@ func (openCodeTarget) Apply(p profile.Profile) error {
 }
 
 func (openCodeTarget) ResetDefault() error {
-	dir, err := OpenCodeGlobalDir()
-	if err != nil {
-		return err
-	}
-	root, err := loadOpenCodeGlobalMerged(dir)
+	root, writePath, err := loadOpenCodeWritableRoot()
 	if err != nil {
 		return err
 	}
 	if len(root) == 0 {
 		return nil
 	}
-	writePath, err := OpenCodeWritableConfigPath()
-	if err != nil {
-		return err
-	}
+	changed := false
 	prov, _ := root["provider"].(map[string]any)
 	if prov != nil {
-		delete(prov, opencodeRelayID)
+		if _, ok := prov[opencodeRelayID]; ok {
+			delete(prov, opencodeRelayID)
+			changed = true
+		}
 		if len(prov) == 0 {
 			delete(root, "provider")
 		} else {
 			root["provider"] = prov
 		}
 	}
-	delete(root, "model")
+	if model, ok := root["model"].(string); ok && model == opencodeRelayID+"/"+profileModelSegment(model) {
+		delete(root, "model")
+		changed = true
+	}
+	if !changed {
+		return nil
+	}
 	out, err := json.MarshalIndent(root, "", "  ")
 	if err != nil {
 		return err
 	}
 	return writeFileAtomic(writePath, out, 0o600)
+}
+
+func loadOpenCodeWritableRoot() (map[string]any, string, error) {
+	writePath, err := OpenCodeWritableConfigPath()
+	if err != nil {
+		return nil, "", err
+	}
+	root, err := readOpenCodeJSONLikeFile(writePath)
+	if err != nil {
+		return nil, "", err
+	}
+	if root == nil {
+		root = map[string]any{}
+	}
+	return root, writePath, nil
 }
 
 func openCodeRelayEntry(p profile.Profile, npm, modelSeg, baseURL string) map[string]any {

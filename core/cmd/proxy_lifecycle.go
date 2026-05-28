@@ -227,15 +227,19 @@ func runProxyStop(cfg profile.ProxyConfig, verbose bool) error {
 	}
 
 	rec, pidErr := readProxyPIDFile()
+	listenPID, listenErr := findListenPIDForStop(cfg.Port)
 	if pidErr == nil && rec.PID > 0 {
-		if processAliveForStop(rec.PID) {
+		if processAliveForStop(rec.PID) && listenErr == nil && listenPID == rec.PID {
+			if err := verifyPortListenerIsClovapiProxy(cfg, rec.PID); err != nil {
+				return err
+			}
 			if err := killProcessTreeForStop(rec.PID); err != nil && verbose {
 				fmt.Fprintf(os.Stderr, "warning: kill proxy pid %d: %v\n", rec.PID, err)
 			}
 		}
 	}
 
-	if listenPID, err := findListenPIDForStop(cfg.Port); err == nil && listenPID > 0 {
+	if listenErr == nil && listenPID > 0 {
 		if pidErr != nil || listenPID != rec.PID {
 			if err := verifyPortListenerIsClovapiProxy(cfg, listenPID); err != nil {
 				return err

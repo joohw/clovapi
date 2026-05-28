@@ -1,6 +1,8 @@
 package profile
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -887,6 +889,20 @@ func NormalizeDesktopStore(s *Store) *Store {
 	return s
 }
 
+func normalizeDesktopStoreChanged(s *Store) bool {
+	before, err := json.Marshal(s)
+	if err != nil {
+		NormalizeDesktopStore(s)
+		return true
+	}
+	NormalizeDesktopStore(s)
+	after, err := json.Marshal(s)
+	if err != nil {
+		return true
+	}
+	return !bytes.Equal(before, after)
+}
+
 // LoadDesktop loads profiles.json with desktop normalization applied.
 func LoadDesktop() (*Store, error) {
 	s, err := Load()
@@ -906,12 +922,15 @@ func SaveDesktop(s *Store) error {
 // transaction on profiles.json.
 func WithLockedDesktopStore(fn func(*Store) (bool, error)) (*Store, error) {
 	return WithLockedStore(func(s *Store) (bool, error) {
-		NormalizeDesktopStore(s)
+		normalizedChanged := normalizeDesktopStoreChanged(s)
 		changed, err := fn(s)
-		if changed {
-			NormalizeDesktopStore(s)
+		if err != nil {
+			return false, err
 		}
-		return changed, err
+		if changed {
+			normalizedChanged = normalizeDesktopStoreChanged(s) || normalizedChanged
+		}
+		return normalizedChanged || changed, nil
 	})
 }
 

@@ -5,9 +5,15 @@ import { openProfilesVendor, setActiveTab } from "./navigation";
 import { loadProfilesFromDisk } from "./profiles";
 import { refreshProxyLogs, refreshProxyStatus } from "./proxy";
 import { refreshSubscriptions } from "./subscriptions";
+import { refreshAppVersion, waitForDesktopBridge } from "./app-version";
+import { isElectronRenderer } from "../constants";
 import { store } from "./state.svelte";
 
 export async function initApp() {
+  if (isElectronRenderer()) {
+    await waitForDesktopBridge();
+  }
+  await refreshAppVersion();
   store.modelTests = loadModelTests();
   await loadVendorCatalog();
   await loadProfilesFromDisk();

@@ -178,6 +178,7 @@ type ProfileTestResult = {
 
 type ClovapiEnvBridge = {
   isDev?: boolean;
+  getVersion?(): Promise<string>;
 };
 
 declare global {

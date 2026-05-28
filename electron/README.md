@@ -39,7 +39,7 @@ npm install
 npm run dev
 ```
 
-Development runs Vite on port 31873 and Electron with `ELECTRON_DEV=1`.
+Development runs Vite on `http://127.0.0.1:31873` and Electron with `ELECTRON_DEV=1`. **Use the Electron window that opens automatically** — do not open the Vite URL in a browser (the UI will not work there). Closing the Electron window in dev mode quits the app and stops Vite (via `scripts/dev.mjs`). If `Port 31873 is already in use` persists, run `npm run dev` again — the script tries to free the port automatically.
 
 Production-style (built UI):
 

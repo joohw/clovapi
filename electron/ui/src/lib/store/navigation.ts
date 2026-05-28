@@ -2,6 +2,7 @@ import { resolveVendorByName } from "../helpers";
 import { detectCliPath, detectOllamaInstalled } from "./cli";
 import { loadProfilesFromDisk } from "./profiles";
 import { refreshProxyLogs, refreshProxyStatus } from "./proxy";
+import { refreshAppVersion } from "./app-version";
 import { refreshSubscriptions } from "./subscriptions";
 import { t } from "../i18n";
 import { store, type TabId } from "./state.svelte";
@@ -48,6 +49,7 @@ export function setActiveTab(tab: TabId) {
     void detectCliPath();
   }
   if (tab === "settings") {
+    void refreshAppVersion();
     void refreshProxyStatus();
   }
   if (isLogTab(tab)) {

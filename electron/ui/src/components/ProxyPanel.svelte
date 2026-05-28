@@ -13,23 +13,23 @@
   import ListRow from "./ListRow.svelte";
   import SectionCard from "./SectionCard.svelte";
 
-  const pathHint = "/{providerId}/{modelId}/{apiStyle}/v1";
-
   const copy = $derived.by(() => {
     void i18n.locale;
     return {
       title: t("proxy.title"),
-      description: store.coreVersion
-        ? t("proxy.currentVersionLine", { version: store.coreVersion })
-        : t("proxy.currentVersionUnknown"),
+      description: t("proxy.description", { path: "/{providerId}/{modelId}/{apiStyle}/v1" }),
       service: t("proxy.service"),
       statusLine: store.proxyRunning
         ? t("proxy.running", { url: store.proxyBaseUrl })
         : t("proxy.stopped"),
-      version: t("proxy.version"),
-      versionLine: store.coreVersion
-        ? t("proxy.versionLine", { version: store.coreVersion })
-        : t("proxy.versionUnknown"),
+      appVersion: t("proxy.appVersion"),
+      appVersionLine: store.appVersion
+        ? t("proxy.appVersionLine", { version: store.appVersion })
+        : t("proxy.appVersionUnknown"),
+      coreVersion: t("proxy.coreVersion"),
+      coreVersionLine: store.coreVersion
+        ? t("proxy.coreVersionLine", { version: store.coreVersion })
+        : t("proxy.coreVersionUnknown"),
       test: t("common.test"),
       testing: t("common.testing"),
       restart: t("proxy.restart"),
@@ -77,9 +77,13 @@
     {/snippet}
   </ListRow>
 
+  <ListRow title={copy.appVersion} lines={[copy.appVersionLine]}>
+    {#snippet actions()}{/snippet}
+  </ListRow>
+
   <ListRow
-    title={copy.version}
-    lines={electronDev ? [copy.versionLine, copy.updateDisabledInDev] : [copy.versionLine]}
+    title={copy.coreVersion}
+    lines={electronDev ? [copy.coreVersionLine, copy.updateDisabledInDev] : [copy.coreVersionLine]}
     testStatus={electronDev ? "" : rowTestStatus(coreUpdateCheck?.status)}
     testSummary={electronDev ? "" : coreUpdateCheck?.summary || ""}
   >

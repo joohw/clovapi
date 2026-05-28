@@ -106,13 +106,14 @@ const zh = {
     },
   },
   proxy: {
-    title: "clovapi-core",
+    title: "代理与更新",
     service: "代理服务",
-    version: "版本",
-    currentVersionLine: "当前版本：v{version}",
-    currentVersionUnknown: "当前版本：未知",
-    versionLine: "v{version}",
-    versionUnknown: "未知 — 启动代理或检查更新",
+    appVersion: "桌面应用",
+    coreVersion: "内核",
+    appVersionLine: "v{version}",
+    coreVersionLine: "v{version}",
+    appVersionUnknown: "未知",
+    coreVersionUnknown: "未知 — 启动代理或检查更新",
     running: "运行中 · {url}",
     stopped: "未运行 · 应用 CLI 时将自动启动，也可手动重启服务",
     description:
@@ -208,6 +209,8 @@ const zh = {
   },
   toast: {
     profilesBridgeMissing: "无法加载配置：桌面端未注入 profiles 接口，请重新安装或重启应用。",
+    profilesBridgeBrowser:
+      "此页面需要在 Electron 桌面窗口中运行。请使用 npm run dev 弹出的窗口，不要在浏览器中打开开发地址。",
     profilesLoadFailed: "无法读取 profiles.json",
     profilesSaveFailed: "保存 profiles.json 失败",
     bindingSaveFailed: "保存选择失败",

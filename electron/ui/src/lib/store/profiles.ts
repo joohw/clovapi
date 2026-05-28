@@ -13,6 +13,7 @@ import {
   resolveVendorByName,
 } from "../helpers";
 import { OLLAMA_DEFAULTS, OLLAMA_PROFILE_NAME } from "../constants";
+import { isElectronRenderer } from "../constants";
 import { t } from "../i18n";
 import { toast } from "../toast";
 import { store } from "./state.svelte";
@@ -47,7 +48,7 @@ function normalizeActiveSelections(raw: unknown, vendors: Vendor[]) {
 export async function loadProfilesFromDisk() {
   const bridge = window.clovapiProfiles;
   if (!bridge?.load) {
-    toast.error(t("toast.profilesBridgeMissing"));
+    toast.error(isElectronRenderer() ? t("toast.profilesBridgeMissing") : t("toast.profilesBridgeBrowser"));
     return;
   }
 

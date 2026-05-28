@@ -37,6 +37,7 @@ export const store = $state({
   proxyPort: 27483,
   proxyBaseUrl: "http://127.0.0.1:27483",
   proxyHealthTest: null as import("../../global").ModelTestEntry | null,
+  appVersion: "",
   coreVersion: "",
   coreLatestVersion: "",
   coreUpdateAvailable: false,

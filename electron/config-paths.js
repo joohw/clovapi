@@ -24,6 +24,10 @@ function electronUserDataDir() {
   return path.join(configDir(), "desktop");
 }
 
+function electronDevUserDataDir() {
+  return path.join(configDir(), "desktop-dev");
+}
+
 function callLogsDBPath() {
   return path.join(logsDir(), "call-logs.sqlite");
 }
@@ -33,5 +37,6 @@ module.exports = {
   cliBinPath,
   logsDir,
   electronUserDataDir,
+  electronDevUserDataDir,
   callLogsDBPath,
 };

@@ -61,3 +61,8 @@ export const OLLAMA_DEFAULTS = {
 export function isElectronDev(): boolean {
   return Boolean(window.clovapiEnv?.isDev);
 }
+
+/** True when the UI runs inside the Electron renderer (not a plain browser tab). */
+export function isElectronRenderer(): boolean {
+  return typeof navigator !== "undefined" && /Electron/i.test(navigator.userAgent);
+}

@@ -11,17 +11,26 @@ const {
   resolveClovapiExecutable: resolveBundledClovapiExecutable,
 } = require("./clovapi-exec");
 const { buildTrayMenuModel, isValidTrayTab, trayStatusSummary, trayTooltip } = require("./tray-menu");
-const { cliBinPath, electronUserDataDir } = require("./config-paths");
+const { cliBinPath, electronDevUserDataDir, electronUserDataDir } = require("./config-paths");
 const { sanitizeForIpc } = require("./ipc-utils");
+
+const isElectronDev =
+  process.env.ELECTRON_DEV === "1" || process.argv.includes("--clovapi-dev");
 
 // Overlay scrollbars float above content instead of reserving layout width (Windows/Linux).
 app.commandLine.appendSwitch("enable-features", "OverlayScrollbar,FluentOverlayScrollbar");
 app.setName("ClovAPI Switcher");
 
-fs.mkdirSync(electronUserDataDir(), { recursive: true });
-app.setPath("userData", electronUserDataDir());
+const electronDataDir = isElectronDev ? electronDevUserDataDir() : electronUserDataDir();
+fs.mkdirSync(electronDataDir, { recursive: true });
+app.setPath("userData", electronDataDir);
 
-const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (isElectronDev) {
+  app.commandLine.appendSwitch("disk-cache-dir", path.join(electronDataDir, "cache"));
+  app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
+}
+
+const gotSingleInstanceLock = isElectronDev ? true : app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
   app.quit();
 }
@@ -338,15 +347,26 @@ function createWindow() {
     icon: windowIconPath(),
     title: "ClovAPI Switcher",
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.resolve(__dirname, "preload.js"),
       contextIsolation: true,
-      nodeIntegration: false
-    }
+      nodeIntegration: false,
+      sandbox: false,
+    },
   });
+  if (isElectronDev) {
+    mainWindow.webContents.on("preload-error", (_event, preloadPath, error) => {
+      emitOutput("stderr", `[dev] preload failed (${preloadPath}): ${error?.message || error}\n`);
+    });
+  }
   forceLightModeForWindow(mainWindow);
 
   mainWindow.on("close", (event) => {
     if (quitting) return;
+    if (isElectronDev) {
+      quitting = true;
+      app.quit();
+      return;
+    }
     event.preventDefault();
     hideMainWindow();
   });
@@ -361,9 +381,27 @@ function createWindow() {
     void updateTrayMenu();
   });
 
-  const devUrl = process.env.ELECTRON_DEV === "1" ? process.env.VITE_DEV_SERVER_URL || "http://localhost:31873" : "";
+  const devUrl = isElectronDev ? process.env.VITE_DEV_SERVER_URL || "http://127.0.0.1:31873" : "";
   if (devUrl) {
     void mainWindow.loadURL(devUrl);
+    mainWindow.webContents.once("did-finish-load", () => {
+      void (async () => {
+        try {
+          const hasProfiles = await mainWindow.webContents.executeJavaScript(
+            "Boolean(window.clovapiProfiles?.load)",
+            true,
+          );
+          emitOutput("system", `[dev] preload bridge profiles=${hasProfiles}\n`);
+          if (!hasProfiles) {
+            emitOutput("stderr", "[dev] preload bridge missing — restart npm run dev\n");
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          emitOutput("stderr", `[dev] bridge check failed: ${message}\n`);
+        }
+        mainWindow.webContents.openDevTools({ mode: "detach" });
+      })();
+    });
   } else {
     void mainWindow.loadFile(path.join(__dirname, "ui-dist", "index.html"));
   }
@@ -553,6 +591,8 @@ function stopRunningProcess() {
     return { ok: false, error: error instanceof Error ? error.message : "Failed to stop process." };
   }
 }
+
+ipcMain.handle("app:version", () => app.getVersion());
 
 ipcMain.handle("cli:run", async (_event, payload) => {
   if (runningProcess) {
@@ -1043,7 +1083,9 @@ if (gotSingleInstanceLock) {
   app.whenReady().then(async () => {
     nativeTheme.themeSource = "light";
     createWindow();
-    createTray();
+    if (!isElectronDev) {
+      createTray();
+    }
     watchCoreDevBinary();
     try {
       await proxyManager.autostartIfAllowed();

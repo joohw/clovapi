@@ -108,13 +108,14 @@ const en = {
     },
   },
   proxy: {
-    title: "clovapi-core",
+    title: "Proxy & updates",
     service: "Proxy service",
-    version: "Version",
-    currentVersionLine: "Current version: v{version}",
-    currentVersionUnknown: "Current version: unknown",
-    versionLine: "v{version}",
-    versionUnknown: "Unknown — start the proxy or check for updates",
+    appVersion: "Desktop app",
+    coreVersion: "Core",
+    appVersionLine: "v{version}",
+    coreVersionLine: "v{version}",
+    appVersionUnknown: "Unknown",
+    coreVersionUnknown: "Unknown — start the proxy or check for updates",
     running: "Running · {url}",
     stopped: "Stopped · starts when you apply a CLI, or restart manually",
     description:
@@ -212,6 +213,8 @@ const en = {
   },
   toast: {
     profilesBridgeMissing: "Cannot load config: profiles bridge unavailable. Reinstall or restart the app.",
+    profilesBridgeBrowser:
+      "This page must run in the ClovAPI Switcher Electron window. Run npm run dev and use the desktop window — do not open the dev URL in a browser.",
     profilesLoadFailed: "Cannot read profiles.json",
     profilesSaveFailed: "Failed to save profiles.json",
     bindingSaveFailed: "Failed to save selection",

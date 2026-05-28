@@ -12,6 +12,9 @@
   import { Toaster } from "$lib/components/ui/sonner/index.js";
   import { i18n, t } from "./lib/i18n";
   import { initApp, setActiveTab, store, type TabId } from "./lib/store.svelte";
+  import { isElectronRenderer } from "./lib/constants";
+
+  const inElectron = isElectronRenderer();
 
   onMount(() => {
     void initApp();
@@ -42,9 +45,16 @@
         systemLogs: t("tabs.systemLogs"),
         settings: t("tabs.settings"),
       },
+      browserBanner: t("toast.profilesBridgeBrowser"),
     };
   });
 </script>
+
+{#if !inElectron}
+  <div class="border-b border-red-300 bg-red-50 px-4 py-2 text-sm text-red-800">
+    {copy.browserBanner}
+  </div>
+{/if}
 
 <main class="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-5 py-5">
   <header class="mb-5 shrink-0">

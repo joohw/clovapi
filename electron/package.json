@@ -1,14 +1,14 @@
 {
   "name": "clovapi-switcher",
   "private": true,
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "ClovAPI Switcher desktop app",
   "main": "main.js",
   "type": "commonjs",
   "scripts": {
     "dev:ui": "vite --config ui/vite.config.mjs",
     "prepare:cli:dev": "node scripts/prepare-dev-cli.mjs",
-    "dev": "concurrently -k \"npm run dev:ui\" \"wait-on tcp:31873 && cross-env ELECTRON_DEV=1 electron .\"",
+    "dev": "node scripts/dev.mjs",
     "build:ui": "vite build --config ui/vite.config.mjs",
     "build:icons": "node scripts/build-icons.mjs",
     "build:mac": "npm run build:ui && npm run build:icons && electron-builder --mac dmg",

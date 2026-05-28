@@ -40,9 +40,11 @@ function shutdown(code = 0) {
 
 function startElectron() {
   if (electron) return;
-  electron = spawnChild(npmCmd, ["-C", "electron", "run", "dev"]);
-  pipe("electron", electron.stdout);
-  pipe("electron", electron.stderr);
+  electron = spawn(npmCmd, ["-C", "electron", "run", "dev"], {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+    windowsHide: false,
+  });
   electron.on("close", (code) => shutdown(code ?? 0));
   electron.on("error", (error) => {
     console.error(error.message);

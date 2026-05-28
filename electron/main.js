@@ -16,6 +16,7 @@ const { sanitizeForIpc } = require("./ipc-utils");
 
 // Overlay scrollbars float above content instead of reserving layout width (Windows/Linux).
 app.commandLine.appendSwitch("enable-features", "OverlayScrollbar,FluentOverlayScrollbar");
+app.setName("ClovAPI Switcher");
 
 fs.mkdirSync(electronUserDataDir(), { recursive: true });
 app.setPath("userData", electronUserDataDir());
@@ -360,7 +361,7 @@ function createWindow() {
     void updateTrayMenu();
   });
 
-  const devUrl = process.env.ELECTRON_DEV === "1" ? process.env.VITE_DEV_SERVER_URL || "http://localhost:5173" : "";
+  const devUrl = process.env.ELECTRON_DEV === "1" ? process.env.VITE_DEV_SERVER_URL || "http://localhost:31873" : "";
   if (devUrl) {
     void mainWindow.loadURL(devUrl);
   } else {

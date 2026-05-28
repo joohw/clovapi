@@ -1,4 +1,4 @@
-# ClovAPI Desktop Client (Minimal)
+# ClovAPI Switcher Desktop
 
 Electron UI for the **clovapi** core CLI. Profile data is stored in the same file as the CLI (`profiles.json`), not in browser `localStorage`.
 
@@ -39,7 +39,7 @@ npm install
 npm run dev
 ```
 
-Development runs Vite on port 5173 and Electron with `ELECTRON_DEV=1`.
+Development runs Vite on port 31873 and Electron with `ELECTRON_DEV=1`.
 
 Production-style (built UI):
 

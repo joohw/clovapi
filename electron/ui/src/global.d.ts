@@ -1,7 +1,6 @@
 export {};
 
 type CliBridge = {
-  run(command: string, cwd: string, env: Record<string, string>): Promise<unknown>;
   runClovapi(args: string[], cwd: string): Promise<{
     ok?: boolean;
     error?: string;

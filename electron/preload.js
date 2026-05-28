@@ -21,9 +21,6 @@ try {
   });
 
   contextBridge.exposeInMainWorld("clovapiCli", {
-    run(command, cwd, env) {
-      return ipcRenderer.invoke("cli:run", { command, cwd, env });
-    },
     runClovapi(args, cwd) {
       return ipcRenderer.invoke("cli:run-clovapi", { args, cwd });
     },

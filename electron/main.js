@@ -484,31 +484,6 @@ function watchCoreDevBinary() {
   }
 }
 
-function startChildProcess(command, options = {}) {
-  const { cwd = process.cwd(), env = process.env, executable, args = [] } = options;
-
-  const child =
-    executable && Array.isArray(args)
-      ? spawn(executable, args, { cwd, windowsHide: true, env })
-      : spawn(command, { cwd, shell: true, windowsHide: true, env });
-
-  runningProcess = child;
-  emitOutput("system", executable ? `$ ${executable} ${args.join(" ")}\n` : `$ ${command}\n`);
-  child.stdout.on("data", (chunk) => emitOutput("stdout", chunk));
-  child.stderr.on("data", (chunk) => emitOutput("stderr", chunk));
-  child.on("error", (error) => {
-    emitOutput("stderr", `${error.message}\n`);
-  });
-  child.on("close", (code, signal) => {
-    emitOutput("system", `\n[exit] code=${String(code)} signal=${String(signal)}\n`);
-    runningProcess = null;
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send("cli:exit", { code, signal });
-    }
-  });
-  return child;
-}
-
 /** Spawn clovapi (or any executable) and resolve when the child exits. */
 function spawnExecutableAndWait(executable, args, cwd) {
   return new Promise((resolve) => {
@@ -556,9 +531,12 @@ function spawnExecutableAndWait(executable, args, cwd) {
 }
 
 function resolveCommandPath(command) {
+  if (!/^[a-zA-Z0-9._-]+$/.test(String(command || ""))) {
+    return Promise.resolve({ ok: false, exists: false, path: "", error: `Invalid command name: ${command}` });
+  }
   const resolver = process.platform === "win32" ? "where" : "which";
   return new Promise((resolve) => {
-    const child = spawn(resolver, [command], { shell: true, windowsHide: true });
+    const child = spawn(resolver, [command], { shell: false, windowsHide: true });
     const chunks = [];
     const errChunks = [];
     child.stdout.on("data", (chunk) => chunks.push(String(chunk || "")));
@@ -642,37 +620,6 @@ ipcMain.handle("desktop:install-update", async () => {
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Failed to install desktop update.",
-    };
-  }
-});
-
-ipcMain.handle("cli:run", async (_event, payload) => {
-  if (runningProcess) {
-    return { ok: false, error: "A command is already running." };
-  }
-
-  const command = String(payload?.command || "").trim();
-  const cwdInput = String(payload?.cwd || "").trim();
-  const cwd = cwdInput || process.cwd();
-  const envInput = payload?.env && typeof payload.env === "object" ? payload.env : {};
-  const mergedEnv = { ...process.env };
-  for (const [key, value] of Object.entries(envInput)) {
-    if (!key) continue;
-    if (value === undefined || value === null || value === "") continue;
-    mergedEnv[String(key)] = String(value);
-  }
-
-  if (!command) {
-    return { ok: false, error: "Command cannot be empty." };
-  }
-
-  try {
-    startChildProcess(command, { cwd, env: mergedEnv });
-    return { ok: true };
-  } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to start command."
     };
   }
 });

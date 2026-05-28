@@ -42,3 +42,14 @@ func LogProxyStopped(reason string) {
 	}
 	Write("stderr", fmt.Sprintf("proxy stop %s", reason))
 }
+
+func LogProxyProbe(method, url string, status int, detail string) {
+	method = strings.TrimSpace(method)
+	url = strings.TrimSpace(url)
+	detail = strings.TrimSpace(detail)
+	msg := fmt.Sprintf("probe %s %s -> HTTP %d", method, url, status)
+	if detail != "" {
+		msg += ": " + detail
+	}
+	Write("proxy", msg)
+}

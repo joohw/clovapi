@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/clovapi/switcher/internal/provider"
 	"github.com/google/uuid"
 )
 
@@ -57,6 +58,35 @@ func TestShouldRecordCallLog(t *testing.T) {
 	}
 	if shouldRecordCallLog("/__debug/call-log") {
 		t.Fatal("debug route should be skipped")
+	}
+}
+
+func TestShouldUseCallLogRoutesProbesToSystemLog(t *testing.T) {
+	probe, _ := http.NewRequest(http.MethodHead, "http://127.0.0.1:27483/claude-code/opus/claude", nil)
+	ingress, ok := provider.ParseProxyIngressPath(probe.URL.Path)
+	if ok {
+		t.Fatal("expected invalid ingress path")
+	}
+	if shouldUseCallLog(probe, ingress, ok) {
+		t.Fatal("HEAD probe on invalid path should skip call log")
+	}
+
+	models, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:27483/claude-code/opus/claude/v1/models", nil)
+	ingress, ok = provider.ParseProxyIngressPath(models.URL.Path)
+	if !ok {
+		t.Fatal("expected valid models ingress path")
+	}
+	if !shouldUseCallLog(models, ingress, ok) {
+		t.Fatal("GET models should stay in call log")
+	}
+
+	post, _ := http.NewRequest(http.MethodPost, "http://127.0.0.1:27483/claude-code/opus/claude/v1/messages", nil)
+	ingress, ok = provider.ParseProxyIngressPath(post.URL.Path)
+	if !ok {
+		t.Fatal("expected valid messages ingress path")
+	}
+	if !shouldUseCallLog(post, ingress, ok) {
+		t.Fatal("POST messages should stay in call log")
 	}
 }
 

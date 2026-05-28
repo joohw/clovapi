@@ -330,27 +330,34 @@ func readInboundBody(r *http.Request) ([]byte, error) {
 }
 
 func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
-	trace := startRequestTrace(s.CallLogs, r)
-	defer trace.finish()
+	path := r.URL.EscapedPath()
+	if path == "" {
+		path = r.URL.Path
+	}
+	ingress, pathOK := provider.ParseProxyIngressPath(path)
+	trace := startRequestTraceIfNeeded(s.CallLogs, r, ingress, pathOK)
+	defer func() {
+		if trace != nil {
+			trace.finish()
+		}
+	}()
 
 	payload, bodyErr := readInboundBody(r)
 	_ = r.Body.Close()
 	trace.setRequestBody(payload)
 	if bodyErr != nil {
 		trace.setError("read request body")
+		logProxyProbeIfNeeded(r, trace, http.StatusBadRequest, "read request body")
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "read request body"})
 		return
 	}
 	r.Body = io.NopCloser(bytes.NewReader(payload))
 
-	path := r.URL.EscapedPath()
-	if path == "" {
-		path = r.URL.Path
-	}
-	ingress, ok := provider.ParseProxyIngressPath(path)
-	if !ok {
-		trace.setError("invalid path; use /{providerId}/{modelId}/{apiStyle}/v1/...")
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "invalid path; use /{providerId}/{modelId}/{apiStyle}/v1/..."})
+	if !pathOK {
+		msg := "invalid path; use /{providerId}/{modelId}/{apiStyle}/v1/..."
+		trace.setError(msg)
+		logProxyProbeIfNeeded(r, trace, http.StatusNotFound, msg)
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": msg})
 		return
 	}
 	if (r.Method == http.MethodGet || r.Method == http.MethodHead) && isModelsPath(ingress.PathSuffix) {
@@ -364,8 +371,10 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !shouldTransformProxyMethod(r.Method) {
-		trace.setError("method not supported for proxy route")
-		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not supported for proxy route"})
+		msg := "method not supported for proxy route"
+		trace.setError(msg)
+		logProxyProbeIfNeeded(r, trace, http.StatusMethodNotAllowed, msg)
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": msg})
 		return
 	}
 

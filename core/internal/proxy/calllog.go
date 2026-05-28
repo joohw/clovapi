@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/clovapi/switcher/internal/provider"
+	"github.com/clovapi/switcher/internal/syslog"
 	"github.com/google/uuid"
 )
 
@@ -169,6 +171,48 @@ func shouldRecordCallLog(path string) bool {
 		return false
 	}
 	return true
+}
+
+func isProbeMethod(method string) bool {
+	switch strings.ToUpper(strings.TrimSpace(method)) {
+	case http.MethodGet, http.MethodHead:
+		return true
+	default:
+		return false
+	}
+}
+
+// shouldUseCallLog decides whether a request gets a full call-log trace.
+// GET/HEAD probes (connectivity checks, invalid paths) go to system logs instead.
+func shouldUseCallLog(r *http.Request, ingress provider.Ingress, pathOK bool) bool {
+	if r == nil {
+		return false
+	}
+	path := r.URL.EscapedPath()
+	if path == "" {
+		path = r.URL.Path
+	}
+	if !shouldRecordCallLog(path) {
+		return false
+	}
+	if !isProbeMethod(r.Method) {
+		return true
+	}
+	return pathOK && isModelsPath(ingress.PathSuffix)
+}
+
+func startRequestTraceIfNeeded(store *CallLogStore, r *http.Request, ingress provider.Ingress, pathOK bool) *requestTrace {
+	if !shouldUseCallLog(r, ingress, pathOK) {
+		return nil
+	}
+	return startRequestTrace(store, r)
+}
+
+func logProxyProbeIfNeeded(r *http.Request, trace *requestTrace, status int, detail string) {
+	if trace != nil || r == nil || !isProbeMethod(r.Method) {
+		return
+	}
+	syslog.LogProxyProbe(r.Method, inboundRequestURL(r), status, detail)
 }
 
 type requestTrace struct {

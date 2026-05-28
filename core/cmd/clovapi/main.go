@@ -15,6 +15,7 @@ import (
 	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/apply"
+	"github.com/clovapi/switcher/internal/buildinfo"
 	"github.com/clovapi/switcher/internal/profile"
 	coreproxy "github.com/clovapi/switcher/internal/proxy"
 	"github.com/clovapi/switcher/internal/syslog"
@@ -32,6 +33,7 @@ func newRoot() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "clovapi",
 		Short: "One Uniform API for Agents",
+		Long:  fmt.Sprintf("One Uniform API for Agents\n\n%s", buildinfo.Display()),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
 		},

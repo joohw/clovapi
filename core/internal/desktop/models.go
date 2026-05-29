@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/clovapi/switcher/internal/config"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
 )
@@ -52,12 +53,11 @@ var authProviders = []struct {
 	{ID: provider.CodexProviderID, Label: provider.CodexVendorName, Command: "codex"},
 }
 
+// claudeAuthPath returns clovapi's own Claude OAuth store (independent from
+// Claude Code's ~/.claude/.credentials.json). Auth status and logout operate on
+// this file only.
 func claudeAuthPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, ".claude", ".credentials.json"), nil
+	return config.ClaudeSubscriptionAuthPath()
 }
 
 func codexAuthPath() (string, error) {

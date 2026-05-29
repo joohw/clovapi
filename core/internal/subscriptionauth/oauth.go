@@ -18,6 +18,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/clovapi/switcher/internal/config"
 )
 
 const (
@@ -26,7 +28,6 @@ const (
 
 	claudeClientID     = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
 	claudeAuthorizeURL = "https://claude.ai/oauth/authorize"
-	claudeTokenURL     = "https://platform.claude.com/v1/oauth/token"
 	claudeProfileURL   = "https://api.anthropic.com/api/oauth/profile"
 	claudeCallbackPort = 53692
 	claudeCallbackPath = "/callback"
@@ -42,6 +43,9 @@ const (
 
 	loginTimeout = 10 * time.Minute
 )
+
+// claudeTokenURL is a var (not const) so tests can point it at a local server.
+var claudeTokenURL = "https://platform.claude.com/v1/oauth/token"
 
 type LoginResult struct {
 	OK           bool   `json:"ok"`
@@ -277,6 +281,71 @@ func exchangeClaudeCode(ctx context.Context, code, state, verifier, redirectURI 
 	}, nil
 }
 
+// RefreshClaudeToken exchanges a refresh token for a fresh access token using the
+// OAuth refresh_token grant, then persists the result to writePath (clovapi's own
+// store). It never touches Claude Code's ~/.claude/.credentials.json.
+//
+// writePath is passed in (rather than always using claudeAuthPath) so callers and
+// tests can target an explicit store file.
+func RefreshClaudeToken(ctx context.Context, refreshToken, writePath string) (access string, expiresAt int64, ok bool) {
+	rt := strings.TrimSpace(refreshToken)
+	if rt == "" {
+		return "", 0, false
+	}
+	if strings.TrimSpace(writePath) == "" {
+		writePath = claudeAuthPath()
+	}
+	creds, err := exchangeClaudeRefresh(ctx, rt)
+	if err != nil {
+		return "", 0, false
+	}
+	// Carry the previous refresh token forward if the server didn't rotate it.
+	if strings.TrimSpace(creds.Refresh) == "" {
+		creds.Refresh = rt
+	}
+	if err := writeClaudeOAuthCredentials(writePath, creds); err != nil {
+		return "", 0, false
+	}
+	return creds.Access, creds.Expires, true
+}
+
+func exchangeClaudeRefresh(ctx context.Context, refreshToken string) (tokenCredentials, error) {
+	payload := map[string]string{
+		"grant_type":    "refresh_token",
+		"client_id":     claudeClientID,
+		"refresh_token": refreshToken,
+	}
+	var out struct {
+		AccessToken      string `json:"access_token"`
+		RefreshToken     string `json:"refresh_token"`
+		ExpiresIn        int64  `json:"expires_in"`
+		SubscriptionType string `json:"subscription_type"`
+		SubscriptionAlt  string `json:"subscriptionType"`
+		RateLimitTier    string `json:"rate_limit_tier"`
+		RateLimitAlt     string `json:"rateLimitTier"`
+		Scope            any    `json:"scope"`
+		Scopes           any    `json:"scopes"`
+	}
+	if err := postJSON(ctx, claudeTokenURL, payload, &out); err != nil {
+		return tokenCredentials{}, err
+	}
+	if strings.TrimSpace(out.AccessToken) == "" {
+		return tokenCredentials{}, fmt.Errorf("refresh 响应缺少 access_token")
+	}
+	expires := time.Now().Add(time.Hour).UnixMilli()
+	if out.ExpiresIn > 0 {
+		expires = time.Now().Add(time.Duration(out.ExpiresIn)*time.Second - 5*time.Minute).UnixMilli()
+	}
+	return tokenCredentials{
+		Access:           strings.TrimSpace(out.AccessToken),
+		Refresh:          strings.TrimSpace(out.RefreshToken),
+		Expires:          expires,
+		SubscriptionType: firstNonEmpty(out.SubscriptionType, out.SubscriptionAlt),
+		RateLimitTier:    firstNonEmpty(out.RateLimitTier, out.RateLimitAlt),
+		Scopes:           parseScopes(out.Scopes, out.Scope),
+	}, nil
+}
+
 func exchangeCodexCode(ctx context.Context, code, verifier, redirectURI string) (tokenCredentials, error) {
 	form := url.Values{}
 	form.Set("grant_type", "authorization_code")
@@ -443,9 +512,14 @@ func writeJSON0600(path string, payload any) error {
 	return os.WriteFile(path, data, 0o600)
 }
 
+// claudeAuthPath returns clovapi's own Claude OAuth store. It never points at
+// Claude Code's ~/.claude/.credentials.json — clovapi stays fully independent.
 func claudeAuthPath() string {
+	if p, err := config.ClaudeSubscriptionAuthPath(); err == nil {
+		return p
+	}
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".claude", ".credentials.json")
+	return filepath.Join(home, ".config", "clovapi", "subscription", "claude.json")
 }
 
 func codexAuthPath() string {

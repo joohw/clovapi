@@ -1,9 +1,12 @@
 package subscriptionauth
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -66,6 +69,82 @@ func TestWriteCodexOAuthCredentials(t *testing.T) {
 	tokens, _ := payload["tokens"].(map[string]any)
 	if payload["auth_mode"] != "chatgpt" || tokens["access_token"] != "access-token" || tokens["account_id"] != "acct_123" {
 		t.Fatalf("unexpected payload: %#v", payload)
+	}
+}
+
+func TestRefreshClaudeTokenPersistsToOwnStore(t *testing.T) {
+	var gotGrant, gotRefresh string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]string
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		gotGrant = body["grant_type"]
+		gotRefresh = body["refresh_token"]
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"access_token":     "sk-ant-oat-new",
+			"refresh_token":    "rt-new",
+			"expires_in":       3600,
+			"subscriptionType": "Max",
+		})
+	}))
+	defer srv.Close()
+
+	prevURL := claudeTokenURL
+	claudeTokenURL = srv.URL
+	defer func() { claudeTokenURL = prevURL }()
+
+	path := filepath.Join(t.TempDir(), "claude.json")
+	access, expiresAt, ok := RefreshClaudeToken(context.Background(), "rt-old", path)
+	if !ok {
+		t.Fatal("refresh should succeed")
+	}
+	if gotGrant != "refresh_token" || gotRefresh != "rt-old" {
+		t.Fatalf("unexpected request grant=%q refresh=%q", gotGrant, gotRefresh)
+	}
+	if access != "sk-ant-oat-new" || expiresAt == 0 {
+		t.Fatalf("unexpected creds access=%q expiresAt=%d", access, expiresAt)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc struct {
+		ClaudeAiOauth map[string]any `json:"claudeAiOauth"`
+	}
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if doc.ClaudeAiOauth["accessToken"] != "sk-ant-oat-new" ||
+		doc.ClaudeAiOauth["refreshToken"] != "rt-new" ||
+		doc.ClaudeAiOauth["subscriptionType"] != "Max" {
+		t.Fatalf("unexpected stored doc: %#v", doc.ClaudeAiOauth)
+	}
+}
+
+func TestRefreshClaudeTokenKeepsRefreshWhenServerOmits(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"access_token": "sk-ant-oat-new",
+			"expires_in":   3600,
+		})
+	}))
+	defer srv.Close()
+
+	prevURL := claudeTokenURL
+	claudeTokenURL = srv.URL
+	defer func() { claudeTokenURL = prevURL }()
+
+	path := filepath.Join(t.TempDir(), "claude.json")
+	if _, _, ok := RefreshClaudeToken(context.Background(), "rt-old", path); !ok {
+		t.Fatal("refresh should succeed")
+	}
+	data, _ := os.ReadFile(path)
+	var doc struct {
+		ClaudeAiOauth map[string]any `json:"claudeAiOauth"`
+	}
+	_ = json.Unmarshal(data, &doc)
+	if doc.ClaudeAiOauth["refreshToken"] != "rt-old" {
+		t.Fatalf("expected refresh token carried forward, got %#v", doc.ClaudeAiOauth["refreshToken"])
 	}
 }
 

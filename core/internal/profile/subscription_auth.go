@@ -1,12 +1,17 @@
 package profile
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/clovapi/switcher/internal/config"
+	"github.com/clovapi/switcher/internal/subscriptionauth"
 )
 
 const (
@@ -16,18 +21,13 @@ const (
 
 var (
 	claudeCredentialsPathOverride string
-	claudeKeychainLookupDisabled  bool
 	codexHomeOverride             string
+	claudeRefreshMu               sync.Mutex
 )
 
 // SetClaudeCredentialsPathOverride pins Claude OAuth file path (tests only).
 func SetClaudeCredentialsPathOverride(path string) {
 	claudeCredentialsPathOverride = strings.TrimSpace(path)
-}
-
-// SetClaudeKeychainLookupDisabled disables macOS keychain fallback (tests only).
-func SetClaudeKeychainLookupDisabled(disabled bool) {
-	claudeKeychainLookupDisabled = disabled
 }
 
 // SetCodexHomeOverride pins Codex home directory (tests only).
@@ -41,11 +41,14 @@ type subscriptionCredentials struct {
 	AccountID string
 }
 
+type claudeOAuthBlob struct {
+	AccessToken  string  `json:"accessToken"`
+	RefreshToken string  `json:"refreshToken"`
+	ExpiresAt    float64 `json:"expiresAt"`
+}
+
 type claudeCredentialsFile struct {
-	ClaudeAiOauth *struct {
-		AccessToken string  `json:"accessToken"`
-		ExpiresAt   float64 `json:"expiresAt"`
-	} `json:"claudeAiOauth"`
+	ClaudeAiOauth *claudeOAuthBlob `json:"claudeAiOauth"`
 }
 
 type codexAuthFile struct {
@@ -56,15 +59,13 @@ type codexAuthFile struct {
 	} `json:"tokens"`
 }
 
+// claudeCredentialsPath returns clovapi's own Claude OAuth store. It is independent
+// from Claude Code's ~/.claude/.credentials.json; clovapi never reads that file.
 func claudeCredentialsPath() (string, error) {
 	if claudeCredentialsPathOverride != "" {
 		return claudeCredentialsPathOverride, nil
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, ".claude", ".credentials.json"), nil
+	return config.ClaudeSubscriptionAuthPath()
 }
 
 func codexAuthPath() (string, error) {
@@ -90,10 +91,7 @@ func readJSONFile(path string, dest any) bool {
 	return json.Unmarshal(data, dest) == nil
 }
 
-func claudeSubscriptionCredentialsValid(oauth *struct {
-	AccessToken string  `json:"accessToken"`
-	ExpiresAt   float64 `json:"expiresAt"`
-}) bool {
+func claudeSubscriptionCredentialsValid(oauth *claudeOAuthBlob) bool {
 	if oauth == nil {
 		return false
 	}
@@ -121,13 +119,47 @@ func loadClaudeSubscriptionCredentials() (subscriptionCredentials, bool) {
 
 func loadClaudeCredentialsDocument() (claudeCredentialsFile, bool) {
 	path, err := claudeCredentialsPath()
-	if err == nil {
-		var raw claudeCredentialsFile
-		if readJSONFile(path, &raw) && claudeSubscriptionCredentialsValid(raw.ClaudeAiOauth) {
-			return raw, true
-		}
+	if err != nil {
+		return claudeCredentialsFile{}, false
 	}
-	return loadClaudeCredentialsFromKeychain()
+	var raw claudeCredentialsFile
+	if !readJSONFile(path, &raw) || raw.ClaudeAiOauth == nil {
+		return claudeCredentialsFile{}, false
+	}
+	if claudeSubscriptionCredentialsValid(raw.ClaudeAiOauth) {
+		return raw, true
+	}
+	// Access token expired: refresh using clovapi's own refresh token and persist
+	// back to clovapi's own store. Claude Code's credentials are never touched.
+	return refreshClaudeCredentials(path, raw.ClaudeAiOauth.RefreshToken)
+}
+
+// refreshClaudeCredentials mints a fresh access token from the stored refresh token.
+// It serializes concurrent refreshes and re-checks the store after acquiring the lock
+// so a burst of expired-token reads only triggers a single network refresh.
+func refreshClaudeCredentials(path, refreshToken string) (claudeCredentialsFile, bool) {
+	if strings.TrimSpace(refreshToken) == "" {
+		return claudeCredentialsFile{}, false
+	}
+	claudeRefreshMu.Lock()
+	defer claudeRefreshMu.Unlock()
+
+	var current claudeCredentialsFile
+	if readJSONFile(path, &current) && claudeSubscriptionCredentialsValid(current.ClaudeAiOauth) {
+		return current, true
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if _, _, ok := subscriptionauth.RefreshClaudeToken(ctx, refreshToken, path); !ok {
+		return claudeCredentialsFile{}, false
+	}
+
+	var fresh claudeCredentialsFile
+	if readJSONFile(path, &fresh) && claudeSubscriptionCredentialsValid(fresh.ClaudeAiOauth) {
+		return fresh, true
+	}
+	return claudeCredentialsFile{}, false
 }
 
 // ClaudeAuthRoot returns the Claude OAuth document for desktop auth status.

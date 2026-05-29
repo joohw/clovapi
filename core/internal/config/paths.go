@@ -38,6 +38,28 @@ func ProfilesPath() (string, error) {
 	return filepath.Join(d, "profiles.json"), nil
 }
 
+// SubscriptionDir returns the directory for clovapi's own subscription OAuth state.
+func SubscriptionDir() (string, error) {
+	d, err := Dir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(d, "subscription"), nil
+}
+
+// ClaudeSubscriptionAuthPath returns clovapi's own Claude OAuth credentials file.
+//
+// This is intentionally independent from Claude Code's ~/.claude/.credentials.json:
+// clovapi keeps its own access/refresh tokens here and never reads, writes, or
+// overwrites Claude Code's credentials file.
+func ClaudeSubscriptionAuthPath() (string, error) {
+	d, err := SubscriptionDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(d, "claude.json"), nil
+}
+
 // CallLogsDir returns the directory for proxy call logs and system logs.
 func CallLogsDir() (string, error) {
 	d, err := Dir()

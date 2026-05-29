@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"path/filepath"
@@ -70,6 +71,23 @@ func newCallLogStoreAt(dir string) *CallLogStore {
 		return &CallLogStore{dbPath: dbPath}
 	}
 	return &CallLogStore{dbPath: dbPath, db: db}
+}
+
+// Close releases the underlying SQLite handle. Safe to call multiple times and
+// on a nil store. Ephemeral stores opened for one-shot reads/exports must close
+// to avoid leaking connections (and, on Windows, locking the DB file).
+func (s *CallLogStore) Close() error {
+	if s == nil {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.db == nil {
+		return nil
+	}
+	err := s.db.Close()
+	s.db = nil
+	return err
 }
 
 func (s *CallLogStore) DBPath() string {
@@ -305,7 +323,7 @@ func (t *requestTrace) setRequestBody(body []byte) {
 	if t == nil {
 		return
 	}
-	t.entry.Request.Body = string(body)
+	t.entry.Request.Body = redactBodySecrets(body)
 }
 
 func (t *requestTrace) setUpstreamRequest(method, url string) {
@@ -329,7 +347,7 @@ func (t *requestTrace) setUpstreamResponse(status int, headers http.Header, body
 	}
 	t.entry.Upstream.Status = status
 	t.entry.Upstream.Headers = cloneRedactedHeaders(headers)
-	t.entry.Upstream.Body = string(body)
+	t.entry.Upstream.Body = redactBodySecrets(body)
 }
 
 func (t *requestTrace) setError(msg string) {
@@ -382,6 +400,79 @@ func cloneOutboundRequestHeaders(r *http.Request) map[string]string {
 		delete(out, "Content-Length")
 	}
 	return out
+}
+
+// bodySecretKeys are JSON object keys whose values are scrubbed from logged
+// request/response bodies. Some clients embed credentials directly in the JSON
+// payload (rather than headers), which would otherwise be persisted verbatim
+// in the call log and exposed via the debug API.
+var bodySecretKeys = map[string]struct{}{
+	"api_key":       {},
+	"apikey":        {},
+	"x-api-key":     {},
+	"authorization": {},
+	"auth_token":    {},
+	"access_token":  {},
+	"refresh_token": {},
+	"client_secret": {},
+	"secret":        {},
+	"token":         {},
+	"password":      {},
+}
+
+// redactBodySecrets returns the body as a string. If the body is JSON and
+// contains known secret-bearing keys, those values are replaced with
+// "[redacted]"; otherwise the original bytes are preserved verbatim so that
+// debugging non-secret payloads remains byte-accurate.
+func redactBodySecrets(body []byte) string {
+	if len(body) == 0 {
+		return ""
+	}
+	var parsed any
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return string(body)
+	}
+	redacted, changed := redactJSONSecrets(parsed)
+	if !changed {
+		return string(body)
+	}
+	out, err := json.Marshal(redacted)
+	if err != nil {
+		return string(body)
+	}
+	return string(out)
+}
+
+func redactJSONSecrets(v any) (any, bool) {
+	switch node := v.(type) {
+	case map[string]any:
+		changed := false
+		for key, val := range node {
+			if _, secret := bodySecretKeys[strings.ToLower(strings.TrimSpace(key))]; secret {
+				if _, isString := val.(string); isString || val != nil {
+					node[key] = "[redacted]"
+					changed = true
+					continue
+				}
+			}
+			if newVal, c := redactJSONSecrets(val); c {
+				node[key] = newVal
+				changed = true
+			}
+		}
+		return node, changed
+	case []any:
+		changed := false
+		for i, item := range node {
+			if newVal, c := redactJSONSecrets(item); c {
+				node[i] = newVal
+				changed = true
+			}
+		}
+		return node, changed
+	default:
+		return v, false
+	}
 }
 
 func redactHeaderValue(value string) string {

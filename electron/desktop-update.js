@@ -3,6 +3,7 @@ const https = require("node:https");
 const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
+const crypto = require("node:crypto");
 const { spawn } = require("node:child_process");
 const { URL } = require("node:url");
 
@@ -179,6 +180,47 @@ async function checkDesktopUpdate(currentVersion) {
   };
 }
 
+function installerChecksumUrl(versionTag, platform = process.platform) {
+  return `${installerDownloadUrl(versionTag, platform)}.sha256`;
+}
+
+function sha256OfFile(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash("sha256");
+    const stream = fs.createReadStream(filePath);
+    stream.on("error", reject);
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("end", () => resolve(hash.digest("hex")));
+  });
+}
+
+// parseChecksumDigest extracts the hex digest from a `sha256sum`-style file
+// (either a bare digest or "<digest>  <filename>").
+function parseChecksumDigest(text) {
+  const token = String(text || "").trim().split(/\s+/)[0] || "";
+  return /^[0-9a-f]{64}$/i.test(token) ? token.toLowerCase() : "";
+}
+
+// verifyInstallerChecksum fetches the published .sha256 sidecar and verifies the
+// downloaded installer. Returns true when verified, false when no checksum is
+// published (non-breaking for releases without sidecars), and throws on mismatch.
+async function verifyInstallerChecksum(installerPath, versionTag) {
+  let expected = "";
+  try {
+    expected = parseChecksumDigest(await fetchText(installerChecksumUrl(versionTag)));
+  } catch {
+    return false;
+  }
+  if (!expected) return false;
+  const actual = (await sha256OfFile(installerPath)).toLowerCase();
+  if (actual !== expected) {
+    throw new Error(
+      `Installer checksum mismatch (expected ${expected}, got ${actual}); refusing to launch.`,
+    );
+  }
+  return true;
+}
+
 function launchInstaller(installerPath) {
   if (process.platform === "win32") {
     spawn(installerPath, [], {
@@ -205,8 +247,15 @@ async function downloadAndLaunchDesktopUpdate() {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clovapi-desktop-update-"));
   const installerPath = path.join(tmpDir, fileName);
   await downloadFile(url, installerPath);
+  let verified = false;
+  try {
+    verified = await verifyInstallerChecksum(installerPath, latestTag);
+  } catch (error) {
+    fs.rm(tmpDir, { recursive: true, force: true }, () => {});
+    throw error;
+  }
   launchInstaller(installerPath);
-  return { ok: true, path: installerPath, url, latest_tag: latestTag };
+  return { ok: true, path: installerPath, url, latest_tag: latestTag, checksum_verified: verified };
 }
 
 module.exports = {
@@ -216,6 +265,8 @@ module.exports = {
   normalizeTag,
   desktopDownloadRoot,
   installerDownloadUrl,
+  installerChecksumUrl,
+  verifyInstallerChecksum,
   fetchLatestDesktopVersion,
   checkDesktopUpdate,
   downloadAndLaunchDesktopUpdate,

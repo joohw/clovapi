@@ -337,6 +337,45 @@ func countWireArray(v any) int {
 
 const maxInboundProxyBody = 1 << 22
 
+// maxUpstreamBufferedBody bounds non-streaming upstream responses read fully
+// into memory (~64Mi), matching the buffered decompression cap.
+const maxUpstreamBufferedBody int64 = 1 << 26
+
+// maxCallLogBodyBytes bounds how much of a streaming SSE response is retained in
+// memory for the call log (~8Mi). Long agent sessions can stream many MB/hour;
+// without a cap the capture buffer grows for the lifetime of the request.
+const maxCallLogBodyBytes int64 = 1 << 23
+
+// cappedBuffer is an io.Writer that retains at most limit bytes. Writes beyond
+// the limit are discarded (the underlying read still proceeds), so it can back
+// an io.TeeReader without unbounded memory growth.
+type cappedBuffer struct {
+	buf       bytes.Buffer
+	limit     int64
+	truncated bool
+}
+
+func (c *cappedBuffer) Write(p []byte) (int, error) {
+	if remaining := c.limit - int64(c.buf.Len()); remaining > 0 {
+		if int64(len(p)) <= remaining {
+			c.buf.Write(p)
+		} else {
+			c.buf.Write(p[:remaining])
+			c.truncated = true
+		}
+	} else if len(p) > 0 {
+		c.truncated = true
+	}
+	return len(p), nil
+}
+
+func (c *cappedBuffer) Bytes() []byte {
+	if c.truncated {
+		return append(c.buf.Bytes(), []byte("\n…[truncated]")...)
+	}
+	return c.buf.Bytes()
+}
+
 func readInboundBody(r *http.Request) ([]byte, error) {
 	if r == nil || r.Body == nil {
 		return nil, nil
@@ -493,8 +532,8 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		w.WriteHeader(upResp.StatusCode)
-		var capture bytes.Buffer
-		tee := io.TeeReader(buf, &capture)
+		capture := &cappedBuffer{limit: maxCallLogBodyBytes}
+		tee := io.TeeReader(buf, capture)
 		var streamErr error
 		streamErr = protocol.TranscodePlaintextSSEToIngress(r.Context(), route.IngressStyle, route.EgressStyle, ir.Model, tee, w)
 		if shouldRecordStreamError(streamErr) {
@@ -504,10 +543,15 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	upBody, err := io.ReadAll(buf)
+	upBody, err := io.ReadAll(io.LimitReader(buf, maxUpstreamBufferedBody+1))
 	if err != nil {
 		trace.setError("read upstream response")
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "read upstream response"})
+		return
+	}
+	if int64(len(upBody)) > maxUpstreamBufferedBody {
+		trace.setError("upstream response too large")
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "upstream response too large"})
 		return
 	}
 	trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, upBody)

@@ -302,6 +302,7 @@ func FindCallLogEntry(id string) (CallLogEntry, error) {
 	if store == nil || store.db == nil {
 		return CallLogEntry{}, errors.New("call log store unavailable")
 	}
+	defer store.Close()
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	return findCallLogEntryInDB(store.db, id)
@@ -312,6 +313,7 @@ func ExportCallLogs(w io.Writer) (int, error) {
 	if store == nil || store.db == nil {
 		return 0, errors.New("call log store unavailable")
 	}
+	defer store.Close()
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	return exportCallLogDB(store.db, w)

@@ -25,21 +25,44 @@ func AppendParse(chunk []byte, st *SSEParseState) []SSERecord {
 	if len(chunk) > 0 {
 		st.buffer = append(st.buffer, chunk...)
 	}
-	idx := bytes.Index(st.buffer, []byte("\n\n"))
+	idx, sepLen := indexSSEFrameBoundary(st.buffer)
 	if idx < 0 {
 		return nil
 	}
 	out := []SSERecord{}
 	for idx >= 0 {
 		block := st.buffer[:idx]
-		st.buffer = append([]byte(nil), st.buffer[idx+2:]...)
+		st.buffer = append([]byte(nil), st.buffer[idx+sepLen:]...)
 		rec, ok := parseSSEBlock(block)
 		if ok {
 			out = append(out, rec)
 		}
-		idx = bytes.Index(st.buffer, []byte("\n\n"))
+		idx, sepLen = indexSSEFrameBoundary(st.buffer)
 	}
 	return out
+}
+
+// indexSSEFrameBoundary returns the offset and length of the first blank-line
+// separator between SSE frames. SSE line terminators may be LF, CRLF, or CR
+// (per the spec), so a frame boundary can be "\n\n", "\r\n\r\n", or "\r\r".
+// Only matching "\n\n" would never split CRLF streams (which contain no "\n\n"),
+// collapsing the whole response into a single unparseable record.
+func indexSSEFrameBoundary(buf []byte) (idx int, sepLen int) {
+	best := -1
+	bestLen := 0
+	for _, sep := range [][]byte{[]byte("\r\n\r\n"), []byte("\n\n"), []byte("\r\r")} {
+		i := bytes.Index(buf, sep)
+		if i < 0 {
+			continue
+		}
+		// Prefer the earliest boundary; on a tie prefer the longest separator so
+		// a CRLF blank line isn't split inside itself.
+		if best < 0 || i < best || (i == best && len(sep) > bestLen) {
+			best = i
+			bestLen = len(sep)
+		}
+	}
+	return best, bestLen
 }
 
 // FlushSSEParseState emits one trailing SSE record when upstream plaintext EOF arrives without a final blank line.

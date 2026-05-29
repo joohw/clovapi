@@ -143,6 +143,24 @@ async function defaultFetchHealth(url) {
   }
 }
 
+/**
+ * Resolve whether a PID's process command references the clovapi binary, so we
+ * never kill an unrelated service that happens to share the proxy port.
+ * @param {number} pid
+ * @returns {Promise<boolean>}
+ */
+function processLooksLikeClovapi(pid) {
+  return new Promise((resolve) => {
+    const child = spawn("ps", ["-p", String(pid), "-o", "command="], { windowsHide: true });
+    const chunks = [];
+    child.stdout.on("data", (chunk) => chunks.push(String(chunk || "")));
+    child.on("error", () => resolve(false));
+    child.on("close", () => {
+      resolve(/clovapi/i.test(chunks.join("")));
+    });
+  });
+}
+
 /** @param {ProxyBindConfig} cfg @param {number} [skipPid] */
 function releaseBindPort(cfg, skipPid = 0) {
   const port = Number(cfg?.port) || DEFAULT_PORT;
@@ -165,14 +183,26 @@ function releaseBindPort(cfg, skipPid = 0) {
         resolve(false);
         return;
       }
-      for (const pid of pids) {
-        try {
-          process.kill(pid, "SIGTERM");
-        } catch {
-          /* noop */
-        }
-      }
-      setTimeout(() => resolve(true), 280);
+      // Only terminate processes that are actually a clovapi proxy. Other
+      // services may legitimately bind the same port; killing them would cause
+      // data loss or denial of service.
+      Promise.all(pids.map((pid) => processLooksLikeClovapi(pid).then((ok) => (ok ? pid : 0))))
+        .then((verified) => {
+          const killable = verified.filter((pid) => pid > 0);
+          if (!killable.length) {
+            resolve(false);
+            return;
+          }
+          for (const pid of killable) {
+            try {
+              process.kill(pid, "SIGTERM");
+            } catch {
+              /* noop */
+            }
+          }
+          setTimeout(() => resolve(true), 280);
+        })
+        .catch(() => resolve(false));
     });
   });
 }

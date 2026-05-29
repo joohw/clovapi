@@ -126,7 +126,7 @@ func DecodeRequestOpenAIChat(body []byte) (Request, error) {
 			tempPtr = &f
 		}
 	}
-	return Request{
+	req := Request{
 		Model:       jsonStringField(raw, "model"),
 		Messages:    msgList,
 		Stream:      streamDefault(streamPtr),
@@ -134,7 +134,123 @@ func DecodeRequestOpenAIChat(body []byte) (Request, error) {
 		MaxTokens:   maxTok,
 		Temperature: tempPtr,
 		Meta:        meta,
-	}, nil
+	}
+	// Preserve assistant tool_calls and tool-result turns as ordered InputSlots so
+	// they survive transcoding to Claude/Responses. The flat Messages list cannot
+	// represent tool invocations; without this the entire tool conversation is lost.
+	if openAIChatMessagesHaveTools(msgsAny) {
+		req.InputSlots = decodeOpenAIChatInputSlots(msgsAny)
+	}
+	return req, nil
+}
+
+// openAIChatMessagesHaveTools reports whether the conversation contains assistant
+// tool_calls or tool-role result turns that the flat Messages list cannot encode.
+func openAIChatMessagesHaveTools(messages []any) bool {
+	for _, raw := range messages {
+		m, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		role := strings.ToLower(strings.TrimSpace(fmt.Sprint(m["role"])))
+		if role == "tool" {
+			return true
+		}
+		if arr, ok := m["tool_calls"].([]any); ok && len(arr) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// decodeOpenAIChatInputSlots converts OpenAI Chat messages into ordered IR slots,
+// splitting assistant turns into text + tool-call slots and mapping tool-role
+// messages to tool-result slots. System/developer turns are intentionally
+// omitted (they are captured as Metadata.System by PartitionSystemMessages, and
+// CollectSystemPrompt would otherwise double-count them).
+func decodeOpenAIChatInputSlots(messages []any) []InputSlot {
+	slots := make([]InputSlot, 0, len(messages))
+	for _, raw := range messages {
+		m, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		role := strings.ToLower(strings.TrimSpace(fmt.Sprint(m["role"])))
+		if role == "" {
+			role = string(RoleUser)
+		}
+		if isSystemLikeRole(role) {
+			continue
+		}
+		switch role {
+		case "tool":
+			tr := &ToolResult{
+				CallID: strings.TrimSpace(fmt.Sprint(m["tool_call_id"])),
+				Output: strings.TrimSpace(TextContent(m["content"])),
+			}
+			if tr.Output == "" && m["content"] != nil {
+				tr.Output = strings.TrimSpace(fmt.Sprint(m["content"]))
+			}
+			if tr.CallID != "" {
+				slots = append(slots, InputSlot{ToolResult: tr})
+			}
+		case string(RoleAssistant):
+			if text := strings.TrimSpace(TextContent(m["content"])); text != "" {
+				msg := Message{Role: RoleAssistant, Content: text}
+				slots = append(slots, InputSlot{Message: &msg})
+			}
+			if arr, ok := m["tool_calls"].([]any); ok {
+				for _, rawCall := range arr {
+					if tc := openAIChatToolCall(rawCall); tc != nil {
+						slots = append(slots, InputSlot{ToolCall: tc})
+					}
+				}
+			}
+		default:
+			text := strings.TrimSpace(TextContent(m["content"]))
+			if text == "" && m["content"] != nil {
+				if _, isArr := m["content"].([]any); !isArr {
+					text = strings.TrimSpace(fmt.Sprint(m["content"]))
+				}
+			}
+			msg := Message{Role: Role(role), Content: text}
+			if v, ok := m["name"]; ok && v != nil {
+				msg.Name = strings.TrimSpace(fmt.Sprint(v))
+			}
+			slots = append(slots, InputSlot{Message: &msg})
+		}
+	}
+	return slots
+}
+
+func openAIChatToolCall(raw any) *ToolCall {
+	call, ok := raw.(map[string]any)
+	if !ok {
+		return nil
+	}
+	id := strings.TrimSpace(fmt.Sprint(call["id"]))
+	fn, _ := call["function"].(map[string]any)
+	if fn == nil {
+		return nil
+	}
+	name := strings.TrimSpace(fmt.Sprint(fn["name"]))
+	if id == "" || name == "" {
+		return nil
+	}
+	args := "{}"
+	switch a := fn["arguments"].(type) {
+	case string:
+		if s := strings.TrimSpace(a); s != "" {
+			args = s
+		}
+	case nil:
+		// keep default
+	default:
+		if b, err := json.Marshal(a); err == nil {
+			args = string(b)
+		}
+	}
+	return &ToolCall{ID: id, Name: name, Arguments: args}
 }
 
 // DecodeRequestOpenAIResponses decodes OpenAI Responses-shaped JSON body to IR.

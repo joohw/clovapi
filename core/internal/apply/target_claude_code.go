@@ -2,6 +2,7 @@ package apply
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 
@@ -37,7 +38,9 @@ func (claudeCodeTarget) Apply(p profile.Profile) error {
 
 	root := map[string]any{}
 	if data, err := os.ReadFile(path); err == nil && len(data) > 0 {
-		_ = json.Unmarshal(data, &root)
+		if err := json.Unmarshal(data, &root); err != nil {
+			return fmt.Errorf("parse existing %s: %w (refusing to overwrite; fix or remove the file)", path, err)
+		}
 	}
 	env, _ := root["env"].(map[string]any)
 	if env == nil {

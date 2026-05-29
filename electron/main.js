@@ -536,6 +536,8 @@ function resolveCommandPath(command) {
   }
   const resolver = process.platform === "win32" ? "where" : "which";
   return new Promise((resolve) => {
+    // No shell: pass the command as an argv element so shell metacharacters in
+    // `command` cannot inject additional commands.
     const child = spawn(resolver, [command], { shell: false, windowsHide: true });
     const chunks = [];
     const errChunks = [];
@@ -1106,13 +1108,23 @@ app.on("before-quit", () => {
   quitting = true;
 });
 
-app.on("window-all-closed", () => {
+app.on("window-all-closed", async () => {
   stopRunningProcess();
   if (coreDevWatcher) {
     coreDevWatcher.close();
     coreDevWatcher = null;
   }
-  void proxyManager.stop();
+  // Await proxy shutdown (bounded) so the detached daemon doesn't outlive the
+  // app, holding the port and API keys in memory. The timeout prevents a hung
+  // stop from blocking quit indefinitely.
+  try {
+    await Promise.race([
+      proxyManager.stop(),
+      new Promise((resolve) => setTimeout(resolve, 5000)),
+    ]);
+  } catch {
+    /* best effort */
+  }
   if (tray) {
     tray.destroy();
     tray = null;

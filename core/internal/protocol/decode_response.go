@@ -7,6 +7,19 @@ import (
 	"github.com/clovapi/switcher/internal/apistyle"
 )
 
+// toolCallEvents expands a portable ToolCall into the streaming-style event
+// triple (start/delta/end) used by the response encoders.
+func toolCallEvents(tc *ToolCall) []ResponseEvent {
+	if tc == nil {
+		return nil
+	}
+	return []ResponseEvent{
+		{Type: RespToolStart, ID: tc.ID, Name: tc.Name},
+		{Type: RespToolDelta, ID: tc.ID, ArgsFragment: toolCallArgumentsOrEmpty(tc)},
+		{Type: RespToolEnd, ID: tc.ID},
+	}
+}
+
 // DecodeNonStreamJSONResponseForStyle parses a successful JSON upstream body into response events using egress-shape decoders (Electron decodeResponseJson paths).
 //
 // Caller should pass decompressed plaintext JSON bytes.
@@ -64,13 +77,15 @@ func wrapClaudeMessageEvents(raw map[string]any) []ResponseEvent {
 		if !ok {
 			continue
 		}
-		if strings.TrimSpace(fmt.Sprint(blk["type"])) != "text" {
-			continue
+		switch strings.TrimSpace(fmt.Sprint(blk["type"])) {
+		case "text":
+			events = append(events, ResponseEvent{
+				Type: RespTextDelta,
+				Text: fmt.Sprint(blk["text"]),
+			})
+		case "tool_use":
+			events = append(events, toolCallEvents(toolCallFromClaudeBlock(blk))...)
 		}
-		events = append(events, ResponseEvent{
-			Type: RespTextDelta,
-			Text: fmt.Sprint(blk["text"]),
-		})
 	}
 	reason := strings.TrimSpace(fmt.Sprint(raw["stop_reason"]))
 	if reason == "" {
@@ -139,11 +154,16 @@ func decodeOpenAIChatResponseJSON(raw map[string]any) []ResponseEvent {
 	events := []ResponseEvent{
 		{Type: RespMessageStart, Role: string(RoleAssistant), Model: model},
 		{Type: RespTextDelta, Text: strings.TrimSpace(TextContent(msgMap["content"]))},
-		{
-			Type:   RespFinish,
-			Reason: strings.TrimSpace(fmt.Sprint(coalesceFinishReasonOpenAIChat(choice))),
-		},
 	}
+	if tcs, ok := msgMap["tool_calls"].([]any); ok {
+		for _, rawCall := range tcs {
+			events = append(events, toolCallEvents(openAIChatToolCall(rawCall))...)
+		}
+	}
+	events = append(events, ResponseEvent{
+		Type:   RespFinish,
+		Reason: strings.TrimSpace(fmt.Sprint(coalesceFinishReasonOpenAIChat(choice))),
+	})
 	if um, ok := raw["usage"].(map[string]any); ok && um != nil {
 		var inTok, outTok int
 		if n, ok := coerceIntPointer(um["prompt_tokens"]); ok {
@@ -194,25 +214,28 @@ func decodeOpenAIResponsesResponseJSON(raw map[string]any) []ResponseEvent {
 		return []ResponseEvent{{Type: RespError, Message: em.message, Code: em.code}}
 	}
 	model := strings.TrimSpace(fmt.Sprint(raw["model"]))
+	events := []ResponseEvent{{Type: RespMessageStart, Role: string(RoleAssistant), Model: model}}
 	out := ""
+	var toolEvents []ResponseEvent
 	items, _ := raw["output"].([]any)
 	for _, item := range items {
 		im, ok := item.(map[string]any)
 		if !ok {
 			continue
 		}
-		if strings.TrimSpace(fmt.Sprint(im["type"])) != "message" {
-			continue
+		switch strings.TrimSpace(fmt.Sprint(im["type"])) {
+		case "message":
+			out += TextContent(im["content"])
+		case "function_call":
+			toolEvents = append(toolEvents, toolCallEvents(toolCallFromResponsesItem(im))...)
 		}
-		out += TextContent(im["content"])
 	}
+	events = append(events, ResponseEvent{Type: RespTextDelta, Text: strings.TrimSpace(out)})
+	events = append(events, toolEvents...)
 	status := strings.TrimSpace(fmt.Sprint(raw["status"]))
 	if status == "" {
 		status = "completed"
 	}
-	return []ResponseEvent{
-		{Type: RespMessageStart, Role: string(RoleAssistant), Model: model},
-		{Type: RespTextDelta, Text: strings.TrimSpace(out)},
-		{Type: RespFinish, Reason: status},
-	}
+	events = append(events, ResponseEvent{Type: RespFinish, Reason: status})
+	return events
 }

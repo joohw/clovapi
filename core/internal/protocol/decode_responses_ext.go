@@ -135,6 +135,9 @@ func decodeResponsesInputSlots(input any) ([]InputSlot, []Message, []ExtensionNo
 				continue
 			}
 			msg := Message{Role: Role(role), Content: content}
+			if cparts, hasImage := decodeContentParts(m["content"]); hasImage {
+				msg.Parts = cparts
+			}
 			msgCopy := msg
 			slots = append(slots, InputSlot{Message: &msgCopy})
 			msgs = append(msgs, msg)
@@ -194,12 +197,12 @@ func responsesInputWireFromIR(r Request) any {
 
 func messageToResponsesInputItem(m Message) map[string]any {
 	content := strings.TrimSpace(m.Content)
-	if content == "" {
-		content = ""
-	}
 	role := strings.ToLower(strings.TrimSpace(string(m.Role)))
 	if role == "" {
 		role = string(RoleUser)
+	}
+	if parts, hasImage := responsesContentParts(m); hasImage {
+		return map[string]any{"type": "message", "role": role, "content": parts}
 	}
 	return map[string]any{
 		"type": "message",
@@ -214,8 +217,7 @@ func messageToResponsesInputItem(m Message) map[string]any {
 func messagesToResponsesInputArray(msgs []Message) []any {
 	out := make([]any, 0, len(msgs))
 	for _, m := range msgs {
-		content := strings.TrimSpace(m.Content)
-		if content == "" {
+		if strings.TrimSpace(m.Content) == "" && !messageHasImage(m) {
 			continue
 		}
 		out = append(out, messageToResponsesInputItem(m))

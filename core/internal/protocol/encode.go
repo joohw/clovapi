@@ -57,12 +57,14 @@ func EncodeRequestClaude(r Request) ([]byte, error) {
 	return json.Marshal(payload)
 }
 
-func cmPayload(msgs []Message) []map[string]string {
-	out := make([]map[string]string, 0, len(msgs))
+func cmPayload(msgs []Message) []map[string]any {
+	out := make([]map[string]any, 0, len(msgs))
 	for _, m := range msgs {
-		item := map[string]string{
-			"role":    strings.ToLower(string(m.Role)),
-			"content": m.Content,
+		item := map[string]any{"role": strings.ToLower(string(m.Role))}
+		if blocks, hasImage := claudeContentBlocks(m); hasImage {
+			item["content"] = blocks
+		} else {
+			item["content"] = m.Content
 		}
 		out = append(out, item)
 	}
@@ -77,7 +79,7 @@ func EncodeRequestOpenAIChat(r Request) ([]byte, error) {
 	} else {
 		msgs = make([]map[string]any, 0, len(r.Messages))
 		for _, m := range r.Messages {
-			msg := map[string]any{"role": string(m.Role), "content": m.Content}
+			msg := map[string]any{"role": string(m.Role), "content": openAIChatContentValue(m)}
 			if strings.TrimSpace(m.ToolCallID) != "" {
 				msg["tool_call_id"] = m.ToolCallID
 			}

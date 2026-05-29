@@ -18,10 +18,29 @@ const (
 
 // Message is the IR chat turn (non-streaming text content only in this slice).
 type Message struct {
-	Role       Role   `json:"role"`
-	Content    string `json:"content"`
-	ToolCallID string `json:"tool_call_id,omitempty"`
-	Name       string `json:"name,omitempty"`
+	Role    Role   `json:"role"`
+	Content string `json:"content"`
+	// Parts carries multimodal content (text + image) when the message is not
+	// plain text. Content still holds the concatenated text for callers that
+	// only need text; encoders consult Parts to preserve images across styles.
+	Parts      []ContentPart `json:"parts,omitempty"`
+	ToolCallID string        `json:"tool_call_id,omitempty"`
+	Name       string        `json:"name,omitempty"`
+}
+
+// ContentPart is a portable multimodal content block within a message.
+type ContentPart struct {
+	Type  string       `json:"type"` // "text" | "image"
+	Text  string       `json:"text,omitempty"`
+	Image *ImageSource `json:"image,omitempty"`
+}
+
+// ImageSource is a normalized image reference. Either URL (remote or data: URL)
+// or inline base64 Data + MediaType is populated.
+type ImageSource struct {
+	URL       string `json:"url,omitempty"`
+	MediaType string `json:"media_type,omitempty"`
+	Data      string `json:"data,omitempty"`
 }
 
 // Tool is the flattened function tool shape used by OpenAI-style encoders.

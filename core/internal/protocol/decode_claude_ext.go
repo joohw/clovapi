@@ -179,13 +179,22 @@ func decodeClaudeInputSlots(messages []any) []InputSlot {
 			continue
 		}
 		var textParts []string
+		var parts []ContentPart
+		var hasImage bool
 		flushText := func() {
 			text := strings.TrimSpace(strings.Join(filterNonEmpty(textParts), "\n"))
+			collected := parts
+			imageSeen := hasImage
 			textParts = nil
-			if text == "" {
+			parts = nil
+			hasImage = false
+			if text == "" && !imageSeen {
 				return
 			}
 			m := Message{Role: Role(role), Content: text}
+			if imageSeen {
+				m.Parts = collected
+			}
 			slots = append(slots, InputSlot{Message: &m})
 		}
 		for _, rawBlock := range blocks {
@@ -197,6 +206,12 @@ func decodeClaudeInputSlots(messages []any) []InputSlot {
 			case "text":
 				if text := strings.TrimSpace(TextContent(block["text"])); text != "" {
 					textParts = append(textParts, text)
+					parts = append(parts, ContentPart{Type: "text", Text: text})
+				}
+			case "image":
+				if img := claudeImagePart(block["source"]); img != nil {
+					parts = append(parts, ContentPart{Type: "image", Image: img})
+					hasImage = true
 				}
 			case "tool_use":
 				flushText()

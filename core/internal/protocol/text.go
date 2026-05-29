@@ -103,6 +103,9 @@ func PartitionSystemMessages(messages []any, extraSystem any) ([]Message, string
 				Role:    Role(role),
 				Content: strings.TrimSpace(TextContent(m["content"])),
 			}
+			if parts, hasImage := decodeContentParts(m["content"]); hasImage {
+				entry.Parts = parts
+			}
 			if v, ok := m["tool_call_id"]; ok && v != nil {
 				entry.ToolCallID = strings.TrimSpace(fmt.Sprint(v))
 			}

@@ -159,7 +159,9 @@ func claudeMessagesWireFromInputSlots(slots []InputSlot) []map[string]any {
 				flush()
 			}
 			role = r
-			if text := strings.TrimSpace(slot.Message.Content); text != "" {
+			if imgBlocks, hasImage := claudeContentBlocks(*slot.Message); hasImage {
+				blocks = append(blocks, imgBlocks...)
+			} else if text := strings.TrimSpace(slot.Message.Content); text != "" {
 				blocks = append(blocks, map[string]any{"type": "text", "text": text})
 			}
 		case slot.ToolCall != nil:
@@ -201,7 +203,7 @@ func openAIChatMessagesFromInputSlots(slots []InputSlot) []map[string]any {
 			}
 			msg := map[string]any{
 				"role":    string(slot.Message.Role),
-				"content": slot.Message.Content,
+				"content": openAIChatContentValue(*slot.Message),
 			}
 			if id := strings.TrimSpace(slot.Message.ToolCallID); id != "" {
 				msg["tool_call_id"] = id

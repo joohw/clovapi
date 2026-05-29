@@ -10,12 +10,14 @@ import (
 
 // StreamIngressEncoder wraps style-specific SSE encoders for mirrored downstream relays (Electron encodeSseStream).
 type StreamIngressEncoder struct {
-	style         apistyle.Style
-	claude        *claudeStreamEncoder
-	responses     *responsesStreamEncoder
-	openAITerm    bool // whether openai-chat encoder halted (terminal error emitted)
-	openAIRole    bool
-	responsesDead bool // responses SSE error short-circuit
+	style           apistyle.Style
+	claude          *claudeStreamEncoder
+	responses       *responsesStreamEncoder
+	openAITerm      bool // whether openai-chat encoder halted (terminal error emitted)
+	openAIRole      bool
+	openAIToolIndex map[string]int // tool call id -> OpenAI choices.delta.tool_calls index
+	openAIToolNext  int
+	responsesDead   bool // responses SSE error short-circuit
 }
 
 // NewStreamIngressEncoder builds an SSE encoder targeting the client's ingress wire shape (Gemini aliases OpenAI Chat).
@@ -148,7 +150,9 @@ func (e *StreamIngressEncoder) encodeOpenAIChat(ev ResponseEvent) ([][]byte, boo
 		}
 		return nil, false, nil
 	case RespTextDelta:
-		if strings.TrimSpace(ev.Text) == "" {
+		// Preserve exact text including whitespace-only deltas; only skip truly
+		// empty fragments.
+		if ev.Text == "" {
 			return nil, false, nil
 		}
 		bb, err := formatOpenAISSEDataJSON(map[string]any{
@@ -163,6 +167,12 @@ func (e *StreamIngressEncoder) encodeOpenAIChat(ev ResponseEvent) ([][]byte, boo
 			return nil, true, err
 		}
 		return [][]byte{bb}, false, nil
+	case RespToolStart:
+		return e.encodeOpenAIChatToolStart(id, ev)
+	case RespToolDelta:
+		return e.encodeOpenAIChatToolDelta(id, ev)
+	case RespToolEnd:
+		return nil, false, nil
 	case RespFinish:
 		reason := strings.TrimSpace(ev.Reason)
 		if reason == "" {
@@ -353,6 +363,63 @@ func (c *claudeStreamEncoder) feed(ev ResponseEvent) (chunks [][]byte, done bool
 	}
 }
 
+// openAIChatToolSlot assigns a stable choices.delta.tool_calls index per tool id.
+func (e *StreamIngressEncoder) openAIChatToolSlot(id string) (int, bool) {
+	if e.openAIToolIndex == nil {
+		e.openAIToolIndex = map[string]int{}
+	}
+	if idx, ok := e.openAIToolIndex[id]; ok {
+		return idx, false
+	}
+	idx := e.openAIToolNext
+	e.openAIToolNext++
+	e.openAIToolIndex[id] = idx
+	return idx, true
+}
+
+func (e *StreamIngressEncoder) encodeOpenAIChatToolStart(id string, ev ResponseEvent) ([][]byte, bool, error) {
+	idx, _ := e.openAIChatToolSlot(ev.ID)
+	bb, err := formatOpenAISSEDataJSON(map[string]any{
+		"id":     id,
+		"object": "chat.completion.chunk",
+		"choices": []map[string]any{{
+			"index": 0,
+			"delta": map[string]any{"tool_calls": []map[string]any{{
+				"index":    idx,
+				"id":       ev.ID,
+				"type":     "function",
+				"function": map[string]any{"name": ev.Name, "arguments": ""},
+			}}},
+			"finish_reason": nil}},
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	return [][]byte{bb}, false, nil
+}
+
+func (e *StreamIngressEncoder) encodeOpenAIChatToolDelta(id string, ev ResponseEvent) ([][]byte, bool, error) {
+	if ev.ArgsFragment == "" {
+		return nil, false, nil
+	}
+	idx, _ := e.openAIChatToolSlot(ev.ID)
+	bb, err := formatOpenAISSEDataJSON(map[string]any{
+		"id":     id,
+		"object": "chat.completion.chunk",
+		"choices": []map[string]any{{
+			"index": 0,
+			"delta": map[string]any{"tool_calls": []map[string]any{{
+				"index":    idx,
+				"function": map[string]any{"arguments": ev.ArgsFragment},
+			}}},
+			"finish_reason": nil}},
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	return [][]byte{bb}, false, nil
+}
+
 func (c *claudeStreamEncoder) ensureStarted() ([][]byte, error) {
 	return c.ensureTextStarted()
 }
@@ -411,12 +478,14 @@ func (c *claudeStreamEncoder) closeBlocks(reason string) ([][]byte, error) {
 		"type":  "message_delta",
 		"delta": map[string]any{"stop_reason": stopReason},
 	}
-	if c.hasUsage {
-		deltaPayload["usage"] = map[string]any{"output_tokens": c.outputTokens}
-	} else {
-		// Hermes Anthropic SDK reads usage.output_tokens from message_delta.
-		deltaPayload["usage"] = map[string]any{"output_tokens": 0}
+	// Hermes / Anthropic SDKs read final usage from message_delta.usage. Always
+	// emit output_tokens, and include input_tokens when known so prompt token
+	// accounting isn't silently dropped (message_start only carries zeros).
+	usage := map[string]any{"output_tokens": c.outputTokens}
+	if c.inputTokens != 0 {
+		usage["input_tokens"] = c.inputTokens
 	}
+	deltaPayload["usage"] = usage
 	b4, err := formatClaudeSSE("message_delta", deltaPayload)
 	if err != nil {
 		return nil, err

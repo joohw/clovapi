@@ -195,8 +195,12 @@ func decodeOpenAIChatInputSlots(messages []any) []InputSlot {
 				slots = append(slots, InputSlot{ToolResult: tr})
 			}
 		case string(RoleAssistant):
-			if text := strings.TrimSpace(TextContent(m["content"])); text != "" {
+			parts, hasImage := decodeContentParts(m["content"])
+			if text := strings.TrimSpace(TextContent(m["content"])); text != "" || hasImage {
 				msg := Message{Role: RoleAssistant, Content: text}
+				if hasImage {
+					msg.Parts = parts
+				}
 				slots = append(slots, InputSlot{Message: &msg})
 			}
 			if arr, ok := m["tool_calls"].([]any); ok {
@@ -208,12 +212,16 @@ func decodeOpenAIChatInputSlots(messages []any) []InputSlot {
 			}
 		default:
 			text := strings.TrimSpace(TextContent(m["content"]))
-			if text == "" && m["content"] != nil {
+			parts, hasImage := decodeContentParts(m["content"])
+			if text == "" && m["content"] != nil && !hasImage {
 				if _, isArr := m["content"].([]any); !isArr {
 					text = strings.TrimSpace(fmt.Sprint(m["content"]))
 				}
 			}
 			msg := Message{Role: Role(role), Content: text}
+			if hasImage {
+				msg.Parts = parts
+			}
 			if v, ok := m["name"]; ok && v != nil {
 				msg.Name = strings.TrimSpace(fmt.Sprint(v))
 			}

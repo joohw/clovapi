@@ -11,10 +11,19 @@ import (
 // SSEUpstreamDecodeState tracks partial decoder state across SSE records (Electron async generator locals).
 type SSEUpstreamDecodeState struct {
 	OpenAIChatStarted     bool
+	OpenAIChatFinished    bool // a finish event was already emitted (suppress duplicate on [DONE])
 	ResponsesStarted      bool
 	ResponsesHasTextDelta bool // incremental output_text.delta already forwarded
 	ClaudeBlocks          map[int]*claudeSSEBlockState
 	ResponsesTools        map[string]*responsesSSEToolState
+	OpenAIChatTools       map[int]*openAIChatSSEToolState
+	OpenAIChatToolOrder   []int // tool_call indices in first-seen order
+}
+
+type openAIChatSSEToolState struct {
+	ID      string
+	Name    string
+	Started bool
 }
 
 type claudeSSEBlockState struct {
@@ -40,7 +49,7 @@ func DecodeSSEStreamRecord(egress apistyle.Style, rec SSERecord, st *SSEUpstream
 	case apistyle.Claude:
 		return decodeClaudeSSERecord(rec, st)
 	case apistyle.OpenAIChat:
-		return decodeOpenAIChatSSERecord(rec, &st.OpenAIChatStarted)
+		return decodeOpenAIChatSSERecord(rec, st)
 	case apistyle.OpenAIResponses:
 		return decodeOpenAIResponsesSSERecord(rec, st)
 	default:
@@ -209,9 +218,19 @@ func ssePayloadIndex(payload map[string]any) (int, bool) {
 	return 0, false
 }
 
-func decodeOpenAIChatSSERecord(rec SSERecord, started *bool) []ResponseEvent {
+func decodeOpenAIChatSSERecord(rec SSERecord, st *SSEUpstreamDecodeState) []ResponseEvent {
+	if st == nil {
+		st = &SSEUpstreamDecodeState{}
+	}
 	if strings.TrimSpace(rec.Data) == "[DONE]" {
-		return []ResponseEvent{{Type: RespFinish, Reason: "stop"}}
+		// OpenAI sends a finish_reason chunk before [DONE]; only synthesize a
+		// finish here if none was emitted, to avoid a duplicate (and wrong) stop.
+		if st.OpenAIChatFinished {
+			return nil
+		}
+		st.OpenAIChatFinished = true
+		out := closeOpenAIChatTools(st)
+		return append(out, ResponseEvent{Type: RespFinish, Reason: "stop"})
 	}
 	payload, ok := sseJSONPayload(rec.Data)
 	if !ok {
@@ -226,23 +245,97 @@ func decodeOpenAIChatSSERecord(rec SSERecord, started *bool) []ResponseEvent {
 		}
 		return []ResponseEvent{{Type: RespError, Message: msg, Code: strings.TrimSpace(em.code)}}
 	}
-	if !*started {
-		*started = true
+	if !st.OpenAIChatStarted {
+		st.OpenAIChatStarted = true
 		out = append(out, ResponseEvent{Type: RespMessageStart, Role: string(RoleAssistant), Model: strings.TrimSpace(fmt.Sprint(payload["model"]))})
 	}
 	if choices, ok := payload["choices"].([]any); ok && len(choices) > 0 {
 		cm, _ := choices[0].(map[string]any)
 		if cm != nil {
 			if dm, ok := cm["delta"].(map[string]any); ok && dm != nil {
-				if ct := strings.TrimSpace(fmt.Sprint(dm["content"])); ct != "" {
-					out = append(out, ResponseEvent{Type: RespTextDelta, Text: ct})
+				// Preserve exact text (including leading/trailing whitespace and
+				// space-only deltas); only a literal string carries content.
+				if s, ok := dm["content"].(string); ok && s != "" {
+					out = append(out, ResponseEvent{Type: RespTextDelta, Text: s})
 				}
+				out = append(out, decodeOpenAIChatToolCallDeltas(dm["tool_calls"], st)...)
 			}
-			if fr := strings.TrimSpace(fmt.Sprint(cm["finish_reason"])); fr != "" {
+			if fr := strings.TrimSpace(fmt.Sprint(cm["finish_reason"])); fr != "" && fr != "<nil>" {
+				st.OpenAIChatFinished = true
+				out = append(out, closeOpenAIChatTools(st)...)
 				out = append(out, ResponseEvent{Type: RespFinish, Reason: fr})
 			}
 		}
 	}
+	return out
+}
+
+// decodeOpenAIChatToolCallDeltas maps streaming delta.tool_calls fragments to
+// RespToolStart/RespToolDelta events, accumulating by tool_call index.
+func decodeOpenAIChatToolCallDeltas(raw any, st *SSEUpstreamDecodeState) []ResponseEvent {
+	arr, ok := raw.([]any)
+	if !ok || len(arr) == 0 {
+		return nil
+	}
+	if st.OpenAIChatTools == nil {
+		st.OpenAIChatTools = map[int]*openAIChatSSEToolState{}
+	}
+	var out []ResponseEvent
+	for _, item := range arr {
+		call, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		index := 0
+		if n, ok := coerceIntPointer(call["index"]); ok && n != nil {
+			index = *n
+		}
+		tool := st.OpenAIChatTools[index]
+		if tool == nil {
+			tool = &openAIChatSSEToolState{}
+			st.OpenAIChatTools[index] = tool
+			st.OpenAIChatToolOrder = append(st.OpenAIChatToolOrder, index)
+		}
+		id := strings.TrimSpace(fmt.Sprint(call["id"]))
+		fn, _ := call["function"].(map[string]any)
+		name := ""
+		if fn != nil {
+			name = strings.TrimSpace(fmt.Sprint(fn["name"]))
+		}
+		if tool.ID == "" && id != "" && id != "<nil>" {
+			tool.ID = id
+		}
+		if tool.Name == "" && name != "" && name != "<nil>" {
+			tool.Name = name
+		}
+		// Emit start exactly once, after the first chunk carrying id + name.
+		if !tool.Started && tool.ID != "" && tool.Name != "" {
+			tool.Started = true
+			out = append(out, ResponseEvent{Type: RespToolStart, ID: tool.ID, Name: tool.Name})
+		}
+		if tool.Started && fn != nil {
+			if args, ok := fn["arguments"].(string); ok && args != "" {
+				out = append(out, ResponseEvent{Type: RespToolDelta, ID: tool.ID, Name: tool.Name, ArgsFragment: args})
+			}
+		}
+	}
+	return out
+}
+
+// closeOpenAIChatTools emits a RespToolEnd for every open tool (in first-seen
+// order) and resets the per-stream tool state.
+func closeOpenAIChatTools(st *SSEUpstreamDecodeState) []ResponseEvent {
+	if len(st.OpenAIChatToolOrder) == 0 {
+		return nil
+	}
+	var out []ResponseEvent
+	for _, index := range st.OpenAIChatToolOrder {
+		if tool := st.OpenAIChatTools[index]; tool != nil && tool.ID != "" {
+			out = append(out, ResponseEvent{Type: RespToolEnd, ID: tool.ID, Name: tool.Name})
+		}
+	}
+	st.OpenAIChatTools = nil
+	st.OpenAIChatToolOrder = nil
 	return out
 }
 

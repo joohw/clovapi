@@ -5,7 +5,7 @@ import { openProfilesVendor, setActiveTab } from "./navigation";
 import { loadProfilesFromDisk } from "./profiles";
 import { refreshProxyLogs, refreshProxyStatus, autoUpdateCoreOnStartup } from "./proxy";
 import { refreshSubscriptions } from "./subscriptions";
-import { refreshAppVersion, waitForDesktopBridge } from "./app-version";
+import { refreshAppVersion, waitForDesktopBridge, waitForCliBridge } from "./app-version";
 import { startAppUpdatePolling } from "./desktop-update";
 import { isElectronDev, isElectronRenderer } from "../constants";
 import { store } from "./state.svelte";
@@ -52,6 +52,7 @@ export async function initApp() {
 
   const bridge = window.clovapiCli;
   if (bridge) {
+    await waitForCliBridge();
     bridge.onExit(() => setRunning(false));
     const runState = await bridge.state().catch(() => ({ running: false }));
     setRunning(Boolean(runState?.running));

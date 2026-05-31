@@ -9,8 +9,9 @@ const clovapiDesktop = require("./clovapi-desktop");
 const { applyTrayModelSwitch } = require("./tray-model-switch");
 const {
   coreDevStatePath,
-  resolveClovapiExecutable: resolveBundledClovapiExecutable,
+  resolveClovapiExecutable,
 } = require("./clovapi-exec");
+const { ensureCliBinOnPath, cliSpawnEnv } = require("./cli-path-register");
 const { buildTrayMenuModel, isValidTrayTab, trayStatusSummary, trayTooltip } = require("./tray-menu");
 const { cliBinPath, electronDevUserDataDir, electronUserDataDir } = require("./config-paths");
 const { checkDesktopUpdate, downloadAndLaunchDesktopUpdate } = require("./desktop-update");
@@ -428,19 +429,11 @@ function emitOutput(type, chunk) {
   });
 }
 
-function resolveBundledCliPath() {
-  return resolveBundledClovapiExecutable();
+function resolveClovapiExecutablePath() {
+  return resolveClovapiExecutable() || "";
 }
 
-async function resolveClovapiExecutable() {
-  const bundled = resolveBundledCliPath();
-  if (bundled) return bundled;
-  const system = await resolveCommandPath("clovapi");
-  if (system.exists) return system.path;
-  return "";
-}
-
-const proxyManager = createGoProxyManager({ resolveExecutable: resolveClovapiExecutable });
+const proxyManager = createGoProxyManager({ resolveExecutable: resolveClovapiExecutablePath });
 
 function scheduleCoreProxyRestart() {
   clearTimeout(coreDevRestartTimer);
@@ -489,7 +482,7 @@ function spawnExecutableAndWait(executable, args, cwd) {
   return new Promise((resolve) => {
     const child = spawn(executable, args, {
       cwd,
-      env: process.env,
+      env: cliSpawnEnv(),
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -526,30 +519,6 @@ function spawnExecutableAndWait(executable, args, cwd) {
         stdout: stdoutChunks.join(""),
         stderr: stderrChunks.join(""),
       });
-    });
-  });
-}
-
-function resolveCommandPath(command) {
-  if (!/^[a-zA-Z0-9._-]+$/.test(String(command || ""))) {
-    return Promise.resolve({ ok: false, exists: false, path: "", error: `Invalid command name: ${command}` });
-  }
-  const resolver = process.platform === "win32" ? "where" : "which";
-  return new Promise((resolve) => {
-    // No shell: pass the command as an argv element so shell metacharacters in
-    // `command` cannot inject additional commands.
-    const child = spawn(resolver, [command], { shell: false, windowsHide: true });
-    const chunks = [];
-    const errChunks = [];
-    child.stdout.on("data", (chunk) => chunks.push(String(chunk || "")));
-    child.stderr.on("data", (chunk) => errChunks.push(String(chunk || "")));
-    child.on("close", (code) => {
-      const out = chunks.join("").split(/\r?\n/).map((s) => s.trim()).filter(Boolean)[0] || "";
-      const err = errChunks.join("").trim();
-      resolve({ ok: code === 0, exists: code === 0, path: out, error: code === 0 ? "" : err || `Command not found: ${command}` });
-    });
-    child.on("error", (error) => {
-      resolve({ ok: false, exists: false, path: "", error: error.message || "Resolve command failed" });
     });
   });
 }
@@ -630,7 +599,7 @@ ipcMain.handle("cli:run-clovapi", async (_event, payload) => {
   if (runningProcess) {
     return { ok: false, error: "A command is already running." };
   }
-  const executable = await resolveClovapiExecutable();
+  const executable = resolveClovapiExecutablePath();
   if (!executable) {
     return { ok: false, error: "clovapi executable not found (install CLI or bundle bin/clovapi)" };
   }
@@ -665,7 +634,7 @@ ipcMain.handle("cli:update", async (_event, payload) => {
       detail: { dev_mode: true, check: Boolean(payload?.check) },
     };
   }
-  const executable = await resolveClovapiExecutable();
+  const executable = resolveClovapiExecutablePath();
   if (!executable) {
     return { ok: false, error: "clovapi executable not found" };
   }
@@ -810,6 +779,10 @@ ipcMain.handle("cli:which", async (_event, payload) => {
   return clovapiDesktop.whichCommand(command);
 });
 
+ipcMain.handle("cli:agent-status", async () => {
+  return clovapiDesktop.agentStatus();
+});
+
 /** providerId -> child process (each subscription login is independent). */
 const activeSubscriptionLogins = new Map();
 
@@ -818,11 +791,15 @@ async function runSubscriptionLogin(providerId) {
   if (activeSubscriptionLogins.has(providerId)) {
     return { ok: false, error: "该订阅正在登录中" };
   }
-  const executable = await resolveClovapiExecutable();
+  const executable = resolveClovapiExecutablePath();
   if (!executable) return { ok: false, error: "clovapi executable not found" };
   return new Promise((resolve) => {
     const args = ["desktop", "auth", "login", "--provider", providerId, "--json"];
-    const child = spawn(executable, args, { windowsHide: true, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(executable, args, {
+      windowsHide: true,
+      env: cliSpawnEnv(),
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     activeSubscriptionLogins.set(providerId, child);
     const stdoutChunks = [];
     const stderrChunks = [];
@@ -1061,19 +1038,12 @@ ipcMain.handle("proxy-logs:clear", async (_event, payload) => {
 });
 
 ipcMain.handle("cli:tool-status", async () => {
-  const userPath = cliBinPath();
-  if (fs.existsSync(userPath)) {
-    return { ok: true, available: true, source: "user", path: userPath };
+  const executable = resolveClovapiExecutablePath();
+  if (executable) {
+    const source = executable === cliBinPath() ? "user" : "system";
+    return { ok: true, available: true, source, path: executable };
   }
-  const bundledPath = resolveBundledCliPath();
-  if (bundledPath) {
-    return { ok: true, available: true, source: "bundled", path: bundledPath };
-  }
-  const system = await resolveCommandPath("clovapi");
-  if (system.exists) {
-    return { ok: true, available: true, source: "system", path: system.path };
-  }
-  return { ok: false, available: false, source: "none", path: "", error: "No bundled or system clovapi found" };
+  return { ok: false, available: false, source: "none", path: "", error: "No clovapi binary found" };
 });
 
 if (gotSingleInstanceLock) {
@@ -1088,6 +1058,13 @@ if (gotSingleInstanceLock) {
       createTray();
     }
     watchCoreDevBinary();
+    try {
+      if (!isElectronDev && fs.existsSync(cliBinPath())) {
+        ensureCliBinOnPath();
+      }
+    } catch {
+      /* PATH registration is best-effort */
+    }
     try {
       await proxyManager.autostartIfAllowed();
     } catch {

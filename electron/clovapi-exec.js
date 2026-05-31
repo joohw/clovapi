@@ -5,6 +5,7 @@ const path = require("node:path");
 const { spawn, spawnSync } = require("node:child_process");
 const { cliBinPath } = require("./config-paths");
 const { installBinaryWindows } = require("./cli-win-replace");
+const { cliSpawnEnv, ensureCliBinOnPath } = require("./cli-path-register");
 
 const DOWNLOAD_BASE = "https://downloads.clovapi.com/clovapi";
 const PLATFORM_MAP = {
@@ -89,6 +90,7 @@ function resolveClovapiExecutable(options = {}) {
       encoding: "utf8",
       windowsHide: true,
       shell: process.platform === "win32",
+      env: cliSpawnEnv(),
     });
     if (result.status === 0) {
       const resolved =
@@ -232,6 +234,11 @@ function installOnlineCliSync() {
         fs.chmodSync(target, 0o755);
       }
       fs.writeFileSync(path.join(path.dirname(target), "version.txt"), `${version}\n`, { mode: 0o600 });
+      try {
+        ensureCliBinOnPath();
+      } catch {
+        /* PATH registration is best-effort */
+      }
       return target;
     } catch (error) {
       lastError = error;
@@ -257,6 +264,7 @@ function runClovapiArgs(args, options = {}) {
     timeout: options.timeout ?? 8000,
     windowsHide: true,
     input,
+    env: cliSpawnEnv(options.env),
   });
   const status = result.status ?? 1;
   return {
@@ -285,6 +293,7 @@ function runClovapiArgsAsync(args, options = {}) {
     const child = spawn(exe, args, {
       windowsHide: true,
       stdio: ["pipe", "pipe", "pipe"],
+      env: cliSpawnEnv(options.env),
     });
     const stdoutChunks = [];
     const stderrChunks = [];
@@ -345,6 +354,7 @@ function readCoreExecutableVersion(exe) {
   const result = spawnSync(target, ["version"], {
     encoding: "utf8",
     windowsHide: true,
+    env: cliSpawnEnv(),
   });
   const line = String(result.stdout || "")
     .trim()

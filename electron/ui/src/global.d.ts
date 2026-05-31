@@ -26,6 +26,18 @@ type CliBridge = {
     stderr?: string;
   }>;
   which(command: string): Promise<{ ok?: boolean; exists?: boolean; path?: string; error?: string }>;
+  agentStatus(): Promise<{
+    ok?: boolean;
+    error?: string;
+    items?: Array<{
+      id?: string;
+      name?: string;
+      command?: string;
+      kind?: string;
+      installed?: boolean;
+      commandPath?: string;
+    }>;
+  }>;
   onOutput(callback: (payload: unknown) => void): () => void;
   onExit(callback: (payload: { code?: number | null }) => void): () => void;
 };

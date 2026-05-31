@@ -39,15 +39,24 @@ export async function onCliBindingChange(cli: CliDef, value: string) {
 
 export async function detectCliPath() {
   const bridge = window.clovapiCli;
-  if (!bridge?.which) return;
+  if (!bridge?.agentStatus) return;
+
   const next: Record<string, string> = {};
   for (const cli of store.clis) {
-    try {
-      const result = await bridge.which(cli.command);
-      next[cli.id] = result?.exists ? result.path || "available" : "";
-    } catch {
-      next[cli.id] = "";
+    next[cli.id] = "";
+  }
+
+  try {
+    const result = await bridge.agentStatus();
+    if (result?.ok && Array.isArray(result.items)) {
+      for (const item of result.items) {
+        const id = String(item?.id || "").trim();
+        if (!id || !item?.installed) continue;
+        next[id] = String(item?.commandPath || "").trim() || "available";
+      }
     }
+  } catch {
+    /* leave defaults empty; CLI owns detection */
   }
   store.cliDetectedPath = next;
 }

@@ -10,6 +10,15 @@ async function waitForProfilesBridge(timeoutMs = 5000): Promise<boolean> {
   return Boolean(window.clovapiProfiles?.load);
 }
 
+export async function waitForCliBridge(timeoutMs = 5000): Promise<boolean> {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    if (window.clovapiCli?.agentStatus) return true;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  return Boolean(window.clovapiCli?.agentStatus);
+}
+
 export async function waitForDesktopBridge(timeoutMs = 5000): Promise<boolean> {
   if (!isElectronRenderer()) return false;
   return waitForProfilesBridge(timeoutMs);

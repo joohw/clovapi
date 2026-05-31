@@ -42,6 +42,9 @@ try {
     which(command) {
       return ipcRenderer.invoke("cli:which", { command });
     },
+    agentStatus() {
+      return ipcRenderer.invoke("cli:agent-status");
+    },
     onOutput(callback) {
       const listener = (_event, payload) => callback(payload);
       ipcRenderer.on("cli:output", listener);

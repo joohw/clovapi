@@ -522,13 +522,14 @@ func claudeAuthPath() string {
 	return filepath.Join(home, ".config", "clovapi", "subscription", "claude.json")
 }
 
+// codexAuthPath returns clovapi's own Codex OAuth store. It never points at
+// Codex CLI's ~/.codex/auth.json — clovapi stays fully independent.
 func codexAuthPath() string {
-	codexHome := strings.TrimSpace(os.Getenv("CODEX_HOME"))
-	if codexHome == "" {
-		home, _ := os.UserHomeDir()
-		codexHome = filepath.Join(home, ".codex")
+	if p, err := config.CodexSubscriptionAuthPath(); err == nil {
+		return p
 	}
-	return filepath.Join(codexHome, "auth.json")
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".config", "clovapi", "subscription", "codex.json")
 }
 
 func codexAccountIDFromAccessToken(accessToken string) string {

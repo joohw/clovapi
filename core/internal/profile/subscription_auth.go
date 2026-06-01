@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -21,7 +20,7 @@ const (
 
 var (
 	claudeCredentialsPathOverride string
-	codexHomeOverride             string
+	codexCredentialsPathOverride  string
 	claudeRefreshMu               sync.Mutex
 )
 
@@ -30,9 +29,9 @@ func SetClaudeCredentialsPathOverride(path string) {
 	claudeCredentialsPathOverride = strings.TrimSpace(path)
 }
 
-// SetCodexHomeOverride pins Codex home directory (tests only).
-func SetCodexHomeOverride(dir string) {
-	codexHomeOverride = strings.TrimSpace(dir)
+// SetCodexCredentialsPathOverride pins Codex OAuth file path (tests only).
+func SetCodexCredentialsPathOverride(path string) {
+	codexCredentialsPathOverride = strings.TrimSpace(path)
 }
 
 type subscriptionCredentials struct {
@@ -69,18 +68,10 @@ func claudeCredentialsPath() (string, error) {
 }
 
 func codexAuthPath() (string, error) {
-	codexHome := codexHomeOverride
-	if codexHome == "" {
-		codexHome = strings.TrimSpace(os.Getenv("CODEX_HOME"))
+	if codexCredentialsPathOverride != "" {
+		return codexCredentialsPathOverride, nil
 	}
-	if codexHome == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		codexHome = filepath.Join(home, ".codex")
-	}
-	return filepath.Join(codexHome, "auth.json"), nil
+	return config.CodexSubscriptionAuthPath()
 }
 
 func readJSONFile(path string, dest any) bool {

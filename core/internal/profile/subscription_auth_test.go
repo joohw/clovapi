@@ -64,6 +64,36 @@ func TestLoadClaudeSubscriptionCredentialsMissingStoreFails(t *testing.T) {
 	}
 }
 
+func TestLoadCodexSubscriptionCredentialsValid(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "codex.json")
+	body := `{
+  "auth_mode": "chatgpt",
+  "tokens": {
+    "access_token": "codex-access",
+    "account_id": "acct-456"
+  }
+}`
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	SetCodexCredentialsPathOverride(path)
+	t.Cleanup(func() { SetCodexCredentialsPathOverride("") })
+
+	creds, ok := loadCodexSubscriptionCredentials()
+	if !ok {
+		t.Fatal("expected valid codex subscription credentials")
+	}
+	if creds.APIKey != "codex-access" {
+		t.Fatalf("unexpected api key: %q", creds.APIKey)
+	}
+	if creds.AccountID != "acct-456" {
+		t.Fatalf("unexpected account id: %q", creds.AccountID)
+	}
+	if creds.BaseURL != codexBackendBaseURL {
+		t.Fatalf("unexpected base url: %q", creds.BaseURL)
+	}
+}
+
 func itoa(v int64) string {
 	neg := v < 0
 	if neg {

@@ -127,7 +127,6 @@
       {:else}
         <Button
           size="sm"
-          disabled={!subscription.installed}
           onclick={() => void runSubscriptionLogin(subscription.id)}
         >
           {copy.login}

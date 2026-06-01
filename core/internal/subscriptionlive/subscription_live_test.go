@@ -41,7 +41,7 @@ func claudeLiveSub(t *testing.T) (liveSub, bool) {
 	}
 	profile.HydrateSubscriptionCredentials(&p)
 	if strings.TrimSpace(p.BaseURL) == "" || strings.TrimSpace(p.APIKey) == "" {
-		t.Skip("Claude Code subscription credentials not found (~/.claude/.credentials.json)")
+		t.Skip("Claude Code subscription credentials not found (clovapi subscription/claude.json)")
 		return liveSub{}, false
 	}
 	model := strings.TrimSpace(os.Getenv("CLOVAPI_CLAUDE_MODEL"))
@@ -67,11 +67,11 @@ func codexLiveSub(t *testing.T) (liveSub, bool) {
 	}
 	profile.HydrateSubscriptionCredentials(&p)
 	if strings.TrimSpace(p.BaseURL) == "" || strings.TrimSpace(p.APIKey) == "" {
-		t.Skip("Codex subscription credentials not found (~/.codex/auth.json)")
+		t.Skip("Codex subscription credentials not found (clovapi subscription/codex.json)")
 		return liveSub{}, false
 	}
 	if strings.TrimSpace(p.AccountID) == "" {
-		t.Skip("Codex subscription missing account_id in auth.json")
+		t.Skip("Codex subscription missing account_id in clovapi subscription/codex.json")
 		return liveSub{}, false
 	}
 	model := strings.TrimSpace(os.Getenv("CLOVAPI_CODEX_MODEL"))

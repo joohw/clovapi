@@ -233,6 +233,23 @@ async function readTrayDesktopState() {
   }
 }
 
+async function readTrayAgentInstallState() {
+  try {
+    const result = await clovapiDesktop.agentStatus();
+    return {
+      ok: Boolean(result?.ok),
+      agents: Array.isArray(result?.items) ? result.items : [],
+      error: String(result?.error || "").trim(),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      agents: [],
+      error: error instanceof Error ? error.message : "Failed to read agent install status",
+    };
+  }
+}
+
 async function switchTrayAgentModel(cliKind, providerId, modelId) {
   await applyTrayModelSwitch({
     desktop: clovapiDesktop,
@@ -247,7 +264,11 @@ async function switchTrayAgentModel(cliKind, providerId, modelId) {
 
 async function updateTrayMenu() {
   if (!tray) return;
-  const [state, desktop] = await Promise.all([readTrayProxyState(), readTrayDesktopState()]);
+  const [state, desktop, agentsState] = await Promise.all([
+    readTrayProxyState(),
+    readTrayDesktopState(),
+    readTrayAgentInstallState(),
+  ]);
   const model = buildTrayMenuModel({
     running: state.running,
     port: state.port,
@@ -256,6 +277,7 @@ async function updateTrayMenu() {
     error: state.error,
     profiles: desktop.profiles,
     active: desktop.active,
+    agents: agentsState.agents,
   });
   tray.setToolTip(trayTooltip(trayStatusSummary(state)));
   const template = [
@@ -311,7 +333,7 @@ async function updateTrayMenu() {
                 },
               ],
         }))
-      : [{ label: "No active agents configured", enabled: false }]),
+      : [{ label: model.noAgentsLabel, enabled: false }]),
     ...(model.canStartProxy
       ? [
           {

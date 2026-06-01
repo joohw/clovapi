@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -60,16 +59,10 @@ func claudeAuthPath() (string, error) {
 	return config.ClaudeSubscriptionAuthPath()
 }
 
+// codexAuthPath returns clovapi's own Codex OAuth store (independent from
+// Codex CLI's ~/.codex/auth.json). Auth status and logout operate on this file only.
 func codexAuthPath() (string, error) {
-	codexHome := strings.TrimSpace(os.Getenv("CODEX_HOME"))
-	if codexHome == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		codexHome = filepath.Join(home, ".codex")
-	}
-	return filepath.Join(codexHome, "auth.json"), nil
+	return config.CodexSubscriptionAuthPath()
 }
 
 func authPathForProvider(providerID string) (string, error) {
@@ -196,6 +189,8 @@ func providerLoggedIn(providerID string, data map[string]any) bool {
 }
 
 // AuthStatus reports subscription OAuth status for built-in providers.
+// Subscription login and model fetch are independent of whether the agent CLI
+// binary is installed; Installed is informational only.
 func AuthStatus() AuthStatusResult {
 	items := make([]AuthStatusItem, 0, len(authProviders))
 	for _, cfg := range authProviders {
@@ -211,21 +206,15 @@ func AuthStatus() AuthStatusResult {
 		if cmdPath != "" {
 			item.CommandPath = cmdPath
 		}
-		if !installed {
-			item.Summary = "CLI not installed"
-			items = append(items, item)
-			continue
-		}
 		authPath, err := authPathForProvider(cfg.ID)
-		if err != nil {
-			items = append(items, item)
-			continue
+		if err == nil {
+			if data, ok := readAuthJSON(authPath); ok {
+				item.LoggedIn = providerLoggedIn(cfg.ID, data)
+				item.Active = providerSubscriptionActive(cfg.ID, item.LoggedIn, data)
+				item.Summary = summarizeAuthStatus(cfg.ID, item.LoggedIn, data)
+			}
 		}
-		if data, ok := readAuthJSON(authPath); ok {
-			item.LoggedIn = providerLoggedIn(cfg.ID, data)
-			item.Active = providerSubscriptionActive(cfg.ID, item.LoggedIn, data)
-			item.Summary = summarizeAuthStatus(cfg.ID, item.LoggedIn, data)
-		} else if cfg.ID == provider.ClaudeCodeProviderID {
+		if !item.LoggedIn && cfg.ID == provider.ClaudeCodeProviderID {
 			if data, ok := profile.ClaudeAuthRoot(); ok {
 				item.LoggedIn = providerLoggedIn(cfg.ID, data)
 				item.Active = providerSubscriptionActive(cfg.ID, item.LoggedIn, data)

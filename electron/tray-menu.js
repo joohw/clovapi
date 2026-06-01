@@ -138,26 +138,40 @@ function modelLabelForVendor(vendor, modelId) {
   return String(match?.label || match?.model || key || "default").trim() || "default";
 }
 
-function resolveActiveBindings(state = {}) {
+function installedByKindFromAgents(agents) {
+  const map = {};
+  for (const item of Array.isArray(agents) ? agents : []) {
+    const kind = String(item?.kind || "").trim();
+    if (!kind) continue;
+    map[kind] = Boolean(item.installed);
+  }
+  return map;
+}
+
+function resolveTrayAgentBindings(state = {}, installedByKind = {}) {
   const active = state.active && typeof state.active === "object" ? state.active : {};
   const profiles = Array.isArray(state.profiles) ? state.profiles : [];
   const out = [];
 
   for (const kind of TRAY_CLI_ORDER) {
+    if (!installedByKind[kind]) continue;
     const selection = activeSelectionParts(active[kind]);
-    if (!selection.providerId || !selection.modelId) continue;
-    const vendor = findVendorByProviderId(profiles, selection.providerId);
-    const vendorName = String(vendor?.name || providerLabel(selection.providerId)).trim();
-    const modelLabel = modelLabelForVendor(vendor, selection.modelId);
+    const vendor = selection.providerId ? findVendorByProviderId(profiles, selection.providerId) : null;
+    const vendorName = String(vendor?.name || (selection.providerId ? providerLabel(selection.providerId) : "")).trim();
+    const modelLabel = selection.modelId ? modelLabelForVendor(vendor, selection.modelId) : "";
     out.push({
       cliKind: kind,
       cliLabel: cliLabel(kind),
+      installed: true,
       providerId: selection.providerId,
       vendorName,
       modelId: selection.modelId,
       modelLabel,
-      summaryLabel: `${cliLabel(kind)} · ${modelLabel}`,
-      detailLabel: `${vendorName} / ${modelLabel}`,
+      summaryLabel: modelLabel ? `${cliLabel(kind)} · ${modelLabel}` : cliLabel(kind),
+      detailLabel:
+        selection.providerId && selection.modelId && vendorName
+          ? `${vendorName} / ${modelLabel}`
+          : "No model selected",
       modelOptions: modelMenuOptionsForCli(profiles, kind, selection),
     });
   }
@@ -168,7 +182,11 @@ function resolveActiveBindings(state = {}) {
 function buildTrayMenuModel(state = {}) {
   const running = Boolean(state.running);
   const port = Number(state.port) || 27483;
-  const bindings = resolveActiveBindings(state);
+  const installedByKind =
+    state.installedByKind && typeof state.installedByKind === "object"
+      ? state.installedByKind
+      : installedByKindFromAgents(state.agents);
+  const bindings = resolveTrayAgentBindings(state, installedByKind);
 
   return {
     windowLabel: "Show ClovAPI Switcher",
@@ -178,6 +196,7 @@ function buildTrayMenuModel(state = {}) {
     statusLabel: trayStatusSummary(state),
     bindings,
     hasBindings: bindings.length > 0,
+    noAgentsLabel: "No installed agents",
     startProxyLabel: `Start Proxy on :${port}`,
     canStartProxy: !running,
     quitLabel: "Quit ClovAPI Switcher",
@@ -186,8 +205,9 @@ function buildTrayMenuModel(state = {}) {
 
 module.exports = {
   buildTrayMenuModel,
+  installedByKindFromAgents,
   isValidTrayTab,
-  resolveActiveBindings,
+  resolveTrayAgentBindings,
   trayStatusSummary,
   trayTooltip,
 };

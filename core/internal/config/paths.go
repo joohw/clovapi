@@ -60,6 +60,19 @@ func ClaudeSubscriptionAuthPath() (string, error) {
 	return filepath.Join(d, "claude.json"), nil
 }
 
+// CodexSubscriptionAuthPath returns clovapi's own Codex OAuth credentials file.
+//
+// This is intentionally independent from Codex CLI's ~/.codex/auth.json: clovapi
+// keeps its own access/refresh tokens here and never reads, writes, or overwrites
+// Codex CLI's auth file.
+func CodexSubscriptionAuthPath() (string, error) {
+	d, err := SubscriptionDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(d, "codex.json"), nil
+}
+
 // CallLogsDir returns the directory for proxy call logs and system logs.
 func CallLogsDir() (string, error) {
 	d, err := Dir()

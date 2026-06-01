@@ -3,6 +3,7 @@ package proxy
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strings"
 )
 
@@ -28,6 +29,22 @@ func ExtractCallLogTokenUsage(body string) *CallLogTokenUsage {
 		usage.TotalTokens = usage.InputTokens + usage.OutputTokens
 	}
 	return &usage
+}
+
+// ExtractCallLogToolCallCount counts tool calls emitted by the upstream model
+// response. It supports common OpenAI Responses/Chat, Anthropic Messages, and
+// Gemini function-call shapes, including SSE terminal events.
+func ExtractCallLogToolCallCount(body string) int {
+	text := strings.TrimSpace(body)
+	if text == "" {
+		return 0
+	}
+	ids := map[string]struct{}{}
+	anonymous := 0
+	for _, payload := range callLogUsagePayloads(text) {
+		anonymous += collectCallLogPayloadToolCalls(payload, ids)
+	}
+	return len(ids) + anonymous
 }
 
 func callLogUsagePayloads(text string) []map[string]any {
@@ -85,6 +102,147 @@ func mergeCallLogPayloadUsage(target *CallLogTokenUsage, payload map[string]any)
 	return found
 }
 
+func countCallLogPayloadToolCalls(payload map[string]any) int {
+	ids := map[string]struct{}{}
+	anonymous := collectCallLogPayloadToolCalls(payload, ids)
+	return len(ids) + anonymous
+}
+
+func collectCallLogPayloadToolCalls(payload map[string]any, ids map[string]struct{}) int {
+	if payload == nil {
+		return 0
+	}
+	count := collectCallLogToolCallsInObject(payload, ids)
+	if item, _ := payload["item"].(map[string]any); item != nil {
+		count += collectCallLogToolCallsInObject(item, ids)
+	}
+	if block, _ := payload["content_block"].(map[string]any); block != nil {
+		count += collectCallLogToolCallsInObject(block, ids)
+	}
+	if response, _ := payload["response"].(map[string]any); response != nil {
+		count += collectCallLogToolCallsInObject(response, ids)
+	}
+	if message, _ := payload["message"].(map[string]any); message != nil {
+		count += collectCallLogToolCallsInObject(message, ids)
+	}
+	return count
+}
+
+func countCallLogToolCallsInObject(obj map[string]any) int {
+	ids := map[string]struct{}{}
+	return collectCallLogToolCallsInObject(obj, ids)
+}
+
+func collectCallLogToolCallsInObject(obj map[string]any, ids map[string]struct{}) int {
+	if obj == nil {
+		return 0
+	}
+	count := 0
+	if isCallLogToolCallObject(obj) {
+		if key := callLogToolCallKey(obj); key != "" {
+			ids[key] = struct{}{}
+		} else {
+			count++
+		}
+	}
+	if calls, ok := obj["tool_calls"].([]any); ok {
+		count += collectCallLogToolCallsInArray(calls, ids)
+	}
+	if call, ok := obj["function_call"].(map[string]any); ok && len(call) > 0 {
+		if key := callLogToolCallKey(call); key != "" {
+			ids[key] = struct{}{}
+		} else {
+			count++
+		}
+	}
+	count += collectCallLogToolCallsInArray(obj["output"], ids)
+	count += collectCallLogToolCallsInArray(obj["content"], ids)
+	count += collectCallLogToolCallsInChoices(obj["choices"], ids)
+	count += collectCallLogToolCallsInCandidates(obj["candidates"], ids)
+	return count
+}
+
+func countCallLogToolCallsInChoices(raw any) int {
+	ids := map[string]struct{}{}
+	return collectCallLogToolCallsInChoices(raw, ids)
+}
+
+func collectCallLogToolCallsInChoices(raw any, ids map[string]struct{}) int {
+	choices, ok := raw.([]any)
+	if !ok {
+		return 0
+	}
+	count := 0
+	for _, choice := range choices {
+		obj, _ := choice.(map[string]any)
+		if obj == nil {
+			continue
+		}
+		if message, _ := obj["message"].(map[string]any); message != nil {
+			count += collectCallLogToolCallsInObject(message, ids)
+		}
+		if delta, _ := obj["delta"].(map[string]any); delta != nil {
+			count += collectCallLogToolCallsInObject(delta, ids)
+		}
+	}
+	return count
+}
+
+func countCallLogToolCallsInCandidates(raw any) int {
+	ids := map[string]struct{}{}
+	return collectCallLogToolCallsInCandidates(raw, ids)
+}
+
+func collectCallLogToolCallsInCandidates(raw any, ids map[string]struct{}) int {
+	candidates, ok := raw.([]any)
+	if !ok {
+		return 0
+	}
+	count := 0
+	for _, candidate := range candidates {
+		obj, _ := candidate.(map[string]any)
+		content, _ := obj["content"].(map[string]any)
+		count += collectCallLogToolCallsInArray(content["parts"], ids)
+	}
+	return count
+}
+
+func countCallLogToolCallsInArray(raw any) int {
+	ids := map[string]struct{}{}
+	return collectCallLogToolCallsInArray(raw, ids)
+}
+
+func collectCallLogToolCallsInArray(raw any, ids map[string]struct{}) int {
+	items, ok := raw.([]any)
+	if !ok {
+		return 0
+	}
+	count := 0
+	for _, item := range items {
+		obj, _ := item.(map[string]any)
+		if obj == nil {
+			continue
+		}
+		count += collectCallLogToolCallsInObject(obj, ids)
+	}
+	return count
+}
+
+func isCallLogToolCallObject(obj map[string]any) bool {
+	typ := strings.ToLower(strings.TrimSpace(fmt.Sprint(obj["type"])))
+	return typ == "function_call" || typ == "tool_call" || typ == "tool_use" || strings.HasSuffix(typ, "_tool_call") || strings.HasSuffix(typ, "_call") && strings.Contains(typ, "tool")
+}
+
+func callLogToolCallKey(obj map[string]any) string {
+	for _, key := range []string{"id", "call_id", "tool_call_id"} {
+		value := strings.TrimSpace(fmt.Sprint(obj[key]))
+		if value != "" && value != "<nil>" {
+			return value
+		}
+	}
+	return ""
+}
+
 func asUsageMap(v any) map[string]any {
 	m, _ := v.(map[string]any)
 	return m
@@ -124,12 +282,12 @@ func mergeCallLogTokenUsageObject(target *CallLogTokenUsage, usage map[string]an
 		}
 	}
 	if details := asUsageMap(usage["output_tokens_details"]); details != nil {
-		if assignUsageMax(&target.ReasoningTokens, details["reasoning_tokens"]) {
+		if assignUsageMax(&target.ReasoningTokens, details["reasoning_tokens"], details["thinking_tokens"]) {
 			found = true
 		}
 	}
 	if details := asUsageMap(usage["completion_tokens_details"]); details != nil {
-		if assignUsageMax(&target.ReasoningTokens, details["reasoning_tokens"]) {
+		if assignUsageMax(&target.ReasoningTokens, details["reasoning_tokens"], details["thinking_tokens"]) {
 			found = true
 		}
 	}

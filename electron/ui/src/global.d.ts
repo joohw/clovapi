@@ -165,6 +165,7 @@ export type ProxyLogEntry = {
     cacheCreationTokens?: number;
     reasoningTokens?: number;
   };
+  toolCallCount?: number;
   error?: string;
 };
 
@@ -180,8 +181,18 @@ export type ProxyLogSession = {
   sessionId: string;
   sessionKind: string;
   entryCount: number;
+  firstStartedAt: string;
   lastStartedAt: string;
   logIds: string[];
+  tokenUsage?: {
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+    cacheReadTokens?: number;
+    cacheCreationTokens?: number;
+    reasoningTokens?: number;
+  };
+  toolCallCount?: number;
 };
 
 type ProxyLogsResult = {

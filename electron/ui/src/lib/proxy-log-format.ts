@@ -27,6 +27,12 @@ export function proxyLogIngressPath(url: string): string {
   return path;
 }
 
+export function proxyLogVendorName(entry: ProxyLogEntry): string {
+  const path = proxyLogIngressPath(entry.request?.url || "");
+  const [, vendor = ""] = path.match(/^\/([^/]+)/) || [];
+  return vendor;
+}
+
 export function proxyLogInboundRequestLine(entry: ProxyLogEntry): string {
   const method = String(entry.request?.method || "GET").trim().toUpperCase();
   const url = String(entry.request?.url || "").trim() || "/";
@@ -46,9 +52,11 @@ export function proxyLogOverviewText(entry: ProxyLogEntry): string {
   const session = String(entry.session || entry.sessionId || "").trim() || t("common.none");
   const usage = proxyLogTokenUsageText(entry);
   const rows = [
-    `${t("callLogs.overviewResult")}: ${proxyLogSummary(entry)}`,
+    `${t("callLogs.overviewResult")}: ${proxyLogResultText(entry)}`,
     `${t("callLogs.overviewSession")}: ${session}`,
     `${t("callLogs.overviewTokens")}: ${usage}`,
+    `${t("callLogs.overviewTime")}: ${proxyLogTimeRangeText(entry)}`,
+    `${t("callLogs.toolCalls")}: ${entry.toolCallCount || 0}`,
     `${t("callLogs.overviewInbound")}: ${proxyLogInboundRequestLine(entry)}`,
     `${t("callLogs.overviewUpstream")}: ${proxyLogUpstreamRequestLine(entry) || t("common.none")}`,
     `${t("callLogs.overviewStatus")}: HTTP ${status}`,
@@ -66,8 +74,9 @@ export function proxyLogInboundRequestText(entry: ProxyLogEntry): string {
 }
 
 export function proxyLogCardTitle(entry: ProxyLogEntry): string {
-  const method = String(entry.request?.method || "GET").trim().toUpperCase();
-  return `${method} ${proxyLogIngressPath(entry.request?.url || "")}`;
+  const path = proxyLogIngressPath(entry.request?.url || "");
+  const status = entry.upstream?.status || 0;
+  return status ? `${path}（${status}）` : path;
 }
 
 export function proxyLogStatusClass(status: number): string {
@@ -85,17 +94,7 @@ export function proxyLogHeaderText(headers: Record<string, string>): string {
 
 export function proxyLogTokenUsageText(entry: ProxyLogEntry): string {
   const usage = normalizeTokenUsage(entry.tokenUsage);
-  if (!usage) return t("common.none");
-  const parts = [];
-  if (usage.inputTokens != null) parts.push(`${t("callLogs.inputTokens")}: ${usage.inputTokens}`);
-  if (usage.outputTokens != null) parts.push(`${t("callLogs.outputTokens")}: ${usage.outputTokens}`);
-  if (usage.totalTokens != null) parts.push(`${t("callLogs.totalTokens")}: ${usage.totalTokens}`);
-  if (usage.cacheReadTokens != null) parts.push(`${t("callLogs.cacheReadTokens")}: ${usage.cacheReadTokens}`);
-  if (usage.cacheCreationTokens != null) {
-    parts.push(`${t("callLogs.cacheCreationTokens")}: ${usage.cacheCreationTokens}`);
-  }
-  if (usage.reasoningTokens != null) parts.push(`${t("callLogs.reasoningTokens")}: ${usage.reasoningTokens}`);
-  return parts.length ? parts.join(" · ") : t("common.none");
+  return tokenUsageText(usage, { totalFirst: true });
 }
 
 type TokenUsage = {
@@ -120,6 +119,82 @@ function normalizeTokenUsage(raw: unknown): TokenUsage | null {
   return Object.keys(out).length ? out : null;
 }
 
+export function tokenUsageText(usage: TokenUsage | null | undefined, options: { totalFirst?: boolean } = {}): string {
+  if (!usage) return t("common.none");
+  const parts = [];
+  if (options.totalFirst && usage.totalTokens != null) parts.push(`${t("callLogs.totalTokens")}${usage.totalTokens}`);
+  if (usage.inputTokens != null) parts.push(`${t("callLogs.inputTokens")}${usage.inputTokens}`);
+  if (usage.outputTokens != null) parts.push(`${t("callLogs.outputTokens")} ${usage.outputTokens}`);
+  if (!options.totalFirst && usage.totalTokens != null) parts.push(`${t("callLogs.totalTokens")}${usage.totalTokens}`);
+  if (usage.cacheReadTokens != null) {
+    const pct = tokenUsagePercent(usage.cacheReadTokens, usage.inputTokens);
+    parts.push(`${t("callLogs.cacheReadTokens")} ${usage.cacheReadTokens}${pct}`);
+  }
+  if (usage.cacheCreationTokens != null) {
+    parts.push(`${t("callLogs.cacheCreationTokens")} ${usage.cacheCreationTokens}`);
+  }
+  if (usage.reasoningTokens != null) parts.push(`${t("callLogs.reasoningTokens")} ${usage.reasoningTokens}`);
+  return parts.length ? parts.join(" · ") : t("common.none");
+}
+
+function proxyLogTimeRangeText(entry: ProxyLogEntry): string {
+  const started = formatTimestamp(entry.startedAt);
+  const duration = typeof entry.durationMs === "number" && entry.durationMs > 0 ? ` · ${entry.durationMs}ms` : "";
+  return started ? `${started}${duration}` : t("common.none");
+}
+
+function formatTimestamp(value: string): string {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return raw;
+    const yy = String(date.getFullYear()).slice(-2);
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    const hh = String(date.getHours()).padStart(2, "0");
+    const mi = String(date.getMinutes()).padStart(2, "0");
+    const ss = String(date.getSeconds()).padStart(2, "0");
+    return `${yy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+  } catch {
+    return raw;
+  }
+}
+
+function tokenUsagePercent(value: number, total: number | undefined): string {
+  const percent = tokenUsagePercentValue(value, total);
+  return percent == null ? "" : ` (${percent}%)`;
+}
+
+function tokenUsagePercentValue(value: number | undefined, total: number | undefined): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  if (typeof total !== "number" || !Number.isFinite(total) || total <= 0) return null;
+  return Math.round((value / total) * 100);
+}
+
+export function tokenUsageCacheRatePercent(usage: TokenUsage | null | undefined): number | null {
+  const input = usage?.inputTokens;
+  const read = usage?.cacheReadTokens;
+  const created = usage?.cacheCreationTokens;
+  const hasCacheMetric = read != null || created != null;
+  if (!hasCacheMetric || typeof input !== "number" || !Number.isFinite(input) || input <= 0) return null;
+  const readTokens = positiveNumber(read);
+  const denominator = shouldTreatCacheAsSeparateInput(usage) ? input + readTokens + positiveNumber(created) : input;
+  if (denominator <= 0) return null;
+  return Math.round((readTokens / denominator) * 100);
+}
+
+function shouldTreatCacheAsSeparateInput(usage: TokenUsage | null | undefined): boolean {
+  const input = positiveNumber(usage?.inputTokens);
+  const read = positiveNumber(usage?.cacheReadTokens);
+  const created = positiveNumber(usage?.cacheCreationTokens);
+  return created > 0 || read > input;
+}
+
+function positiveNumber(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
+}
+
 function assignNumber(target: TokenUsage, key: keyof TokenUsage, value: unknown) {
   if (typeof value !== "number" || !Number.isFinite(value)) return;
   if (target[key] == null || value > Number(target[key])) {
@@ -134,11 +209,23 @@ export function proxyLogBodyText(body: string): string {
 }
 
 export function proxyLogSummary(entry: ProxyLogEntry): string {
+  const usage = normalizeTokenUsage(entry.tokenUsage);
+  return tokenUsageSummaryText(usage);
+}
+
+export function tokenUsageSummaryText(usage: TokenUsage | null | undefined): string {
+  const parts = [];
+  if (usage?.inputTokens != null) parts.push(`${t("callLogs.inputTokens")}${usage.inputTokens}`);
+  if (usage?.outputTokens != null) parts.push(`${t("callLogs.outputTokens")} ${usage.outputTokens}`);
+  const cachePercent = tokenUsageCacheRatePercent(usage);
+  if (cachePercent != null) parts.push(t("callLogs.cachePercent", { percent: cachePercent }));
+  return parts.join(" · ");
+}
+
+function proxyLogResultText(entry: ProxyLogEntry): string {
   const status = entry.upstream.status ? String(entry.upstream.status) : "pending";
-  const duration = entry.completedAt ? `${entry.durationMs}ms` : t("callLogs.inProgress");
-  const usage =
-    typeof entry.tokenUsage?.totalTokens === "number" ? ` · ${t("callLogs.totalTokens")}: ${entry.tokenUsage.totalTokens}` : "";
-  return `${entry.request.method} ${status} · ${duration}${usage}`;
+  if (!entry.completedAt) return `${status} · ${t("callLogs.inProgress")}`;
+  return status;
 }
 
 export function proxySystemLogStreamClass(stream: string): string {

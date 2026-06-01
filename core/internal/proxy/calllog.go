@@ -45,17 +45,18 @@ type CallLogTokenUsage struct {
 }
 
 type CallLogEntry struct {
-	ID          string             `json:"id"`
-	Session     string             `json:"session,omitempty"`
-	SessionID   string             `json:"sessionId,omitempty"`
-	SessionKind string             `json:"sessionKind,omitempty"`
-	StartedAt   string             `json:"startedAt"`
-	CompletedAt string             `json:"completedAt"`
-	DurationMs  int64              `json:"durationMs"`
-	Request     CallLogRequest     `json:"request"`
-	Upstream    CallLogUpstream    `json:"upstream"`
-	TokenUsage  *CallLogTokenUsage `json:"tokenUsage,omitempty"`
-	Error       string             `json:"error,omitempty"`
+	ID            string             `json:"id"`
+	Session       string             `json:"session,omitempty"`
+	SessionID     string             `json:"sessionId,omitempty"`
+	SessionKind   string             `json:"sessionKind,omitempty"`
+	StartedAt     string             `json:"startedAt"`
+	CompletedAt   string             `json:"completedAt"`
+	DurationMs    int64              `json:"durationMs"`
+	Request       CallLogRequest     `json:"request"`
+	Upstream      CallLogUpstream    `json:"upstream"`
+	TokenUsage    *CallLogTokenUsage `json:"tokenUsage,omitempty"`
+	ToolCallCount int                `json:"toolCallCount,omitempty"`
+	Error         string             `json:"error,omitempty"`
 }
 
 type CallLogStore struct {
@@ -362,6 +363,7 @@ func (t *requestTrace) setUpstreamResponse(status int, headers http.Header, body
 	body = sanitizeCallLogUpstreamBody(headers, body)
 	t.entry.Upstream.Body = redactBodySecrets(body)
 	t.entry.TokenUsage = ExtractCallLogTokenUsage(t.entry.Upstream.Body)
+	t.entry.ToolCallCount = ExtractCallLogToolCallCount(t.entry.Upstream.Body)
 }
 
 func (t *requestTrace) setError(msg string) {
@@ -380,6 +382,9 @@ func (t *requestTrace) finish() {
 	t.entry.DurationMs = now.Sub(t.start).Milliseconds()
 	if t.entry.TokenUsage == nil {
 		t.entry.TokenUsage = ExtractCallLogTokenUsage(t.entry.Upstream.Body)
+	}
+	if t.entry.ToolCallCount == 0 {
+		t.entry.ToolCallCount = ExtractCallLogToolCallCount(t.entry.Upstream.Body)
 	}
 	t.store.Push(t.entry)
 }

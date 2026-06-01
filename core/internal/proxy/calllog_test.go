@@ -169,6 +169,116 @@ func TestCallLogExtractsOpenAIResponsesUsage(t *testing.T) {
 	}
 }
 
+func TestCallLogExtractsToolCallCount(t *testing.T) {
+	body := strings.Join([]string{
+		`event: response.completed`,
+		`data: {"response":{"output":[{"type":"function_call","name":"Shell"},{"type":"function_call","name":"ReadFile"}]},"type":"response.completed"}`,
+		``,
+	}, "\n")
+	if got := ExtractCallLogToolCallCount(body); got != 2 {
+		t.Fatalf("tool call count = %d", got)
+	}
+
+	anthropic := `{"content":[{"type":"tool_use","name":"Shell"}]}`
+	if got := ExtractCallLogToolCallCount(anthropic); got != 1 {
+		t.Fatalf("anthropic tool call count = %d", got)
+	}
+}
+
+func TestCallLogExtractsOpenAIResponsesSSEToolCallOnce(t *testing.T) {
+	body := strings.Join([]string{
+		`event: response.output_item.added`,
+		`data: {"type":"response.output_item.added","item":{"type":"function_call","id":"fc_1","call_id":"call_1","name":"Shell"}}`,
+		``,
+		`event: response.output_item.done`,
+		`data: {"type":"response.output_item.done","item":{"type":"function_call","id":"fc_1","call_id":"call_1","name":"Shell","arguments":"{}"}}`,
+		``,
+	}, "\n")
+	if got := ExtractCallLogToolCallCount(body); got != 1 {
+		t.Fatalf("responses sse tool call count = %d", got)
+	}
+}
+
+func TestCallLogExtractsClaudeSSEToolCallCount(t *testing.T) {
+	body := strings.Join([]string{
+		`event: content_block_start`,
+		`data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_1","name":"exec_command","input":{}}}`,
+		``,
+		`event: content_block_delta`,
+		`data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{}"}}`,
+		``,
+		`event: content_block_stop`,
+		`data: {"type":"content_block_stop","index":1}`,
+		``,
+	}, "\n")
+	if got := ExtractCallLogToolCallCount(body); got != 1 {
+		t.Fatalf("claude sse tool call count = %d", got)
+	}
+}
+
+func TestCallLogExtractsClaudeCodeSSEMetrics(t *testing.T) {
+	body := strings.Join([]string{
+		`event: message_start`,
+		`data: {"type":"message_start","message":{"model":"claude-opus-4-8","id":"msg_1","type":"message","role":"assistant","content":[],"usage":{"input_tokens":2,"cache_creation_input_tokens":56533,"cache_read_input_tokens":0,"output_tokens":47}}}`,
+		``,
+		`event: content_block_start`,
+		`data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":"","signature":""}}`,
+		``,
+		`event: content_block_stop`,
+		`data: {"type":"content_block_stop","index":0}`,
+		``,
+		`event: content_block_start`,
+		`data: {"type":"content_block_start","index":1,"content_block":{"type":"text","text":""}}`,
+		``,
+		`event: content_block_stop`,
+		`data: {"type":"content_block_stop","index":1}`,
+		``,
+		`event: content_block_start`,
+		`data: {"type":"content_block_start","index":2,"content_block":{"type":"tool_use","id":"toolu_1","name":"WebSearch","input":{},"caller":{"type":"direct"}}}`,
+		``,
+		`event: content_block_delta`,
+		`data: {"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"{\"query\":\"one\"}"}}`,
+		``,
+		`event: content_block_stop`,
+		`data: {"type":"content_block_stop","index":2}`,
+		``,
+		`event: content_block_start`,
+		`data: {"type":"content_block_start","index":3,"content_block":{"type":"tool_use","id":"toolu_2","name":"WebSearch","input":{},"caller":{"type":"direct"}}}`,
+		``,
+		`event: content_block_stop`,
+		`data: {"type":"content_block_stop","index":3}`,
+		``,
+		`event: message_delta`,
+		`data: {"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"input_tokens":2,"cache_creation_input_tokens":56533,"cache_read_input_tokens":0,"output_tokens":316,"output_tokens_details":{"thinking_tokens":86}}}`,
+		``,
+		`event: message_stop`,
+		`data: {"type":"message_stop"}`,
+		``,
+	}, "\n")
+	usage := ExtractCallLogTokenUsage(body)
+	if usage == nil {
+		t.Fatal("expected usage")
+	}
+	if usage.InputTokens != 2 || usage.OutputTokens != 316 || usage.CacheCreationTokens != 56533 || usage.CacheReadTokens != 0 || usage.ReasoningTokens != 86 {
+		t.Fatalf("usage = %+v", usage)
+	}
+	if got := ExtractCallLogToolCallCount(body); got != 2 {
+		t.Fatalf("claudecode tool call count = %d", got)
+	}
+
+	store := openTestCallLogStore(t)
+	trace := startRequestTrace(store, mustHTTPRequest(t))
+	trace.setUpstreamResponse(http.StatusOK, http.Header{"Content-Type": []string{"text/event-stream"}}, []byte(body))
+	trace.finish()
+	entries := store.ListRecent(0)
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+	if entries[0].ToolCallCount != 2 {
+		t.Fatalf("stored tool call count = %d", entries[0].ToolCallCount)
+	}
+}
+
 func TestCallLogExtractsAnthropicMessagesUsage(t *testing.T) {
 	body := strings.Join([]string{
 		`event: message_start`,

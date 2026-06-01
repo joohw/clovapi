@@ -14,6 +14,7 @@
     linesNowrap = false,
     centerContent = false,
     stopActionsPropagation = true,
+    titleClass = "",
     class: className = "",
     onOpen,
     leading,
@@ -29,6 +30,7 @@
     linesNowrap?: boolean;
     centerContent?: boolean;
     stopActionsPropagation?: boolean;
+    titleClass?: string;
     class?: string;
     onOpen?: () => void;
     leading?: Snippet;
@@ -92,7 +94,7 @@
     {#if showStatusDot}
       <span class={dotClass} aria-hidden="true"></span>
     {/if}
-    <span class="min-w-0 truncate">{title}</span>
+    <span class={cn("min-w-0 truncate", titleClass)}>{title}</span>
     {#if testSummary}
       <span class={summaryClass}>{testSummary}</span>
     {/if}

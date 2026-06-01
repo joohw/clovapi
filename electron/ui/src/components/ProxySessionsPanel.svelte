@@ -11,7 +11,12 @@
     setActiveTab,
     store,
   } from "../lib/store.svelte";
-  import { formatProxyLogTime, proxyLogCardTitle, proxyLogSummary } from "../lib/proxy-log-format";
+  import {
+    formatProxyLogTime,
+    proxyLogSummary,
+    tokenUsageCacheRatePercent,
+    tokenUsageText,
+  } from "../lib/proxy-log-format";
   import ListRow from "./ListRow.svelte";
   import SectionCard from "./SectionCard.svelte";
 
@@ -28,22 +33,62 @@
       back: t("common.back"),
       refresh: t("common.refresh"),
       refreshing: t("common.refreshing"),
-      details: t("common.details"),
       sessionsTitle: t("callLogs.sessionsTitle"),
       sessionsDescription: t("callLogs.sessionsDescription"),
       sessionsEmpty: t("callLogs.sessionsEmpty"),
       sessionOverview: t("callLogs.sessionOverview"),
       sessionOverviewDesc: t("callLogs.sessionOverviewDesc"),
-      sessionLogs: t("callLogs.sessionLogs"),
-      sessionLogsDesc: t("callLogs.sessionLogsDesc"),
+      logIds: t("callLogs.logIds"),
+      inputTokens: t("callLogs.inputTokens"),
+      outputTokens: t("callLogs.outputTokens"),
+      totalTokens: t("callLogs.totalTokens"),
+      reasoningTokens: t("callLogs.reasoningTokens"),
+      toolCalls: t("callLogs.toolCalls"),
+      rounds: t("callLogs.rounds"),
+      timeSpan: t("callLogs.timeSpan"),
     };
   });
 
   function sessionLine(item: (typeof store.proxyLogSessions)[number]): string {
     const last = item.lastStartedAt ? formatProxyLogTime(item.lastStartedAt) : "";
-    const parts = [`${item.sessionKind} · ${item.entryCount}`];
+    const parts = [];
     if (last) parts.push(last);
+    parts.push(`${copy.rounds} ${item.entryCount}`);
     return parts.join(" · ");
+  }
+
+  function sessionSummaryLine(item: (typeof store.proxyLogSessions)[number]): string {
+    const parts = [];
+    const usage = item.tokenUsage;
+    if (usage?.totalTokens != null) parts.push(`${copy.totalTokens}${usage.totalTokens}`);
+    if (usage?.inputTokens != null) parts.push(`${copy.inputTokens}${usage.inputTokens}`);
+    if (usage?.outputTokens != null) parts.push(`${copy.outputTokens} ${usage.outputTokens}`);
+    const cachePercent = tokenUsageCacheRatePercent(usage);
+    if (cachePercent != null) parts.push(t("callLogs.cachePercent", { percent: cachePercent }));
+    return parts.join(" · ");
+  }
+
+  function sessionMetaLine(item: (typeof store.proxyLogSessions)[number]): string {
+    const parts = [`${copy.rounds} ${item.entryCount}`];
+    parts.push(`${copy.toolCalls} ${item.toolCallCount || 0}`);
+    if (item.tokenUsage?.reasoningTokens != null) parts.push(`${copy.reasoningTokens} ${item.tokenUsage.reasoningTokens}`);
+    const span = sessionTimeSpan(item);
+    if (span) parts.push(`${copy.timeSpan} ${span}`);
+    return parts.join(" · ");
+  }
+
+  function sessionTimeSpan(item: (typeof store.proxyLogSessions)[number]): string {
+    const first = item.firstStartedAt ? Date.parse(item.firstStartedAt) : NaN;
+    const last = item.lastStartedAt ? Date.parse(item.lastStartedAt) : NaN;
+    if (!Number.isFinite(first) || !Number.isFinite(last)) return "";
+    const seconds = Math.max(0, Math.round((last - first) / 1000));
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remSeconds = seconds % 60;
+    if (minutes < 60) return remSeconds ? `${minutes}m ${remSeconds}s` : `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const remMinutes = minutes % 60;
+    return remMinutes ? `${hours}h ${remMinutes}m` : `${hours}h`;
   }
 
   function openSessionLog(logId: string) {
@@ -68,23 +113,30 @@
       <div class="space-y-2 px-4 py-3 text-sm">
         <div class="font-medium">{selectedSession.session}</div>
         <div class="text-xs text-muted-foreground">{sessionLine(selectedSession)}</div>
+        <div class="text-xs text-muted-foreground">{tokenUsageText(selectedSession.tokenUsage)}</div>
+        <div class="text-xs text-muted-foreground">{copy.toolCalls}: {selectedSession.toolCallCount || 0}</div>
       </div>
     </SectionCard>
-    <SectionCard title={copy.sessionLogs} description={copy.sessionLogsDesc}>
+    <SectionCard title={copy.logIds}>
       {#each selectedSession.logIds as logId (logId)}
         {@const loadedLog = store.proxyLogs.find((entry) => entry.id === logId)}
         <ListRow
           title={logId}
-          lines={loadedLog ? [proxyLogCardTitle(loadedLog), proxyLogSummary(loadedLog)] : []}
           linesNowrap
+          centerContent
+          muted={!loadedLog}
           onOpen={loadedLog ? () => openSessionLog(logId) : undefined}
+          stopActionsPropagation={false}
         >
           {#snippet actions()}
             {#if loadedLog}
-              <Button size="sm" variant="outline" type="button" onclick={() => openSessionLog(logId)}>
-                {copy.details}
-                <ChevronRightIcon class="size-4" />
-              </Button>
+              {@const summary = proxyLogSummary(loadedLog)}
+              {#if summary}
+                <span class="shrink-0 text-xs text-muted-foreground">
+                  {summary}
+                </span>
+              {/if}
+              <ChevronRightIcon class="size-4 text-muted-foreground" aria-hidden="true" />
             {/if}
           {/snippet}
         </ListRow>
@@ -110,15 +162,14 @@
       {#each store.proxyLogSessions as item (item.session)}
         <ListRow
           title={item.session}
-          lines={[sessionLine(item)]}
+          lines={[sessionSummaryLine(item), sessionMetaLine(item)].filter(Boolean)}
           linesNowrap
           onOpen={() => openProxySession(item.session)}
+          centerContent
+          stopActionsPropagation={false}
         >
           {#snippet actions()}
-            <Button size="sm" variant="outline" type="button" onclick={() => openProxySession(item.session)}>
-              {copy.details}
-              <ChevronRightIcon class="size-4" />
-            </Button>
+            <ChevronRightIcon class="size-4 text-muted-foreground" aria-hidden="true" />
           {/snippet}
         </ListRow>
       {/each}

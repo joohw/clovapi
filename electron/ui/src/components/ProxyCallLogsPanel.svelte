@@ -17,10 +17,12 @@
     proxyLogCardTitle,
     proxyLogStatusClass,
     proxyLogSummary,
+    proxyLogVendorName,
   } from "../lib/proxy-log-format";
   import ListRow from "./ListRow.svelte";
   import ProxyLogDetailPanel from "./ProxyLogDetailPanel.svelte";
   import SectionCard from "./SectionCard.svelte";
+  import VendorIcon from "./VendorIcon.svelte";
 
   const selectedLog = $derived(
     store.proxyLogSelectedId
@@ -40,7 +42,6 @@
       refreshing: t("common.refreshing"),
       clear: t("common.clear"),
       empty: t("callLogs.empty"),
-      details: t("common.details"),
       previous: t("common.previous"),
       next: t("common.next"),
       cancel: t("common.cancel"),
@@ -55,6 +56,14 @@
   function confirmClearLogs() {
     clearConfirmOpen = false;
     void clearCallLogs();
+  }
+
+  function providerIdForLog(entry: (typeof store.proxyLogs)[number]): string {
+    const vendor = proxyLogVendorName(entry).toLowerCase();
+    if (vendor === "codex") return "codex";
+    if (vendor === "claude" || vendor === "claude-code") return "claude-code";
+    if (vendor === "ollama") return "ollama";
+    return "custom-api";
   }
 
   $effect(() => {
@@ -98,15 +107,17 @@
             linesNowrap
             centerContent
             onOpen={() => openProxyLog(entry.id)}
+            stopActionsPropagation={false}
+            titleClass={proxyLogStatusClass(entry.upstream.status)}
           >
+            {#snippet leading()}
+              <VendorIcon providerId={providerIdForLog(entry)} class="size-7 rounded-md p-1" />
+            {/snippet}
             {#snippet actions()}
-              <span class={`shrink-0 text-xs ${proxyLogStatusClass(entry.upstream.status)}`}>
+              <span class="shrink-0 text-xs text-muted-foreground">
                 {proxyLogSummary(entry)}
               </span>
-              <Button size="sm" variant="outline" type="button" onclick={() => openProxyLog(entry.id)}>
-                {copy.details}
-                <ChevronRightIcon class="size-4" />
-              </Button>
+              <ChevronRightIcon class="size-4 text-muted-foreground" aria-hidden="true" />
             {/snippet}
           </ListRow>
         {/each}

@@ -1,17 +1,10 @@
-//go:build !windows
+//go:build !windows && !darwin
 
 package desktop
 
-import (
-	"os"
-	"runtime"
-	"syscall"
-)
+import "os"
 
 func isExecutableFile(path string) bool {
-	if runtime.GOOS == "darwin" {
-		return syscall.Access(path, syscall.X_OK) == nil
-	}
 	info, err := os.Stat(path)
 	if err != nil || info.IsDir() {
 		return false

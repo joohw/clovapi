@@ -40,6 +40,7 @@
   const copy = $derived.by(() => {
     void i18n.locale;
     return {
+      title: t("app.title"),
       subtitle: t("app.subtitle"),
       tabs: {
         cli: t("tabs.cli"),
@@ -76,7 +77,7 @@
   <header class="mb-5 shrink-0 select-none {inElectron ? 'pt-8' : ''}">
     <div class="flex items-center justify-between gap-3">
       <div class="min-w-0 flex-1 {inElectron ? 'electron-titlebar-drag' : ''}">
-        <h1 class="text-lg font-semibold tracking-tight">ClovAPI Switcher</h1>
+        <h1 class="text-lg font-semibold tracking-tight">{copy.title}</h1>
         <p class="mt-1 text-xs text-muted-foreground">{copy.subtitle}</p>
       </div>
       {#if showAppUpdateBadge}

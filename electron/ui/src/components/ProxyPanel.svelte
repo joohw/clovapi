@@ -15,23 +15,23 @@
   import ListRow from "./ListRow.svelte";
   import SectionCard from "./SectionCard.svelte";
 
+  const electronDev = isElectronDev();
+
   const copy = $derived.by(() => {
     void i18n.locale;
     return {
       title: t("proxy.title"),
       description: t("proxy.description", { path: "/{providerId}/{modelId}/{apiStyle}/v1" }),
       service: t("proxy.service"),
-      statusLine: store.proxyRunning
-        ? t("proxy.running", { url: store.proxyBaseUrl })
-        : t("proxy.stopped"),
+      serviceLine: store.proxyRunning ? t("proxy.runningShort") : t("proxy.stopped"),
       appVersion: t("proxy.appVersion"),
       appVersionLine: store.appVersion
         ? t("proxy.appVersionLine", { version: store.appVersion })
         : t("proxy.appVersionUnknown"),
       coreVersion: t("proxy.coreVersion"),
-      coreVersionLine: store.coreVersion
-        ? t("proxy.coreVersionLine", { version: store.coreVersion })
-        : t("proxy.coreVersionUnknown"),
+      coreTitle: store.coreVersion
+        ? t("proxy.coreTitle", { version: store.coreVersion })
+        : t("proxy.coreVersion"),
       test: t("common.test"),
       testing: t("common.testing"),
       restart: t("proxy.restart"),
@@ -43,7 +43,19 @@
     };
   });
 
-  const electronDev = isElectronDev();
+  const coreLines = $derived.by(() => {
+    void i18n.locale;
+    const lines: string[] = [];
+    if (store.proxyRunning) {
+      lines.push(t("proxy.coreProxyAddress", { url: store.proxyBaseUrl }));
+    } else if (!store.coreVersion) {
+      lines.push(t("proxy.coreVersionUnknown"));
+    }
+    if (electronDev) {
+      lines.push(t("proxy.updateDisabledInDev"));
+    }
+    return lines;
+  });
 
   const proxyHealthTest = $derived(store.proxyHealthTest);
   const proxyHealthTesting = $derived(proxyHealthTest?.status === "testing");
@@ -53,6 +65,7 @@
   const coreUpdateCheck = $derived(store.coreUpdateCheck);
   const coreUpdateTesting = $derived(coreUpdateCheck?.status === "testing" || store.coreUpdating);
   const coreUpdateBusy = $derived(store.running || coreUpdateTesting);
+  const coreActionBusy = $derived(store.running || proxyHealthTesting);
 
   function rowTestStatus(value: string | undefined): "" | ModelTestStatus {
     if (value === "testing" || value === "pass" || value === "fail") return value;
@@ -61,27 +74,7 @@
 </script>
 
 <SectionCard title={copy.title} description={copy.description}>
-  <ListRow
-    title={copy.service}
-    lines={[copy.statusLine]}
-    showStatusDot={Boolean(proxyHealthTest?.status)}
-    testStatus={rowTestStatus(proxyHealthTest?.status)}
-    testSummary={proxyHealthTest?.summary || ""}
-  >
-    {#snippet actions()}
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={store.running || proxyHealthTesting}
-        onclick={() => void runProxyHealthTest()}
-      >
-        {proxyHealthTesting ? copy.testing : copy.test}
-      </Button>
-      <Button size="sm" disabled={store.running || proxyHealthTesting} onclick={() => void restartLocalProxy()}>
-        {copy.restart}
-      </Button>
-    {/snippet}
-  </ListRow>
+  <ListRow title={copy.service} lines={[copy.serviceLine]} />
 
   <ListRow
     title={copy.appVersion}
@@ -109,12 +102,24 @@
   </ListRow>
 
   <ListRow
-    title={copy.coreVersion}
-    lines={electronDev ? [copy.coreVersionLine, copy.updateDisabledInDev] : [copy.coreVersionLine]}
-    testStatus={electronDev ? "" : rowTestStatus(coreUpdateCheck?.status)}
-    testSummary={electronDev ? "" : coreUpdateCheck?.summary || ""}
+    title={copy.coreTitle}
+    lines={coreLines}
+    showStatusDot={Boolean(proxyHealthTest?.status)}
+    testStatus={rowTestStatus(proxyHealthTest?.status)}
+    testSummary={proxyHealthTest?.summary || ""}
   >
     {#snippet actions()}
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={coreActionBusy}
+        onclick={() => void runProxyHealthTest()}
+      >
+        {proxyHealthTesting ? copy.testing : copy.test}
+      </Button>
+      <Button size="sm" disabled={coreActionBusy} onclick={() => void restartLocalProxy()}>
+        {copy.restart}
+      </Button>
       {#if !electronDev}
         <Button
           size="sm"

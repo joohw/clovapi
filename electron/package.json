@@ -1,7 +1,7 @@
 {
   "name": "clovapi-switcher",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "ClovAPI Switcher desktop app",
   "main": "main.js",
   "type": "commonjs",
@@ -93,6 +93,9 @@
     },
     "nsis": {
       "oneClick": false,
+      "allowToChangeInstallationDirectory": false,
+      "allowElevation": true,
+      "runAfterFinish": true,
       "shortcutName": "ClovAPI Switcher",
       "uninstallDisplayName": "ClovAPI Switcher"
     }

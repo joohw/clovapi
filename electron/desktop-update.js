@@ -221,12 +221,33 @@ async function verifyInstallerChecksum(installerPath, versionTag) {
   return true;
 }
 
+function resolveDesktopInstallDir() {
+  const execPath = process.execPath;
+  if (!execPath) return "";
+  if (process.platform === "darwin") {
+    // .../ClovAPI Switcher.app/Contents/MacOS/ClovAPI Switcher
+    const macOSDir = path.dirname(path.dirname(path.dirname(execPath)));
+    return macOSDir.endsWith(".app") ? macOSDir : "";
+  }
+  return path.dirname(execPath);
+}
+
+function installerLaunchArgs(installDir = resolveDesktopInstallDir()) {
+  if (process.platform === "win32") {
+    const dir = String(installDir || "").trim();
+    // NSIS silent upgrade: /S hides the wizard; /D= must be last and has no quotes.
+    if (dir) return ["/S", `/D=${dir}`];
+    return ["/S"];
+  }
+  return [];
+}
+
 function launchInstaller(installerPath) {
   if (process.platform === "win32") {
-    spawn(installerPath, [], {
+    spawn(installerPath, installerLaunchArgs(), {
       detached: true,
       stdio: "ignore",
-      windowsHide: false,
+      windowsHide: true,
     }).unref();
     return;
   }
@@ -270,4 +291,6 @@ module.exports = {
   fetchLatestDesktopVersion,
   checkDesktopUpdate,
   downloadAndLaunchDesktopUpdate,
+  resolveDesktopInstallDir,
+  installerLaunchArgs,
 };

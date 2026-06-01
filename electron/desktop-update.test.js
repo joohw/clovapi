@@ -36,3 +36,16 @@ test("installerDownloadUrl uses versioned desktop path", () => {
     "https://downloads.clovapi.com/desktop/v0.1.5/clovapi-desktop-darwin-universal.dmg",
   );
 });
+
+test("installerLaunchArgs uses NSIS silent flags on Windows", () => {
+  const { installerLaunchArgs } = require("./desktop-update");
+  if (process.platform !== "win32") {
+    assert.deepEqual(installerLaunchArgs("C:\\Apps\\ClovAPI Switcher"), []);
+    return;
+  }
+  assert.deepEqual(installerLaunchArgs("C:\\Apps\\ClovAPI Switcher"), [
+    "/S",
+    "/D=C:\\Apps\\ClovAPI Switcher",
+  ]);
+  assert.deepEqual(installerLaunchArgs(""), ["/S"]);
+});

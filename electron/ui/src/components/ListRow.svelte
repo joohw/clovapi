@@ -28,7 +28,7 @@
     centerContent?: boolean;
     onOpen?: () => void;
     leading?: Snippet;
-    actions: Snippet;
+    actions?: Snippet;
   } = $props();
 
   const dotClass = $derived(
@@ -116,7 +116,9 @@
       {/each}
     </div>
   </div>
-  <div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-    {@render actions()}
-  </div>
+  {#if actions}
+    <div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+      {@render actions()}
+    </div>
+  {/if}
 </div>

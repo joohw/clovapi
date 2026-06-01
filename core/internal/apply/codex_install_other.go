@@ -5,7 +5,6 @@ package apply
 import (
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 func addWindowsCodexSearchDirs(add func(string)) {}

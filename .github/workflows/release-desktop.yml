@@ -190,3 +190,36 @@ jobs:
             --tag "${{ needs.prepare.outputs.tag }}" \
             --file electron/dist/clovapi-desktop-windows-x64.exe \
             --name clovapi-desktop-windows-x64.exe
+
+  desktop-latest:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - desktop-mac
+      - desktop-win
+    if: needs.prepare.outputs.publish == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install awscli
+        run: pip install --upgrade awscli
+
+      - name: Publish desktop latest marker
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_SESSION_TOKEN: ${{ secrets.R2_SESSION_TOKEN }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ARTIFACT_PREFIX: ${{ secrets.R2_ARTIFACT_PREFIX }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/r2-publish.sh
+          ./scripts/r2-publish.sh desktop-latest \
+            --tag "${{ needs.prepare.outputs.tag }}"

@@ -12,6 +12,7 @@
 #   ./scripts/r2-publish.sh cli --tag v0.1.12 --dist core/dist
 #   ./scripts/r2-publish.sh install-sh --file landing/public/install.sh
 #   ./scripts/r2-publish.sh desktop --tag v0.1.12 --file electron/dist/foo.dmg --name clovapi-desktop-darwin-universal.dmg
+#   ./scripts/r2-publish.sh desktop-latest --tag v0.1.12
 
 set -euo pipefail
 
@@ -108,9 +109,22 @@ publish_desktop() {
   log "upload desktop ${name} -> ${versioned}"
   aws_r2 cp "$file" "$versioned" --cache-control "public, max-age=31536000, immutable"
   aws_r2 cp "$file" "$latest" --cache-control "no-cache, must-revalidate"
+  log "desktop artifact -> ${PUBLIC_BASE}/desktop/${tag}/${name}"
+}
+
+publish_desktop_latest() {
+  local tag=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --tag) tag="$2"; shift 2 ;;
+      *) fail "unknown arg: $1" ;;
+    esac
+  done
+  tag="$(normalize_tag "$tag")"
+
   printf '%s' "$tag" > /tmp/desktop-latest.txt
   aws_r2 cp /tmp/desktop-latest.txt "s3://${R2_BUCKET}/desktop/latest.txt" --cache-control "no-cache, must-revalidate"
-  log "desktop latest -> ${PUBLIC_BASE}/desktop/latest/${name} (${tag})"
+  log "desktop latest.txt -> ${PUBLIC_BASE}/desktop/latest.txt (${tag})"
 }
 
 main() {
@@ -121,8 +135,9 @@ main() {
     cli) publish_cli "$@" ;;
     install-sh) publish_install_sh "$@" ;;
     desktop) publish_desktop "$@" ;;
+    desktop-latest) publish_desktop_latest "$@" ;;
     *)
-      fail "usage: $0 cli|install-sh|desktop ..."
+      fail "usage: $0 cli|install-sh|desktop|desktop-latest ..."
       ;;
   esac
 }

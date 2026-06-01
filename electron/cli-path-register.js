@@ -1,7 +1,7 @@
+const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { spawnSync } = require("node:child_process");
 const { cliBinPath } = require("./config-paths");
 
 const MARKER_START = "# >>> clovapi >>>";
@@ -174,11 +174,33 @@ function ensureCliBinOnPath() {
   return ensureUnixShellPath(dir);
 }
 
+function loginShellPathEntries(baseEnv = process.env) {
+  if (process.platform !== "darwin") return [];
+  const home = os.homedir();
+  const shell = String(baseEnv.SHELL || "/bin/zsh").trim() || "/bin/zsh";
+  const user = String(baseEnv.USER || baseEnv.LOGNAME || os.userInfo().username || "").trim();
+  const result = spawnSync(shell, ["-ilc", 'printf %s "$PATH"'], {
+    encoding: "utf8",
+    env: {
+      HOME: home,
+      USER: user,
+      LOGNAME: user,
+      SHELL: shell,
+    },
+  });
+  if (result.status !== 0) return [];
+  return String(result.stdout || "")
+    .split(":")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
 function cliSpawnEnv(baseEnv = process.env) {
   const binDir = cliBinDir();
   const parts = [binDir];
   const seen = new Set([binDir]);
-  for (const entry of String(baseEnv.PATH || "").split(path.delimiter)) {
+  const prepend = loginShellPathEntries(baseEnv);
+  for (const entry of [...prepend, ...String(baseEnv.PATH || "").split(path.delimiter)]) {
     const value = String(entry || "").trim();
     if (!value || seen.has(value)) continue;
     seen.add(value);
@@ -194,6 +216,7 @@ module.exports = {
   cliBinDir,
   cliSpawnEnv,
   ensureCliBinOnPath,
+  loginShellPathEntries,
   shellProfileCandidates,
   upsertMarkedBlock,
 };

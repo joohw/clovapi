@@ -7,6 +7,27 @@ import (
 	"testing"
 )
 
+func TestDarwinExtraSearchDirsIncludesCommonInstallRoots(t *testing.T) {
+	home := filepath.Join(string(filepath.Separator), "Users", "test")
+	dirs := darwinExtraSearchDirs(home)
+	want := []string{
+		filepath.Join(home, "bin"),
+		filepath.Join(home, ".npm-global", "bin"),
+		filepath.Join(home, "Library", "pnpm"),
+		filepath.Join(home, ".volta", "bin"),
+		filepath.Join(home, ".local", "share", "fnm", "current", "bin"),
+		filepath.Join(home, ".fnm", "current", "bin"),
+	}
+	if len(dirs) != len(want) {
+		t.Fatalf("dirs = %#v, want %d entries", dirs, len(want))
+	}
+	for i, path := range want {
+		if dirs[i] != path {
+			t.Fatalf("dirs[%d] = %q, want %q", i, dirs[i], path)
+		}
+	}
+}
+
 func TestResolveCommandPathUsesCommonUserBinDirs(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("HOME-based user bin probing is only used on Unix-like platforms")

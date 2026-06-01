@@ -6,7 +6,10 @@ const test = require("node:test");
 
 const {
   buildPathBlock,
+  cliBinDir,
+  cliSpawnEnv,
   ensureCliBinOnPath,
+  loginShellPathEntries,
   upsertMarkedBlock,
 } = require("./cli-path-register");
 const { cliBinPath } = require("./config-paths");
@@ -23,14 +26,37 @@ function withTempConfigHome(t) {
   return root;
 }
 
-test("buildPathBlock includes managed markers", () => {
+test("loginShellPathEntries returns empty on non-darwin", (t) => {
+  if (process.platform === "darwin") {
+    t.skip("non-darwin only");
+    return;
+  }
+  assert.deepEqual(loginShellPathEntries(), []);
+});
+
+test("cliSpawnEnv prepends clovapi bin before inherited PATH", () => {
+  const env = cliSpawnEnv({ PATH: "/usr/bin:/bin", USER: "tester" });
+  const parts = String(env.PATH || "").split(path.delimiter);
+  assert.equal(parts[0], cliBinDir());
+  assert.match(env.PATH || "", /usr[\\/]bin/);
+});
+
+test("buildPathBlock includes managed markers", (t) => {
+  if (process.platform === "win32") {
+    t.skip("unix shell profile block");
+    return;
+  }
   const block = buildPathBlock("/tmp/clovapi/bin");
   assert.match(block, /# >>> clovapi >>>/);
   assert.match(block, /export PATH="\/tmp\/clovapi\/bin:\$PATH"/);
   assert.match(block, /# <<< clovapi <<</);
 });
 
-test("upsertMarkedBlock replaces an existing block", () => {
+test("upsertMarkedBlock replaces an existing block", (t) => {
+  if (process.platform === "win32") {
+    t.skip("unix shell profile block");
+    return;
+  }
   const original = ["before", buildPathBlock("/old/bin"), "after"].join("\n");
   const next = upsertMarkedBlock(original, buildPathBlock("/new/bin"));
   assert.match(next, /\/new\/bin:\$PATH/);

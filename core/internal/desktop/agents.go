@@ -120,6 +120,12 @@ func commandSearchDirs() []string {
 		add(filepath.Join(home, ".config", "clovapi", "bin"))
 		add(filepath.Join(home, ".local", "bin"))
 		add(filepath.Join(home, ".opencode", "bin"))
+		for _, dir := range platformSearchDirs(home) {
+			add(dir)
+		}
+		for _, dir := range loginShellSearchDirs() {
+			add(dir)
+		}
 	}
 	if runtime.GOOS != "windows" {
 		add("/opt/homebrew/bin")
@@ -137,8 +143,5 @@ func executableFile(path string) bool {
 	if err != nil || info.IsDir() {
 		return false
 	}
-	if runtime.GOOS == "windows" {
-		return true
-	}
-	return info.Mode()&0o111 != 0
+	return isExecutableFile(path)
 }

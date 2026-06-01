@@ -1,7 +1,7 @@
 {
   "name": "clovapi-switcher",
   "private": true,
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "ClovAPI Switcher desktop app",
   "main": "main.js",
   "type": "commonjs",
@@ -86,7 +86,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "artifactName": "clovapi-desktop-windows-${arch}.${ext}"

@@ -96,7 +96,8 @@ type AppEventPayload =
   | { type: "open-tab"; tab: "cli" | "profiles" | "call-logs" | "sessions" | "system-logs" | "settings" }
   | { type: "open-profiles-vendor"; vendorName: string }
   | { type: "profiles-changed" }
-  | { type: "proxy-status-changed" };
+  | { type: "proxy-status-changed" }
+  | { type: "desktop-update-progress"; percent?: number; received_bytes?: number; total_bytes?: number };
 
 type DesktopBridge = {
   onAppEvent(callback: (payload: AppEventPayload) => void): () => void;

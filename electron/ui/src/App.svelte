@@ -18,6 +18,7 @@
 
   const inElectron = isElectronRenderer();
   const showAppUpdateBadge = $derived(inElectron && store.appUpdateAvailable);
+  const appUpdateProgress = $derived(Math.min(100, Math.max(0, Math.round(store.appUpdateProgress || 0))));
 
   onMount(() => {
     void initApp();
@@ -54,6 +55,9 @@
       }),
     };
   });
+  const appUpdateButtonTitle = $derived(
+    store.appUpdating ? `${copy.updateBadge} · ${appUpdateProgress}%` : copy.updateBadge,
+  );
 </script>
 
 {#if !inElectron}
@@ -81,12 +85,39 @@
             variant="default"
             size="icon-sm"
             class="rounded-full"
-            aria-label={copy.updateBadge}
-            title={copy.updateBadge}
+            aria-label={appUpdateButtonTitle}
+            title={appUpdateButtonTitle}
             disabled={store.appUpdating}
             onclick={() => void installAppUpdate()}
           >
-            <ArrowUpIcon />
+            {#if store.appUpdating}
+              <span class="grid size-5 place-items-center" aria-hidden="true">
+                <svg class="size-5 -rotate-90" viewBox="0 0 36 36">
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="4"
+                    opacity="0.25"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="4"
+                    stroke-linecap="round"
+                    pathLength="100"
+                    stroke-dasharray={`${appUpdateProgress} 100`}
+                  />
+                </svg>
+              </span>
+            {:else}
+              <ArrowUpIcon />
+            {/if}
           </Button>
         </div>
       {/if}

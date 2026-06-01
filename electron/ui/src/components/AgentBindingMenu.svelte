@@ -5,6 +5,7 @@
   import { cn } from "$lib/utils.js";
   import { i18n, t } from "../lib/i18n";
   import type { CliBindingOption } from "../lib/helpers";
+  import VendorIcon from "./VendorIcon.svelte";
 
   let {
     options = [],
@@ -30,8 +31,8 @@
   const isPlaceholder = $derived(!selectedOption);
   const optionTree = $derived.by(() => {
     const roots: CliBindingOption[] = [];
-    const groups: { label: string; disabled: boolean; options: CliBindingOption[] }[] = [];
-    const byLabel = new Map<string, { label: string; disabled: boolean; options: CliBindingOption[] }>();
+    const groups: { label: string; providerId: string; disabled: boolean; options: CliBindingOption[] }[] = [];
+    const byLabel = new Map<string, { label: string; providerId: string; disabled: boolean; options: CliBindingOption[] }>();
     for (const opt of options) {
       const group = String(opt.group || "").trim();
       if (!group) {
@@ -40,10 +41,16 @@
       }
       let item = byLabel.get(group);
       if (!item) {
-        item = { label: group, disabled: Boolean(opt.groupDisabled), options: [] };
+        item = {
+          label: group,
+          providerId: String(opt.providerId || "").trim(),
+          disabled: Boolean(opt.groupDisabled),
+          options: [],
+        };
         byLabel.set(group, item);
         groups.push(item);
       }
+      if (!item.providerId && opt.providerId) item.providerId = String(opt.providerId).trim();
       if (opt.groupDisabled) item.disabled = true;
       if (!opt.groupOnly) item.options.push(opt);
     }
@@ -101,6 +108,9 @@
           }}
           class="cursor-not-allowed opacity-45"
         >
+          {#if group.providerId}
+            <VendorIcon providerId={group.providerId} class="size-5 rounded-md p-0.5" />
+          {/if}
           <span class="truncate">{group.label}</span>
         </DropdownMenu.Item>
       {:else}
@@ -108,7 +118,12 @@
           <DropdownMenu.SubTrigger
             textValue={group.label}
           >
-            <span class="truncate">{group.label}</span>
+            <span class="flex min-w-0 items-center gap-2">
+              {#if group.providerId}
+                <VendorIcon providerId={group.providerId} class="size-5 rounded-md p-0.5" />
+              {/if}
+              <span class="truncate">{group.label}</span>
+            </span>
           </DropdownMenu.SubTrigger>
           <DropdownMenu.SubContent
             class="min-w-[12rem] max-w-[22rem] max-h-[min(20rem,var(--bits-floating-available-height))]"

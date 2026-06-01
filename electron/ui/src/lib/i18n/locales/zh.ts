@@ -2,6 +2,7 @@ import type { MessageTree } from "./en";
 
 const zh = {
   app: {
+    title: "Clov API 切换器",
     subtitle: "一键管理本地所有 Agent 的 API，支持 ClaudeCli / Codex 订阅",
     updateBadge: "安装更新 v{latest}",
   },

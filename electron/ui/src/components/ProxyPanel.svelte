@@ -22,8 +22,6 @@
     return {
       title: t("proxy.title"),
       description: t("proxy.description", { path: "/{providerId}/v1" }),
-      service: t("proxy.service"),
-      serviceLine: store.proxyRunning ? t("proxy.runningShort") : t("proxy.stopped"),
       appVersion: t("proxy.appVersion"),
       appVersionLine: store.appVersion
         ? t("proxy.appVersionLine", { version: store.appVersion })
@@ -74,8 +72,6 @@
 </script>
 
 <SectionCard title={copy.title} description={copy.description}>
-  <ListRow title={copy.service} lines={[copy.serviceLine]} />
-
   <ListRow
     title={copy.appVersion}
     lines={electronDev ? [copy.appVersionLine, copy.updateDisabledInDev] : [copy.appVersionLine]}

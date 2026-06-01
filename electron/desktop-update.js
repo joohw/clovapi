@@ -109,10 +109,25 @@ function fetchText(url, timeoutMs = 15_000) {
   });
 }
 
-function downloadFile(url, outPath, timeoutMs = 30 * 60_000) {
+function normalizeDownloadProgress(downloadedBytes, totalBytes) {
+  const downloaded = Math.max(0, Number(downloadedBytes) || 0);
+  const total = Math.max(0, Number(totalBytes) || 0);
+  const percent = total > 0 ? Math.min(100, Math.max(0, Math.round((downloaded / total) * 100))) : 0;
+  return {
+    received_bytes: downloaded,
+    total_bytes: total,
+    percent,
+  };
+}
+
+function downloadFile(url, outPath, timeoutMs = 30 * 60_000, onProgress = null) {
   return new Promise((resolve, reject) => {
     const requestUrl = new URL(url);
     const transport = requestUrl.protocol === "http:" ? http : https;
+    const emitProgress =
+      typeof onProgress === "function"
+        ? (downloadedBytes, totalBytes) => onProgress(normalizeDownloadProgress(downloadedBytes, totalBytes))
+        : () => {};
     const request = transport.get(
       requestUrl,
       {
@@ -121,7 +136,7 @@ function downloadFile(url, outPath, timeoutMs = 30 * 60_000) {
       (response) => {
         if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
           response.resume();
-          downloadFile(new URL(response.headers.location, requestUrl).toString(), outPath, timeoutMs)
+          downloadFile(new URL(response.headers.location, requestUrl).toString(), outPath, timeoutMs, onProgress)
             .then(resolve)
             .catch(reject);
           return;
@@ -131,10 +146,21 @@ function downloadFile(url, outPath, timeoutMs = 30 * 60_000) {
           reject(new Error(`HTTP ${response.statusCode || 0} downloading ${url}`));
           return;
         }
+        const totalBytes = Number.parseInt(String(response.headers["content-length"] || ""), 10) || 0;
+        let downloadedBytes = 0;
+        emitProgress(0, totalBytes);
+        response.on("data", (chunk) => {
+          downloadedBytes += chunk.length;
+          emitProgress(downloadedBytes, totalBytes);
+        });
+        response.on("error", reject);
         const file = fs.createWriteStream(outPath);
         response.pipe(file);
         file.on("finish", () => {
-          file.close(() => resolve(outPath));
+          file.close(() => {
+            emitProgress(totalBytes > 0 ? totalBytes : downloadedBytes, totalBytes || downloadedBytes);
+            resolve(outPath);
+          });
         });
         file.on("error", (error) => {
           file.close(() => {
@@ -242,6 +268,98 @@ function installerLaunchArgs(installDir = resolveDesktopInstallDir()) {
   return [];
 }
 
+function macOSInstallScriptContent() {
+  return `#!/bin/sh
+set -u
+
+DMG_PATH="$1"
+TARGET_APP="$2"
+PARENT_PID="$3"
+LOG_PATH="$4"
+
+log() {
+  printf '%s %s\\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG_PATH"
+}
+
+fallback_open_dmg() {
+  log "Falling back to opening DMG"
+  open "$DMG_PATH" >> "$LOG_PATH" 2>&1 || true
+}
+
+while kill -0 "$PARENT_PID" 2>/dev/null; do
+  sleep 0.2
+done
+
+MOUNT_DIR="$(mktemp -d "/tmp/clovapi-desktop-dmg.XXXXXX")"
+cleanup() {
+  hdiutil detach "$MOUNT_DIR" -quiet >> "$LOG_PATH" 2>&1 || true
+  rmdir "$MOUNT_DIR" >> "$LOG_PATH" 2>&1 || true
+}
+trap cleanup EXIT
+
+log "Attaching DMG: $DMG_PATH"
+if ! hdiutil attach "$DMG_PATH" -nobrowse -quiet -mountpoint "$MOUNT_DIR" >> "$LOG_PATH" 2>&1; then
+  fallback_open_dmg
+  exit 1
+fi
+
+SOURCE_APP="$(find "$MOUNT_DIR" -maxdepth 1 -type d -name "*.app" | head -n 1)"
+if [ -z "$SOURCE_APP" ]; then
+  log "No .app bundle found in DMG"
+  fallback_open_dmg
+  exit 1
+fi
+
+TARGET_DIR="$(dirname "$TARGET_APP")"
+TARGET_NAME="$(basename "$TARGET_APP")"
+STAGING_APP="$TARGET_DIR/.$TARGET_NAME.updating.$$"
+
+log "Copying $SOURCE_APP to staging path $STAGING_APP"
+rm -rf "$STAGING_APP" >> "$LOG_PATH" 2>&1 || true
+if ! ditto "$SOURCE_APP" "$STAGING_APP" >> "$LOG_PATH" 2>&1; then
+  rm -rf "$STAGING_APP" >> "$LOG_PATH" 2>&1 || true
+  fallback_open_dmg
+  exit 1
+fi
+
+log "Replacing installed app at $TARGET_APP"
+if ! rm -rf "$TARGET_APP" >> "$LOG_PATH" 2>&1; then
+  rm -rf "$STAGING_APP" >> "$LOG_PATH" 2>&1 || true
+  fallback_open_dmg
+  exit 1
+fi
+if ! mv "$STAGING_APP" "$TARGET_APP" >> "$LOG_PATH" 2>&1; then
+  fallback_open_dmg
+  exit 1
+fi
+
+xattr -dr com.apple.quarantine "$TARGET_APP" >> "$LOG_PATH" 2>&1 || true
+log "Opening updated app: $TARGET_APP"
+open "$TARGET_APP" >> "$LOG_PATH" 2>&1 || true
+`;
+}
+
+function launchMacOSInstaller(installerPath) {
+  const targetApp = resolveDesktopInstallDir();
+  if (!targetApp || !targetApp.endsWith(".app")) {
+    spawn("open", [installerPath], {
+      detached: true,
+      stdio: "ignore",
+    }).unref();
+    return { mode: "open-dmg" };
+  }
+
+  const workDir = path.dirname(installerPath);
+  const scriptPath = path.join(workDir, "install-macos.sh");
+  const logPath = path.join(workDir, "install-macos.log");
+  fs.writeFileSync(scriptPath, macOSInstallScriptContent(), { mode: 0o700 });
+  spawn("sh", [scriptPath, installerPath, targetApp, String(process.pid), logPath], {
+    detached: true,
+    stdio: "ignore",
+  }).unref();
+  return { mode: "auto-install", target_app: targetApp, log_path: logPath };
+}
+
 function launchInstaller(installerPath) {
   if (process.platform === "win32") {
     spawn(installerPath, installerLaunchArgs(), {
@@ -252,22 +370,19 @@ function launchInstaller(installerPath) {
     return;
   }
   if (process.platform === "darwin") {
-    spawn("open", [installerPath], {
-      detached: true,
-      stdio: "ignore",
-    }).unref();
-    return;
+    return launchMacOSInstaller(installerPath);
   }
   throw new Error(`Desktop updates are not supported on ${process.platform}.`);
 }
 
-async function downloadAndLaunchDesktopUpdate() {
+async function downloadAndLaunchDesktopUpdate(options = {}) {
+  const onProgress = typeof options?.onProgress === "function" ? options.onProgress : null;
   const latestTag = await fetchLatestDesktopVersion();
   const fileName = installerFileName();
   const url = installerDownloadUrl(latestTag);
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clovapi-desktop-update-"));
   const installerPath = path.join(tmpDir, fileName);
-  await downloadFile(url, installerPath);
+  await downloadFile(url, installerPath, undefined, onProgress);
   let verified = false;
   try {
     verified = await verifyInstallerChecksum(installerPath, latestTag);
@@ -275,8 +390,8 @@ async function downloadAndLaunchDesktopUpdate() {
     fs.rm(tmpDir, { recursive: true, force: true }, () => {});
     throw error;
   }
-  launchInstaller(installerPath);
-  return { ok: true, path: installerPath, url, latest_tag: latestTag, checksum_verified: verified };
+  const launch = launchInstaller(installerPath) || {};
+  return { ok: true, path: installerPath, url, latest_tag: latestTag, checksum_verified: verified, launch };
 }
 
 module.exports = {
@@ -290,7 +405,10 @@ module.exports = {
   verifyInstallerChecksum,
   fetchLatestDesktopVersion,
   checkDesktopUpdate,
+  downloadFile,
   downloadAndLaunchDesktopUpdate,
+  normalizeDownloadProgress,
   resolveDesktopInstallDir,
   installerLaunchArgs,
+  macOSInstallScriptContent,
 };

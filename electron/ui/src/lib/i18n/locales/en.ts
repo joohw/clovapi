@@ -1,5 +1,6 @@
 const en = {
   app: {
+    title: "Clov API Switch",
     subtitle: "Manage local Agent APIs in one place — ClaudeCli / Codex subscriptions supported",
     updateBadge: "Install update v{latest}",
   },

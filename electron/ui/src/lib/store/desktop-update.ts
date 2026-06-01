@@ -121,6 +121,9 @@ export async function installAppUpdate() {
   }
 
   store.appUpdating = true;
+  store.appUpdateProgress = 0;
+  store.appUpdateProgressReceivedBytes = 0;
+  store.appUpdateProgressTotalBytes = 0;
   store.appUpdateCheck = {
     status: "testing",
     summary: t("proxy.appDownloading"),
@@ -139,6 +142,7 @@ export async function installAppUpdate() {
       return;
     }
 
+    store.appUpdateProgress = 100;
     store.appUpdateCheck = {
       status: "pass",
       summary: t("proxy.appInstallLaunching"),
@@ -154,6 +158,11 @@ export async function installAppUpdate() {
     };
     toast.error(error instanceof Error ? error.message : t("toast.appUpdateInstallFailed"));
   } finally {
+    if (store.appUpdateProgress < 100) {
+      store.appUpdateProgress = 0;
+      store.appUpdateProgressReceivedBytes = 0;
+      store.appUpdateProgressTotalBytes = 0;
+    }
     store.appUpdating = false;
   }
 }

@@ -644,7 +644,18 @@ ipcMain.handle("desktop:install-update", async () => {
     };
   }
   try {
-    const detail = await downloadAndLaunchDesktopUpdate();
+    const detail = await downloadAndLaunchDesktopUpdate({
+      onProgress(progress) {
+        dispatchRendererEvent({
+          type: "desktop-update-progress",
+          ...sanitizeForIpc(progress),
+        });
+      },
+    });
+    dispatchRendererEvent({
+      type: "desktop-update-progress",
+      percent: 100,
+    });
     setTimeout(() => {
       quitting = true;
       app.quit();

@@ -463,6 +463,7 @@ export type CliBindingOption = {
   value: string;
   label: string;
   triggerLabel?: string;
+  providerId?: string;
   group?: string;
   groupOnly?: boolean;
   groupDisabled?: boolean;
@@ -479,6 +480,7 @@ export function buildCliBindingOptions(
 
   for (const vendor of managedVendorList(vendors)) {
     const providerLabel = displayVendorName(vendor.name) || "Provider";
+    const vendorProviderId = providerIdForVendor(vendor);
     let vendorOptionCount = 0;
     for (const model of vendor.models || []) {
       if (!modelCompatibleWithCli(model, cli.kind)) continue;
@@ -499,6 +501,7 @@ export function buildCliBindingOptions(
           value: modelBindingValue(providerId, model.id),
           label: modelLabel,
           triggerLabel,
+          providerId,
           group: providerLabel,
           hint: `${providerLabel}/${modelLabel}`,
         });
@@ -507,9 +510,10 @@ export function buildCliBindingOptions(
 
       vendorOptionCount += 1;
       options.push({
-        value: modelBindingValue(providerIdForVendor(vendor), model.id),
+        value: modelBindingValue(vendorProviderId, model.id),
         label: modelLabel,
         triggerLabel,
+        providerId: vendorProviderId,
         group: providerLabel,
         hint: `${providerLabel}/${modelLabel}`,
       });
@@ -518,6 +522,7 @@ export function buildCliBindingOptions(
       options.push({
         value: `__vendor:${providerLabel}`,
         label: providerLabel,
+        providerId: vendorProviderId,
         group: providerLabel,
         groupOnly: true,
         groupDisabled: true,

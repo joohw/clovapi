@@ -1,10 +1,10 @@
 import { store } from "./state.svelte";
 
 export async function loadVendorCatalog() {
-  const bridge = window.clovapiProfiles;
-  if (!bridge?.modelAdapters) return;
+  const bridge = window.clovapiCli;
+  if (!bridge?.profilesCatalog) return;
   try {
-    const result = await bridge.modelAdapters();
+    const result = await bridge.profilesCatalog();
     if (!result?.ok) return;
     if (Array.isArray(result.adapters)) {
       store.modelAdapters = result.adapters;

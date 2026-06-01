@@ -276,6 +276,19 @@ function runClovapiArgs(args, options = {}) {
   };
 }
 
+function spawnClovapiProcess(exe, args, options = {}) {
+  const spawnOptions = {
+    windowsHide: true,
+    stdio: options.stdio || ["pipe", "pipe", "pipe"],
+    env: cliSpawnEnv(options.env),
+    ...options.spawnExtra,
+  };
+  if (process.platform === "win32" && /\.(cmd|bat)$/i.test(exe)) {
+    spawnOptions.shell = true;
+  }
+  return spawn(exe, args, spawnOptions);
+}
+
 function runClovapiArgsAsync(args, options = {}) {
   return new Promise((resolve) => {
     const exe = resolveClovapiExecutable(options);
@@ -290,11 +303,7 @@ function runClovapiArgsAsync(args, options = {}) {
       return;
     }
 
-    const child = spawn(exe, args, {
-      windowsHide: true,
-      stdio: ["pipe", "pipe", "pipe"],
-      env: cliSpawnEnv(options.env),
-    });
+    const child = spawnClovapiProcess(exe, args, options);
     const stdoutChunks = [];
     const stderrChunks = [];
     let settled = false;
@@ -363,6 +372,114 @@ function readCoreExecutableVersion(exe) {
   return match?.[1]?.trim() || "";
 }
 
+/** cancelKey -> child process for long-running commands (OAuth login, etc.). */
+const activeLongRuns = new Map();
+
+function emitLongRunOutput(onOutput, kind, chunk) {
+  if (typeof onOutput !== "function") return;
+  onOutput(kind, chunk);
+}
+
+function killChildTree(child) {
+  if (!child) return;
+  if (process.platform === "win32" && child.pid) {
+    spawn("taskkill", ["/pid", String(child.pid), "/t", "/f"], { windowsHide: true });
+    return;
+  }
+  child.kill("SIGTERM");
+}
+
+function runClovapiLongAsync(args, options = {}) {
+  return new Promise((resolve) => {
+    const cancelKey = String(options.cancelKey || "").trim();
+    if (cancelKey && activeLongRuns.has(cancelKey)) {
+      resolve({
+        ok: false,
+        stdout: "",
+        stderr: "",
+        status: 1,
+        error: new Error("command already running"),
+      });
+      return;
+    }
+
+    const exe = resolveClovapiExecutable(options);
+    if (!exe) {
+      resolve({
+        ok: false,
+        stdout: "",
+        stderr: "clovapi executable not found",
+        status: 1,
+        error: new Error("clovapi executable not found"),
+      });
+      return;
+    }
+
+    const child = spawnClovapiProcess(exe, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+      env: cliSpawnEnv(options.env),
+    });
+    if (cancelKey) {
+      activeLongRuns.set(cancelKey, child);
+    }
+
+    const stdoutChunks = [];
+    const stderrChunks = [];
+    let settled = false;
+    const onOutput = options.onOutput;
+    emitLongRunOutput(onOutput, "system", `$ ${exe} ${args.join(" ")}\n`);
+
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      if (cancelKey) activeLongRuns.delete(cancelKey);
+      resolve(result);
+    };
+
+    child.stdout.on("data", (chunk) => {
+      const text = String(chunk || "");
+      stdoutChunks.push(text);
+      emitLongRunOutput(onOutput, "stdout", chunk);
+    });
+    child.stderr.on("data", (chunk) => {
+      const text = String(chunk || "");
+      stderrChunks.push(text);
+      emitLongRunOutput(onOutput, "stderr", chunk);
+    });
+    child.on("error", (error) => {
+      finish({
+        ok: false,
+        stdout: stdoutChunks.join(""),
+        stderr: stderrChunks.join(""),
+        status: 1,
+        error,
+      });
+    });
+    child.on("close", (code, signal) => {
+      emitLongRunOutput(onOutput, "system", `\n[exit] code=${String(code)} signal=${String(signal)}\n`);
+      finish({
+        ok: code === 0 && !signal,
+        stdout: stdoutChunks.join(""),
+        stderr: stderrChunks.join(""),
+        status: code ?? 1,
+        signal,
+        cancelled: Boolean(signal),
+        error: signal ? Object.assign(new Error("cancelled"), { code: "ECANCELLED" }) : null,
+      });
+    });
+  });
+}
+
+function cancelClovapiLongRun(cancelKey) {
+  const key = String(cancelKey || "").trim();
+  const child = activeLongRuns.get(key);
+  if (!child) {
+    return { ok: false, error: "not running" };
+  }
+  killChildTree(child);
+  return { ok: true };
+}
+
 module.exports = {
   buildDevCandidates,
   coreDevStatePath,
@@ -370,4 +487,6 @@ module.exports = {
   resolveClovapiExecutable,
   runClovapiArgs,
   runClovapiArgsAsync,
+  runClovapiLongAsync,
+  cancelClovapiLongRun,
 };

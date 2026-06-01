@@ -90,7 +90,7 @@ func TestShouldRecordStreamErrorIgnoresContextCanceled(t *testing.T) {
 
 func TestDebugCallLogPaginatesDefaultLimit(t *testing.T) {
 	s := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
-	s.CallLogs = newCallLogStoreAt(t.TempDir())
+	s.CallLogs = openTestCallLogStore(t)
 	for i := 0; i < 25; i++ {
 		s.CallLogs.Push(CallLogEntry{
 			StartedAt: "2026-01-01T00:00:" + strconv.Itoa(10+i) + "Z",
@@ -124,7 +124,7 @@ func TestDebugCallLogPaginatesDefaultLimit(t *testing.T) {
 
 func TestDebugRoutesAllowNonLoopbackClientsByDefault(t *testing.T) {
 	s := NewServer(profile.ProxyConfig{Host: "0.0.0.0", Port: 27483})
-	s.CallLogs = newCallLogStoreAt(t.TempDir())
+	s.CallLogs = openTestCallLogStore(t)
 	req := httptest.NewRequest(http.MethodGet, "http://example.com/__debug/call-log", nil)
 	req.RemoteAddr = "203.0.113.10:45678"
 	rec := httptest.NewRecorder()
@@ -151,7 +151,7 @@ func TestDebugRoutesRejectNonLoopbackClientsWhenLocalOnly(t *testing.T) {
 
 func TestDebugRoutesAllowLoopbackClientsWhenLocalOnly(t *testing.T) {
 	s := NewServer(profile.ProxyConfig{Host: "0.0.0.0", Port: 27483, DebugLocalOnly: true})
-	s.CallLogs = newCallLogStoreAt(t.TempDir())
+	s.CallLogs = openTestCallLogStore(t)
 	req := httptest.NewRequest(http.MethodGet, "http://example.com/__debug/call-log", nil)
 	req.RemoteAddr = "127.0.0.1:45678"
 	rec := httptest.NewRecorder()

@@ -4,11 +4,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 
@@ -47,7 +45,7 @@ func newRoot() *cobra.Command {
 		},
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(cmdProfiles(), cmdSet(), cmdRemove(), cmdSwitch(), cmdProxy(), cmdReset(), cmdDesktop(), cmdVersion(), cmdUpdate(), cmdHiddenProxyDaemon())
+	root.AddCommand(cmdProfiles(), cmdProfilesGroup(), cmdSet(), cmdRemove(), cmdSwitch(), cmdProxy(), cmdReset(), cmdAuth(), cmdDesktop(), cmdVersion(), cmdUpdate(), cmdHiddenProxyDaemon())
 	return root
 }
 
@@ -93,7 +91,7 @@ func cmdProfiles() *cobra.Command {
 			return nil
 		},
 	}
-	c.Aliases = []string{"profiles", "ls"}
+	c.Aliases = []string{"ls"}
 	return c
 }
 
@@ -236,6 +234,7 @@ func cmdSwitch() *cobra.Command {
 	var providerFlag string
 	var vendorFlag string
 	var modelFlag string
+	var jsonFlag bool
 	c := &cobra.Command{
 		Use:   "switch [VENDOR/MODEL]",
 		Short: "Apply a vendor model binding to one CLI",
@@ -274,6 +273,9 @@ func cmdSwitch() *cobra.Command {
 				positional = strings.TrimSpace(args[0])
 			}
 
+			if jsonFlag {
+				return runSwitchJSON(sc, s, kind, resetFlag, bindingFlag, providerFlag, vendorFlag, modelFlag, directBaseURL, directAPIKey, modelFlag, directAPIStyle, positional)
+			}
 			return runSwitch(sc, s, kind, resetFlag, bindingFlag, providerFlag, vendorFlag, modelFlag, directBaseURL, directAPIKey, modelFlag, directAPIStyle, positional)
 		},
 	}
@@ -286,6 +288,7 @@ func cmdSwitch() *cobra.Command {
 	c.Flags().StringVar(&directAPIKey, "api-key", "clovapi-local", "API key written to CLI config when using --base-url")
 	c.Flags().StringVar(&directAPIStyle, "api-style", "", "API style when using --base-url (default: openai-chat for opencode, claude for claude-code, etc.)")
 	c.Flags().StringVar(&bindingFlag, "binding", "", "Model binding (@model:Vendor/model-id)")
+	c.Flags().BoolVar(&jsonFlag, "json", false, "Return JSON")
 	c.Aliases = []string{"use"}
 	return c
 }
@@ -401,33 +404,58 @@ func cmdProxy() *cobra.Command {
 	}
 	stop.Flags().StringVar(&host, "host", "", "Host the proxy listens on (default from profiles.json proxy.host)")
 	stop.Flags().IntVar(&port, "port", 0, "Port the proxy listens on (default from profiles.json proxy.port)")
+	var statusJSON bool
 	status := &cobra.Command{
 		Use:   "status",
 		Short: "Check whether the local proxy responds to /health",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			s, err := profile.Load()
+			cfg, err := resolveProxyConfig(host, port)
 			if err != nil {
 				return err
 			}
-			cfg := coreproxy.NewServer(s.Proxy).Config
-			client := http.Client{Timeout: 2 * time.Second}
-			url := fmt.Sprintf("http://%s:%d/health", cfg.Host, cfg.Port)
-			resp, err := client.Get(url)
-			if err != nil {
-				return fmt.Errorf("proxy not reachable at %s: %w", url, err)
+			if statusJSON {
+				return writeProxyStatusJSON(cfg, false)
 			}
-			defer resp.Body.Close()
-			var body map[string]any
-			if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-				return err
+			snapshot := buildProxyStatusJSON(cfg, false)
+			if snapshot.Error != "" && !snapshot.Running {
+				return fmt.Errorf("proxy not reachable at %s: %s", snapshot.HealthURL, snapshot.Error)
 			}
-			fmt.Printf("%s status=%d %v\n", url, resp.StatusCode, body)
-			if resp.StatusCode != http.StatusOK {
-				return fmt.Errorf("proxy health returned status %d", resp.StatusCode)
+			fmt.Printf("%s status=%t %v\n", snapshot.HealthURL, snapshot.Running, snapshot.Body)
+			if !snapshot.Running {
+				return fmt.Errorf("proxy health check failed at %s", snapshot.HealthURL)
 			}
 			return nil
 		},
 	}
+	status.Flags().StringVar(&host, "host", "", "Host the proxy listens on (default from profiles.json proxy.host)")
+	status.Flags().IntVar(&port, "port", 0, "Port the proxy listens on (default from profiles.json proxy.port)")
+	status.Flags().BoolVar(&statusJSON, "json", false, "Return JSON")
+	var healthJSON bool
+	health := &cobra.Command{
+		Use:   "health",
+		Short: "Probe local proxy /health (includes latency)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := resolveProxyConfig(host, port)
+			if err != nil {
+				return err
+			}
+			if healthJSON {
+				return writeProxyStatusJSON(cfg, true)
+			}
+			snapshot := buildProxyStatusJSON(cfg, true)
+			if snapshot.Running {
+				fmt.Printf("proxy healthy at %s (%dms)\n", snapshot.HealthURL, snapshot.LatencyMs)
+				return nil
+			}
+			if snapshot.Error != "" {
+				return fmt.Errorf("proxy health failed at %s: %s", snapshot.HealthURL, snapshot.Error)
+			}
+			return fmt.Errorf("proxy health failed at %s", snapshot.HealthURL)
+		},
+	}
+	health.Flags().StringVar(&host, "host", "", "Host the proxy listens on (default from profiles.json proxy.host)")
+	health.Flags().IntVar(&port, "port", 0, "Port the proxy listens on (default from profiles.json proxy.port)")
+	health.Flags().BoolVar(&healthJSON, "json", false, "Return JSON")
 	config := &cobra.Command{
 		Use:   "config",
 		Short: "Print the proxy config from profiles.json",
@@ -444,7 +472,7 @@ func cmdProxy() *cobra.Command {
 			return nil
 		},
 	}
-	c.AddCommand(start, stop, status, config, cmdProxyLogs(), cmdProxySyslogs())
+	c.AddCommand(start, stop, status, health, config, cmdProxyLogs(), cmdProxySyslogs())
 	return c
 }
 

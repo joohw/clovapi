@@ -16,12 +16,39 @@ For **Claude Code**, env wiring matches community **cc-switch** / **ccswitch**; 
 
 | Command | Description |
 |--------|-------------|
-| `clovapi list` | Show saved profiles, CLI ↔ API-style matrix, and last-applied CLIs (aliases: **`profiles`**, **`ls`**) |
+| `clovapi list` | Show saved profiles and active CLI bindings (alias: **`ls`**) |
+| `clovapi profiles` | Load/save/test profiles and vendor helpers for scripts and the desktop UI (see below) |
 | `clovapi add --name NAME` | Save one upstream profile (CLI is chosen at switch time); connectivity test before persist (`--name` required, aliases: **`set`**, **`new`**) |
 | `clovapi remove <name>` | Remove one saved profile (aliases: **`rm`**, **`delete`**) |
-| `clovapi switch [--cli KIND] [VENDOR/MODEL]` | Apply a vendor model binding to one CLI (`--vendor` + `--model`, or interactive vendor → model). Alias **`use`** |
-| `clovapi proxy` | Run and inspect the built-in local proxy core (`start`, `status`, `config`) |
+| `clovapi switch [--cli KIND] [VENDOR/MODEL]` | Apply a provider/model binding to one CLI (`--provider` + `--model`, `--vendor` + `--model`, or interactive). Alias **`use`**. Add **`--json`** for machine-readable output |
+| `clovapi auth` | Claude/Codex subscription OAuth (`status`, `login`, `logout`; **`--json`** on each) |
+| `clovapi proxy` | Run and inspect the built-in local proxy (`start`, `stop`, `status`, `health`, `config`, `logs`, …; **`--json`** on `status` / `health`) |
 | `clovapi reset` | Clear all saved profiles and bindings (`--yes` / `-y` skips prompt) |
+
+### `clovapi profiles` (JSON API)
+
+Subcommands mirror what the desktop app and Electron shell call. Pass **`--json`** for structured stdout (stdin JSON for `save`):
+
+| Subcommand | Description |
+|------------|-------------|
+| `load --json` | Read normalized `profiles.json` (vendors, `active`, proxy bind) |
+| `save --json` | Merge payload from stdin and persist |
+| `test --json` | Probe a provider/model via the local proxy (`--provider`, `--model`, optional `--cli`, `--port`) |
+| `list-models --vendor NAME --json` | Fetch and merge models for one vendor |
+| `usage --vendor NAME --json` | Query upstream quota/balance for one API vendor |
+| `catalog --json` | Fixed provider registry and model-adapter catalog |
+
+Legacy **`clovapi desktop profiles|vendor|auth …`** remains for older scripts; prefer the top-level commands above.
+
+Script examples:
+
+```bash
+clovapi profiles load --json
+clovapi profiles save --json < payload.json
+clovapi switch --cli opencode --provider custom-api --model my-model --json
+clovapi auth status --json
+clovapi proxy status --json
+```
 
 ## Build
 
@@ -59,10 +86,9 @@ cd core && go test ./...
 - **Unix** (macOS/Linux): `$XDG_CONFIG_HOME/clovapi` or `~/.config/clovapi`
 - **Windows**: `%APPDATA%\clovapi`
 
-State file: `profiles.json` (0600). It stores **`profiles`** (all saved rows) and **`active`** (last applied profile name per CLI).
+State file: `profiles.json` (0600). It stores **`profiles`** (vendor rows and models), **`active`** (per CLI: `provider_id` + `model_id`), and **`proxy`** (local bind host/port).
 
-`clovapi switch` always targets a single CLI. Use `--cli` for non-interactive scripts. Each CLI adapter picks the appropriate upstream API style internally — you do not need to match styles manually.
-
+`clovapi switch` always targets a single CLI. Use `--cli` for non-interactive scripts. Prefer **`--provider`** + **`--model`** (or **`--vendor`** + **`--model`**) in automation; add **`--json`** when a caller needs structured success/error output.
 ## Apply behavior (summary)
 
 - **claude-code** + `claude`: writes `~/.claude/settings.json` with **`env.ANTHROPIC_AUTH_TOKEN`** and **`ANTHROPIC_BASE_URL`** (same pattern as ccswitch). **`ANTHROPIC_API_KEY` is removed** from `env` so Claude Code does not show “Auth conflict: Both a token and an API key are set”.
@@ -86,11 +112,13 @@ Paths expand correctly on Windows (user profile / AppData).
 
 | clovapi | Alias(es) | Similar to |
 |---------|-----------|------------|
-| `list` | `profiles`, `ls` | `cc-switch list`, `ccswitch list` |
+| `list` | `ls` | `cc-switch list`, `ccswitch list` |
+| `profiles` | _(command group, not a list alias)_ | Desktop/script JSON API for `profiles.json` |
 | `add` | `set`, `new` | One-shot save of upstream binding |
-| `switch [--cli …]` | `use …` | Apply one saved profile into one tool config |
+| `switch [--cli …]` | `use …` | Apply one binding into one tool config |
 | `remove NAME` | `rm`, `delete` | Delete one saved profile |
 
+**Note:** Older docs used `clovapi profiles` as an alias for `list`. That alias was removed when **`profiles`** became its own subcommand group (`load`, `save`, …). Use **`clovapi list`** or **`clovapi ls`** for the human table.
 ### Where state lives
 
 | Tool | Stored profiles |

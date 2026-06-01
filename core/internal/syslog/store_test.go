@@ -6,9 +6,16 @@ import (
 	"testing"
 )
 
-func TestStorePushListAndClear(t *testing.T) {
+func openTestStore(t *testing.T) *Store {
+	t.Helper()
 	dir := t.TempDir()
 	store := newStoreAt(dir)
+	t.Cleanup(func() { _ = store.Close() })
+	return store
+}
+
+func TestStorePushListAndClear(t *testing.T) {
+	store := openTestStore(t)
 	store.Push("system", "hello")
 	store.Push("stderr", "warn")
 	entries := store.ListRecent(10)
@@ -28,8 +35,12 @@ func TestStorePersistsAcrossReopen(t *testing.T) {
 	dir := t.TempDir()
 	store := newStoreAt(dir)
 	store.Push("system", "persist me")
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	reopened := newStoreAt(dir)
+	t.Cleanup(func() { _ = reopened.Close() })
 	entries := reopened.ListRecent(10)
 	if len(entries) != 1 || entries[0].Message != "persist me" {
 		t.Fatalf("unexpected reopened entries: %+v", entries)

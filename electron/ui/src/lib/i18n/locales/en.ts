@@ -1,6 +1,6 @@
 const en = {
   app: {
-    subtitle: "Manage local Agent APIs in one place — ClaudeCli / CodexCli subscriptions supported",
+    subtitle: "Manage local Agent APIs in one place — ClaudeCli / Codex subscriptions supported",
     updateBadge: "Install update v{latest}",
   },
   tabs: {

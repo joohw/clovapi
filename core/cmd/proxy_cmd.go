@@ -218,7 +218,7 @@ func ensureProxyRunning() error {
 func shouldSkipAutoProxy(cmd *cobra.Command) bool {
 	if cmd != nil && cmd.Parent() != nil && cmd.Parent().Name() == "proxy" {
 		switch cmd.Name() {
-		case "start", "stop", "status", "config", "logs", "syslogs":
+		case "start", "stop", "status", "health", "config", "logs", "syslogs":
 			return true
 		}
 	}
@@ -230,15 +230,14 @@ func shouldSkipAutoProxy(cmd *cobra.Command) bool {
 			}
 		}
 	}
-	if cmd != nil &&
-		cmd.Name() == "test" &&
-		cmd.Parent() != nil &&
-		cmd.Parent().Name() == "profiles" &&
-		cmd.Parent().Parent() != nil &&
-		cmd.Parent().Parent().Name() == "desktop" {
-		return true
+	if cmd != nil && cmd.Name() == "test" {
+		for p := cmd.Parent(); p != nil; p = p.Parent() {
+			if p.Name() == "profiles" {
+				return true
+			}
+		}
 	}
-	if isDesktopAuthCommand(cmd) {
+	if isAuthOAuthCommand(cmd) {
 		return true
 	}
 	for c := cmd; c != nil; c = c.Parent() {
@@ -250,15 +249,12 @@ func shouldSkipAutoProxy(cmd *cobra.Command) bool {
 	return false
 }
 
-func isDesktopAuthCommand(cmd *cobra.Command) bool {
+func isAuthOAuthCommand(cmd *cobra.Command) bool {
 	if cmd == nil {
 		return false
 	}
-	auth := cmd
-	for auth != nil && auth.Name() != "auth" {
-		auth = auth.Parent()
-	}
-	if auth == nil || auth.Parent() == nil || auth.Parent().Name() != "desktop" {
+	parent := cmd.Parent()
+	if parent == nil || parent.Name() != "auth" {
 		return false
 	}
 	switch cmd.Name() {

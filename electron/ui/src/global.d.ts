@@ -38,28 +38,37 @@ type CliBridge = {
       commandPath?: string;
     }>;
   }>;
-  onOutput(callback: (payload: unknown) => void): () => void;
-  onExit(callback: (payload: { code?: number | null }) => void): () => void;
-};
-
-type SubscriptionBridge = {
-  status(): Promise<{ ok?: boolean; items?: SubscriptionItem[] }>;
-  login(provider: string): Promise<{ ok?: boolean; cancelled?: boolean; error?: string }>;
-  cancelLogin(provider: string): Promise<unknown>;
-  logout(provider: string): Promise<ProfilesLoadResult>;
-};
-
-type ProfilesBridge = {
-  load(): Promise<ProfilesLoadResult>;
-  save(payload: {
+  authStatus(): Promise<{ ok?: boolean; items?: SubscriptionItem[]; error?: string }>;
+  authLogin(provider: string): Promise<{ ok?: boolean; cancelled?: boolean; error?: string }>;
+  cancelAuthLogin(provider: string): Promise<{ ok?: boolean; error?: string }>;
+  authLogout(provider: string): Promise<ProfilesLoadResult>;
+  proxyStatus(): Promise<ProxyStatusResult>;
+  proxyHealth(): Promise<ProxyHealthResult>;
+  proxyStart(port?: number): Promise<ProxyStatusResult>;
+  proxyStop(options?: { suppressAutostart?: boolean }): Promise<{ ok?: boolean; error?: string }>;
+  proxyLogsList(payload?: { limit?: number; offset?: number }): Promise<ProxyLogsResult>;
+  proxyLogsClear(scope?: "calls" | "system" | "all"): Promise<ProxyLogsResult>;
+  profilesLoad(): Promise<ProfilesLoadResult>;
+  profilesSave(payload: {
     profiles: Vendor[];
     active: Record<string, ActiveSelection>;
     proxy?: ProxyConfig;
   }): Promise<ProfilesSaveResult>;
-  test(payload: string | ProfileTestPayload): Promise<ProfileTestResult>;
-  listModels(vendorName: string): Promise<ListVendorModelsResult>;
-  queryUsage(vendorName: string): Promise<VendorUsageResult>;
-  modelAdapters(): Promise<ModelAdaptersResult>;
+  profilesTest(payload: string | ProfileTestPayload): Promise<ProfileTestResult>;
+  profilesListModels(vendorName: string): Promise<ListVendorModelsResult>;
+  profilesUsage(vendorName: string): Promise<VendorUsageResult>;
+  profilesCatalog(): Promise<ModelAdaptersResult>;
+  switchCli(payload: {
+    cli?: string;
+    cliKind?: string;
+    provider?: string;
+    providerId?: string;
+    model?: string;
+    modelId?: string;
+    reset?: boolean;
+  }): Promise<{ ok?: boolean; error?: string; reset?: boolean }>;
+  onOutput(callback: (payload: unknown) => void): () => void;
+  onExit(callback: (payload: { code?: number | null }) => void): () => void;
 };
 
 type ProxyHealthResult = {
@@ -208,10 +217,6 @@ declare global {
   interface Window {
     clovapiEnv?: ClovapiEnvBridge;
     clovapiCli?: CliBridge;
-    clovapiSubscription?: SubscriptionBridge;
-    clovapiProfiles?: ProfilesBridge;
-    clovapiProxy?: ProxyBridge;
-    clovapiProxyLogs?: ProxyLogsBridge;
     clovapiDesktop?: DesktopBridge;
   }
 }

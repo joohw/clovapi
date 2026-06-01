@@ -2,13 +2,11 @@ package proxy
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 )
 
 func TestCallLogSessionStoredInSQLite(t *testing.T) {
-	dir := t.TempDir()
-	store := newCallLogStoreAt(dir)
+	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{
 		Request: CallLogRequest{
 			Method: "POST",
@@ -35,8 +33,7 @@ func TestCallLogSessionStoredInSQLite(t *testing.T) {
 }
 
 func TestCallLogCodexSessionStoredInSQLite(t *testing.T) {
-	dir := t.TempDir()
-	store := newCallLogStoreAt(dir)
+	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{
 		Request: CallLogRequest{
 			Method: "POST",
@@ -71,8 +68,7 @@ func TestCallLogCodexSessionFallsBackToTurnMetadata(t *testing.T) {
 }
 
 func TestCallLogOpenCodeSessionStoredInSQLite(t *testing.T) {
-	dir := t.TempDir()
-	store := newCallLogStoreAt(dir)
+	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{
 		Request: CallLogRequest{
 			Method: "POST",
@@ -97,8 +93,7 @@ func TestCallLogOpenCodeSessionStoredInSQLite(t *testing.T) {
 }
 
 func TestCallLogWithoutSessionUsesDefaultBucket(t *testing.T) {
-	dir := t.TempDir()
-	store := newCallLogStoreAt(dir)
+	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{Request: CallLogRequest{Method: "POST", URL: "/a"}})
 
 	entries := store.ListRecent(0)
@@ -118,8 +113,7 @@ func TestSanitizeSessionFilenameRejectsTraversal(t *testing.T) {
 }
 
 func TestListCallLogSessions(t *testing.T) {
-	dir := t.TempDir()
-	store := newCallLogStoreAt(dir)
+	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{
 		StartedAt: "2026-01-01T00:00:01Z",
 		Request: CallLogRequest{
@@ -151,14 +145,13 @@ func TestListCallLogSessions(t *testing.T) {
 }
 
 func TestClearCallLogDB(t *testing.T) {
-	dir := t.TempDir()
-	store := newCallLogStoreAt(dir)
+	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{Request: CallLogRequest{Method: "POST", URL: "/a"}})
 	store.Clear()
 	if entries := store.ListRecent(0); len(entries) != 0 {
 		t.Fatalf("expected 0 entries after clear, got %d", len(entries))
 	}
-	if _, err := os.Stat(filepath.Join(dir, "call-logs.sqlite")); err != nil {
+	if _, err := os.Stat(store.DBPath()); err != nil {
 		t.Fatal(err)
 	}
 }

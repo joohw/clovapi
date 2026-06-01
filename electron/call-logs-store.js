@@ -61,6 +61,25 @@ async function clearCallLogsFile() {
   await runClovapiArgsAsync(["proxy", "logs", "clear", "--yes"], { timeout: 8000 });
 }
 
+async function readSystemLogsViaCLI(limit = 0) {
+  const args = ["proxy", "syslogs", "list", "--json"];
+  if (limit > 0) args.push("--limit", String(limit));
+  const result = await runClovapiArgsAsync(args, { timeout: 10000 });
+  if (!result.ok) return [];
+  const raw = String(result.stdout || "").trim();
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function clearSystemLogsViaCLI() {
+  await runClovapiArgsAsync(["proxy", "syslogs", "clear", "--yes"], { timeout: 10000 });
+}
+
 module.exports = {
   logsDir,
   callLogsDBPath,
@@ -69,4 +88,6 @@ module.exports = {
   readCallLogs,
   readCallLogSessions,
   clearCallLogsFile,
+  readSystemLogsViaCLI,
+  clearSystemLogsViaCLI,
 };

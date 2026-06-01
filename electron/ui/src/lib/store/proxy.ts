@@ -62,10 +62,10 @@ async function resolveCoreVersionFromCli(): Promise<string> {
 
 export async function refreshCoreVersion() {
   if (store.proxyRunning) {
-    const bridge = window.clovapiProxy;
-    if (bridge?.health) {
+    const bridge = window.clovapiCli;
+    if (bridge?.proxyHealth) {
       try {
-        const result = await bridge.health();
+        const result = await bridge.proxyHealth();
         const version = parseVersionFromHealthBody(result?.body);
         if (version) {
           store.coreVersion = version;
@@ -80,10 +80,10 @@ export async function refreshCoreVersion() {
 }
 
 export async function refreshProxyStatus() {
-  const bridge = window.clovapiProxy;
-  if (!bridge?.status) return;
+  const bridge = window.clovapiCli;
+  if (!bridge?.proxyStatus) return;
   try {
-    const result = await bridge.status();
+    const result = await bridge.proxyStatus();
     if (result?.ok) {
       store.proxyRunning = Boolean(result.running);
       store.proxyPort = Number(result.port) || store.proxyPort;
@@ -96,13 +96,13 @@ export async function refreshProxyStatus() {
 }
 
 export async function refreshProxyLogs(offset = store.proxyLogsOffset) {
-  const bridge = window.clovapiProxyLogs;
-  if (!bridge?.list || store.proxyLogsLoading) return;
+  const bridge = window.clovapiCli;
+  if (!bridge?.proxyLogsList || store.proxyLogsLoading) return;
   store.proxyLogsLoading = true;
   try {
     const pageSize = Number(store.proxyLogsPageSize) || 20;
     const nextOffset = Math.max(0, Number(offset) || 0);
-    const result = await bridge.list({ limit: pageSize, offset: nextOffset });
+    const result = await bridge.proxyLogsList({ limit: pageSize, offset: nextOffset });
     if (result?.ok) {
       if (Array.isArray(result.requests)) {
         store.proxyLogs = result.requests;
@@ -133,9 +133,9 @@ export async function previousProxyLogsPage() {
 }
 
 export async function clearCallLogs() {
-  const bridge = window.clovapiProxyLogs;
-  if (!bridge?.clear) return;
-  const result = await bridge.clear("calls");
+  const bridge = window.clovapiCli;
+  if (!bridge?.proxyLogsClear) return;
+  const result = await bridge.proxyLogsClear("calls");
   if (!result?.ok) {
     toast.error(result?.error || t("toast.proxyClearCallLogsFailed"));
     return;
@@ -149,9 +149,9 @@ export async function clearCallLogs() {
 }
 
 export async function clearSystemLogs() {
-  const bridge = window.clovapiProxyLogs;
-  if (!bridge?.clear) return;
-  const result = await bridge.clear("system");
+  const bridge = window.clovapiCli;
+  if (!bridge?.proxyLogsClear) return;
+  const result = await bridge.proxyLogsClear("system");
   if (!result?.ok) {
     toast.error(result?.error || t("toast.proxyClearSystemLogsFailed"));
     return;
@@ -163,8 +163,8 @@ export async function clearSystemLogs() {
 export async function runProxyHealthTest() {
   if (store.proxyHealthTest?.status === "testing") return;
 
-  const bridge = window.clovapiProxy;
-  if (!bridge?.health) {
+  const bridge = window.clovapiCli;
+  if (!bridge?.proxyHealth) {
     toast.error(t("toast.proxyHealthUnsupported"));
     return;
   }
@@ -176,7 +176,7 @@ export async function runProxyHealthTest() {
   };
 
   try {
-    const result = await bridge.health();
+    const result = await bridge.proxyHealth();
     await refreshProxyStatus();
 
     const version = parseVersionFromHealthBody(result?.body);
@@ -356,13 +356,13 @@ export async function autoUpdateCoreOnStartup() {
 }
 
 export async function restartLocalProxy() {
-  const bridge = window.clovapiProxy;
-  if (!bridge?.stop || !bridge?.start) {
+  const bridge = window.clovapiCli;
+  if (!bridge?.proxyStop || !bridge?.proxyStart) {
     toast.error(t("toast.proxyUnsupported"));
     return;
   }
-  await bridge.stop({ suppressAutostart: false });
-  const result = await bridge.start(store.proxyPort);
+  await bridge.proxyStop({ suppressAutostart: false });
+  const result = await bridge.proxyStart(store.proxyPort);
   await refreshProxyStatus();
   if (result?.ok) toast.success(t("toast.proxyRestarted"));
   else toast.error(result?.error || t("toast.proxyRestartFailed"));

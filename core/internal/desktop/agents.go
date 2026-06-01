@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/clovapi/switcher/internal/agentkind"
+	"github.com/clovapi/switcher/internal/apply"
 )
 
 type AgentStatusItem struct {
@@ -41,7 +42,7 @@ type agentDefinition struct {
 
 var agentDefinitions = []agentDefinition{
 	{ID: "cli-claude", Name: "ClaudeCli", Command: "claude", Kind: agentkind.ClaudeCode},
-	{ID: "cli-codex", Name: "CodexCli", Command: "codex", Kind: agentkind.Codex},
+	{ID: "cli-codex", Name: "Codex", Command: "codex", Kind: agentkind.Codex},
 	{ID: "cli-opencode", Name: "OpenCodeCli", Command: "opencode", Kind: agentkind.OpenCode},
 	{ID: "cli-openclaw", Name: "OpenClaw", Command: "openclaw", Kind: agentkind.OpenClaw},
 	{ID: "cli-hermes", Name: "Hermes", Command: "hermes", Kind: agentkind.Hermes},
@@ -64,10 +65,15 @@ func ResolveCommandPath(command string) (string, bool) {
 		if executableFile(candidate) {
 			return candidate, true
 		}
-		if runtime.GOOS == "windows" && !strings.HasSuffix(strings.ToLower(candidate), ".exe") {
-			exe := candidate + ".exe"
-			if executableFile(exe) {
-				return exe, true
+		if runtime.GOOS == "windows" {
+			for _, ext := range []string{".exe", ".cmd", ".ps1", ".bat"} {
+				if strings.HasSuffix(strings.ToLower(candidate), ext) {
+					continue
+				}
+				shim := candidate + ext
+				if executableFile(shim) {
+					return shim, true
+				}
 			}
 		}
 	}
@@ -77,7 +83,7 @@ func ResolveCommandPath(command string) (string, bool) {
 func AgentStatus() AgentStatusResult {
 	items := make([]AgentStatusItem, 0, len(agentDefinitions))
 	for _, def := range agentDefinitions {
-		cmdPath, installed := ResolveCommandPath(def.Command)
+		cmdPath, installed := resolveAgentInstall(def)
 		items = append(items, AgentStatusItem{
 			ID:          def.ID,
 			Name:        def.Name,
@@ -88,6 +94,18 @@ func AgentStatus() AgentStatusResult {
 		})
 	}
 	return AgentStatusResult{OK: true, Items: items}
+}
+
+func resolveAgentInstall(def agentDefinition) (cmdPath string, installed bool) {
+	if def.Kind == agentkind.Codex {
+		installed = apply.CodexInstalled()
+		if p, ok := apply.ResolveCodexExecutable(); ok {
+			cmdPath = p
+		}
+		return cmdPath, installed
+	}
+	cmdPath, installed = ResolveCommandPath(def.Command)
+	return cmdPath, installed
 }
 
 func CommandWhich(command string) CommandWhichResult {

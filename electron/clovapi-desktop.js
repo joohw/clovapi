@@ -1,15 +1,54 @@
-const { runClovapiArgsAsync } = require("./clovapi-exec");
+const { runClovapiArgsAsync, runClovapiLongAsync, cancelClovapiLongRun } = require("./clovapi-exec");
 
-function parseDesktopStdout(result) {
+const AUTH_PROVIDERS = new Set(["claude-code", "codex"]);
+const AUTH_LOGIN_TIMEOUT = 10 * 60 * 1000;
+
+let outputHandler = () => {};
+
+function setOutputHandler(handler) {
+  outputHandler = typeof handler === "function" ? handler : () => {};
+}
+
+function parseCliJSON(result) {
   const text = String(result.stdout || "").trim();
   if (!text) {
-    return { ok: false, error: result.stderr || "empty response from clovapi desktop" };
+    return { ok: false, error: result.stderr || "empty response from clovapi" };
   }
   try {
     return JSON.parse(text);
   } catch {
-    return { ok: false, error: "invalid JSON from clovapi desktop" };
+    return { ok: false, error: "invalid JSON from clovapi" };
   }
+}
+
+async function runAuthAsync(args, options = {}) {
+  const result = await runClovapiArgsAsync(["auth", ...args, "--json"], {
+    timeout: options.timeout ?? 30000,
+    input: options.input,
+  });
+  if (result.error && result.error.code === "ETIMEDOUT") {
+    return { ok: false, error: "clovapi auth timed out" };
+  }
+  if (!result.ok) {
+    const message = String(result.stderr || result.stdout || "clovapi auth failed").trim();
+    return { ok: false, error: message || "clovapi auth failed" };
+  }
+  return parseCliJSON(result);
+}
+
+async function runProfilesAsync(args, options = {}) {
+  const result = await runClovapiArgsAsync(["profiles", ...args, "--json"], {
+    timeout: options.timeout ?? 30000,
+    input: options.input,
+  });
+  if (result.error && result.error.code === "ETIMEDOUT") {
+    return { ok: false, error: "clovapi profiles timed out" };
+  }
+  if (!result.ok) {
+    const message = String(result.stderr || result.stdout || "clovapi profiles failed").trim();
+    return { ok: false, error: message || "clovapi profiles failed" };
+  }
+  return parseCliJSON(result);
 }
 
 async function runDesktopAsync(args, options = {}) {
@@ -24,11 +63,11 @@ async function runDesktopAsync(args, options = {}) {
     const message = String(result.stderr || result.stdout || "clovapi desktop failed").trim();
     return { ok: false, error: message || "clovapi desktop failed" };
   }
-  return parseDesktopStdout(result);
+  return parseCliJSON(result);
 }
 
 function loadProfiles() {
-  return runDesktopAsync(["profiles", "load"]);
+  return runProfilesAsync(["load"]);
 }
 
 function loadProxyConfig() {
@@ -43,7 +82,7 @@ function saveProxyConfig(payload) {
 }
 
 function saveProfiles(payload) {
-  return runDesktopAsync(["profiles", "save"], {
+  return runProfilesAsync(["save"], {
     input: JSON.stringify(payload || {}),
     timeout: 15000,
   });
@@ -59,6 +98,7 @@ async function switchProviderModel(cliKind, providerId, modelId) {
       String(providerId || ""),
       "--model",
       String(modelId || ""),
+      "--json",
     ],
     { timeout: 45000 },
   );
@@ -69,11 +109,11 @@ async function switchProviderModel(cliKind, providerId, modelId) {
     const message = String(result.stderr || result.stdout || "clovapi switch failed").trim();
     return { ok: false, error: message || "clovapi switch failed" };
   }
-  return { ok: true, stdout: result.stdout, stderr: result.stderr };
+  return parseCliJSON(result);
 }
 
 function listVendorModels(vendorName) {
-  return runDesktopAsync(["vendor", "list-models", "--vendor", String(vendorName || "")], {
+  return runProfilesAsync(["list-models", "--vendor", String(vendorName || "")], {
     timeout: 45000,
   });
 }
@@ -82,7 +122,7 @@ async function testBinding(payload) {
   const binding = String(payload?.binding || "").trim();
   const provider = String(payload?.provider || payload?.provider_id || "").trim();
   const model = String(payload?.model || payload?.model_id || "").trim();
-  const args = ["profiles", "test"];
+  const args = ["test"];
   if (provider || model) {
     args.push("--provider", provider, "--model", model);
   } else {
@@ -96,11 +136,11 @@ async function testBinding(payload) {
   if (Number.isFinite(port) && port > 0) {
     args.push("--port", String(port));
   }
-  return runDesktopAsync(args, { timeout: 130000 });
+  return runProfilesAsync(args, { timeout: 130000 });
 }
 
 function modelAdapters() {
-  return runDesktopAsync(["vendor", "catalog"], { timeout: 10000 });
+  return runProfilesAsync(["catalog"], { timeout: 10000 });
 }
 
 function vendorCatalog() {
@@ -116,23 +156,51 @@ function agentStatus() {
 }
 
 function authStatus() {
-  return runDesktopAsync(["auth", "status"], { timeout: 10000 });
+  return runAuthAsync(["status"]);
+}
+
+async function authLogin(provider) {
+  const providerId = String(provider || "").trim();
+  if (!AUTH_PROVIDERS.has(providerId)) {
+    return { ok: false, error: `未知订阅类型: ${providerId}` };
+  }
+  const result = await runClovapiLongAsync(["auth", "login", "--provider", providerId, "--json"], {
+    cancelKey: providerId,
+    onOutput: outputHandler,
+  });
+  if (result.cancelled) {
+    return { ok: false, cancelled: true, error: "已取消登录" };
+  }
+  if (!result.ok) {
+    const message = String(result.stderr || result.stdout || "登录失败").trim();
+    return { ok: false, error: message || "登录失败" };
+  }
+  return parseCliJSON(result);
+}
+
+function cancelAuthLogin(provider) {
+  const providerId = String(provider || "").trim();
+  const result = cancelClovapiLongRun(providerId);
+  if (!result.ok) {
+    return { ok: false, error: "该订阅未在登录中" };
+  }
+  return { ok: true };
 }
 
 function authLogout(provider) {
-  return runDesktopAsync(["auth", "logout", "--provider", String(provider || "")], {
-    timeout: 15000,
-  });
+  return runAuthAsync(["logout", "--provider", String(provider || "")], { timeout: 15000 });
 }
 
 function queryVendorUsage(vendorName) {
-  return runDesktopAsync(["vendor", "usage", "--vendor", String(vendorName || "")], {
+  return runProfilesAsync(["usage", "--vendor", String(vendorName || "")], {
     timeout: 20000,
   });
 }
 
 module.exports = {
+  setOutputHandler,
   runDesktopAsync,
+  runProfilesAsync,
   loadProfiles,
   loadProxyConfig,
   saveProxyConfig,
@@ -145,6 +213,8 @@ module.exports = {
   whichCommand,
   agentStatus,
   authStatus,
+  authLogin,
+  cancelAuthLogin,
   authLogout,
   queryVendorUsage,
 };

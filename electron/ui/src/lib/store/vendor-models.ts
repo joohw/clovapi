@@ -56,15 +56,15 @@ export async function fetchVendorModels(vendorName: string) {
     return;
   }
 
-  const bridge = window.clovapiProfiles;
-  if (!bridge?.listModels) {
+  const bridge = window.clovapiCli;
+  if (!bridge?.profilesListModels) {
     toast.error(t("toast.fetchUnsupported"));
     return;
   }
 
   store.vendorFetching[name] = true;
   try {
-    const result = await bridge.listModels(name);
+    const result = await bridge.profilesListModels(name);
     if (!result?.ok) {
       toast.error(result?.error || t("toast.fetchFailed"));
       return;

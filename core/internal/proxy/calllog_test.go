@@ -11,9 +11,16 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestCallLogStorePushAndList(t *testing.T) {
+func openTestCallLogStore(t *testing.T) *CallLogStore {
+	t.Helper()
 	dir := t.TempDir()
 	store := newCallLogStoreAt(dir)
+	t.Cleanup(func() { _ = store.Close() })
+	return store
+}
+
+func TestCallLogStorePushAndList(t *testing.T) {
+	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{Request: CallLogRequest{Method: "POST", URL: "/a"}})
 	store.Push(CallLogEntry{Request: CallLogRequest{Method: "GET", URL: "/b"}})
 	store.Push(CallLogEntry{Request: CallLogRequest{Method: "DELETE", URL: "/c"}})
@@ -34,8 +41,7 @@ func TestCallLogStorePushAndList(t *testing.T) {
 }
 
 func TestCallLogStoreListRecentPage(t *testing.T) {
-	dir := t.TempDir()
-	store := newCallLogStoreAt(dir)
+	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{StartedAt: "2026-01-01T00:00:01Z", Request: CallLogRequest{Method: "POST", URL: "/a"}})
 	store.Push(CallLogEntry{StartedAt: "2026-01-01T00:00:02Z", Request: CallLogRequest{Method: "POST", URL: "/b"}})
 	store.Push(CallLogEntry{StartedAt: "2026-01-01T00:00:03Z", Request: CallLogRequest{Method: "POST", URL: "/c"}})
@@ -91,8 +97,7 @@ func TestShouldUseCallLogRoutesProbesToSystemLog(t *testing.T) {
 }
 
 func TestCallLogPreservesFullBody(t *testing.T) {
-	dir := t.TempDir()
-	store := newCallLogStoreAt(dir)
+	store := openTestCallLogStore(t)
 	trace := startRequestTrace(store, mustHTTPRequest(t))
 	if trace == nil {
 		t.Fatal("expected trace")
@@ -114,8 +119,7 @@ func TestCallLogPreservesFullBody(t *testing.T) {
 }
 
 func TestCallLogClear(t *testing.T) {
-	dir := t.TempDir()
-	store := newCallLogStoreAt(dir)
+	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{Request: CallLogRequest{Method: "POST", URL: "/a"}})
 	store.Clear()
 	if entries := store.ListRecent(0); len(entries) != 0 {
@@ -124,8 +128,7 @@ func TestCallLogClear(t *testing.T) {
 }
 
 func TestFindCallLogEntry(t *testing.T) {
-	dir := t.TempDir()
-	store := newCallLogStoreAt(dir)
+	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{ID: "entry-1", Request: CallLogRequest{Method: "POST", URL: "/a"}})
 	got, err := store.Find("entry-1")
 	if err != nil {
@@ -137,8 +140,7 @@ func TestFindCallLogEntry(t *testing.T) {
 }
 
 func TestExportCallLogDB(t *testing.T) {
-	dir := t.TempDir()
-	store := newCallLogStoreAt(dir)
+	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{ID: "entry-1", Request: CallLogRequest{Method: "POST", URL: "/a"}})
 	outPath := filepath.Join(t.TempDir(), "export.jsonl")
 	out, err := os.Create(outPath)
@@ -169,14 +171,13 @@ func mustHTTPRequest(t *testing.T) *http.Request {
 }
 
 func TestRequestTraceCapturesInboundMetadata(t *testing.T) {
-	dir := t.TempDir()
 	req, err := http.NewRequest(http.MethodPost, "http://127.0.0.1:27483/codex/gpt-5.4-mini/openai-responses/v1/responses", strings.NewReader(`{"input":"ping"}`))
 	if err != nil {
 		t.Fatal(err)
 	}
 	req.Host = "127.0.0.1:27483"
 	req.Header.Set("Content-Type", "application/json")
-	trace := startRequestTrace(newCallLogStoreAt(dir), req)
+	trace := startRequestTrace(openTestCallLogStore(t), req)
 	if trace == nil {
 		t.Fatal("expected trace")
 	}
@@ -192,13 +193,12 @@ func TestRequestTraceCapturesInboundMetadata(t *testing.T) {
 }
 
 func TestRequestTraceRedactsAuthorization(t *testing.T) {
-	dir := t.TempDir()
 	req, err := http.NewRequest(http.MethodPost, "http://127.0.0.1:1/p/a", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	req.Header.Set("Authorization", "Bearer secret-token")
-	trace := startRequestTrace(newCallLogStoreAt(dir), req)
+	trace := startRequestTrace(openTestCallLogStore(t), req)
 	if trace == nil {
 		t.Fatal("expected trace")
 	}
@@ -208,7 +208,6 @@ func TestRequestTraceRedactsAuthorization(t *testing.T) {
 }
 
 func TestRequestTraceCapturesRedactedUpstreamRequestHeaders(t *testing.T) {
-	dir := t.TempDir()
 	upReq, err := http.NewRequest(http.MethodPost, "https://api.anthropic.com/v1/messages", strings.NewReader(`{"ping":true}`))
 	if err != nil {
 		t.Fatal(err)
@@ -217,7 +216,7 @@ func TestRequestTraceCapturesRedactedUpstreamRequestHeaders(t *testing.T) {
 	upReq.Header.Set("Anthropic-Beta", "claude-code-20250219")
 	upReq.Header.Set("X-Stainless-Lang", "js")
 
-	trace := startRequestTrace(newCallLogStoreAt(dir), mustHTTPRequest(t))
+	trace := startRequestTrace(openTestCallLogStore(t), mustHTTPRequest(t))
 	if trace == nil {
 		t.Fatal("expected trace")
 	}

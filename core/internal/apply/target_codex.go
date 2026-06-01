@@ -23,11 +23,11 @@ func (codexTarget) SupportedStyles() []apistyle.Style {
 }
 
 func (codexTarget) Description() string {
-	return "OpenAI-compatible Codex ~/.codex/config.toml (model_providers." + CodexProviderID + ")"
+	return "OpenAI-compatible Codex config.toml under CODEX_HOME (model_providers." + CodexProviderID + ")"
 }
 
 func (codexTarget) Installed() bool {
-	return cliExecutableOnPATH("codex")
+	return CodexInstalled()
 }
 
 func (codexTarget) Apply(p profile.Profile) error {

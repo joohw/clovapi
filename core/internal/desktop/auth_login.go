@@ -10,7 +10,7 @@ import (
 type AuthLoginResult = subscriptionauth.LoginResult
 
 func AuthLogin(ctx context.Context, providerID string) AuthLoginResult {
-	// Pause local proxy so OAuth callback ports and cancel/stop flows do not race the daemon.
-	_ = proxycontrol.PauseIfRunning()
+	wasRunning := proxycontrol.PauseIfRunning()
+	defer proxycontrol.ResumeIfWasRunning(wasRunning)
 	return subscriptionauth.Login(ctx, providerID, true)
 }

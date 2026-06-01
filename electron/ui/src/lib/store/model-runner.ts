@@ -13,8 +13,8 @@ export async function runModelTest(binding: string) {
   const key = String(binding || "").trim();
   if (!key) return;
 
-  const bridge = window.clovapiProfiles;
-  if (!bridge?.test) {
+  const bridge = window.clovapiCli;
+  if (!bridge?.profilesTest) {
     toast.error(t("toast.apiTestUnsupported"));
     return;
   }
@@ -25,11 +25,11 @@ export async function runModelTest(binding: string) {
   setModelTestTesting(statusKey);
 
   const TEST_UI_TIMEOUT_MS = 130_000;
-  let result: Awaited<ReturnType<NonNullable<typeof bridge.test>>>;
+  let result: Awaited<ReturnType<NonNullable<typeof bridge.profilesTest>>>;
   try {
     const cli = crossSubscriptionTestCli(key, store.profiles, store.active, store.clis);
     result = await Promise.race([
-      bridge.test(
+      bridge.profilesTest(
         toIpcPayload({
           provider: activeProviderId(key),
           model: activeModelId(key),

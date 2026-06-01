@@ -1,27 +1,18 @@
 import { isElectronRenderer } from "../constants";
 import { store } from "./state.svelte";
 
-async function waitForProfilesBridge(timeoutMs = 5000): Promise<boolean> {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    if (window.clovapiProfiles?.load) return true;
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-  return Boolean(window.clovapiProfiles?.load);
-}
-
 export async function waitForCliBridge(timeoutMs = 5000): Promise<boolean> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
-    if (window.clovapiCli?.agentStatus) return true;
+    if (window.clovapiCli?.profilesLoad) return true;
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
-  return Boolean(window.clovapiCli?.agentStatus);
+  return Boolean(window.clovapiCli?.profilesLoad);
 }
 
 export async function waitForDesktopBridge(timeoutMs = 5000): Promise<boolean> {
   if (!isElectronRenderer()) return false;
-  return waitForProfilesBridge(timeoutMs);
+  return waitForCliBridge(timeoutMs);
 }
 
 export async function refreshAppVersion() {
@@ -30,7 +21,7 @@ export async function refreshAppVersion() {
     return;
   }
 
-  await waitForProfilesBridge();
+  await waitForCliBridge();
 
   try {
     const version = await window.clovapiEnv?.getVersion?.();

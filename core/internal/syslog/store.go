@@ -93,8 +93,29 @@ func (s *Store) Clear() {
 	_ = clearDB(s.db)
 }
 
+// Close releases the underlying SQLite handle. Ephemeral stores must close to
+// avoid leaking connections (and, on Windows, locking the DB file).
+func (s *Store) Close() error {
+	if s == nil {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.db == nil {
+		return nil
+	}
+	err := s.db.Close()
+	s.db = nil
+	return err
+}
+
 func Write(stream, message string) {
-	NewStore().Push(stream, message)
+	store := NewStore()
+	if store == nil || store.db == nil {
+		return
+	}
+	store.Push(stream, message)
+	_ = store.Close()
 }
 
 func Writef(stream, format string, args ...any) {
@@ -106,6 +127,7 @@ func List(limit int) ([]Entry, error) {
 	if store == nil || store.db == nil {
 		return nil, fmt.Errorf("system log store unavailable")
 	}
+	defer store.Close()
 	entries := store.ListRecent(limit)
 	if entries == nil {
 		return []Entry{}, nil
@@ -118,6 +140,7 @@ func Clear() error {
 	if store == nil || store.db == nil {
 		return fmt.Errorf("system log store unavailable")
 	}
+	defer store.Close()
 	store.Clear()
 	return nil
 }
@@ -127,6 +150,7 @@ func Append(entries []Entry) error {
 	if store == nil || store.db == nil {
 		return fmt.Errorf("system log store unavailable")
 	}
+	defer store.Close()
 	for _, entry := range entries {
 		store.PushEntry(entry)
 	}

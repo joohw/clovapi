@@ -31,8 +31,8 @@ function formatUsageRow(row: VendorUsageData): string {
 export async function queryVendorUsage(vendor: Vendor) {
   const name = String(vendor?.name || "").trim();
   if (!name || vendor.kind !== "api") return;
-  const bridge = window.clovapiProfiles;
-  if (!bridge?.queryUsage) {
+  const bridge = window.clovapiCli;
+  if (!bridge?.profilesUsage) {
     toast.error(t("toast.vendorUsageUnsupported"));
     return;
   }
@@ -40,7 +40,7 @@ export async function queryVendorUsage(vendor: Vendor) {
 
   store.vendorUsageLoading[name] = true;
   try {
-    const result = await bridge.queryUsage(name);
+    const result = await bridge.profilesUsage(name);
     if (!result?.ok || !result.usage?.success) {
       const message = result?.error || result?.usage?.error || t("toast.vendorUsageFailed");
       store.vendorUsage[name] = { summary: message, rows: [], error: message };

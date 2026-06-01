@@ -46,13 +46,13 @@ function normalizeActiveSelections(raw: unknown, vendors: Vendor[]) {
 }
 
 export async function loadProfilesFromDisk() {
-  const bridge = window.clovapiProfiles;
-  if (!bridge?.load) {
+  const bridge = window.clovapiCli;
+  if (!bridge?.profilesLoad) {
     toast.error(isElectronRenderer() ? t("toast.profilesBridgeMissing") : t("toast.profilesBridgeBrowser"));
     return;
   }
 
-  const result = await bridge.load();
+  const result = await bridge.profilesLoad();
   if (!result?.ok) {
     toast.error(result?.error || t("toast.profilesLoadFailed"));
     return;

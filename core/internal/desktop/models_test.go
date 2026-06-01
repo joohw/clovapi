@@ -33,6 +33,9 @@ func TestAuthStatusCodexLoggedInWithoutCLIInstalled(t *testing.T) {
 	t.Setenv("HOME", root)
 	t.Setenv("USERPROFILE", root)
 	t.Setenv("PATH", root)
+	t.Setenv("LOCALAPPDATA", filepath.Join(root, "LocalAppData"))
+	t.Setenv("APPDATA", filepath.Join(root, "AppData"))
+	t.Setenv("ProgramFiles", filepath.Join(root, "ProgramFiles"))
 
 	result := AuthStatus()
 	var codexItem *AuthStatusItem
@@ -46,7 +49,7 @@ func TestAuthStatusCodexLoggedInWithoutCLIInstalled(t *testing.T) {
 		t.Fatal("codex auth status item not found")
 	}
 	if codexItem.Installed {
-		t.Fatal("expected codex CLI to be reported as not installed in isolated env")
+		t.Fatal("expected codex to be reported as not installed in isolated env")
 	}
 	if !codexItem.LoggedIn {
 		t.Fatalf("expected logged in from clovapi OAuth store without codex CLI; summary=%q", codexItem.Summary)

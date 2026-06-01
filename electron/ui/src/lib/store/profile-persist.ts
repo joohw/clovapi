@@ -2,7 +2,7 @@ import { activeSelection, normalizeVendor } from "../helpers";
 import { refreshProxyLogs } from "./proxy";
 import { store } from "./state.svelte";
 
-type PersistResult = Awaited<ReturnType<NonNullable<typeof window.clovapiProfiles>["save"]>>;
+type PersistResult = Awaited<ReturnType<NonNullable<typeof window.clovapiCli>["profilesSave"]>>;
 
 let persistTail: Promise<PersistResult | undefined> = Promise.resolve(undefined);
 
@@ -38,8 +38,8 @@ function activeForSave() {
 
 export async function persistProfiles() {
   const run = async (): Promise<PersistResult | undefined> => {
-    const bridge = window.clovapiProfiles;
-    if (!bridge?.save) return { ok: false, error: "Profile bridge unavailable" };
+    const bridge = window.clovapiCli;
+    if (!bridge?.profilesSave) return { ok: false, error: "Profile bridge unavailable" };
     const payload = cloneForIpc({
       profiles: store.profiles,
       active: activeForSave(),
@@ -49,7 +49,7 @@ export async function persistProfiles() {
         port: store.proxyPort,
       },
     });
-    const result = await bridge.save(payload);
+    const result = await bridge.profilesSave(payload);
     if (result?.ok) {
       store.profiles = (result.profiles || []).map(normalizeVendor);
       store.active = normalizeActive(result.active);

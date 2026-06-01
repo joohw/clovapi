@@ -24,8 +24,12 @@ clovapi --help
 
 | Command | Description |
 |---------|-------------|
-| `clovapi list` | Show profiles and CLI matrix (aliases `profiles` / `ls`) |
-| `clovapi add --name NAME` | Save upstream profile and probe ( `set` / `new`) |
-| `clovapi switch [--cli KIND]` | Apply profile to one CLI (`use`) |
-| `clovapi proxy` | Built-in local proxy (`start` / `status` / `config`) |
+| `clovapi list` | Show profiles and active CLI bindings (alias `ls`) |
+| `clovapi profiles` | JSON API for load/save/test/catalog (`--json`; see `core/README.md`) |
+| `clovapi add --name NAME` | Save upstream profile and probe (`set` / `new`) |
+| `clovapi switch [--cli KIND]` | Apply binding to one CLI (`use`; add `--json` for scripts) |
+| `clovapi auth` | Subscription OAuth (`status` / `login` / `logout`; `--json`) |
+| `clovapi proxy` | Built-in local proxy (`start` / `stop` / `status` / `health`; `--json` where supported) |
 | `clovapi reset` | Clear all profiles and bindings (`--yes`) |
+
+Details: [core/README.md](core/README.md).

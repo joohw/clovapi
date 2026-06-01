@@ -20,13 +20,13 @@ func ClaudeSettingsPath() (string, error) {
 	return filepath.Join(h, ".claude", "settings.json"), nil
 }
 
-// CodexConfigPath is Codex user config.toml.
+// CodexConfigPath is Codex user config.toml under CodexHomeDir (CODEX_HOME, default ~/.codex).
 func CodexConfigPath() (string, error) {
-	h, err := userHome()
+	dir, err := CodexHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(h, ".codex", "config.toml"), nil
+	return filepath.Join(dir, "config.toml"), nil
 }
 
 // envOpenCodeDirOverride is optional absolute path to the OpenCode global config directory

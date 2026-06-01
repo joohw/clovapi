@@ -31,10 +31,10 @@ function setSubscriptionLogging(providerId: string, active: boolean) {
 }
 
 export async function refreshSubscriptions() {
-  const bridge = window.clovapiSubscription;
-  if (!bridge?.status) return;
+  const bridge = window.clovapiCli;
+  if (!bridge?.authStatus) return;
   try {
-    const result = await bridge.status();
+    const result = await bridge.authStatus();
     store.subscriptions = result?.ok && Array.isArray(result.items) ? result.items : [];
   } catch {
     store.subscriptions = [];
@@ -42,22 +42,22 @@ export async function refreshSubscriptions() {
 }
 
 export async function cancelSubscriptionLogin(providerId: string) {
-  const bridge = window.clovapiSubscription;
-  if (!bridge?.cancelLogin) return;
-  await bridge.cancelLogin(providerId);
+  const bridge = window.clovapiCli;
+  if (!bridge?.cancelAuthLogin) return;
+  await bridge.cancelAuthLogin(providerId);
   setSubscriptionLogging(providerId, false);
 }
 
 export async function runSubscriptionLogin(providerId: string) {
-  const bridge = window.clovapiSubscription;
-  if (!bridge?.login) {
+  const bridge = window.clovapiCli;
+  if (!bridge?.authLogin) {
     toast.error(t("toast.subscriptionLoginUnsupported"));
     return;
   }
   if (isSubscriptionLogging(providerId)) return;
 
   setSubscriptionLogging(providerId, true);
-  const result = await bridge.login(providerId);
+  const result = await bridge.authLogin(providerId);
   setSubscriptionLogging(providerId, false);
   await refreshSubscriptions();
 
@@ -92,13 +92,13 @@ export async function runSubscriptionTest(providerId: string) {
 }
 
 export async function runSubscriptionLogout(providerId: string, label: string) {
-  const bridge = window.clovapiSubscription;
-  if (!bridge?.logout) return;
+  const bridge = window.clovapiCli;
+  if (!bridge?.authLogout) return;
   if (!window.confirm(t("toast.logoutConfirm", { label }))) return;
   const previousVendor = getSubscriptionVendors(store.profiles).find(
     (item) => item.subscriptionProviderId === providerId,
   );
-  const result = await bridge.logout(providerId);
+  const result = await bridge.authLogout(providerId);
   if (!result?.ok) {
     toast.error(result?.error || t("toast.logoutFailed"));
     await refreshSubscriptions();

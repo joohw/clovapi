@@ -24,8 +24,12 @@ clovapi --help
 
 | 命令 | 说明 |
 |------|------|
-| `clovapi list` | 展示 profiles 与 CLI 矩阵（别名 `profiles` / `ls`） |
+| `clovapi list` | 展示 profiles 与各 CLI 的 active 绑定（别名 `ls`） |
+| `clovapi profiles` | 加载/保存/测试 profiles 的 JSON API（`--json`；详见 `core/README.zh.md`） |
 | `clovapi add --name NAME` | 保存上游 profile 并测连通（`set` / `new`） |
-| `clovapi switch [--cli KIND]` | 将 profile 应用到某一 CLI（`use`） |
-| `clovapi proxy` | 内置本地代理（`start` / `status` / `config`） |
+| `clovapi switch [--cli KIND]` | 将绑定应用到某一 CLI（`use`；脚本可加 `--json`） |
+| `clovapi auth` | 订阅 OAuth（`status` / `login` / `logout`；支持 `--json`） |
+| `clovapi proxy` | 内置本地代理（`start` / `stop` / `status` / `health` 等） |
 | `clovapi reset` | 清空全部 profile 与绑定（`--yes`） |
+
+详细说明见 [core/README.zh.md](core/README.zh.md)。

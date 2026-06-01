@@ -45,6 +45,71 @@ try {
     agentStatus() {
       return ipcRenderer.invoke("cli:agent-status");
     },
+    authStatus() {
+      return ipcRenderer.invoke("cli:auth-status");
+    },
+    authLogin(provider) {
+      return ipcRenderer.invoke("cli:auth-login", { provider });
+    },
+    cancelAuthLogin(provider) {
+      return ipcRenderer.invoke("cli:auth-login-cancel", { provider });
+    },
+    authLogout(provider) {
+      return ipcRenderer.invoke("cli:auth-logout", { provider });
+    },
+    proxyStatus() {
+      return ipcRenderer.invoke("cli:proxy-status");
+    },
+    proxyHealth() {
+      return ipcRenderer.invoke("cli:proxy-health");
+    },
+    proxyStart(port) {
+      return ipcRenderer.invoke("cli:proxy-start", { port });
+    },
+    proxyStop(options) {
+      return ipcRenderer.invoke("cli:proxy-stop", cloneForIpc(options || {}));
+    },
+    proxyLogsList(payload) {
+      return ipcRenderer.invoke("cli:proxy-logs-list", cloneForIpc(payload || {}));
+    },
+    proxyLogsClear(scope) {
+      return ipcRenderer.invoke("cli:proxy-logs-clear", { scope });
+    },
+    profilesLoad() {
+      return ipcRenderer.invoke("cli:profiles-load");
+    },
+    profilesSave(payload) {
+      return ipcRenderer.invoke("cli:profiles-save", cloneForIpc(payload));
+    },
+    profilesTest(payload) {
+      const body =
+        typeof payload === "string"
+          ? { binding: payload }
+          : {
+              binding: payload?.binding,
+              provider: payload?.provider,
+              provider_id: payload?.provider_id,
+              model: payload?.model,
+              model_id: payload?.model_id,
+              cli: payload?.cli,
+              vendors: payload?.vendors,
+              active: payload?.active,
+              proxy: payload?.proxy,
+            };
+      return ipcRenderer.invoke("cli:profiles-test", cloneForIpc(body));
+    },
+    profilesListModels(vendorName) {
+      return ipcRenderer.invoke("cli:profiles-list-models", { vendorName });
+    },
+    profilesUsage(vendorName) {
+      return ipcRenderer.invoke("cli:profiles-usage", { vendorName });
+    },
+    profilesCatalog() {
+      return ipcRenderer.invoke("cli:profiles-catalog");
+    },
+    switchCli(payload) {
+      return ipcRenderer.invoke("cli:switch", cloneForIpc(payload || {}));
+    },
     onOutput(callback) {
       const listener = (_event, payload) => callback(payload);
       ipcRenderer.on("cli:output", listener);
@@ -54,45 +119,6 @@ try {
       const listener = (_event, payload) => callback(payload);
       ipcRenderer.on("cli:exit", listener);
       return () => ipcRenderer.removeListener("cli:exit", listener);
-    },
-  });
-
-  contextBridge.exposeInMainWorld("clovapiSubscription", {
-    status() {
-      return ipcRenderer.invoke("subscription:status");
-    },
-    login(provider) {
-      return ipcRenderer.invoke("subscription:login", { provider });
-    },
-    cancelLogin(provider) {
-      return ipcRenderer.invoke("subscription:login-cancel", { provider });
-    },
-    logout(provider) {
-      return ipcRenderer.invoke("subscription:logout", { provider });
-    },
-  });
-
-  contextBridge.exposeInMainWorld("clovapiProxy", {
-    status() {
-      return ipcRenderer.invoke("proxy:status");
-    },
-    health() {
-      return ipcRenderer.invoke("proxy:health");
-    },
-    start(port) {
-      return ipcRenderer.invoke("proxy:start", { port });
-    },
-    stop(options) {
-      return ipcRenderer.invoke("proxy:stop", cloneForIpc(options || {}));
-    },
-  });
-
-  contextBridge.exposeInMainWorld("clovapiProxyLogs", {
-    list(payload) {
-      return ipcRenderer.invoke("proxy-logs:list", cloneForIpc(payload || {}));
-    },
-    clear(scope) {
-      return ipcRenderer.invoke("proxy-logs:clear", { scope });
     },
   });
 
@@ -110,40 +136,6 @@ try {
     },
   });
 
-  contextBridge.exposeInMainWorld("clovapiProfiles", {
-    load() {
-      return ipcRenderer.invoke("profiles:load");
-    },
-    save(payload) {
-      return ipcRenderer.invoke("profiles:save", cloneForIpc(payload));
-    },
-    test(payload) {
-      const body =
-        typeof payload === "string"
-          ? { binding: payload }
-          : {
-              binding: payload?.binding,
-              provider: payload?.provider,
-              provider_id: payload?.provider_id,
-              model: payload?.model,
-              model_id: payload?.model_id,
-              cli: payload?.cli,
-              vendors: payload?.vendors,
-              active: payload?.active,
-              proxy: payload?.proxy,
-            };
-      return ipcRenderer.invoke("profiles:test", cloneForIpc(body));
-    },
-    listModels(vendorName) {
-      return ipcRenderer.invoke("profiles:list-models", { vendorName });
-    },
-    queryUsage(vendorName) {
-      return ipcRenderer.invoke("profiles:usage", { vendorName });
-    },
-    modelAdapters() {
-      return ipcRenderer.invoke("profiles:model-adapters");
-    },
-  });
 } catch (error) {
   console.error("[preload] failed to expose desktop bridges:", error);
 }

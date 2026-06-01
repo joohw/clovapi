@@ -1,7 +1,7 @@
 {
   "name": "clovapi-switcher",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "ClovAPI Switcher desktop app",
   "main": "main.js",
   "type": "commonjs",
@@ -13,7 +13,7 @@
     "build:icons": "node scripts/build-icons.mjs",
     "build:mac": "npm run build:ui && npm run build:icons && electron-builder --mac dmg",
     "build:win": "npm run build:ui && electron-builder --win nsis",
-    "test": "node --test proxy-manager.test.js clovapi-exec.test.js cli-path-register.test.js tray-menu.test.js tray-model-switch.test.js desktop-update.test.js",
+    "test": "node --test clovapi-proxy.test.js clovapi-exec.test.js cli-path-register.test.js tray-menu.test.js tray-model-switch.test.js desktop-update.test.js",
     "start": "npm run build:ui && electron ."
   },
   "devDependencies": {

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/clovapi/switcher/internal/apply"
 	"github.com/clovapi/switcher/internal/config"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
@@ -195,6 +196,12 @@ func AuthStatus() AuthStatusResult {
 	items := make([]AuthStatusItem, 0, len(authProviders))
 	for _, cfg := range authProviders {
 		cmdPath, installed := ResolveCommandPath(cfg.Command)
+		if cfg.ID == provider.CodexProviderID {
+			installed = apply.CodexInstalled()
+			if p, ok := apply.ResolveCodexExecutable(); ok {
+				cmdPath = p
+			}
+		}
 		item := AuthStatusItem{
 			OK:        true,
 			ID:        cfg.ID,

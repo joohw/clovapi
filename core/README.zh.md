@@ -16,12 +16,39 @@
 
 | 命令 | 说明 |
 |------|------|
-| `clovapi list` | 展示已保存的 profiles、CLI ↔ API 形态矩阵、上次下发的 CLI（别名：**`profiles`**、**`ls`**） |
+| `clovapi list` | 展示已保存的 profiles 与各 CLI 的 active 绑定（别名：**`ls`**） |
+| `clovapi profiles` | 为脚本与桌面 UI 加载/保存/测试 profiles（见下文） |
 | `clovapi add --name NAME` | 保存一个上游 profile（CLI 在 switch 时再选择）；持久化前先测连通（`--name` 必填，别名：**`set`**、**`new`**） |
 | `clovapi remove <name>` | 删除一条已保存 profile（别名：**`rm`**、**`delete`**） |
-| `switch [--cli KIND] [VENDOR/MODEL]` | 将某个 vendor 下的模型绑定应用到某一 CLI（`--vendor` + `--model`，或交互式选 vendor → model）。别名 **`use`** |
-| `clovapi proxy` | 运行并查看内置本地代理核心（`start`、`status`、`config`） |
+| `clovapi switch [--cli KIND] [VENDOR/MODEL]` | 将 provider/model 绑定应用到某一 CLI（`--provider` + `--model`、`--vendor` + `--model`，或交互选择）。别名 **`use`**。脚本可加 **`--json`** |
+| `clovapi auth` | Claude/Codex 订阅 OAuth（`status`、`login`、`logout`；均可 **`--json`**） |
+| `clovapi proxy` | 运行并查看内置本地代理（`start`、`stop`、`status`、`health`、`config`、`logs` 等；`status` / `health` 支持 **`--json`**） |
 | `clovapi reset` | 清空所有 profile 与绑定记录（**`--yes`** / **`-y`** 跳过确认） |
+
+### `clovapi profiles`（JSON API）
+
+子命令与桌面端 / Electron 调用一致。加 **`--json`** 输出结构化 JSON（`save` 从 stdin 读 JSON）：
+
+| 子命令 | 说明 |
+|--------|------|
+| `load --json` | 读取规范化后的 `profiles.json`（vendors、`active`、proxy 绑定） |
+| `save --json` | 合并 stdin 载荷并写盘 |
+| `test --json` | 经本地代理探测 provider/model（`--provider`、`--model`，可选 `--cli`、`--port`） |
+| `list-models --vendor NAME --json` | 拉取并合并某一 vendor 的模型列表 |
+| `usage --vendor NAME --json` | 查询某一 API vendor 的额度/余额 |
+| `catalog --json` | 固定 provider 注册表与 model adapter 目录 |
+
+旧版 **`clovapi desktop profiles|vendor|auth …`** 仍可用；新脚本请优先用上述顶层命令。
+
+示例：
+
+```bash
+clovapi profiles load --json
+clovapi profiles save --json < payload.json
+clovapi switch --cli opencode --provider custom-api --model my-model --json
+clovapi auth status --json
+clovapi proxy status --json
+```
 
 ## 构建
 
@@ -59,16 +86,16 @@ cd core && go test ./...
 - **Unix**（macOS/Linux）：`$XDG_CONFIG_HOME/clovapi` 或 `~/.config/clovapi`
 - **Windows**：`%APPDATA%\clovapi`
 
-状态文件：`profiles.json`（权限 0600）。内含 **`profiles`**（vendor 与模型列表）和 **`active`**（每个 CLI 的 `@model:Vendor/model-id` 绑定）。
+状态文件：`profiles.json`（权限 0600）。内含 **`profiles`**（vendor 与模型列表）、**`active`**（每个 CLI 的 `provider_id` + `model_id`），以及 **`proxy`**（本地监听 host/port）。
 
 `clovapi switch` 始终只针对单一 CLI。交互流程：**选 CLI → 选 vendor → 选 model**。脚本示例：
 
 ```bash
+clovapi switch --cli codex --provider codex --model gpt-5.5 --json
 clovapi switch --cli codex --vendor "Codex Subscription" --model gpt-5.5
 clovapi switch --cli codex "Codex Subscription/gpt-5.5"
 clovapi switch --cli codex   # 无参数时复用 active 绑定，或进入交互选择
 ```
-
 ## 下发行为摘要
 
 - **claude-code** + `claude`：写入 `~/.claude/settings.json`，设置 **`env.ANTHROPIC_AUTH_TOKEN`** 与 **`ANTHROPIC_BASE_URL`**（与 ccswitch 同款）。从 `env` 中**移除 `ANTHROPIC_API_KEY`**，避免 Claude Code 提示「Auth conflict: Both a token and an API key are set」。
@@ -92,11 +119,13 @@ clovapi switch --cli codex   # 无参数时复用 active 绑定，或进入交�
 
 | clovapi | 别名 | 类似 |
 |---------|------|------|
-| `list` | `profiles`、`ls` | `cc-switch list`、`ccswitch list` |
+| `list` | `ls` | `cc-switch list`、`ccswitch list` |
+| `profiles` | _（子命令组，不是 list 的别名）_ | 桌面/脚本的 `profiles.json` JSON API |
 | `add` | `set`、`new` | 一次性保存上游绑定 |
-| `switch [--cli …]` | `use …` | 将单个 profile 推入单一工具 |
+| `switch [--cli …]` | `use …` | 将单个绑定推入单一工具 |
 | `remove NAME` | `rm`、`delete` | 删除单条 profile |
 
+**说明：** 旧文档曾把 `clovapi profiles` 当作 `list` 的别名；现 **`profiles`** 为独立子命令组（`load`、`save` 等）。查看人类可读表格请用 **`clovapi list`** 或 **`clovapi ls`**。
 ### 状态存放位置
 
 | 工具 | 配置存放 |

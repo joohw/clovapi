@@ -144,14 +144,12 @@ func summarizeAuthStatus(providerID string, loggedIn bool, data map[string]any) 
 			if !isActiveClaudeSubscriptionDetail(detail) {
 				return "Logged in · inactive subscription"
 			}
-			return "Logged in · " + detail
+			return detail
 		}
 		return "Logged in · inactive subscription"
 	}
 	if providerID == provider.CodexProviderID {
-		if mode, _ := data["auth_mode"].(string); strings.TrimSpace(mode) != "" {
-			return "Logged in · " + mode
-		}
+		return "Logged in"
 	}
 	return "Logged in"
 }

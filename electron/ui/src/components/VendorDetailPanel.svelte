@@ -13,19 +13,15 @@
   } from "../lib/helpers";
   import { OLLAMA_PROFILE_NAME } from "../lib/constants";
   import { displayVendorName, formatSubscriptionSummary, i18n, t } from "../lib/i18n";
+  import { cn } from "../lib/utils";
   import type { ModelTestStatus, Vendor } from "../global";
   import {
-    canFetchVendorModels,
-    fetchVendorModels,
     getModelTest,
     isModelTesting,
     isSubscriptionLogging,
-    isVendorFetching,
     openModelDialog,
     openProfileDialog,
-    queryVendorUsage,
     vendorUsageSummary,
-    isVendorUsageLoading,
     removeVendorModel,
     runModelTest,
     runSubscriptionLogin,
@@ -60,13 +56,9 @@
       cancel: t("common.cancel"),
       login: t("common.login"),
       logout: t("common.logout"),
-      fetchModels: t("common.fetchModels"),
-      fetching: t("common.fetching"),
       editConnection: t("vendorDetail.editConnection"),
       addModel: t("common.addModel"),
       edit: t("common.edit"),
-      test: t("common.test"),
-      testing: t("common.testing"),
       delete: t("common.delete"),
       loginFirst: t("subscription.loginFirst"),
       testConnectivity: t("subscription.testConnectivity"),
@@ -77,24 +69,24 @@
       emptyMixed: t("vendorDetail.emptyMixed"),
       installed: t("vendorDetail.installed"),
       notInstalled: t("vendorDetail.notInstalled"),
-      queryUsage: t("vendorDetail.queryUsage"),
-      queryingUsage: t("vendorDetail.queryingUsage"),
+      modelCount: t("vendorDetail.modelCount", { count: visibleModels.length }),
     };
   });
 
   const cardDescription = $derived.by(() => {
     void i18n.locale;
+    const usage = vendor.kind === "api" || vendor.kind === "subscription" ? vendorUsageSummary(vendor.name) : "";
+    const parts: string[] = [];
     if (vendor.kind === "subscription") {
-      return formatSubscriptionSummary(subscription?.summary || "");
+      parts.push(formatSubscriptionSummary(subscription?.summary || ""));
+    } else if (isOllamaVendor(vendor)) {
+      parts.push(store.ollamaInstalled ? copy.installed : copy.notInstalled);
+    } else {
+      parts.push(vendorKindLabel(vendor));
     }
-    if (isOllamaVendor(vendor)) {
-      return store.ollamaInstalled ? copy.installed : copy.notInstalled;
-    }
-    if (vendor.kind === "api") {
-      const usage = vendorUsageSummary(vendor.name);
-      if (usage) return usage;
-    }
-    return vendorKindLabel(vendor);
+    parts.push(copy.modelCount);
+    if (usage) parts.push(usage);
+    return parts.filter(Boolean).join(" · ");
   });
 
   function modelTestStatus(value: string | undefined): "" | ModelTestStatus {
@@ -114,8 +106,36 @@
     };
   }
 
+  function modelTestDotClass(status: "" | ModelTestStatus) {
+    return cn(
+      "size-1.5 shrink-0 rounded-full",
+      status === "pass" && "bg-emerald-500",
+      status === "fail" && "bg-red-500",
+      status === "testing" && "animate-pulse bg-amber-500",
+      status !== "pass" && status !== "fail" && status !== "testing" && "bg-muted-foreground/40",
+    );
+  }
+
+  function modelTestSummaryClass(status: "" | ModelTestStatus) {
+    return cn(
+      "max-w-36 truncate text-xs font-normal leading-none",
+      status === "pass" && "text-emerald-600 dark:text-emerald-400",
+      status === "fail" && "text-red-600 dark:text-red-400",
+      status === "testing" && "text-amber-600 dark:text-amber-400",
+      status !== "pass" && status !== "fail" && status !== "testing" && "text-muted-foreground",
+    );
+  }
+
+  function canRunModelTest(testing: boolean) {
+    return !store.running && !testing && !(vendor.kind === "subscription" && (!subscriptionUsable || logging));
+  }
+
+  function runModelTestFromRow(binding: string, testing: boolean) {
+    if (!canRunModelTest(testing)) return;
+    void runModelTest(binding);
+  }
+
   const isCustomApi = $derived(isDefaultCustomApiProfile(vendor.name));
-  const showFetchModels = $derived(canFetchVendorModels(vendor));
 </script>
 
 <SectionCard title={displayVendorName(vendor.name)} description={cardDescription}>
@@ -143,26 +163,6 @@
         onclick={() => void runSubscriptionLogout(subscription.id, displayVendorName(vendor.name))}
       >
         {copy.logout}
-      </Button>
-    {/if}
-    {#if showFetchModels}
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={store.running || isVendorFetching(vendor.name) || !subscriptionUsable}
-        onclick={() => void fetchVendorModels(vendor.name)}
-      >
-        {isVendorFetching(vendor.name) ? copy.fetching : copy.fetchModels}
-      </Button>
-    {/if}
-    {#if vendor.kind === "api" && vendor.baseUrl && vendor.apiKey}
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={store.running || isVendorUsageLoading(vendor.name)}
-        onclick={() => void queryVendorUsage(vendor)}
-      >
-        {isVendorUsageLoading(vendor.name) ? copy.queryingUsage : copy.queryUsage}
       </Button>
     {/if}
     {#if vendor.kind === "local"}
@@ -209,9 +209,8 @@
       <ListRow
         title={model.label || model.model}
         lines={[isCustomApi ? customApiModelLine(model) : `${model.model} · ${model.apiStyle}`]}
-        showStatusDot
         testStatus={test.status}
-        testSummary={test.summary}
+        onDoubleClick={() => runModelTestFromRow(binding, testing)}
       >
         {#snippet actions()}
           {#if canManuallyManageVendorModels(vendor)}
@@ -224,15 +223,16 @@
               {copy.edit}
             </Button>
           {/if}
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={store.running || testing || (vendor.kind === "subscription" && (!subscriptionUsable || logging))}
-            title={vendor.kind === "subscription" && !subscriptionUsable ? copy.loginFirst : copy.testConnectivity}
-            onclick={() => void runModelTest(binding)}
+          <span
+            class="flex h-8 min-w-8 shrink-0 items-center justify-center gap-2 rounded-md px-2"
+            title={vendor.kind === "subscription" && !subscriptionUsable ? copy.loginFirst : test.summary || copy.testConnectivity}
+            aria-label={test.summary || copy.testConnectivity}
           >
-            {testing ? copy.testing : copy.test}
-          </Button>
+            <span class={modelTestDotClass(test.status)} aria-hidden="true"></span>
+            {#if test.summary}
+              <span class={modelTestSummaryClass(test.status)}>{test.summary}</span>
+            {/if}
+          </span>
           {#if canManuallyManageVendorModels(vendor)}
             <Button
               size="sm"

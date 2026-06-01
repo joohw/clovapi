@@ -20,13 +20,13 @@ export function isVendorFetching(vendorName: string): boolean {
   return Boolean(store.vendorFetching[vendorName]);
 }
 
-export async function fetchVendorModels(vendorName: string) {
+export async function fetchVendorModels(vendorName: string, options: { silent?: boolean } = {}) {
   const name = String(vendorName || "").trim();
   if (!name || store.vendorFetching[name]) return;
 
   let vendor = resolveVendorByName(store.profiles, name);
   if (!vendor) {
-    toast.error(t("toast.vendorNotFound"));
+    if (!options.silent) toast.error(t("toast.vendorNotFound"));
     return;
   }
 
@@ -40,7 +40,7 @@ export async function fetchVendorModels(vendorName: string) {
     vendorIdx = store.profiles.length - 1;
     const saved = await persistProfiles();
     if (!saved?.ok) {
-      toast.error(saved?.error || t("toast.fetchVendorSaveFailed"));
+      if (!options.silent) toast.error(saved?.error || t("toast.fetchVendorSaveFailed"));
       store.profiles.splice(vendorIdx, 1);
       return;
     }
@@ -52,13 +52,13 @@ export async function fetchVendorModels(vendorName: string) {
     );
   }
   if (!canFetchVendorModels(vendor)) {
-    toast.warning(t("toast.fetchManualAdapter"));
+    if (!options.silent) toast.warning(t("toast.fetchManualAdapter"));
     return;
   }
 
   const bridge = window.clovapiCli;
   if (!bridge?.profilesListModels) {
-    toast.error(t("toast.fetchUnsupported"));
+    if (!options.silent) toast.error(t("toast.fetchUnsupported"));
     return;
   }
 
@@ -66,7 +66,7 @@ export async function fetchVendorModels(vendorName: string) {
   try {
     const result = await bridge.profilesListModels(name);
     if (!result?.ok) {
-      toast.error(result?.error || t("toast.fetchFailed"));
+      if (!options.silent) toast.error(result?.error || t("toast.fetchFailed"));
       return;
     }
 
@@ -75,14 +75,14 @@ export async function fetchVendorModels(vendorName: string) {
     } else {
       const fetched = (result.models || []).map(normalizeVendorModel);
       if (!fetched.length) {
-        toast.warning(result.message || t("toast.fetchEmpty"));
+        if (!options.silent) toast.warning(result.message || t("toast.fetchEmpty"));
         return;
       }
       const merged = mergeVendorModels(vendor.models || [], fetched);
       store.profiles[vendorIdx] = { ...vendor, models: merged };
       const saved = await persistProfiles();
       if (!saved?.ok) {
-        toast.error(saved?.error || t("toast.profilesSaveFailed"));
+        if (!options.silent) toast.error(saved?.error || t("toast.profilesSaveFailed"));
         return;
       }
     }
@@ -90,7 +90,7 @@ export async function fetchVendorModels(vendorName: string) {
     clearVendorModelTests(name);
 
     const count = (result.models || []).length;
-    toast.success(t("toast.fetchSuccess", { count }));
+    if (!options.silent) toast.success(t("toast.fetchSuccess", { count }));
   } finally {
     delete store.vendorFetching[name];
   }

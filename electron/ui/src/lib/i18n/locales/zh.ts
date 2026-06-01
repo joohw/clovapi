@@ -79,9 +79,9 @@ const zh = {
   vendorDetail: {
     editConnection: "编辑连接",
     emptyCustom: "尚未添加模型，请点击上方「添加模型」。",
-    emptySubscriptionNeedLogin: "尚未拉取模型，请先登录后再点击上方「拉取模型」。",
+    emptySubscriptionNeedLogin: "尚未同步模型，请先登录。",
     emptySubscriptionUnavailable: "Claude 订阅未激活，暂不显示模型。",
-    emptySubscription: "尚未拉取模型，请点击上方「拉取模型」。",
+    emptySubscription: "尚未同步模型，进入页面后会自动尝试同步。",
     emptyMixed: "尚未添加模型。可拉取或手动添加。",
     modelCount: "{count} 个模型",
     installed: "已安装",
@@ -90,6 +90,11 @@ const zh = {
     queryUsage: "查询额度",
     queryingUsage: "查询中…",
     usageEmpty: "暂无可展示的额度信息",
+    usageTierFiveHour: "5小时",
+    usageTierWeekly: "一周",
+    usageTierSevenDay: "7天",
+    usageTierSevenDayOpus: "7天 Opus",
+    usageTierSevenDaySonnet: "7天 Sonnet",
   },
   vendorKind: {
     subscription: "官方订阅",

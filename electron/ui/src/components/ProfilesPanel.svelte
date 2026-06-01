@@ -8,9 +8,18 @@
     providerIdForVendor,
     subscriptionStatusForVendor,
     vendorSummaryLine,
+    subscriptionIsUsable,
   } from "../lib/helpers";
   import { displayVendorName, i18n, t } from "../lib/i18n";
-  import { closeProfilesVendor, openProfilesVendor, store } from "../lib/store.svelte";
+  import {
+    closeProfilesVendor,
+    fetchVendorModels,
+    openProfilesVendor,
+    queryVendorUsage,
+    store,
+    vendorUsageSummary,
+    canFetchVendorModels,
+  } from "../lib/store.svelte";
   import ListRow from "./ListRow.svelte";
   import SectionCard from "./SectionCard.svelte";
   import VendorIcon from "./VendorIcon.svelte";
@@ -22,6 +31,7 @@
     selectedVendorName ? resolveVendorByName(store.profiles, selectedVendorName) : undefined,
   );
   const inVendorDetail = $derived(Boolean(selectedVendorName));
+  let autoRefreshActive = false;
 
   const copy = $derived.by(() => {
     void i18n.locale;
@@ -37,6 +47,48 @@
       closeProfilesVendor();
     }
   });
+
+  $effect(() => {
+    if (store.activeTab !== "profiles") {
+      autoRefreshActive = false;
+      return;
+    }
+    if (!vendorList.length) return;
+    if (autoRefreshActive) return;
+    autoRefreshActive = true;
+    const vendors = [...vendorList];
+    window.setTimeout(() => {
+      for (const vendor of vendors) {
+        if (canFetchModels(vendor)) void fetchVendorModels(vendor.name, { silent: true });
+        if (canQueryUsage(vendor)) void queryVendorUsage(vendor, { silent: true });
+      }
+    }, 0);
+  });
+
+  function canFetchModels(vendor: (typeof vendorList)[number]) {
+    if (!canFetchVendorModels(vendor)) return false;
+    if (vendor.kind === "subscription") {
+      return subscriptionIsUsable(subscriptionStatusForVendor(vendor, store.subscriptions));
+    }
+    return vendor.kind !== "local" || vendor.localProvider === "ollama";
+  }
+
+  function canQueryUsage(vendor: (typeof vendorList)[number]) {
+    if (vendor.kind === "subscription") {
+      return subscriptionStatusForVendor(vendor, store.subscriptions)?.active === true;
+    }
+    if (vendor.kind === "api") {
+      return Boolean((vendor.baseUrl && vendor.apiKey) || vendor.models?.some((model) => model.baseUrl && model.apiKey));
+    }
+    return false;
+  }
+
+  function summaryLine(vendor: (typeof vendorList)[number]) {
+    const sub = subscriptionStatusForVendor(vendor, store.subscriptions);
+    const base = vendorSummaryLine(vendor, sub, store.ollamaInstalled);
+    const usage = vendor.kind === "api" || vendor.kind === "subscription" ? vendorUsageSummary(vendor.name) : "";
+    return usage ? `${base} · ${usage}` : base;
+  }
 
   function openVendor(name: string) {
     openProfilesVendor(name);
@@ -59,10 +111,9 @@
   <div class="flex flex-col gap-4">
     <SectionCard title={copy.title} description={copy.description}>
       {#each vendorList as vendor (vendor.name)}
-        {@const sub = subscriptionStatusForVendor(vendor, store.subscriptions)}
         <ListRow
           title={displayVendorName(vendor.name)}
-          lines={[vendorSummaryLine(vendor, sub, store.ollamaInstalled)]}
+          lines={[summaryLine(vendor)]}
           onOpen={() => openVendor(vendor.name)}
           centerContent
           stopActionsPropagation={false}

@@ -17,6 +17,7 @@
     titleClass = "",
     class: className = "",
     onOpen,
+    onDoubleClick,
     leading,
     actions,
   }: {
@@ -33,6 +34,7 @@
     titleClass?: string;
     class?: string;
     onOpen?: () => void;
+    onDoubleClick?: () => void;
     leading?: Snippet;
     actions?: Snippet;
   } = $props();
@@ -65,19 +67,24 @@
   }
 
   function stopActionClick(event: MouseEvent) {
-    if (!onOpen || !stopActionsPropagation) return;
+    if ((!onOpen && !onDoubleClick) || !stopActionsPropagation) return;
+    event.stopPropagation();
+  }
+
+  function stopActionDoubleClick(event: MouseEvent) {
+    if ((!onOpen && !onDoubleClick) || !stopActionsPropagation) return;
     event.stopPropagation();
   }
 
   function stopActionKeydown(event: KeyboardEvent) {
-    if (!onOpen || !stopActionsPropagation) return;
+    if ((!onOpen && !onDoubleClick) || !stopActionsPropagation) return;
     event.stopPropagation();
   }
 
   const rowClass = $derived(
     cn(
       "flex flex-col gap-3 border-b border-border px-4 py-3 last:border-b-0 sm:flex-row sm:justify-between",
-      onOpen && "cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      (onOpen || onDoubleClick) && "cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       centerContent ? "sm:items-center" : "sm:items-start",
       muted && "bg-muted/30",
       indent && "pl-8",
@@ -128,6 +135,7 @@
       class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end"
       role="presentation"
       onclick={stopActionClick}
+      ondblclick={stopActionDoubleClick}
       onkeydown={stopActionKeydown}
     >
       {@render actions()}
@@ -135,8 +143,8 @@
   {/if}
 {/snippet}
 
-{#if onOpen}
-  <div role="button" tabindex="0" onclick={onOpen} onkeydown={onRowKeydown} class={rowClass}>
+{#if onOpen || onDoubleClick}
+  <div role="button" tabindex="0" onclick={onOpen} ondblclick={onDoubleClick} onkeydown={onRowKeydown} class={rowClass}>
     {@render rowContent()}
   </div>
 {:else}

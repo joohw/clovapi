@@ -61,6 +61,20 @@ func TestAuthStatusCodexLoggedInWithoutCLIInstalled(t *testing.T) {
 	}
 }
 
+func TestSummarizeAuthStatusOmitsLoggedInPrefixForPlans(t *testing.T) {
+	claudeData := map[string]any{
+		"claudeAiOauth": map[string]any{"subscriptionType": "Pro"},
+	}
+	if got := summarizeAuthStatus(provider.ClaudeCodeProviderID, true, claudeData); got != "Pro" {
+		t.Fatalf("claude summary = %q want Pro", got)
+	}
+
+	codexData := map[string]any{"auth_mode": "chatgpt"}
+	if got := summarizeAuthStatus(provider.CodexProviderID, true, codexData); got != "Logged in" {
+		t.Fatalf("codex summary = %q want Logged in", got)
+	}
+}
+
 func TestParseOpenAIModelsUsesDisplayName(t *testing.T) {
 	models, err := parseOpenAIModels([]byte(`{
 		"data": [

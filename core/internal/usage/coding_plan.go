@@ -201,8 +201,8 @@ func queryKimiCodingPlan(apiKey string) Result {
 
 func queryZhipuCodingPlan(apiKey string) Result {
 	body, status, err := httpGetJSON("https://api.z.ai/api/monitor/usage/quota/limit", map[string]string{
-		"Authorization": strings.TrimSpace(apiKey),
-		"Content-Type":  "application/json",
+		"Authorization":   strings.TrimSpace(apiKey),
+		"Content-Type":    "application/json",
 		"Accept-Language": "en-US,en",
 	})
 	if err != nil {
@@ -330,6 +330,12 @@ func TiersToUsageData(tiers []Tier) []Data {
 	for _, tier := range tiers {
 		total := 100.0
 		used := tier.Utilization
+		if used < 0 {
+			used = 0
+		}
+		if used > total {
+			used = total
+		}
 		remaining := total - used
 		valid := true
 		out = append(out, Data{

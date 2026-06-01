@@ -45,3 +45,47 @@ func TestQueryVendorUsageAutoUnsupported(t *testing.T) {
 		t.Fatalf("kind = %q want unsupported", res.Kind)
 	}
 }
+
+func TestFormatResultTokenPlan(t *testing.T) {
+	res := Result{
+		Success: true,
+		Kind:    "token_plan",
+		Tiers: []Tier{
+			{Name: tierFiveHour, Utilization: 12.5, ResetsAt: "2026-06-02T10:00:00Z"},
+			{Name: tierWeeklyLimit, Utilization: 40},
+		},
+	}
+	got := FormatResult(res)
+	want := "5小时 12.5% · 一周 40%"
+	if got != want {
+		t.Fatalf("FormatResult() = %q want %q", got, want)
+	}
+}
+
+func TestFormatResultSubscriptionTiers(t *testing.T) {
+	res := Result{
+		Success: true,
+		Kind:    "subscription",
+		Tiers: []Tier{
+			{Name: tierFiveHour, Utilization: 12},
+			{Name: tierSevenDay, Utilization: 34},
+		},
+	}
+	got := FormatResult(res)
+	want := "5小时 12% · 7天 34%"
+	if got != want {
+		t.Fatalf("FormatResult() = %q want %q", got, want)
+	}
+}
+
+func TestWindowSecondsToTierName(t *testing.T) {
+	if got := windowSecondsToTierName(18000); got != tierFiveHour {
+		t.Fatalf("5h tier = %q", got)
+	}
+	if got := windowSecondsToTierName(604800); got != tierSevenDay {
+		t.Fatalf("7d tier = %q", got)
+	}
+	if got := windowSecondsToTierName(86400); got != "1_day" {
+		t.Fatalf("1d tier = %q", got)
+	}
+}

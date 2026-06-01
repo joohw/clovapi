@@ -318,6 +318,7 @@ export type VendorUsageResult = {
   ok?: boolean;
   vendor?: string;
   templateType?: string;
+  text?: string;
   usage?: {
     success?: boolean;
     kind?: string;

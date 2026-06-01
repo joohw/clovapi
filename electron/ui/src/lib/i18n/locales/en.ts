@@ -78,9 +78,9 @@ const en = {
   vendorDetail: {
     editConnection: "Edit connection",
     emptyCustom: "No models yet. Click “Add model” above.",
-    emptySubscriptionNeedLogin: "No models yet. Log in first, then click “Fetch models” above.",
+    emptySubscriptionNeedLogin: "No models yet. Log in first.",
     emptySubscriptionUnavailable: "Claude subscription is inactive, so models are hidden.",
-    emptySubscription: "No models yet. Click “Fetch models” above.",
+    emptySubscription: "No models yet. This page syncs models automatically.",
     emptyMixed: "No models yet. Fetch or add manually.",
     modelCount: "{count} models",
     installed: "Installed",
@@ -89,6 +89,11 @@ const en = {
     queryUsage: "Query balance",
     queryingUsage: "Querying…",
     usageEmpty: "No quota details to display",
+    usageTierFiveHour: "5 hours",
+    usageTierWeekly: "1 week",
+    usageTierSevenDay: "7 days",
+    usageTierSevenDayOpus: "7 days Opus",
+    usageTierSevenDaySonnet: "7 days Sonnet",
   },
   vendorKind: {
     subscription: "Official subscription",

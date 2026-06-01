@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/clovapi/switcher/internal/desktop"
+	"github.com/clovapi/switcher/internal/usage"
 )
 
 func cmdProfilesGroup() *cobra.Command {
@@ -151,11 +152,7 @@ func cmdProfilesUsage() *cobra.Command {
 				}
 				return fmt.Errorf("usage query failed")
 			}
-			if result.Usage.Success {
-				fmt.Printf("Usage for %s: ok\n", strings.TrimSpace(result.Vendor))
-			} else {
-				fmt.Printf("Usage for %s: %s\n", strings.TrimSpace(result.Vendor), strings.TrimSpace(result.Usage.Error))
-			}
+			fmt.Printf("Usage for %s:\n%s\n", strings.TrimSpace(result.Vendor), usage.FormatResult(result.Usage))
 			return nil
 		},
 	}

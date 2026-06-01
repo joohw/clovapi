@@ -20,7 +20,7 @@
   {src}
   alt=""
   class={cn(
-    "size-8 shrink-0 rounded-lg bg-background object-contain p-1 ring-1 ring-border/60",
+    "size-10 shrink-0 rounded-lg bg-background object-contain p-1.5 ring-1 ring-border/60",
     className,
   )}
 />

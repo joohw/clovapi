@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/clovapi/switcher/internal/profile"
+	"github.com/clovapi/switcher/internal/syslog"
 )
 
 func TestProxyHealthClientHost(t *testing.T) {
@@ -72,5 +73,24 @@ func TestShouldSkipAutoProxyForDesktopAuthLogin(t *testing.T) {
 
 	if !shouldSkipAutoProxy(login) {
 		t.Fatal("desktop auth login should not auto-start proxy during OAuth")
+	}
+}
+
+func TestProxySyslogsListDefaultLimit(t *testing.T) {
+	cmd := cmdProxySyslogs()
+	listCmd, _, err := cmd.Find([]string{"list"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	flag := listCmd.Flags().Lookup("limit")
+	if flag == nil {
+		t.Fatal("missing --limit flag")
+	}
+	want := "20"
+	if flag.DefValue != want {
+		t.Fatalf("syslogs list --limit default = %q, want %q", flag.DefValue, want)
+	}
+	if syslog.DefaultListLimit != 20 {
+		t.Fatalf("syslog.DefaultListLimit = %d, want 20", syslog.DefaultListLimit)
 	}
 }

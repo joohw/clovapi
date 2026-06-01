@@ -124,12 +124,16 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func (s *Server) handleDebugSystemLog(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet, http.MethodHead:
-		entries, err := syslog.List(0)
+		limit := queryIntDefault(r, "limit", syslog.DefaultListLimit)
+		if limit < 1 {
+			limit = syslog.DefaultListLimit
+		}
+		entries, err := syslog.List(limit)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"entries": entries})
+		writeJSON(w, http.StatusOK, map[string]any{"entries": entries, "limit": limit})
 	case http.MethodDelete:
 		if err := syslog.Clear(); err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -391,6 +395,58 @@ func readInboundBody(r *http.Request) ([]byte, error) {
 	return payload, nil
 }
 
+func modelIDFromIngressPayload(payload []byte, ingress provider.Ingress) string {
+	if model := topLevelJSONModel(payload); model != "" {
+		return model
+	}
+	if strings.EqualFold(strings.TrimSpace(ingress.APIStyle), string(apistyle.Gemini)) {
+		return geminiModelFromPathSuffix(ingress.PathSuffix)
+	}
+	return ""
+}
+
+func topLevelJSONModel(payload []byte) string {
+	if len(bytes.TrimSpace(payload)) == 0 {
+		return ""
+	}
+	var raw map[string]any
+	if err := json.Unmarshal(payload, &raw); err != nil {
+		return ""
+	}
+	model, _ := raw["model"].(string)
+	return strings.TrimSpace(model)
+}
+
+func geminiModelFromPathSuffix(pathSuffix string) string {
+	p := strings.Trim(strings.TrimSpace(pathSuffix), "/")
+	if !strings.HasPrefix(strings.ToLower(p), "models/") {
+		return ""
+	}
+	rest := strings.TrimPrefix(p, "models/")
+	if idx := strings.Index(rest, ":"); idx >= 0 {
+		rest = rest[:idx]
+	}
+	return strings.TrimSpace(rest)
+}
+
+func defaultModelIDForProvider(store *profile.Store, providerID string) string {
+	if store == nil {
+		return ""
+	}
+	for _, p := range store.List {
+		if profile.ProviderIDFromStoreProfile(p) != strings.TrimSpace(providerID) {
+			continue
+		}
+		if len(p.Models) > 0 {
+			return strings.TrimSpace(profile.NormalizeModelEntry(p.Models[0], 0).ID)
+		}
+		if model := strings.TrimSpace(p.Model); model != "" {
+			return model
+		}
+	}
+	return ""
+}
+
 func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.EscapedPath()
 	if path == "" {
@@ -416,7 +472,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	r.Body = io.NopCloser(bytes.NewReader(payload))
 
 	if !pathOK {
-		msg := "invalid path; use /{providerId}/{modelId}/{apiStyle}/v1/..."
+		msg := "invalid path; use /{providerId}/v1/messages, /{providerId}/v1/responses, or /{providerId}/v1/chat/completions"
 		trace.setError(msg)
 		logProxyProbeIfNeeded(r, trace, http.StatusNotFound, msg)
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": msg})
@@ -428,6 +484,9 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 			trace.setError("failed to load profiles.json")
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load profiles.json"})
 			return
+		}
+		if strings.TrimSpace(ingress.ModelID) == "" {
+			ingress.ModelID = defaultModelIDForProvider(store, ingress.ProviderID)
 		}
 		s.serveIngressModels(w, r, trace, ingress, store)
 		return
@@ -444,6 +503,16 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		trace.setError("failed to load profiles.json")
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load profiles.json"})
+		return
+	}
+
+	if strings.TrimSpace(ingress.ModelID) == "" {
+		ingress.ModelID = modelIDFromIngressPayload(payload, ingress)
+	}
+	if strings.TrimSpace(ingress.ModelID) == "" {
+		msg := "request body model is required for proxy route"
+		trace.setError(msg)
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": msg})
 		return
 	}
 

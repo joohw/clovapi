@@ -376,7 +376,7 @@ func cmdProxy() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "proxy",
 		Short: "Run and inspect the built-in local proxy core",
-		Long:  "The proxy is the headless core used by the desktop shell. It listens on /{providerId}/{modelId}/{apiStyle}/v1/...",
+		Long:  "The proxy is the headless core used by the desktop shell. It listens on /{providerId}/v1/... and infers API style from the endpoint path.",
 	}
 	start := &cobra.Command{
 		Use:   "start",
@@ -514,7 +514,7 @@ func cmdProxySyslogs() *cobra.Command {
 			return nil
 		},
 	}
-	listCmd.Flags().IntVar(&limit, "limit", 0, "Max entries to show (0 = all)")
+	listCmd.Flags().IntVar(&limit, "limit", syslog.DefaultListLimit, "Max entries to show (0 = all)")
 	listCmd.Flags().BoolVar(&jsonOut, "json", false, "Output JSON")
 
 	appendCmd := &cobra.Command{

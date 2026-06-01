@@ -37,6 +37,7 @@
   import { formatModelTestSummary } from "../lib/store/model-tests";
   import ListRow from "./ListRow.svelte";
   import SectionCard from "./SectionCard.svelte";
+  import VendorIcon from "./VendorIcon.svelte";
 
   let { vendor }: { vendor: Vendor } = $props();
 
@@ -118,6 +119,9 @@
 </script>
 
 <SectionCard title={displayVendorName(vendor.name)} description={cardDescription}>
+  {#snippet leading()}
+    <VendorIcon providerId={providerIdForVendor(vendor)} />
+  {/snippet}
   {#snippet actions()}
     {#if vendor.kind === "subscription" && subscription}
       {#if logging}

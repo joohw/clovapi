@@ -82,20 +82,42 @@ func ProviderIDFromVendorName(vendorName string) string {
 	return ""
 }
 
-func BuildProxyIngressBaseURL(port int, providerID, modelID, apiStyle string) string {
+func BuildProxyIngressBaseURL(port int, providerID string) string {
 	if port == 0 {
 		port = 27483
 	}
-	base := "http://127.0.0.1:" + strconv.Itoa(port) + "/" + strings.TrimSpace(providerID) + "/" + url.PathEscape(strings.TrimSpace(modelID)) + "/" + strings.ToLower(strings.TrimSpace(apiStyle))
+	base := "http://127.0.0.1:" + strconv.Itoa(port) + "/" + strings.TrimSpace(providerID)
 	return strings.TrimRight(base, "/") + "/v1"
 }
 
 func ParseProxyIngressPath(pathname string) (Ingress, bool) {
 	pathname = normalizeProxyIngressPath(pathname)
 	parts := strings.Split(strings.TrimPrefix(pathname, "/"), "/")
-	if len(parts) < 4 || strings.ToLower(parts[3]) != "v1" {
+	if len(parts) >= 4 && strings.ToLower(parts[3]) == "v1" {
+		return parseLegacyProxyIngressParts(parts)
+	}
+	if len(parts) < 2 || strings.ToLower(parts[1]) != "v1" {
 		return Ingress{}, false
 	}
+	providerID, err := url.PathUnescape(parts[0])
+	if err != nil {
+		return Ingress{}, false
+	}
+	if !IsFixedProviderID(providerID) {
+		return Ingress{}, false
+	}
+	pathSuffix := "/"
+	if len(parts) > 2 {
+		pathSuffix = "/" + strings.Join(parts[2:], "/")
+	}
+	apiStyle := apiStyleFromPathSuffix(pathSuffix)
+	if apiStyle == "" {
+		return Ingress{}, false
+	}
+	return Ingress{ProviderID: providerID, APIStyle: apiStyle, PathSuffix: pathSuffix}, true
+}
+
+func parseLegacyProxyIngressParts(parts []string) (Ingress, bool) {
 	providerID, err := url.PathUnescape(parts[0])
 	if err != nil {
 		return Ingress{}, false
@@ -108,12 +130,12 @@ func ParseProxyIngressPath(pathname string) (Ingress, bool) {
 	if err != nil {
 		return Ingress{}, false
 	}
-	if !IsFixedProviderID(providerID) || strings.TrimSpace(modelID) == "" || strings.TrimSpace(apiStyle) == "" {
-		return Ingress{}, false
-	}
 	pathSuffix := "/"
 	if len(parts) > 4 {
 		pathSuffix = "/" + strings.Join(parts[4:], "/")
+	}
+	if !IsFixedProviderID(providerID) || strings.TrimSpace(modelID) == "" || strings.TrimSpace(apiStyle) == "" {
+		return Ingress{}, false
 	}
 	return Ingress{ProviderID: providerID, ModelID: modelID, APIStyle: strings.ToLower(apiStyle), PathSuffix: pathSuffix}, true
 }
@@ -127,4 +149,25 @@ func normalizeProxyIngressPath(pathname string) string {
 		pathname = strings.TrimSuffix(pathname, "/v1")
 	}
 	return pathname
+}
+
+func apiStyleFromPathSuffix(pathSuffix string) string {
+	p := strings.ToLower(strings.TrimSpace(pathSuffix))
+	if p == "" || p == "/" {
+		return ""
+	}
+	switch {
+	case p == "/messages" || strings.HasPrefix(p, "/messages/"):
+		return "claude"
+	case p == "/responses" || strings.HasPrefix(p, "/responses/"):
+		return "openai-responses"
+	case p == "/chat/completions" || strings.HasPrefix(p, "/chat/completions/"):
+		return "openai-chat"
+	case strings.HasPrefix(p, "/models/") && (strings.Contains(p, ":generatecontent") || strings.Contains(p, ":streamgeneratecontent")):
+		return "gemini"
+	case p == "/models" || strings.HasPrefix(p, "/models/"):
+		return "openai-responses"
+	default:
+		return ""
+	}
 }

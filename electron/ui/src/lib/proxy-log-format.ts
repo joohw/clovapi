@@ -10,7 +10,7 @@ export function formatProxyLogTime(value: string): string {
   }
 }
 
-/** Compact ingress path: /{provider}/{model}/{apiStyle} — strips /v1/... suffix. */
+/** Compact ingress path by stripping the /v1/... endpoint suffix. */
 export function proxyLogIngressPath(url: string): string {
   let path = String(url || "").trim();
   if (/^https?:\/\//i.test(path)) {

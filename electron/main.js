@@ -9,7 +9,7 @@ clovapiDesktop.setOutputHandler((kind, chunk) => emitOutput(kind, chunk));
 const { applyTrayModelSwitch } = require("./tray-model-switch");
 const {
   coreDevStatePath,
-  resolveClovapiExecutable,
+  resolveClovapiExecutableAsync,
 } = require("./clovapi-exec");
 const { ensureCliBinOnPath, cliSpawnEnv } = require("./cli-path-register");
 const { buildTrayMenuModel, isValidTrayTab, trayStatusSummary, trayTooltip } = require("./tray-menu");
@@ -451,8 +451,8 @@ function emitOutput(type, chunk) {
   });
 }
 
-function resolveClovapiExecutablePath() {
-  return resolveClovapiExecutable() || "";
+async function resolveClovapiExecutablePath() {
+  return (await resolveClovapiExecutableAsync()) || "";
 }
 
 const proxyManager = createClovapiProxy();
@@ -464,13 +464,15 @@ async function listProxyLogs(payload = {}) {
     hasMore: false,
   };
   try {
-    const page = await callLogsStore.readCallLogs(callLogPage);
-    const sessions = await callLogsStore.readCallLogSessions(100);
-    const system = await callLogsStore.readSystemLogsViaCLI();
+    const proxy = await proxyManager.loadProxyConfig();
+    const [page, system] = await Promise.all([
+      callLogsStore.readCallLogsViaHTTP({ ...callLogPage, proxy }),
+      callLogsStore.readSystemLogsViaHTTP(20, { proxy }),
+    ]);
     return {
       ok: true,
       requests: page.entries,
-      sessions,
+      sessions: page.sessions,
       system,
       callLogPage: {
         limit: page.limit,
@@ -492,13 +494,9 @@ async function listProxyLogs(payload = {}) {
 
 async function clearProxyLogs(scope = "all") {
   const normalized = String(scope || "all").trim().toLowerCase();
-  if (normalized === "system" || normalized === "all") {
-    await callLogsStore.clearSystemLogsViaCLI();
-  }
-  if (normalized === "calls" || normalized === "all") {
-    await callLogsStore.clearCallLogsFile();
-  }
-  return { ok: true, requests: [], system: [] };
+  const proxy = await proxyManager.loadProxyConfig();
+  await callLogsStore.clearProxyDebugLogs(normalized, { proxy });
+  return listProxyLogs({ offset: 0, limit: callLogsStore.DEFAULT_CALL_LOG_PAGE_SIZE });
 }
 
 function scheduleCoreProxyRestart() {
@@ -665,7 +663,7 @@ ipcMain.handle("cli:run-clovapi", async (_event, payload) => {
   if (runningProcess) {
     return { ok: false, error: "A command is already running." };
   }
-  const executable = resolveClovapiExecutablePath();
+  const executable = await resolveClovapiExecutablePath();
   if (!executable) {
     return { ok: false, error: "clovapi executable not found (install CLI or bundle bin/clovapi)" };
   }
@@ -700,7 +698,7 @@ ipcMain.handle("cli:update", async (_event, payload) => {
       detail: { dev_mode: true, check: Boolean(payload?.check) },
     };
   }
-  const executable = resolveClovapiExecutablePath();
+  const executable = await resolveClovapiExecutablePath();
   if (!executable) {
     return { ok: false, error: "clovapi executable not found" };
   }
@@ -979,7 +977,7 @@ ipcMain.handle("cli:proxy-logs-clear", async (_event, payload) =>
 );
 
 ipcMain.handle("cli:tool-status", async () => {
-  const executable = resolveClovapiExecutablePath();
+  const executable = await resolveClovapiExecutablePath();
   if (executable) {
     const source = executable === cliBinPath() ? "user" : "system";
     return { ok: true, available: true, source, path: executable };

@@ -471,6 +471,12 @@ func FindProviderModel(s *Store, providerID, modelID string) (VendorModelHit, bo
 		if hit, ok := FindVendorModel(s, p.Name, modelID); ok {
 			return hit, true
 		}
+		for i, raw := range p.Models {
+			m := NormalizeModelEntry(raw, i)
+			if strings.EqualFold(strings.TrimSpace(m.Model), modelID) {
+				return VendorModelHit{Vendor: p, Model: m}, true
+			}
+		}
 		if strings.EqualFold(modelID, "default") && len(p.Models) > 0 {
 			return VendorModelHit{Vendor: p, Model: NormalizeModelEntry(p.Models[0], 0)}, true
 		}
@@ -992,7 +998,7 @@ func pickPreferredIngressStyle(supported []apistyle.Style) apistyle.Style {
 	return apistyle.OpenAIChat
 }
 
-// CliIngressStyle returns the default API style segment for local proxy ingress paths.
+// CliIngressStyle returns the default API style for local proxy ingress requests.
 func CliIngressStyle(kind agentkind.Kind) apistyle.Style {
 	return pickPreferredIngressStyle(ingressStylesForCLI(kind))
 }
@@ -1008,7 +1014,7 @@ func IngressStyleForCLI(kind agentkind.Kind, hit VendorModelHit) apistyle.Style 
 	return pickPreferredIngressStyle(supported)
 }
 
-// ResolveWireModelForIngress returns path model id and CLI wire model for proxy ingress.
+// ResolveWireModelForIngress returns the selected model id and CLI wire model for proxy ingress.
 func ResolveWireModelForIngress(hit VendorModelHit, parsedModelID string) (modelID, modelWire string) {
 	modelID = strings.TrimSpace(parsedModelID)
 	modelWire = strings.TrimSpace(firstNonEmpty(hit.Model.Model, hit.Model.ID, modelID))

@@ -13,6 +13,7 @@
     indent = false,
     linesNowrap = false,
     centerContent = false,
+    class: className = "",
     onOpen,
     leading,
     actions,
@@ -26,6 +27,7 @@
     indent?: boolean;
     linesNowrap?: boolean;
     centerContent?: boolean;
+    class?: string;
     onOpen?: () => void;
     leading?: Snippet;
     actions?: Snippet;
@@ -89,6 +91,7 @@
     testStatus === "testing" && "bg-amber-500/5",
     testStatus === "pass" && "bg-emerald-500/5",
     testStatus === "fail" && "bg-red-500/5",
+    className,
   )}
 >
   <div class="flex min-w-0 flex-1 items-center gap-3">

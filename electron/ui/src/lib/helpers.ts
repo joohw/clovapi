@@ -35,7 +35,7 @@ export function apiStylesForCli(kind: string): string[] {
   return [];
 }
 
-/** CLI ingress segment written into local proxy base URL (/{provider}/{model}/{style}). */
+/** Preferred request style for CLIs; local proxy base URLs are provider-scoped. */
 export function defaultCliIngressStyle(kind: string): string {
   return apiStylesForCli(kind)[0] || "openai-chat";
 }
@@ -365,12 +365,6 @@ export function modelBindingLabel(vendor: Vendor, model: VendorModel): string {
   return `${kind} · ${displayVendorName(vendor.name)} · ${model.label || model.model} · ${model.apiStyle}`;
 }
 
-function cliModelBindingLabel(vendor: Vendor, model: VendorModel): string {
-  const provider = displayVendorName(vendor.name) || "Provider";
-  const modelName = String(model.label || model.model || model.id || "").trim() || "Model";
-  return `${provider}/${modelName}`;
-}
-
 export function customApiModelLine(model: VendorModel): string {
   const url = String(model.baseUrl || "").trim() || t("vendorDetail.addressNotConfigured");
   return `${model.model} · ${model.apiStyle} · ${url}`;
@@ -468,6 +462,10 @@ export function subscriptionIsUsable(subscription: SubscriptionItem | undefined)
 export type CliBindingOption = {
   value: string;
   label: string;
+  triggerLabel?: string;
+  group?: string;
+  groupOnly?: boolean;
+  groupDisabled?: boolean;
   disabled?: boolean;
   hint?: string;
 };
@@ -480,8 +478,12 @@ export function buildCliBindingOptions(
   const options: CliBindingOption[] = [{ value: "", label: t("common.default") }];
 
   for (const vendor of managedVendorList(vendors)) {
+    const providerLabel = displayVendorName(vendor.name) || "Provider";
+    let vendorOptionCount = 0;
     for (const model of vendor.models || []) {
       if (!modelCompatibleWithCli(model, cli.kind)) continue;
+      const modelLabel = String(model.label || model.model || model.id || "").trim() || "Model";
+      const triggerLabel = modelLabel;
 
       if (vendor.kind === "subscription") {
         const providerId = vendor.subscriptionProviderId;
@@ -492,16 +494,33 @@ export function buildCliBindingOptions(
         if (!subscriptionIsUsable(sub)) {
           continue;
         }
+        vendorOptionCount += 1;
         options.push({
           value: modelBindingValue(providerId, model.id),
-          label: cliModelBindingLabel(vendor, model),
+          label: modelLabel,
+          triggerLabel,
+          group: providerLabel,
+          hint: `${providerLabel}/${modelLabel}`,
         });
         continue;
       }
 
+      vendorOptionCount += 1;
       options.push({
         value: modelBindingValue(providerIdForVendor(vendor), model.id),
-        label: cliModelBindingLabel(vendor, model),
+        label: modelLabel,
+        triggerLabel,
+        group: providerLabel,
+        hint: `${providerLabel}/${modelLabel}`,
+      });
+    }
+    if (vendorOptionCount === 0) {
+      options.push({
+        value: `__vendor:${providerLabel}`,
+        label: providerLabel,
+        group: providerLabel,
+        groupOnly: true,
+        groupDisabled: true,
       });
     }
   }

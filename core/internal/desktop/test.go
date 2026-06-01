@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
 	"github.com/clovapi/switcher/internal/testclient"
@@ -148,8 +147,8 @@ func TestProviderModel(providerID, modelID string, portOverride int, cliKindStr 
 	}
 
 	pathModelID, modelWire := profile.ResolveWireModelForIngress(hit, modelID)
-	responsesBaseURL := provider.BuildProxyIngressBaseURL(proxyCfg.Port, providerID, pathModelID, string(apistyle.OpenAIResponses))
-	claudeBaseURL := provider.BuildProxyIngressBaseURL(proxyCfg.Port, providerID, pathModelID, string(apistyle.Claude))
+	responsesBaseURL := provider.BuildProxyIngressBaseURL(proxyCfg.Port, providerID)
+	claudeBaseURL := provider.BuildProxyIngressBaseURL(proxyCfg.Port, providerID)
 
 	if err := testclient.ProbeToolRoundTrip(responsesBaseURL, claudeBaseURL, "clovapi-local", modelWire); err != nil {
 		return TestResult{

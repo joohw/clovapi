@@ -4,8 +4,10 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -90,5 +92,22 @@ func TestCallbackServerReleasesPortAfterSuccess(t *testing.T) {
 	server.Close()
 	if err := tryListenCallbackPort(port); err != nil {
 		t.Fatalf("expected port released after close: %v", err)
+	}
+}
+
+func TestOAuthSuccessHTMLIsEnglishAndAutoCloses(t *testing.T) {
+	rec := httptest.NewRecorder()
+	writeOAuthHTML(rec, http.StatusOK, "success", "Authorization complete. You can return to ClovAPI.", "")
+	body := rec.Body.String()
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	for _, want := range []string{`<html lang="en">`, "Login successful", "window.close()", "This window will close automatically"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("success HTML missing %q: %s", want, body)
+		}
+	}
+	if strings.Contains(body, "登录") || strings.Contains(body, "授权") {
+		t.Fatalf("success HTML should be English: %s", body)
 	}
 }

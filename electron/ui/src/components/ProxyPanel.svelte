@@ -21,7 +21,7 @@
     void i18n.locale;
     return {
       title: t("proxy.title"),
-      description: t("proxy.description", { path: "/{providerId}/{modelId}/{apiStyle}/v1" }),
+      description: t("proxy.description", { path: "/{providerId}/v1" }),
       service: t("proxy.service"),
       serviceLine: store.proxyRunning ? t("proxy.runningShort") : t("proxy.stopped"),
       appVersion: t("proxy.appVersion"),

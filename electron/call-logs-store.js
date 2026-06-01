@@ -1,8 +1,10 @@
-const fs = require("node:fs");
 const { logsDir, callLogsDBPath } = require("./config-paths");
 const { runClovapiArgsAsync } = require("./clovapi-exec");
 
 const DEFAULT_CALL_LOG_PAGE_SIZE = 20;
+const DEFAULT_PROXY_HOST = "127.0.0.1";
+const DEFAULT_PROXY_PORT = 27483;
+const DEFAULT_DEBUG_TIMEOUT_MS = 2500;
 
 function normalizePage(input = {}) {
   const limit = Math.max(1, Number(input.limit) || DEFAULT_CALL_LOG_PAGE_SIZE);
@@ -46,10 +48,6 @@ async function readCallLogSessionsViaCLI(limit = 100) {
 }
 
 async function readCallLogs(options = {}) {
-  if (fs.existsSync(callLogsDBPath())) {
-    const viaCLI = await readCallLogsViaCLI(options);
-    if (viaCLI.entries.length || viaCLI.offset > 0) return viaCLI;
-  }
   return readCallLogsViaCLI(options);
 }
 
@@ -61,7 +59,68 @@ async function clearCallLogsFile() {
   await runClovapiArgsAsync(["proxy", "logs", "clear", "--yes"], { timeout: 8000 });
 }
 
-async function readSystemLogsViaCLI(limit = 0) {
+function normalizeProxyHost(host) {
+  const raw = String(host || "").trim() || DEFAULT_PROXY_HOST;
+  const lower = raw.toLowerCase();
+  if (lower === "0.0.0.0" || lower === "::" || lower === "::ffff:0.0.0.0") {
+    return DEFAULT_PROXY_HOST;
+  }
+  return raw;
+}
+
+function normalizeProxyPort(port) {
+  const value = Number(port);
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_PROXY_PORT;
+}
+
+function proxyOrigin(host, port) {
+  const normalizedHost = normalizeProxyHost(host);
+  const needsBrackets = normalizedHost.includes(":") && !normalizedHost.startsWith("[");
+  const urlHost = needsBrackets ? `[${normalizedHost}]` : normalizedHost;
+  return `http://${urlHost}:${normalizeProxyPort(port)}`;
+}
+
+async function fetchProxyDebugJSON(pathname, query = {}, options = {}) {
+  const cfg = options.proxy;
+  if (!cfg || typeof cfg !== "object") {
+    throw new Error("proxy config is required for debug log HTTP requests");
+  }
+  const url = new URL(pathname, proxyOrigin(cfg.host, cfg.port));
+  for (const [key, value] of Object.entries(query || {})) {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), options.timeout ?? DEFAULT_DEBUG_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      method: options.method || "GET",
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`proxy debug request failed: HTTP ${response.status}`);
+    }
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function readCallLogsViaHTTP(options = {}) {
+  const { limit, offset } = normalizePage(options);
+  const parsed = await fetchProxyDebugJSON("/__debug/call-log", { limit, offset }, { proxy: options.proxy });
+  const entries = Array.isArray(parsed?.entries) ? parsed.entries : [];
+  return {
+    entries,
+    sessions: Array.isArray(parsed?.sessions) ? parsed.sessions : [],
+    limit: Number(parsed?.limit) || limit,
+    offset: Number(parsed?.offset) || offset,
+    hasMore: Boolean(parsed?.hasMore),
+  };
+}
+
+async function readSystemLogsViaCLI(limit = 20) {
   const args = ["proxy", "syslogs", "list", "--json"];
   if (limit > 0) args.push("--limit", String(limit));
   const result = await runClovapiArgsAsync(args, { timeout: 10000 });
@@ -76,8 +135,25 @@ async function readSystemLogsViaCLI(limit = 0) {
   }
 }
 
+async function readSystemLogsViaHTTP(limit = 20, options = {}) {
+  const parsed = await fetchProxyDebugJSON("/__debug/system-log", {
+    limit: Math.max(1, Number(limit) || 20),
+  }, { proxy: options.proxy });
+  return Array.isArray(parsed?.entries) ? parsed.entries : [];
+}
+
 async function clearSystemLogsViaCLI() {
   await runClovapiArgsAsync(["proxy", "syslogs", "clear", "--yes"], { timeout: 10000 });
+}
+
+async function clearProxyDebugLogs(scope = "all", options = {}) {
+  const normalized = String(scope || "all").trim().toLowerCase();
+  if (normalized === "system" || normalized === "all") {
+    await fetchProxyDebugJSON("/__debug/system-log", {}, { method: "DELETE", proxy: options.proxy });
+  }
+  if (normalized === "calls" || normalized === "all") {
+    await fetchProxyDebugJSON("/__debug/call-log", {}, { method: "DELETE", proxy: options.proxy });
+  }
 }
 
 module.exports = {
@@ -88,6 +164,9 @@ module.exports = {
   readCallLogs,
   readCallLogSessions,
   clearCallLogsFile,
+  readCallLogsViaHTTP,
   readSystemLogsViaCLI,
+  readSystemLogsViaHTTP,
   clearSystemLogsViaCLI,
+  clearProxyDebugLogs,
 };

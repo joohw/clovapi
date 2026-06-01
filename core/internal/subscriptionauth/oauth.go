@@ -101,15 +101,15 @@ func loginClaude(ctx context.Context, openBrowser bool) (string, error) {
 		Path: claudeCallbackPath,
 		Validate: func(values url.Values) (callbackData, callbackError) {
 			if msg := values.Get("error"); msg != "" {
-				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "Claude 授权未完成。", Details: msg}
+				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "Claude authorization was not completed.", Details: msg}
 			}
 			code := strings.TrimSpace(values.Get("code"))
 			state := strings.TrimSpace(values.Get("state"))
 			if code == "" || state == "" {
-				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "缺少 code 或 state 参数。"}
+				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "Missing code or state parameter."}
 			}
 			if state != pkce.Verifier {
-				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "OAuth state 不匹配。"}
+				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "OAuth state does not match."}
 			}
 			return callbackData{Code: code, State: state}, callbackError{}
 		},
@@ -153,14 +153,14 @@ func loginCodex(ctx context.Context, openBrowser bool) (string, error) {
 		Path: codexCallbackPath,
 		Validate: func(values url.Values) (callbackData, callbackError) {
 			if msg := values.Get("error"); msg != "" {
-				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "OpenAI 授权未完成。", Details: msg}
+				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "OpenAI authorization was not completed.", Details: msg}
 			}
 			if strings.TrimSpace(values.Get("state")) != state {
-				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "OAuth state 不匹配。"}
+				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "OAuth state does not match."}
 			}
 			code := strings.TrimSpace(values.Get("code"))
 			if code == "" {
-				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "缺少 authorization code。"}
+				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "Missing authorization code."}
 			}
 			return callbackData{Code: code}, callbackError{}
 		},
@@ -265,7 +265,7 @@ func exchangeClaudeCode(ctx context.Context, code, state, verifier, redirectURI 
 		return tokenCredentials{}, err
 	}
 	if strings.TrimSpace(out.AccessToken) == "" || strings.TrimSpace(out.RefreshToken) == "" {
-		return tokenCredentials{}, fmt.Errorf("Token 响应缺少 access_token 或 refresh_token")
+		return tokenCredentials{}, fmt.Errorf("token response is missing access_token or refresh_token")
 	}
 	expires := time.Now().Add(time.Hour).UnixMilli()
 	if out.ExpiresIn > 0 {
@@ -330,7 +330,7 @@ func exchangeClaudeRefresh(ctx context.Context, refreshToken string) (tokenCrede
 		return tokenCredentials{}, err
 	}
 	if strings.TrimSpace(out.AccessToken) == "" {
-		return tokenCredentials{}, fmt.Errorf("refresh 响应缺少 access_token")
+		return tokenCredentials{}, fmt.Errorf("refresh response is missing access_token")
 	}
 	expires := time.Now().Add(time.Hour).UnixMilli()
 	if out.ExpiresIn > 0 {
@@ -362,11 +362,11 @@ func exchangeCodexCode(ctx context.Context, code, verifier, redirectURI string) 
 		return tokenCredentials{}, err
 	}
 	if strings.TrimSpace(out.AccessToken) == "" || strings.TrimSpace(out.RefreshToken) == "" || out.ExpiresIn <= 0 {
-		return tokenCredentials{}, fmt.Errorf("Codex Token 响应缺少必要字段")
+		return tokenCredentials{}, fmt.Errorf("Codex token response is missing required fields")
 	}
 	accountID := codexAccountIDFromAccessToken(out.AccessToken)
 	if accountID == "" {
-		return tokenCredentials{}, fmt.Errorf("无法从 access_token 解析 ChatGPT account_id")
+		return tokenCredentials{}, fmt.Errorf("could not parse ChatGPT account_id from access_token")
 	}
 	return tokenCredentials{
 		Access:    strings.TrimSpace(out.AccessToken),
@@ -390,7 +390,7 @@ func enrichClaudeProfile(ctx context.Context, creds *tokenCredentials) error {
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("Profile 请求失败 (%d): %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return fmt.Errorf("profile request failed (%d): %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 	var payload struct {
 		Account struct {
@@ -434,7 +434,7 @@ func postJSON(ctx context.Context, rawURL string, payload any, dest any) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	return doJSON(req, dest, "Token 请求失败")
+	return doJSON(req, dest, "token request failed")
 }
 
 func postForm(ctx context.Context, rawURL string, form url.Values, dest any) error {
@@ -443,7 +443,7 @@ func postForm(ctx context.Context, rawURL string, form url.Values, dest any) err
 		return err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	return doJSON(req, dest, "Codex Token 交换失败")
+	return doJSON(req, dest, "Codex token exchange failed")
 }
 
 func doJSON(req *http.Request, dest any, label string) error {
@@ -457,7 +457,7 @@ func doJSON(req *http.Request, dest any, label string) error {
 		return fmt.Errorf("%s (%d): %s", label, resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 	if err := json.Unmarshal(body, dest); err != nil {
-		return fmt.Errorf("响应不是有效 JSON: %w", err)
+		return fmt.Errorf("response is not valid JSON: %w", err)
 	}
 	return nil
 }
@@ -627,4 +627,4 @@ func setFirst(m map[string]any, key string, values ...string) {
 	}
 }
 
-var errCallbackCancelled = errors.New("已取消登录")
+var errCallbackCancelled = errors.New("login cancelled")

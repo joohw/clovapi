@@ -26,25 +26,33 @@ func TestRegistryMatchesDesktopFixedProviders(t *testing.T) {
 }
 
 func TestProxyIngressURLAndParser(t *testing.T) {
-	base := BuildProxyIngressBaseURL(27483, "claude-code", "claude opus/4", "claude")
-	want := "http://127.0.0.1:27483/claude-code/claude%20opus%2F4/claude/v1"
+	base := BuildProxyIngressBaseURL(27483, "claude-code")
+	want := "http://127.0.0.1:27483/claude-code/v1"
 	if base != want {
 		t.Fatalf("base url = %q, want %q", base, want)
 	}
 
-	ingress, ok := ParseProxyIngressPath("/claude-code/claude%20opus%2F4/claude/v1/messages")
+	ingress, ok := ParseProxyIngressPath("/claude-code/v1/messages")
 	if !ok {
 		t.Fatalf("expected valid ingress")
 	}
-	if ingress.ProviderID != "claude-code" || ingress.ModelID != "claude opus/4" || ingress.APIStyle != "claude" || ingress.PathSuffix != "/messages" {
+	if ingress.ProviderID != "claude-code" || ingress.ModelID != "" || ingress.APIStyle != "claude" || ingress.PathSuffix != "/messages" {
 		t.Fatalf("unexpected ingress: %+v", ingress)
 	}
 
-	if _, ok := ParseProxyIngressPath("/claude-code/opus/claude/messages"); ok {
+	legacy, ok := ParseProxyIngressPath("/claude-code/claude%20opus%2F4/claude/v1/messages")
+	if !ok {
+		t.Fatalf("expected valid legacy ingress")
+	}
+	if legacy.ProviderID != "claude-code" || legacy.ModelID != "claude opus/4" || legacy.APIStyle != "claude" || legacy.PathSuffix != "/messages" {
+		t.Fatalf("unexpected legacy ingress: %+v", legacy)
+	}
+
+	if _, ok := ParseProxyIngressPath("/claude-code/opus/messages"); ok {
 		t.Fatalf("path without /v1 must not parse")
 	}
 
-	ingress2, ok := ParseProxyIngressPath("/codex/gpt-5.4/claude/v1/v1/messages")
+	ingress2, ok := ParseProxyIngressPath("/codex/v1/v1/messages")
 	if !ok {
 		t.Fatalf("expected valid ingress for double /v1 path")
 	}

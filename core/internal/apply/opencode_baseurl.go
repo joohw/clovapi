@@ -20,7 +20,7 @@ func ensureWireV1BaseURL(baseURL string) string {
 }
 
 // ensureAnthropicWireBaseURL strips a trailing /v1 because Anthropic SDKs append /v1/messages
-// (clovapi proxy ingress is …/{provider}/{model}/claude/v1/messages).
+// (clovapi proxy ingress is …/{provider}/v1/messages).
 func ensureAnthropicWireBaseURL(baseURL string) string {
 	b := strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if b == "" {

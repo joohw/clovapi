@@ -38,7 +38,7 @@ func prepareCallbackPort(port int) error {
 	if lastErr == nil {
 		lastErr = fmt.Errorf("callback port %d is unavailable", port)
 	}
-	return fmt.Errorf("OAuth 回调端口 %d 被占用，请稍后重试或关闭占用该端口的程序: %w", port, lastErr)
+	return fmt.Errorf("OAuth callback port %d is already in use; try again later or close the program using that port: %w", port, lastErr)
 }
 
 func tryListenCallbackPort(port int) error {

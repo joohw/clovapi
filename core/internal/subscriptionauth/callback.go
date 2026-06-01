@@ -49,7 +49,7 @@ func startCallbackServer(ctx context.Context, opts callbackOptions) (*callbackSe
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != opts.Path {
-			writeOAuthHTML(w, http.StatusNotFound, "error", "回调路径不正确。", "")
+			writeOAuthHTML(w, http.StatusNotFound, "error", "The callback path is incorrect.", "")
 			return
 		}
 		data, validation := opts.Validate(r.URL.Query())
@@ -61,7 +61,7 @@ func startCallbackServer(ctx context.Context, opts callbackOptions) (*callbackSe
 			writeOAuthHTML(w, status, "error", validation.Message, validation.Details)
 			return
 		}
-		writeOAuthHTML(w, http.StatusOK, "success", "授权完成，可以关闭此窗口并返回 ClovAPI。", "")
+		writeOAuthHTML(w, http.StatusOK, "success", "Authorization complete. You can return to ClovAPI.", "")
 		cs.complete(callbackResult{data: data})
 	})
 	cs.server = &http.Server{Handler: mux}
@@ -116,16 +116,26 @@ func (s *callbackServer) complete(result callbackResult) {
 }
 
 func writeOAuthHTML(w http.ResponseWriter, status int, kind, message, details string) {
-	heading := "登录失败"
+	heading := "Login failed"
 	if kind == "success" {
-		heading = "登录成功"
+		heading = "Login successful"
 	}
 	detailBlock := ""
 	if strings.TrimSpace(details) != "" {
 		detailBlock = `<p class="details">` + html.EscapeString(details) + `</p>`
 	}
+	closeScript := ""
+	closeHint := ""
+	if kind == "success" {
+		closeHint = `<p class="hint">This window will close automatically. If it stays open, you may close it manually.</p>`
+		closeScript = `<script>
+    window.setTimeout(function () {
+      window.close();
+    }, 500);
+  </script>`
+	}
 	body := `<!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>` + html.EscapeString(heading) + `</title>
@@ -133,13 +143,16 @@ func writeOAuthHTML(w http.ResponseWriter, status int, kind, message, details st
     body { font-family: system-ui, sans-serif; margin: 40px auto; max-width: 480px; text-align: center; color: #111; }
     h1 { font-size: 1.25rem; }
     p { color: #444; line-height: 1.6; }
+    .hint { color: #666; font-size: 0.9rem; }
     .details { font-family: monospace; font-size: 0.85rem; word-break: break-word; }
   </style>
 </head>
 <body>
   <h1>` + html.EscapeString(heading) + `</h1>
   <p>` + html.EscapeString(message) + `</p>
+  ` + closeHint + `
   ` + detailBlock + `
+  ` + closeScript + `
 </body>
 </html>`
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

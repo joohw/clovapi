@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const defaultListMax = 0 // 0 = no limit
+const DefaultListLimit = 20
 
 // Entry is one persisted system log row.
 type Entry struct {

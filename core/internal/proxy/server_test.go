@@ -13,8 +13,10 @@ import (
 	"testing"
 
 	"github.com/clovapi/switcher/internal/apistyle"
+	"github.com/clovapi/switcher/internal/config"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
+	"github.com/clovapi/switcher/internal/syslog"
 )
 
 func TestServerHealthAndModelsList(t *testing.T) {
@@ -116,6 +118,38 @@ func TestDebugCallLogPaginatesDefaultLimit(t *testing.T) {
 	}
 	if body.Limit != 20 || body.Offset != 0 || !body.HasMore {
 		t.Fatalf("pagination = limit %d offset %d hasMore %v", body.Limit, body.Offset, body.HasMore)
+	}
+	if len(body.Entries) != 20 {
+		t.Fatalf("entries len = %d, want 20", len(body.Entries))
+	}
+}
+
+func TestDebugSystemLogPaginatesDefaultLimit(t *testing.T) {
+	dir := t.TempDir()
+	config.SetDirOverride(dir)
+	t.Cleanup(func() { config.SetDirOverride("") })
+
+	for i := 0; i < 25; i++ {
+		syslog.Write("system", "entry-"+strconv.Itoa(i))
+	}
+	s := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	ts := httptest.NewServer(s.Server.Handler)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/__debug/system-log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var body struct {
+		Entries []syslog.Entry `json:"entries"`
+		Limit   int            `json:"limit"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Limit != 20 {
+		t.Fatalf("limit = %d, want 20", body.Limit)
 	}
 	if len(body.Entries) != 20 {
 		t.Fatalf("entries len = %d, want 20", len(body.Entries))
@@ -350,8 +384,8 @@ func TestPassthroughForwardingSameIngressEgressOpenAIChat(t *testing.T) {
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
 
-	payload := `{"model":"stub-model-id","messages":[{"role":"user","content":"ping"}],"stream":false}`
-	resp, err := http.Post(ts.URL+"/custom-api/stub-model-id/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
+	payload := `{"model":"gpt-4o-wire","messages":[{"role":"user","content":"ping"}],"stream":false}`
+	resp, err := http.Post(ts.URL+"/custom-api/v1/chat/completions", "application/json", strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}

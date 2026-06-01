@@ -6,6 +6,7 @@ const { cliBinPath } = require("./config-paths");
 
 const MARKER_START = "# >>> clovapi >>>";
 const MARKER_END = "# <<< clovapi <<<";
+const loginShellPathCache = new Map();
 
 function cliBinDir() {
   return path.dirname(cliBinPath());
@@ -179,7 +180,10 @@ function loginShellPathEntries(baseEnv = process.env) {
   const home = os.homedir();
   const shell = String(baseEnv.SHELL || "/bin/zsh").trim() || "/bin/zsh";
   const user = String(baseEnv.USER || baseEnv.LOGNAME || os.userInfo().username || "").trim();
-  const result = spawnSync(shell, ["-ilc", 'printf %s "$PATH"'], {
+  const cacheKey = JSON.stringify({ home, shell, user });
+  const cached = loginShellPathCache.get(cacheKey);
+  if (cached) return [...cached];
+  const result = spawnSync(shell, ["-lc", 'printf %s "$PATH"'], {
     encoding: "utf8",
     env: {
       HOME: home,
@@ -189,10 +193,12 @@ function loginShellPathEntries(baseEnv = process.env) {
     },
   });
   if (result.status !== 0) return [];
-  return String(result.stdout || "")
+  const entries = String(result.stdout || "")
     .split(":")
     .map((entry) => entry.trim())
     .filter(Boolean);
+  loginShellPathCache.set(cacheKey, entries);
+  return [...entries];
 }
 
 function cliSpawnEnv(baseEnv = process.env) {

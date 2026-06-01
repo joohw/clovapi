@@ -1,0 +1,41 @@
+const assert = require("node:assert/strict");
+const http = require("node:http");
+const test = require("node:test");
+
+test("debug log readers use proxy HTTP endpoints from supplied CLI proxy config", async (t) => {
+  const requests = [];
+  const server = http.createServer((req, res) => {
+    requests.push(req.url);
+    res.setHeader("content-type", "application/json");
+    if (req.url.startsWith("/__debug/call-log")) {
+      res.end(JSON.stringify({
+        entries: [{ id: "call-1" }],
+        sessions: [{ session: "s1" }],
+        limit: 20,
+        offset: 0,
+        hasMore: false,
+      }));
+      return;
+    }
+    if (req.url.startsWith("/__debug/system-log")) {
+      res.end(JSON.stringify({ entries: [{ id: "sys-1" }], limit: 20 }));
+      return;
+    }
+    res.statusCode = 404;
+    res.end(JSON.stringify({ error: "not found" }));
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => server.close());
+
+  const port = server.address().port;
+  const proxy = { host: "127.0.0.1", port };
+
+  const store = require("./call-logs-store");
+  const callLogs = await store.readCallLogsViaHTTP({ limit: 20, offset: 0, proxy });
+  const systemLogs = await store.readSystemLogsViaHTTP(20, { proxy });
+
+  assert.deepEqual(callLogs.entries, [{ id: "call-1" }]);
+  assert.deepEqual(callLogs.sessions, [{ session: "s1" }]);
+  assert.deepEqual(systemLogs, [{ id: "sys-1" }]);
+  assert.deepEqual(requests, ["/__debug/call-log?limit=20&offset=0", "/__debug/system-log?limit=20"]);
+});

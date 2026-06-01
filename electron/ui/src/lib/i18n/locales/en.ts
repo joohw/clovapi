@@ -4,7 +4,7 @@ const en = {
     updateBadge: "Install update v{latest}",
   },
   tabs: {
-    cli: "CLI",
+    cli: "Agents",
     profiles: "API",
     callLogs: "Call logs",
     sessions: "Sessions",
@@ -134,7 +134,7 @@ const en = {
     updateAvailable: "Update available · v{latest}",
     updateInstalled: "Updated to v{version}",
     updateDisabledInDev: "Update checks are disabled in dev mode",
-    pathHint: "/{providerId}/{modelId}/{apiStyle}",
+    pathHint: "/{providerId}/v1",
   },
   callLogs: {
     title: "Call logs",

@@ -37,7 +37,7 @@ func ApplyProviderModel(kind agentkind.Kind, providerID, modelID string) error {
 	if port == 0 {
 		port = 27483
 	}
-	baseURL := provider.BuildProxyIngressBaseURL(port, providerID, pathModelID, string(ingressStyle))
+	baseURL := provider.BuildProxyIngressBaseURL(port, providerID)
 
 	p := profile.Profile{
 		Name:                   providerID + "/" + pathModelID,

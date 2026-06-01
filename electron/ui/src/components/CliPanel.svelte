@@ -12,10 +12,10 @@
     store,
   } from "../lib/store.svelte";
   import type { CliDef } from "../global";
+  import AgentBindingMenu from "./AgentBindingMenu.svelte";
   import CliIcon from "./CliIcon.svelte";
   import ListRow from "./ListRow.svelte";
   import SectionCard from "./SectionCard.svelte";
-  import Select from "./Select.svelte";
 
   const clis = $derived(sortedClisForDisplay(store.clis, store.cliDetectedPath));
 
@@ -44,13 +44,13 @@
   {#each clis as cli (cli.id)}
     {@const installed = Boolean(store.cliDetectedPath[cli.id])}
     {@const activeBinding = activeBindingForCli(cli.kind)}
-    <ListRow title={cli.name} lines={rowLines(cli, installed)} linesNowrap muted={!installed}>
+    <ListRow title={cli.name} lines={rowLines(cli, installed)} linesNowrap muted={!installed} class="py-4">
       {#snippet leading()}
         <CliIcon kind={cli.kind} />
       {/snippet}
       {#snippet actions()}
         {#key `${cli.id}:${activeBinding}:${i18n.locale}`}
-          <Select
+          <AgentBindingMenu
             options={bindingOptions(cli)}
             value={activeBinding}
             disabled={!installed || store.running}
@@ -58,7 +58,7 @@
           />
         {/key}
         <Button
-          size="sm"
+          size="lg"
           disabled={
             !installed ||
             store.running ||

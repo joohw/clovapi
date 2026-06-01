@@ -6,7 +6,7 @@ const zh = {
     updateBadge: "安装更新 v{latest}",
   },
   tabs: {
-    cli: "CLI",
+    cli: "Agents",
     profiles: "API 管理",
     callLogs: "调用日志",
     sessions: "会话管理",
@@ -132,7 +132,7 @@ const zh = {
     updateAvailable: "有可用更新 · v{latest}",
     updateInstalled: "已更新至 v{version}",
     updateDisabledInDev: "开发模式不检查更新",
-    pathHint: "/{providerId}/{modelId}/{apiStyle}",
+    pathHint: "/{providerId}/v1",
   },
   callLogs: {
     title: "调用日志",

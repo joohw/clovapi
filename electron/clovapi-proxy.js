@@ -1,4 +1,8 @@
-const { runClovapiArgsAsync, readCoreExecutableVersion, resolveClovapiExecutable } = require("./clovapi-exec");
+const {
+  runClovapiArgsAsync,
+  readCoreExecutableVersionAsync,
+  resolveClovapiExecutableAsync,
+} = require("./clovapi-exec");
 const clovapiDesktop = require("./clovapi-desktop");
 
 const DEFAULT_PORT = 27483;
@@ -207,8 +211,8 @@ function createClovapiProxy() {
     if (!snapshot.running) return;
     const runningVersion = String(snapshot.body?.version || "").trim();
     if (!runningVersion) return;
-    const exe = resolveClovapiExecutable();
-    const targetVersion = readCoreExecutableVersion(exe);
+    const exe = await resolveClovapiExecutableAsync();
+    const targetVersion = await readCoreExecutableVersionAsync(exe);
     if (!targetVersion || runningVersion === targetVersion) return;
     await runProxyCLI(buildProxyStopArgs(cfg).args);
   }
@@ -224,7 +228,7 @@ function createClovapiProxy() {
     };
     const before = await fetchStatus(merged);
     await maybeReplaceStaleDevProxy(merged);
-    const exe = resolveClovapiExecutable();
+    const exe = await resolveClovapiExecutableAsync();
     if (!exe) {
       return {
         ok: false,

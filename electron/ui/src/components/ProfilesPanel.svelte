@@ -5,6 +5,7 @@
   import {
     managedVendorList,
     resolveVendorByName,
+    providerIdForVendor,
     subscriptionStatusForVendor,
     vendorSummaryLine,
   } from "../lib/helpers";
@@ -12,6 +13,7 @@
   import { closeProfilesVendor, openProfilesVendor, store } from "../lib/store.svelte";
   import ListRow from "./ListRow.svelte";
   import SectionCard from "./SectionCard.svelte";
+  import VendorIcon from "./VendorIcon.svelte";
   import VendorDetailPanel from "./VendorDetailPanel.svelte";
 
   const vendorList = $derived(managedVendorList(store.profiles));
@@ -64,6 +66,9 @@
           lines={[vendorSummaryLine(vendor, sub, store.ollamaInstalled)]}
           onOpen={() => openVendor(vendor.name)}
         >
+          {#snippet leading()}
+            <VendorIcon providerId={providerIdForVendor(vendor)} />
+          {/snippet}
           {#snippet actions()}
             <Button size="sm" variant="outline" type="button" onclick={() => openVendor(vendor.name)}>
               {copy.manage}

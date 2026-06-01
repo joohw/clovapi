@@ -40,7 +40,7 @@ func readHermesConfig(t *testing.T) map[string]any {
 
 func TestHermesApplyCodexProxyPinsModelDefault(t *testing.T) {
 	_ = testHermesHome(t)
-	proxyBase := provider.BuildProxyIngressBaseURL(27483, provider.CodexProviderID, "gpt-5.4", "openai-responses")
+	proxyBase := provider.BuildProxyIngressBaseURL(27483, provider.CodexProviderID)
 	p := profile.Profile{
 		Name:                   "@model:Codex Subscription/gpt-5.4",
 		CLI:                    agentkind.Hermes,
@@ -71,7 +71,7 @@ func TestHermesApplyCodexProxyPinsModelDefault(t *testing.T) {
 		t.Fatalf("default = %v want gpt-5.4", modelObj["default"])
 	}
 	baseURL := strings.TrimSpace(fmt.Sprint(modelObj["base_url"]))
-	if !strings.Contains(baseURL, "/codex/gpt-5.4/openai-responses") {
+	if !strings.Contains(baseURL, "/codex/v1") {
 		t.Fatalf("base_url = %q", baseURL)
 	}
 	if modelObj["api_mode"] != "codex_responses" {
@@ -127,7 +127,7 @@ func TestHermesApplyDirectCodexSubscriptionUsesCustomWithDefault(t *testing.T) {
 }
 
 func TestHermesPathModelIDFromProxyIngress(t *testing.T) {
-	base := provider.BuildProxyIngressBaseURL(27483, provider.CodexProviderID, "gpt-5.4", "claude")
+	base := "http://127.0.0.1:27483/codex/gpt-5.4/claude/v1"
 	if got := hermesPathModelID(base); got != "gpt-5.4" {
 		t.Fatalf("hermesPathModelID(%q) = %q want gpt-5.4", base, got)
 	}

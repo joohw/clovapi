@@ -126,7 +126,7 @@ func (hermesTarget) ResetDefault() error {
 	return writeFileAtomic(path, out, 0o600)
 }
 
-// hermesPathModelID reads the bound model id from a clovapi proxy ingress base URL.
+// hermesPathModelID reads the bound model id from legacy clovapi proxy ingress base URLs.
 func hermesPathModelID(baseURL string) string {
 	raw := strings.TrimSpace(baseURL)
 	if raw == "" {
@@ -196,7 +196,7 @@ func hermesAPIMode(st apistyle.Style) string {
 }
 
 // hermesWireBaseURL shapes custom provider base_url the way Hermes SDKs append paths:
-// anthropic_messages → Anthropic client adds /v1/messages (ingress …/claude/v1/messages);
+// anthropic_messages → Anthropic client adds /v1/messages (ingress …/{provider}/v1/messages);
 // codex_responses / chat_completions → OpenAI client adds /responses or /chat/completions under …/v1.
 func hermesWireBaseURL(baseURL, apiMode string) string {
 	b := strings.TrimRight(strings.TrimSpace(baseURL), "/")

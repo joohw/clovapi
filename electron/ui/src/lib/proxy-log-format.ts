@@ -44,7 +44,7 @@ export function proxyLogUpstreamRequestLine(entry: ProxyLogEntry): string {
 export function proxyLogOverviewText(entry: ProxyLogEntry): string {
   const status = entry.upstream?.status ? String(entry.upstream.status) : "(pending)";
   const session = String(entry.session || entry.sessionId || "").trim() || t("common.none");
-  const usage = proxyLogTokenUsageText(entry.upstream?.body || "");
+  const usage = proxyLogTokenUsageText(entry);
   const rows = [
     `${t("callLogs.overviewResult")}: ${proxyLogSummary(entry)}`,
     `${t("callLogs.overviewSession")}: ${session}`,
@@ -83,70 +83,41 @@ export function proxyLogHeaderText(headers: Record<string, string>): string {
   return entries.map(([key, value]) => `${key}: ${value}`).join("\n");
 }
 
-export function proxyLogTokenUsageText(body: string): string {
-  const usage = extractProxyLogTokenUsage(body);
+export function proxyLogTokenUsageText(entry: ProxyLogEntry): string {
+  const usage = normalizeTokenUsage(entry.tokenUsage);
   if (!usage) return t("common.none");
   const parts = [];
   if (usage.inputTokens != null) parts.push(`${t("callLogs.inputTokens")}: ${usage.inputTokens}`);
   if (usage.outputTokens != null) parts.push(`${t("callLogs.outputTokens")}: ${usage.outputTokens}`);
+  if (usage.totalTokens != null) parts.push(`${t("callLogs.totalTokens")}: ${usage.totalTokens}`);
   if (usage.cacheReadTokens != null) parts.push(`${t("callLogs.cacheReadTokens")}: ${usage.cacheReadTokens}`);
   if (usage.cacheCreationTokens != null) {
     parts.push(`${t("callLogs.cacheCreationTokens")}: ${usage.cacheCreationTokens}`);
   }
+  if (usage.reasoningTokens != null) parts.push(`${t("callLogs.reasoningTokens")}: ${usage.reasoningTokens}`);
   return parts.length ? parts.join(" · ") : t("common.none");
 }
 
 type TokenUsage = {
   inputTokens?: number;
   outputTokens?: number;
+  totalTokens?: number;
   cacheReadTokens?: number;
   cacheCreationTokens?: number;
+  reasoningTokens?: number;
 };
 
-function extractProxyLogTokenUsage(body: string): TokenUsage | null {
-  const text = String(body || "").trim();
-  if (!text) return null;
-  const usage: TokenUsage = {};
-  for (const payload of usagePayloadsFromBody(text)) {
-    if (!payload || typeof payload !== "object") continue;
-    const record = payload as Record<string, unknown>;
-    mergeUsage(usage, record.usage);
-    const message = record.message;
-    if (message && typeof message === "object") {
-      mergeUsage(usage, (message as Record<string, unknown>).usage);
-    }
-  }
-  return Object.keys(usage).length ? usage : null;
-}
-
-function usagePayloadsFromBody(text: string): unknown[] {
-  const payloads: unknown[] = [];
-  if (text.startsWith("{")) {
-    try {
-      payloads.push(JSON.parse(text));
-    } catch {
-      /* ignore malformed body */
-    }
-  }
-  for (const line of text.split(/\r?\n/)) {
-    const match = line.match(/^data:\s*(.+)$/);
-    if (!match || match[1] === "[DONE]") continue;
-    try {
-      payloads.push(JSON.parse(match[1]));
-    } catch {
-      /* ignore non-JSON SSE payloads */
-    }
-  }
-  return payloads;
-}
-
-function mergeUsage(target: TokenUsage, raw: unknown) {
-  if (!raw || typeof raw !== "object") return;
+function normalizeTokenUsage(raw: unknown): TokenUsage | null {
+  if (!raw || typeof raw !== "object") return null;
   const usage = raw as Record<string, unknown>;
-  assignNumber(target, "inputTokens", usage.input_tokens);
-  assignNumber(target, "outputTokens", usage.output_tokens);
-  assignNumber(target, "cacheReadTokens", usage.cache_read_input_tokens);
-  assignNumber(target, "cacheCreationTokens", usage.cache_creation_input_tokens);
+  const out: TokenUsage = {};
+  assignNumber(out, "inputTokens", usage.inputTokens);
+  assignNumber(out, "outputTokens", usage.outputTokens);
+  assignNumber(out, "totalTokens", usage.totalTokens);
+  assignNumber(out, "cacheReadTokens", usage.cacheReadTokens);
+  assignNumber(out, "cacheCreationTokens", usage.cacheCreationTokens);
+  assignNumber(out, "reasoningTokens", usage.reasoningTokens);
+  return Object.keys(out).length ? out : null;
 }
 
 function assignNumber(target: TokenUsage, key: keyof TokenUsage, value: unknown) {
@@ -165,7 +136,9 @@ export function proxyLogBodyText(body: string): string {
 export function proxyLogSummary(entry: ProxyLogEntry): string {
   const status = entry.upstream.status ? String(entry.upstream.status) : "pending";
   const duration = entry.completedAt ? `${entry.durationMs}ms` : t("callLogs.inProgress");
-  return `${entry.request.method} ${status} · ${duration}`;
+  const usage =
+    typeof entry.tokenUsage?.totalTokens === "number" ? ` · ${t("callLogs.totalTokens")}: ${entry.tokenUsage.totalTokens}` : "";
+  return `${entry.request.method} ${status} · ${duration}${usage}`;
 }
 
 export function proxySystemLogStreamClass(stream: string): string {

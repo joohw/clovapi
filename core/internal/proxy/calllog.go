@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/clovapi/switcher/internal/protocol"
 	"github.com/clovapi/switcher/internal/provider"
 	"github.com/clovapi/switcher/internal/syslog"
 	"github.com/google/uuid"
@@ -33,17 +35,27 @@ type CallLogUpstream struct {
 	Body           string            `json:"body"`
 }
 
+type CallLogTokenUsage struct {
+	InputTokens         int `json:"inputTokens,omitempty"`
+	OutputTokens        int `json:"outputTokens,omitempty"`
+	TotalTokens         int `json:"totalTokens,omitempty"`
+	CacheReadTokens     int `json:"cacheReadTokens,omitempty"`
+	CacheCreationTokens int `json:"cacheCreationTokens,omitempty"`
+	ReasoningTokens     int `json:"reasoningTokens,omitempty"`
+}
+
 type CallLogEntry struct {
-	ID          string          `json:"id"`
-	Session     string          `json:"session,omitempty"`
-	SessionID   string          `json:"sessionId,omitempty"`
-	SessionKind string          `json:"sessionKind,omitempty"`
-	StartedAt   string          `json:"startedAt"`
-	CompletedAt string          `json:"completedAt"`
-	DurationMs  int64           `json:"durationMs"`
-	Request     CallLogRequest  `json:"request"`
-	Upstream    CallLogUpstream `json:"upstream"`
-	Error       string          `json:"error,omitempty"`
+	ID          string             `json:"id"`
+	Session     string             `json:"session,omitempty"`
+	SessionID   string             `json:"sessionId,omitempty"`
+	SessionKind string             `json:"sessionKind,omitempty"`
+	StartedAt   string             `json:"startedAt"`
+	CompletedAt string             `json:"completedAt"`
+	DurationMs  int64              `json:"durationMs"`
+	Request     CallLogRequest     `json:"request"`
+	Upstream    CallLogUpstream    `json:"upstream"`
+	TokenUsage  *CallLogTokenUsage `json:"tokenUsage,omitempty"`
+	Error       string             `json:"error,omitempty"`
 }
 
 type CallLogStore struct {
@@ -347,7 +359,9 @@ func (t *requestTrace) setUpstreamResponse(status int, headers http.Header, body
 	}
 	t.entry.Upstream.Status = status
 	t.entry.Upstream.Headers = cloneRedactedHeaders(headers)
+	body = sanitizeCallLogUpstreamBody(headers, body)
 	t.entry.Upstream.Body = redactBodySecrets(body)
+	t.entry.TokenUsage = ExtractCallLogTokenUsage(t.entry.Upstream.Body)
 }
 
 func (t *requestTrace) setError(msg string) {
@@ -364,6 +378,9 @@ func (t *requestTrace) finish() {
 	now := time.Now().UTC()
 	t.entry.CompletedAt = now.Format(time.RFC3339Nano)
 	t.entry.DurationMs = now.Sub(t.start).Milliseconds()
+	if t.entry.TokenUsage == nil {
+		t.entry.TokenUsage = ExtractCallLogTokenUsage(t.entry.Upstream.Body)
+	}
 	t.store.Push(t.entry)
 }
 
@@ -473,6 +490,129 @@ func redactJSONSecrets(v any) (any, bool) {
 	default:
 		return v, false
 	}
+}
+
+func sanitizeCallLogUpstreamBody(headers http.Header, body []byte) []byte {
+	if len(body) == 0 {
+		return body
+	}
+	if !protocol.UpstreamResponseLooksLikeSSE(headers.Get("Content-Type"), body) {
+		return body
+	}
+	records := parseCallLogSSEResponse(body)
+	if len(records) == 0 {
+		return body
+	}
+	var out bytes.Buffer
+	changed := false
+	for _, rec := range records {
+		next, ok := sanitizeOpenAIResponsesSSERecord(rec)
+		if ok {
+			rec = next
+			changed = true
+		}
+		if strings.TrimSpace(rec.Event) != "" {
+			out.WriteString("event: ")
+			out.WriteString(rec.Event)
+			out.WriteByte('\n')
+		}
+		if strings.TrimSpace(rec.Data) != "" {
+			out.WriteString("data: ")
+			out.WriteString(rec.Data)
+			out.WriteByte('\n')
+		}
+		out.WriteByte('\n')
+	}
+	if !changed {
+		return body
+	}
+	return out.Bytes()
+}
+
+func parseCallLogSSEResponse(body []byte) []protocol.SSERecord {
+	state := protocol.SSEParseState{}
+	records := protocol.AppendParse(body, &state)
+	records = append(records, protocol.FlushSSEParseState(&state)...)
+	return records
+}
+
+func sanitizeOpenAIResponsesSSERecord(rec protocol.SSERecord) (protocol.SSERecord, bool) {
+	event := strings.TrimSpace(rec.Event)
+	if event == "" {
+		var probe map[string]any
+		if err := json.Unmarshal([]byte(rec.Data), &probe); err == nil {
+			event = strings.TrimSpace(asString(probe["type"]))
+		}
+	}
+	if !strings.HasPrefix(event, "response.") {
+		return rec, false
+	}
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(rec.Data), &payload); err != nil {
+		return rec, false
+	}
+	next, changed := sanitizeOpenAIResponsesPayload(payload)
+	if !changed {
+		return rec, false
+	}
+	raw, err := json.Marshal(next)
+	if err != nil {
+		return rec, false
+	}
+	rec.Data = string(raw)
+	return rec, true
+}
+
+func sanitizeOpenAIResponsesPayload(payload map[string]any) (map[string]any, bool) {
+	if payload == nil {
+		return payload, false
+	}
+	out := make(map[string]any, len(payload))
+	changed := false
+	for key, val := range payload {
+		if strings.EqualFold(key, "response") {
+			if obj, ok := val.(map[string]any); ok {
+				out[key] = sanitizeOpenAIResponseObject(obj)
+				changed = true
+				continue
+			}
+		}
+		if isOpenAIResponseRequestEchoField(key) {
+			changed = true
+			continue
+		}
+		out[key] = val
+	}
+	return out, changed
+}
+
+func sanitizeOpenAIResponseObject(obj map[string]any) map[string]any {
+	out := map[string]any{}
+	for _, key := range []string{
+		"id", "object", "created_at", "status", "completed_at", "error",
+		"incomplete_details", "model", "output", "usage",
+	} {
+		if val, ok := obj[key]; ok {
+			out[key] = val
+		}
+	}
+	return out
+}
+
+func isOpenAIResponseRequestEchoField(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(key)) {
+	case "input", "instructions", "tools", "tool_choice", "parallel_tool_calls",
+		"temperature", "top_p", "max_output_tokens", "max_tokens",
+		"metadata", "truncation", "store", "reasoning":
+		return true
+	default:
+		return false
+	}
+}
+
+func asString(v any) string {
+	s, _ := v.(string)
+	return s
 }
 
 func redactHeaderValue(value string) string {

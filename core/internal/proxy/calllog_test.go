@@ -118,6 +118,76 @@ func TestCallLogPreservesFullBody(t *testing.T) {
 	}
 }
 
+func TestCallLogSanitizesOpenAIResponsesSSERequestEcho(t *testing.T) {
+	store := openTestCallLogStore(t)
+	trace := startRequestTrace(store, mustHTTPRequest(t))
+	if trace == nil {
+		t.Fatal("expected trace")
+	}
+	body := strings.Join([]string{
+		`event: response.created`,
+		`data: {"type":"response.created","response":{"id":"resp_1","object":"response","status":"in_progress","model":"gpt-5.4","instructions":"secret system prompt","tools":[{"name":"Shell"}],"input":[{"role":"user","content":"hello"}],"output":[]}}`,
+		``,
+		`event: response.output_text.delta`,
+		`data: {"type":"response.output_text.delta","delta":"ok"}`,
+		``,
+		`event: response.completed`,
+		`data: {"type":"response.completed","response":{"id":"resp_1","object":"response","status":"completed","model":"gpt-5.4","instructions":"secret system prompt","tools":[{"name":"Shell"}],"input":[{"role":"user","content":"hello"}],"output":[{"type":"message","content":[{"type":"output_text","text":"ok"}]}],"usage":{"input_tokens":1,"output_tokens":1}}}`,
+		``,
+	}, "\n")
+	trace.setUpstreamResponse(http.StatusOK, http.Header{"Content-Type": []string{"text/event-stream"}}, []byte(body))
+	trace.finish()
+
+	entries := store.ListRecent(0)
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+	logged := entries[0].Upstream.Body
+	for _, forbidden := range []string{"secret system prompt", `"tools"`, `"input"`} {
+		if strings.Contains(logged, forbidden) {
+			t.Fatalf("call log leaked %s in body:\n%s", forbidden, logged)
+		}
+	}
+	if !strings.Contains(logged, `"delta":"ok"`) || !strings.Contains(logged, `"usage"`) {
+		t.Fatalf("call log lost response output fields:\n%s", logged)
+	}
+}
+
+func TestCallLogExtractsOpenAIResponsesUsage(t *testing.T) {
+	body := strings.Join([]string{
+		`event: response.completed`,
+		`data: {"response":{"completed_at":1780348109,"created_at":1780348103,"error":null,"id":"resp_test","incomplete_details":null,"model":"gpt-5.4","object":"response","output":[],"status":"completed","usage":{"input_tokens":31853,"input_tokens_details":{"cached_tokens":24576},"output_tokens":172,"output_tokens_details":{"reasoning_tokens":7},"total_tokens":32025}},"sequence_number":174,"type":"response.completed"}`,
+		``,
+	}, "\n")
+	usage := ExtractCallLogTokenUsage(body)
+	if usage == nil {
+		t.Fatal("expected usage")
+	}
+	if usage.InputTokens != 31853 || usage.OutputTokens != 172 || usage.TotalTokens != 32025 ||
+		usage.CacheReadTokens != 24576 || usage.ReasoningTokens != 7 {
+		t.Fatalf("usage = %+v", usage)
+	}
+}
+
+func TestCallLogExtractsAnthropicMessagesUsage(t *testing.T) {
+	body := strings.Join([]string{
+		`event: message_start`,
+		`data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-sonnet","usage":{"input_tokens":40,"output_tokens":1,"cache_creation_input_tokens":2,"cache_read_input_tokens":3}}}`,
+		``,
+		`event: message_delta`,
+		`data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":12}}`,
+		``,
+	}, "\n")
+	usage := ExtractCallLogTokenUsage(body)
+	if usage == nil {
+		t.Fatal("expected usage")
+	}
+	if usage.InputTokens != 40 || usage.OutputTokens != 12 || usage.TotalTokens != 52 ||
+		usage.CacheCreationTokens != 2 || usage.CacheReadTokens != 3 {
+		t.Fatalf("usage = %+v", usage)
+	}
+}
+
 func TestCallLogClear(t *testing.T) {
 	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{Request: CallLogRequest{Method: "POST", URL: "/a"}})

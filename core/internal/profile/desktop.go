@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/clovapi/switcher/internal/agentkind"
@@ -507,7 +508,7 @@ func MergeVendorModels(existing, fetched []Model) []Model {
 		if prev, ok := m[k]; ok {
 			m[k] = Model{
 				ID:       prev.ID,
-				Label:    firstNonEmpty(prev.Label, incoming.Label),
+				Label:    mergeModelLabel(prev, incoming),
 				Model:    incoming.Model,
 				APIStyle: firstStyle(prev.APIStyle, incoming.APIStyle),
 				BaseURL:  firstNonEmpty(incoming.BaseURL, prev.BaseURL),
@@ -527,7 +528,173 @@ func MergeVendorModels(existing, fetched []Model) []Model {
 		seen[k] = struct{}{}
 		out = append(out, m[k])
 	}
+	sort.SliceStable(out, func(i, j int) bool {
+		return modelSortLess(out[i], out[j])
+	})
 	return out
+}
+
+type modelSortKey struct {
+	Known       bool
+	Version     []int
+	FamilyRank  int
+	VariantRank int
+	Date        int
+	ID          string
+}
+
+func modelSortLess(left, right Model) bool {
+	a := modelSortKeyFor(left)
+	b := modelSortKeyFor(right)
+	if a.Known != b.Known {
+		return a.Known
+	}
+	if cmp := compareModelVersion(a.Version, b.Version); cmp != 0 {
+		return cmp > 0
+	}
+	if a.FamilyRank != b.FamilyRank {
+		return a.FamilyRank < b.FamilyRank
+	}
+	if a.Date != b.Date {
+		return a.Date > b.Date
+	}
+	if a.VariantRank != b.VariantRank {
+		return a.VariantRank < b.VariantRank
+	}
+	return a.ID < b.ID
+}
+
+func modelSortKeyFor(model Model) modelSortKey {
+	id := strings.ToLower(strings.TrimSpace(firstNonEmpty(model.ID, model.Model)))
+	key := modelSortKey{
+		FamilyRank:  99,
+		VariantRank: 99,
+		ID:          id,
+	}
+	if strings.HasPrefix(id, "gpt-") {
+		key.Known = true
+		key.Version, key.Date = modelVersionParts(id)
+		key.FamilyRank = 0
+		key.VariantRank = modelVariantRank(id)
+		return key
+	}
+	if strings.HasPrefix(id, "claude-") {
+		key.Known = true
+		key.Version, key.Date = modelVersionParts(id)
+		key.FamilyRank = claudeFamilyRank(id)
+		key.VariantRank = modelVariantRank(id)
+		return key
+	}
+	return key
+}
+
+func compareModelVersion(left, right []int) int {
+	max := len(left)
+	if len(right) > max {
+		max = len(right)
+	}
+	for i := 0; i < max; i++ {
+		a := 0
+		if i < len(left) {
+			a = left[i]
+		}
+		b := 0
+		if i < len(right) {
+			b = right[i]
+		}
+		if a != b {
+			return a - b
+		}
+	}
+	return 0
+}
+
+func modelVersionParts(id string) ([]int, int) {
+	parts := strings.Split(id, "-")
+	version := make([]int, 0, 2)
+	date := 0
+	for _, part := range parts {
+		if strings.Contains(part, ".") {
+			for _, sub := range strings.Split(part, ".") {
+				if allDigits(sub) && len(version) < 2 {
+					version = append(version, atoiDigits(sub))
+				}
+			}
+			continue
+		}
+		if allDigits(part) {
+			n := atoiDigits(part)
+			if len(part) == 8 && n > date {
+				date = n
+				continue
+			}
+			if len(version) < 2 {
+				version = append(version, n)
+			}
+		}
+	}
+	return version, date
+}
+
+func claudeFamilyRank(id string) int {
+	switch {
+	case strings.Contains(id, "-opus-"):
+		return 0
+	case strings.Contains(id, "-sonnet-"):
+		return 1
+	case strings.Contains(id, "-haiku-"):
+		return 2
+	default:
+		return 99
+	}
+}
+
+func modelVariantRank(id string) int {
+	switch {
+	case strings.Contains(id, "-mini"):
+		return 20
+	case strings.Contains(id, "-spark"):
+		return 30
+	default:
+		return 0
+	}
+}
+
+func allDigits(raw string) bool {
+	if raw == "" {
+		return false
+	}
+	for _, r := range raw {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func atoiDigits(raw string) int {
+	out := 0
+	for _, r := range raw {
+		out = out*10 + int(r-'0')
+	}
+	return out
+}
+
+func mergeModelLabel(prev, incoming Model) string {
+	prevLabel := strings.TrimSpace(prev.Label)
+	incomingLabel := strings.TrimSpace(incoming.Label)
+	if incomingLabel == "" {
+		return prevLabel
+	}
+	if prevLabel == "" || modelLabelIsRawID(prevLabel, prev) {
+		return incomingLabel
+	}
+	return prevLabel
+}
+
+func modelLabelIsRawID(label string, model Model) bool {
+	value := strings.TrimSpace(label)
+	return value != "" && (strings.EqualFold(value, strings.TrimSpace(model.ID)) || strings.EqualFold(value, strings.TrimSpace(model.Model)))
 }
 
 func isPlaceholderSubscriptionModelEntry(entry Model) bool {
@@ -1010,7 +1177,14 @@ func IngressStyleForCLI(kind agentkind.Kind, hit VendorModelHit) apistyle.Style 
 	if len(supported) == 1 {
 		return supported[0]
 	}
-	_ = hit
+	if kind == agentkind.Hermes {
+		if st := NormalizeAPIStyle(string(hit.Model.APIStyle)); ingressStyleSupported(supported, st) {
+			return st
+		}
+		if st := NormalizeAPIStyle(string(hit.Vendor.APIStyle)); ingressStyleSupported(supported, st) {
+			return st
+		}
+	}
 	return pickPreferredIngressStyle(supported)
 }
 

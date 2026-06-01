@@ -27,7 +27,6 @@
     void i18n.locale;
     return {
       back: t("common.back"),
-      manage: t("common.manage"),
       title: t("profiles.title"),
       description: t("profiles.description"),
     };
@@ -65,15 +64,14 @@
           title={displayVendorName(vendor.name)}
           lines={[vendorSummaryLine(vendor, sub, store.ollamaInstalled)]}
           onOpen={() => openVendor(vendor.name)}
+          centerContent
+          stopActionsPropagation={false}
         >
           {#snippet leading()}
             <VendorIcon providerId={providerIdForVendor(vendor)} />
           {/snippet}
           {#snippet actions()}
-            <Button size="sm" variant="outline" type="button" onclick={() => openVendor(vendor.name)}>
-              {copy.manage}
-              <ChevronRightIcon class="size-4" />
-            </Button>
+            <ChevronRightIcon class="size-4 text-muted-foreground" aria-hidden="true" />
           {/snippet}
         </ListRow>
       {/each}

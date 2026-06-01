@@ -79,6 +79,9 @@ func TestMultiStyleCLIsUsePreferredIngressForCodexSubscription(t *testing.T) {
 	if got := profile.IngressStyleForCLI(agentkind.KimiCode, hit); got != apistyle.Claude {
 		t.Fatalf("kimi codex ingress = %s, want %s", got, apistyle.Claude)
 	}
+	if got := profile.IngressStyleForCLI(agentkind.Hermes, hit); got != apistyle.OpenAIResponses {
+		t.Fatalf("hermes codex ingress = %s, want %s", got, apistyle.OpenAIResponses)
+	}
 }
 
 func TestKimiCanResolveOpenAICompatibleCustomModel(t *testing.T) {

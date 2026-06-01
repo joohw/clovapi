@@ -196,6 +196,7 @@ func findCallLogEntryInDB(db *sql.DB, id string) (CallLogEntry, error) {
 	if err := json.Unmarshal([]byte(upJSON), &entry.Upstream); err != nil {
 		return CallLogEntry{}, err
 	}
+	entry.Session = callLogSessionKey(entry.SessionKind, entry.SessionID)
 	return entry, nil
 }
 

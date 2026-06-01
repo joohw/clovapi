@@ -156,6 +156,14 @@ export type ProxyLogEntry = {
     headers: Record<string, string>;
     body: string;
   };
+  tokenUsage?: {
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+    cacheReadTokens?: number;
+    cacheCreationTokens?: number;
+    reasoningTokens?: number;
+  };
   error?: string;
 };
 

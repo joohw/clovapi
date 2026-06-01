@@ -21,6 +21,9 @@ import (
 
 func TestServerHealthAndModelsList(t *testing.T) {
 	s := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	s.ProfileLoader = func() (*profile.Store, error) {
+		return &profile.Store{Version: profile.StoreVersion}, nil
+	}
 	ts := httptest.NewServer(s.Server.Handler)
 	defer ts.Close()
 
@@ -197,29 +200,11 @@ func TestDebugRoutesAllowLoopbackClientsWhenLocalOnly(t *testing.T) {
 	}
 }
 
-func TestServerCodexModelsListProxiesOfficialShape(t *testing.T) {
+func TestServerCodexModelsListReturnsLocalVendorModels(t *testing.T) {
+	upstreamHit := false
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/backend-api/codex/models" {
-			t.Fatalf("upstream path = %q", r.URL.Path)
-		}
-		if r.URL.Query().Get("client_version") != "0.130.0" {
-			t.Fatalf("query = %q", r.URL.RawQuery)
-		}
-		if got := r.Header.Get("chatgpt-account-id"); got != "acct-test" {
-			t.Fatalf("chatgpt-account-id = %q", got)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"models": []map[string]any{{
-				"slug":              "gpt-5.4",
-				"display_name":      "gpt-5.4",
-				"visibility":        "list",
-				"supported_in_api":  true,
-				"priority":          1,
-				"shell_type":        "shell_command",
-				"base_instructions": "test",
-			}},
-		})
+		upstreamHit = true
+		http.Error(w, "should not be called", http.StatusTeapot)
 	}))
 	defer upstream.Close()
 
@@ -236,6 +221,9 @@ func TestServerCodexModelsListProxiesOfficialShape(t *testing.T) {
 			Models: []profile.Model{{
 				ID:    "gpt-5.4",
 				Model: "gpt-5.4",
+			}, {
+				ID:    "gpt-5.3",
+				Model: "gpt-5.3",
 			}},
 		}},
 	}
@@ -245,7 +233,7 @@ func TestServerCodexModelsListProxiesOfficialShape(t *testing.T) {
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
 
-	resp, err := http.Get(ts.URL + "/codex/gpt-5.4/openai-responses/v1/models?client_version=0.130.0")
+	resp, err := http.Get(ts.URL + "/codex/gpt-5.4/openai-responses/v1/models")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,14 +242,18 @@ func TestServerCodexModelsListProxiesOfficialShape(t *testing.T) {
 		t.Fatalf("status = %d", resp.StatusCode)
 	}
 	var body struct {
-		Models []struct {
-			Slug string `json:"slug"`
-		} `json:"models"`
+		Object string `json:"object"`
+		Data   []struct {
+			ID string `json:"id"`
+		} `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	if len(body.Models) != 1 || body.Models[0].Slug != "gpt-5.4" {
+	if upstreamHit {
+		t.Fatal("models list should be served from local vendor models, not upstream")
+	}
+	if body.Object != "list" || len(body.Data) != 2 || body.Data[0].ID != "gpt-5.4" || body.Data[1].ID != "gpt-5.3" {
 		t.Fatalf("body = %+v", body)
 	}
 }

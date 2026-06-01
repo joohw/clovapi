@@ -431,7 +431,6 @@ function createWindow() {
           const message = error instanceof Error ? error.message : String(error);
           emitOutput("stderr", `[dev] bridge check failed: ${message}\n`);
         }
-        mainWindow.webContents.openDevTools({ mode: "detach" });
       })();
     });
   } else {

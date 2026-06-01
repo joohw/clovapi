@@ -13,6 +13,7 @@
     indent = false,
     linesNowrap = false,
     centerContent = false,
+    stopActionsPropagation = true,
     class: className = "",
     onOpen,
     leading,
@@ -27,6 +28,7 @@
     indent?: boolean;
     linesNowrap?: boolean;
     centerContent?: boolean;
+    stopActionsPropagation?: boolean;
     class?: string;
     onOpen?: () => void;
     leading?: Snippet;
@@ -52,48 +54,52 @@
       testStatus !== "pass" && testStatus !== "fail" && testStatus !== "testing" && "text-muted-foreground",
     ),
   );
+
+  function onRowKeydown(event: KeyboardEvent) {
+    if (!onOpen) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    onOpen();
+  }
+
+  function stopActionClick(event: MouseEvent) {
+    if (!onOpen || !stopActionsPropagation) return;
+    event.stopPropagation();
+  }
+
+  function stopActionKeydown(event: KeyboardEvent) {
+    if (!onOpen || !stopActionsPropagation) return;
+    event.stopPropagation();
+  }
+
+  const rowClass = $derived(
+    cn(
+      "flex flex-col gap-3 border-b border-border px-4 py-3 last:border-b-0 sm:flex-row sm:justify-between",
+      onOpen && "cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      centerContent ? "sm:items-center" : "sm:items-start",
+      muted && "bg-muted/30",
+      indent && "pl-8",
+      testStatus === "testing" && "bg-amber-500/5",
+      testStatus === "pass" && "bg-emerald-500/5",
+      testStatus === "fail" && "bg-red-500/5",
+      className,
+    ),
+  );
 </script>
 
-{#snippet titleRow(clickable: boolean)}
-  {#if clickable}
-    <button
-      type="button"
-      class="flex w-full min-w-0 items-center gap-2 text-left text-sm font-medium leading-none transition-colors hover:text-primary"
-      onclick={onOpen}
-    >
-      {#if showStatusDot}
-        <span class={dotClass} aria-hidden="true"></span>
-      {/if}
-      <span class="min-w-0 truncate">{title}</span>
-      {#if testSummary}
-        <span class={summaryClass}>{testSummary}</span>
-      {/if}
-    </button>
-  {:else}
-    <div class="flex min-w-0 items-center gap-2 text-sm font-medium leading-none">
-      {#if showStatusDot}
-        <span class={dotClass} aria-hidden="true"></span>
-      {/if}
-      <span class="min-w-0 truncate">{title}</span>
-      {#if testSummary}
-        <span class={summaryClass}>{testSummary}</span>
-      {/if}
-    </div>
-  {/if}
+{#snippet titleRow()}
+  <div class="flex min-w-0 items-center gap-2 text-sm font-medium leading-none">
+    {#if showStatusDot}
+      <span class={dotClass} aria-hidden="true"></span>
+    {/if}
+    <span class="min-w-0 truncate">{title}</span>
+    {#if testSummary}
+      <span class={summaryClass}>{testSummary}</span>
+    {/if}
+  </div>
 {/snippet}
 
-<div
-  class={cn(
-    "flex flex-col gap-3 border-b border-border px-4 py-3 last:border-b-0 sm:flex-row sm:justify-between",
-    centerContent ? "sm:items-center" : "sm:items-start",
-    muted && "bg-muted/30",
-    indent && "pl-8",
-    testStatus === "testing" && "bg-amber-500/5",
-    testStatus === "pass" && "bg-emerald-500/5",
-    testStatus === "fail" && "bg-red-500/5",
-    className,
-  )}
->
+{#snippet rowContent()}
   <div class="flex min-w-0 flex-1 items-center gap-3">
     {#if leading}
       <div class="shrink-0 self-center">
@@ -101,11 +107,7 @@
       </div>
     {/if}
     <div class="min-w-0 flex-1 space-y-1">
-      {#if onOpen}
-        {@render titleRow(true)}
-      {:else}
-        {@render titleRow(false)}
-      {/if}
+      {@render titleRow()}
       {#each lines as line (line)}
         <p
           class={cn(
@@ -120,8 +122,23 @@
     </div>
   </div>
   {#if actions}
-    <div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+    <div
+      class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end"
+      role="presentation"
+      onclick={stopActionClick}
+      onkeydown={stopActionKeydown}
+    >
       {@render actions()}
     </div>
   {/if}
-</div>
+{/snippet}
+
+{#if onOpen}
+  <div role="button" tabindex="0" onclick={onOpen} onkeydown={onRowKeydown} class={rowClass}>
+    {@render rowContent()}
+  </div>
+{:else}
+  <div class={rowClass}>
+    {@render rowContent()}
+  </div>
+{/if}

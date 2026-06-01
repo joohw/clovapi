@@ -53,6 +53,8 @@ var authProviders = []struct {
 	{ID: provider.CodexProviderID, Label: provider.CodexVendorName, Command: "codex"},
 }
 
+const codexClientVersion = "0.133.0"
+
 // claudeAuthPath returns clovapi's own Claude OAuth store (independent from
 // Claude Code's ~/.claude/.credentials.json). Auth status and logout operate on
 // this file only.
@@ -345,6 +347,26 @@ func modelsURLCandidates(baseURL string) []string {
 	return []string{base + "/v1/models", base + "/models"}
 }
 
+func modelRowString(row map[string]any, keys ...string) string {
+	for _, key := range keys {
+		if value, ok := row[key].(string); ok {
+			if trimmed := strings.TrimSpace(value); trimmed != "" {
+				return trimmed
+			}
+		}
+	}
+	return ""
+}
+
+func modelRowBool(row map[string]any, keys ...string) (bool, bool) {
+	for _, key := range keys {
+		if value, ok := row[key].(bool); ok {
+			return value, true
+		}
+	}
+	return false, false
+}
+
 func parseOpenAIModels(body []byte, defaultStyle string) ([]profile.Model, error) {
 	var payload map[string]any
 	if err := json.Unmarshal(body, &payload); err != nil {
@@ -366,13 +388,18 @@ func parseOpenAIModels(body []byte, defaultStyle string) ([]profile.Model, error
 		if row == nil {
 			continue
 		}
-		modelID, _ := row["id"].(string)
-		if modelID == "" {
-			modelID, _ = row["name"].(string)
-		}
-		modelID = strings.TrimSpace(modelID)
+		modelID := modelRowString(row, "id", "model", "slug", "name")
 		if modelID == "" {
 			continue
+		}
+		label := modelRowString(row, "display_name", "displayName")
+		if label == "" {
+			if name := modelRowString(row, "name"); name != "" && !strings.EqualFold(name, modelID) {
+				label = name
+			}
+		}
+		if label == "" {
+			label = modelID
 		}
 		key := strings.ToLower(modelID)
 		if _, ok := seen[key]; ok {
@@ -381,7 +408,7 @@ func parseOpenAIModels(body []byte, defaultStyle string) ([]profile.Model, error
 		seen[key] = struct{}{}
 		out = append(out, profile.NormalizeModelEntry(profile.Model{
 			ID:       modelID,
-			Label:    modelID,
+			Label:    label,
 			Model:    modelID,
 			APIStyle: profile.NormalizeAPIStyle(defaultStyle),
 		}, len(out)))
@@ -390,6 +417,90 @@ func parseOpenAIModels(body []byte, defaultStyle string) ([]profile.Model, error
 		return nil, fmt.Errorf("上游返回空模型列表")
 	}
 	return out, nil
+}
+
+func titleWord(raw string) string {
+	word := strings.ToLower(strings.TrimSpace(raw))
+	if word == "" {
+		return ""
+	}
+	return strings.ToUpper(word[:1]) + word[1:]
+}
+
+func numericPart(raw string) bool {
+	if raw == "" {
+		return false
+	}
+	for _, r := range raw {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func prettyClaudeModelLabel(modelID string) string {
+	raw := strings.ToLower(strings.TrimSpace(modelID))
+	if !strings.HasPrefix(raw, "claude-") {
+		return ""
+	}
+	parts := strings.Split(strings.TrimPrefix(raw, "claude-"), "-")
+	if len(parts) < 2 {
+		return ""
+	}
+	family := ""
+	version := []string{}
+	knownFamily := func(part string) bool {
+		switch part {
+		case "opus", "sonnet", "haiku":
+			return true
+		default:
+			return false
+		}
+	}
+	if knownFamily(parts[0]) {
+		family = parts[0]
+		for _, part := range parts[1:] {
+			if !numericPart(part) {
+				break
+			}
+			version = append(version, part)
+			if len(version) == 2 {
+				break
+			}
+		}
+	} else {
+		for i, part := range parts {
+			if knownFamily(part) {
+				family = part
+				version = parts[:i]
+				break
+			}
+		}
+	}
+	if family == "" || len(version) == 0 {
+		return ""
+	}
+	if len(version) > 2 {
+		version = version[:2]
+	}
+	return "Claude " + titleWord(family) + " " + strings.Join(version, ".")
+}
+
+func normalizeClaudeSubscriptionModelLabels(models []profile.Model) []profile.Model {
+	for i := range models {
+		current := strings.TrimSpace(models[i].Label)
+		if current == "" || strings.EqualFold(current, strings.TrimSpace(models[i].ID)) || strings.EqualFold(current, strings.TrimSpace(models[i].Model)) {
+			modelID := strings.TrimSpace(models[i].Model)
+			if modelID == "" {
+				modelID = strings.TrimSpace(models[i].ID)
+			}
+			if label := prettyClaudeModelLabel(modelID); label != "" {
+				models[i].Label = label
+			}
+		}
+	}
+	return models
 }
 
 func fetchOpenAICompatibleModels(vendor profile.Profile, defaultStyle string) ([]profile.Model, string, error) {
@@ -480,7 +591,7 @@ func fetchClaudeSubscriptionModels(vendor profile.Profile, defaultStyle string) 
 	if err != nil {
 		return nil, "", err
 	}
-	return models, "", nil
+	return normalizeClaudeSubscriptionModelLabels(models), "", nil
 }
 
 func readAuthJSONOrClaudeFallback() (map[string]any, bool) {
@@ -493,25 +604,39 @@ func readAuthJSONOrClaudeFallback() (map[string]any, bool) {
 	return profile.ClaudeAuthRoot()
 }
 
-func fetchCodexSubscriptionModels(vendor profile.Profile, defaultStyle string) ([]profile.Model, string, error) {
-	flat := vendor
-	profile.HydrateSubscriptionCredentials(&flat)
-	if strings.TrimSpace(flat.APIKey) == "" || strings.TrimSpace(flat.AccountID) == "" {
-		return nil, "", fmt.Errorf("Codex 订阅未登录或凭据不完整")
+func codexModelsListURL() string {
+	return "https://chatgpt.com/backend-api/codex/models?client_version=" + codexClientVersion
+}
+
+func codexModelsListFromPayload(payload any) []any {
+	switch body := payload.(type) {
+	case []any:
+		return body
+	case map[string]any:
+		if list, _ := body["models"].([]any); len(list) > 0 {
+			return list
+		}
+		if list, _ := body["data"].([]any); len(list) > 0 {
+			return list
+		}
+		if result, _ := body["result"].(map[string]any); result != nil {
+			if list, _ := result["data"].([]any); len(list) > 0 {
+				return list
+			}
+			if list, _ := result["models"].([]any); len(list) > 0 {
+				return list
+			}
+		}
 	}
-	url := "https://chatgpt.com/backend-api/codex/models?client_version=0.105.0"
-	body, err := httpGetJSON(url, map[string]string{
-		"Authorization":      "Bearer " + flat.APIKey,
-		"Chatgpt-Account-Id": flat.AccountID,
-	})
-	if err != nil {
-		return nil, "", err
-	}
-	var payload map[string]any
+	return nil
+}
+
+func parseCodexSubscriptionModels(body []byte, defaultStyle string) ([]profile.Model, error) {
+	var payload any
 	if err := json.Unmarshal(body, &payload); err != nil {
-		return nil, "", fmt.Errorf("响应不是 JSON")
+		return nil, fmt.Errorf("响应不是 JSON")
 	}
-	list, _ := payload["models"].([]any)
+	list := codexModelsListFromPayload(payload)
 	out := make([]profile.Model, 0, len(list))
 	seen := map[string]struct{}{}
 	for _, item := range list {
@@ -519,11 +644,17 @@ func fetchCodexSubscriptionModels(vendor profile.Profile, defaultStyle string) (
 		if row == nil {
 			continue
 		}
-		modelID, _ := row["slug"].(string)
-		if modelID == "" {
-			modelID, _ = row["id"].(string)
+		if hidden, ok := modelRowBool(row, "hidden"); ok && hidden {
+			continue
 		}
-		modelID = strings.TrimSpace(modelID)
+		visibility := strings.ToLower(modelRowString(row, "visibility"))
+		if visibility == "hide" || visibility == "hidden" {
+			continue
+		}
+		if supported, ok := modelRowBool(row, "supported_in_api", "supportedInAPI"); ok && !supported {
+			continue
+		}
+		modelID := modelRowString(row, "slug", "id", "model")
 		if modelID == "" {
 			continue
 		}
@@ -532,17 +663,42 @@ func fetchCodexSubscriptionModels(vendor profile.Profile, defaultStyle string) (
 			continue
 		}
 		seen[key] = struct{}{}
-		label, _ := row["display_name"].(string)
-		if strings.TrimSpace(label) == "" {
+		label := modelRowString(row, "display_name", "displayName", "name")
+		if label == "" {
 			label = modelID
 		}
 		out = append(out, profile.NormalizeModelEntry(profile.Model{
-			ID: modelID, Label: label, Model: modelID,
+			ID:       modelID,
+			Label:    label,
+			Model:    modelID,
 			APIStyle: profile.NormalizeAPIStyle(defaultStyle),
 		}, len(out)))
 	}
 	if len(out) == 0 {
-		return nil, "", fmt.Errorf("上游返回空模型列表")
+		return nil, fmt.Errorf("上游返回空模型列表")
+	}
+	return out, nil
+}
+
+func fetchCodexSubscriptionModels(vendor profile.Profile, defaultStyle string) ([]profile.Model, string, error) {
+	flat := vendor
+	profile.HydrateSubscriptionCredentials(&flat)
+	if strings.TrimSpace(flat.APIKey) == "" || strings.TrimSpace(flat.AccountID) == "" {
+		return nil, "", fmt.Errorf("Codex 订阅未登录或凭据不完整")
+	}
+	url := codexModelsListURL()
+	body, err := httpGetJSON(url, map[string]string{
+		"Authorization":      "Bearer " + flat.APIKey,
+		"Chatgpt-Account-Id": flat.AccountID,
+		"OpenAI-Beta":        "responses=experimental",
+		"Originator":         "clovapi",
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	out, err := parseCodexSubscriptionModels(body, defaultStyle)
+	if err != nil {
+		return nil, "", err
 	}
 	return out, url, nil
 }

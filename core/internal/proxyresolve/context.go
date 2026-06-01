@@ -62,7 +62,7 @@ type AuthSummary struct {
 	Scheme string `json:"scheme"` // bearer|anthropic_api_key|anthropic_oauth_headers|responses_codex_headers|generic
 }
 
-// LooksLikeClaudeOAuthToken mirrors electron/claude-backend isClaudeOAuthToken without logging the secret.
+// LooksLikeClaudeOAuthToken detects Claude OAuth tokens without logging the secret.
 func LooksLikeClaudeOAuthToken(apiKey string) bool {
 	return strings.Contains(strings.TrimSpace(apiKey), "sk-ant-oat")
 }

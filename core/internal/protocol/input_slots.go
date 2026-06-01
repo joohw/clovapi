@@ -66,6 +66,9 @@ func toolResultFromResponsesItem(item map[string]any) *ToolResult {
 
 func inputSlotToResponsesWire(slot InputSlot) (any, bool) {
 	if slot.Message != nil {
+		if isSystemLikeRole(string(slot.Message.Role)) {
+			return nil, false
+		}
 		return messageToResponsesInputItem(*slot.Message), true
 	}
 	if slot.ToolCall != nil {

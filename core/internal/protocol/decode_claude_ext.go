@@ -168,6 +168,9 @@ func decodeClaudeInputSlots(messages []any) []InputSlot {
 		if role == "" {
 			role = string(RoleUser)
 		}
+		if isSystemLikeRole(role) {
+			continue
+		}
 		content := msg["content"]
 		blocks, ok := content.([]any)
 		if !ok {

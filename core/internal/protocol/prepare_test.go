@@ -110,6 +110,44 @@ func TestPrepareClaudeToolResultForResponsesEgress(t *testing.T) {
 	}
 }
 
+func TestPrepareClaudeSystemRoleForResponsesEgressUsesInstructionsOnly(t *testing.T) {
+	body := []byte(`{
+		"model":"gpt-5.4",
+		"stream":true,
+		"messages":[
+			{"role":"system","content":"System rules"},
+			{"role":"developer","content":[{"type":"text","text":"Developer rules"}]},
+			{"role":"user","content":"hello"}
+		]
+	}`)
+
+	upstream, _, err := PrepareUpstreamRequest(apistyle.Claude, apistyle.OpenAIResponses, body, PrepareOptions{
+		Model:       "gpt-5.4",
+		ForceStream: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(upstream, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got["instructions"] != "System rules\n\nDeveloper rules" {
+		t.Fatalf("instructions = %#v; upstream = %s", got["instructions"], upstream)
+	}
+	input, _ := got["input"].([]any)
+	if len(input) != 1 {
+		t.Fatalf("input = %#v; upstream = %s", got["input"], upstream)
+	}
+	item, _ := input[0].(map[string]any)
+	if item["role"] != string(RoleUser) {
+		t.Fatalf("input item = %#v; upstream = %s", item, upstream)
+	}
+	if strings.Contains(string(upstream), `"role":"system"`) || strings.Contains(string(upstream), `"role":"developer"`) {
+		t.Fatalf("system-like role leaked into Responses input: %s", upstream)
+	}
+}
+
 func TestPrepareClaudeOAuthSameStylePreservesClaudeWireFields(t *testing.T) {
 	body := []byte(`{
 		"model":"claude-opus-4-7",

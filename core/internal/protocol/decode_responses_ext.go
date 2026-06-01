@@ -217,6 +217,9 @@ func messageToResponsesInputItem(m Message) map[string]any {
 func messagesToResponsesInputArray(msgs []Message) []any {
 	out := make([]any, 0, len(msgs))
 	for _, m := range msgs {
+		if isSystemLikeRole(string(m.Role)) {
+			continue
+		}
 		if strings.TrimSpace(m.Content) == "" && !messageHasImage(m) {
 			continue
 		}

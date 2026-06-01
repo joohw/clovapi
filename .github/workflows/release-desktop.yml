@@ -29,7 +29,7 @@ jobs:
       tag: ${{ steps.release_tag.outputs.tag }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Decide R2 publish
         id: r2_gate
@@ -60,7 +60,7 @@ jobs:
     if: needs.prepare.outputs.publish == 'true'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Sync desktop version from input
         if: github.event.inputs.version != ''
@@ -69,9 +69,9 @@ jobs:
         run: node scripts/sync-desktop-version.mjs
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: electron/package-lock.json
 
@@ -142,7 +142,7 @@ jobs:
     if: needs.prepare.outputs.publish == 'true'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Sync desktop version from input
         if: github.event.inputs.version != ''
@@ -152,9 +152,9 @@ jobs:
         run: node scripts/sync-desktop-version.mjs
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: electron/package-lock.json
 

@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Decide landing deploy
         id: deploy_gate
@@ -37,9 +37,9 @@ jobs:
 
       - name: Setup Node
         if: steps.deploy_gate.outputs.deploy == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install deploy dependencies
         if: steps.deploy_gate.outputs.deploy == 'true'

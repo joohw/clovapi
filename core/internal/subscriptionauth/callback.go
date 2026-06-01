@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 )
 
 type callbackData struct {
@@ -30,6 +31,7 @@ type callbackOptions struct {
 
 type callbackServer struct {
 	server *http.Server
+	ln     net.Listener
 	done   chan callbackResult
 	once   sync.Once
 }
@@ -64,14 +66,18 @@ func startCallbackServer(ctx context.Context, opts callbackOptions) (*callbackSe
 	})
 	cs.server = &http.Server{Handler: mux}
 
+	if err := prepareCallbackPort(opts.Port); err != nil {
+		return nil, err
+	}
 	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", opts.Port))
 	if err != nil {
 		return nil, err
 	}
+	cs.ln = ln
 	go func() {
 		<-ctx.Done()
 		cs.complete(callbackResult{err: errCallbackCancelled})
-		_ = cs.server.Close()
+		cs.close()
 	}()
 	go func() {
 		if err := cs.server.Serve(ln); err != nil && err != http.ErrServerClosed {
@@ -91,7 +97,16 @@ func (s *callbackServer) Wait(ctx context.Context) (callbackData, error) {
 }
 
 func (s *callbackServer) Close() {
-	_ = s.server.Close()
+	s.close()
+}
+
+func (s *callbackServer) close() {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	_ = s.server.Shutdown(ctx)
+	if s.ln != nil {
+		_ = s.ln.Close()
+	}
 }
 
 func (s *callbackServer) complete(result callbackResult) {

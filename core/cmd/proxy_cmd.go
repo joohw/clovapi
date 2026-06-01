@@ -238,6 +238,9 @@ func shouldSkipAutoProxy(cmd *cobra.Command) bool {
 		cmd.Parent().Parent().Name() == "desktop" {
 		return true
 	}
+	if isDesktopAuthCommand(cmd) {
+		return true
+	}
 	for c := cmd; c != nil; c = c.Parent() {
 		switch c.Name() {
 		case "__proxy-daemon", "update", "version":
@@ -245,6 +248,25 @@ func shouldSkipAutoProxy(cmd *cobra.Command) bool {
 		}
 	}
 	return false
+}
+
+func isDesktopAuthCommand(cmd *cobra.Command) bool {
+	if cmd == nil {
+		return false
+	}
+	auth := cmd
+	for auth != nil && auth.Name() != "auth" {
+		auth = auth.Parent()
+	}
+	if auth == nil || auth.Parent() == nil || auth.Parent().Name() != "desktop" {
+		return false
+	}
+	switch cmd.Name() {
+	case "login", "logout", "status":
+		return true
+	default:
+		return false
+	}
 }
 
 func cmdHiddenProxyDaemon() *cobra.Command {

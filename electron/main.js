@@ -815,7 +815,19 @@ async function runSubscriptionLogin(providerId) {
   }
   const executable = resolveClovapiExecutablePath();
   if (!executable) return { ok: false, error: "clovapi executable not found" };
-  return new Promise((resolve) => {
+
+  let proxyWasRunning = false;
+  try {
+    const status = await proxyManager.status();
+    proxyWasRunning = Boolean(status?.running);
+    if (proxyWasRunning) {
+      await proxyManager.stop({ suppressAutostart: true });
+    }
+  } catch (error) {
+    emitOutput("stderr", `[subscription] proxy pause before OAuth failed: ${error instanceof Error ? error.message : String(error)}\n`);
+  }
+
+  const loginResult = await new Promise((resolve) => {
     const args = ["desktop", "auth", "login", "--provider", providerId, "--json"];
     const child = spawn(executable, args, {
       windowsHide: true,
@@ -858,6 +870,16 @@ async function runSubscriptionLogin(providerId) {
       }
     });
   });
+
+  if (proxyWasRunning) {
+    try {
+      const cfg = await proxyManager.loadProxyConfig();
+      await proxyManager.start({ port: cfg.port, host: cfg.host });
+    } catch (error) {
+      emitOutput("stderr", `[subscription] proxy resume after OAuth failed: ${error instanceof Error ? error.message : String(error)}\n`);
+    }
+  }
+  return loginResult;
 }
 
 ipcMain.handle("subscription:status", async () => {

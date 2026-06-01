@@ -54,3 +54,15 @@ func TestShouldSkipAutoProxyForDesktopProfilesTest(t *testing.T) {
 		t.Fatal("desktop profiles test should manage proxy startup itself")
 	}
 }
+
+func TestShouldSkipAutoProxyForDesktopAuthLogin(t *testing.T) {
+	desktop := &cobra.Command{Use: "desktop"}
+	auth := &cobra.Command{Use: "auth"}
+	login := &cobra.Command{Use: "login"}
+	desktop.AddCommand(auth)
+	auth.AddCommand(login)
+
+	if !shouldSkipAutoProxy(login) {
+		t.Fatal("desktop auth login should not auto-start proxy during OAuth")
+	}
+}

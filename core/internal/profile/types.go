@@ -5,7 +5,16 @@ import (
 	"github.com/clovapi/switcher/internal/apistyle"
 )
 
-const StoreVersion = 5
+const StoreVersion = 6
+
+// ConfigBackup stores the pre-clovapi contents for one CLI config file so
+// reset-to-default can restore the exact previous bytes instead of only
+// deleting clovapi-owned keys.
+type ConfigBackup struct {
+	Path    string `json:"path,omitempty"`
+	Existed bool   `json:"existed"`
+	Content []byte `json:"content,omitempty"`
+}
 
 // Profile is one saved upstream binding (API surface + endpoint + credentials).
 // The simple top-level fields preserve the original CLI profile shape; Kind/Models
@@ -64,4 +73,5 @@ type Store struct {
 	Active  map[string]ActiveSelection `json:"active"`   // agent kind -> active provider/model
 	List    []Profile                  `json:"profiles"` // all saved vendor/API profiles
 	Proxy   ProxyConfig                `json:"proxy"`
+	Backups map[string]ConfigBackup    `json:"backups,omitempty"`
 }

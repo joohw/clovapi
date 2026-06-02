@@ -12,6 +12,7 @@ import (
 	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/apply"
 	"github.com/clovapi/switcher/internal/cliswitch"
+	"github.com/clovapi/switcher/internal/desktop"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/syslog"
 )
@@ -27,14 +28,11 @@ func runSwitch(sc *bufio.Scanner, s *profile.Store, kind agentkind.Kind, resetFl
 		if strings.TrimSpace(providerFlag) != "" || strings.TrimSpace(vendorFlag) != "" || strings.TrimSpace(modelFlag) != "" {
 			return fmt.Errorf("cannot use --reset with --provider, --vendor or --model")
 		}
-		if err := apply.ResetDefault(kind); err != nil {
+		if err := desktop.ResetCLIToDefault(kind); err != nil {
 			return err
 		}
 		syslog.LogCLIReset(kind)
-		if err := clearActiveBinding(kind); err != nil {
-			return err
-		}
-		fmt.Printf("Reset %s to default (cleared clovapi relay bindings).\n", kind)
+		fmt.Printf("Reset %s to default (restored backup when available; otherwise cleared clovapi relay bindings).\n", kind)
 		return nil
 	}
 
@@ -57,13 +55,10 @@ func runSwitch(sc *bufio.Scanner, s *profile.Store, kind agentkind.Kind, resetFl
 		return err
 	} else if ok {
 		if picked.reset {
-			if err := apply.ResetDefault(kind); err != nil {
+			if err := desktop.ResetCLIToDefault(kind); err != nil {
 				return err
 			}
-			if err := clearActiveBinding(kind); err != nil {
-				return err
-			}
-			fmt.Printf("Reset %s to default (cleared clovapi relay bindings).\n", kind)
+			fmt.Printf("Reset %s to default (restored backup when available; otherwise cleared clovapi relay bindings).\n", kind)
 			return nil
 		}
 		return applyProviderModelSwitch(kind, picked.selection.ProviderID, picked.selection.ModelID)
@@ -76,7 +71,7 @@ func runSwitch(sc *bufio.Scanner, s *profile.Store, kind agentkind.Kind, resetFl
 	}
 
 	if !switchNeedsInteractive(sc, s, kind, bindingFlag, providerFlag, vendorFlag, modelFlag, directBaseURL, positional) {
-		return fmt.Errorf("no model selected for %s — pass Vendor/model, or --vendor with --model, or --binding", kind)
+		return fmt.Errorf("no model selected for %s - pass Vendor/model, or --vendor with --model, or --binding", kind)
 	}
 
 	picked, err := promptSwitchForCLI(sc, kind, s)
@@ -84,30 +79,13 @@ func runSwitch(sc *bufio.Scanner, s *profile.Store, kind agentkind.Kind, resetFl
 		return err
 	}
 	if picked.reset {
-		if err := apply.ResetDefault(kind); err != nil {
+		if err := desktop.ResetCLIToDefault(kind); err != nil {
 			return err
 		}
-		if err := clearActiveBinding(kind); err != nil {
-			return err
-		}
-		fmt.Printf("Reset %s to default (cleared clovapi relay bindings).\n", kind)
+		fmt.Printf("Reset %s to default (restored backup when available; otherwise cleared clovapi relay bindings).\n", kind)
 		return nil
 	}
 	return applyProviderModelSwitch(kind, picked.selection.ProviderID, picked.selection.ModelID)
-}
-
-func clearActiveBinding(kind agentkind.Kind) error {
-	_, err := profile.WithLockedStore(func(s *profile.Store) (bool, error) {
-		if s.Active == nil {
-			return false, nil
-		}
-		if _, ok := s.Active[string(kind)]; !ok {
-			return false, nil
-		}
-		s.ClearActive(string(kind))
-		return true, nil
-	})
-	return err
 }
 
 type switchPick struct {
@@ -118,7 +96,7 @@ type switchPick struct {
 func promptSwitchForCLI(sc *bufio.Scanner, kind agentkind.Kind, s *profile.Store) (switchPick, error) {
 	vendors := cliswitch.VendorsForCLI(s, kind)
 	if len(vendors) == 0 {
-		return switchPick{}, fmt.Errorf("no compatible vendors for %s — configure providers in the desktop app or profiles.json", kind)
+		return switchPick{}, fmt.Errorf("no compatible vendors for %s - configure providers in the desktop app or profiles.json", kind)
 	}
 
 	fmt.Println()
@@ -154,7 +132,7 @@ func promptSwitchForCLI(sc *bufio.Scanner, kind agentkind.Kind, s *profile.Store
 			return switchPick{reset: true}, nil
 		}
 		if n < 1 || n > len(vendorPicks) {
-			return switchPick{}, fmt.Errorf("choose 0–%d", len(vendorPicks))
+			return switchPick{}, fmt.Errorf("choose 0-%d", len(vendorPicks))
 		}
 		return promptModelForVendor(sc, kind, s, vendorPicks[n-1], activeProvider, activeModel, hasActive)
 	}
@@ -218,7 +196,7 @@ func promptModelForVendor(sc *bufio.Scanner, kind agentkind.Kind, s *profile.Sto
 	}
 	if n, err := strconv.Atoi(line); err == nil {
 		if n < 1 || n > len(modelPicks) {
-			return switchPick{}, fmt.Errorf("choose 1–%d", len(modelPicks))
+			return switchPick{}, fmt.Errorf("choose 1-%d", len(modelPicks))
 		}
 		modelID := strings.TrimSpace(modelPicks[n-1].ID)
 		selection, err := cliswitch.ResolveSelection(s, kind, vendorName, modelID)
@@ -253,7 +231,7 @@ func modelStyleShow(m profile.Model) string {
 	if strings.TrimSpace(string(m.APIStyle)) != "" {
 		return string(m.APIStyle)
 	}
-	return "—"
+	return "-"
 }
 
 func resolveSwitchSelectionOrError(s *profile.Store, kind agentkind.Kind, providerFlag, vendorFlag, modelFlag, bindingFlag, positional string) (profile.ActiveSelection, error) {
@@ -348,6 +326,9 @@ func applyDirectToCLI(kind agentkind.Kind, baseURL, apiKey, model, styleStr stri
 	}
 	if !apply.KindSupportsStyle(kind, p.APIStyle) {
 		return fmt.Errorf("cli %q does not support api_style %q (supported here: %s)", kind, p.APIStyle, styleChoices(kind))
+	}
+	if err := desktop.EnsureCLIBackup(kind); err != nil {
+		return err
 	}
 	if err := apply.Apply(p); err != nil {
 		return err

@@ -42,6 +42,7 @@ func emptyStore() *Store {
 		Active:  map[string]ActiveSelection{},
 		List:    nil,
 		Proxy:   defaultProxyConfig(),
+		Backups: map[string]ConfigBackup{},
 	}
 }
 
@@ -65,6 +66,7 @@ func (s *Store) UnmarshalJSON(data []byte) error {
 		Active  map[string]json.RawMessage `json:"active"`
 		List    []Profile                  `json:"profiles"`
 		Proxy   ProxyConfig                `json:"proxy"`
+		Backups map[string]ConfigBackup    `json:"backups"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
@@ -74,6 +76,7 @@ func (s *Store) UnmarshalJSON(data []byte) error {
 		Active:  map[string]ActiveSelection{},
 		List:    raw.List,
 		Proxy:   raw.Proxy,
+		Backups: raw.Backups,
 	}
 	for agent, payload := range raw.Active {
 		var sel ActiveSelection
@@ -121,6 +124,9 @@ func loadNoLock() (*Store, error) {
 	if s.Active == nil {
 		s.Active = map[string]ActiveSelection{}
 	}
+	if s.Backups == nil {
+		s.Backups = map[string]ConfigBackup{}
+	}
 	ensureProxyDefaults(&s, oldVersion)
 	return &s, nil
 }
@@ -164,7 +170,7 @@ func migrateLegacyCurrentIntoProfiles(raw []byte, s *Store) {
 	s.List = append(s.List, cur)
 }
 
-// migrateLegacyAPIStyles maps pre-split JSON api_style "openai" → openai-responses (Codex wire_api).
+// migrateLegacyAPIStyles maps pre-split JSON api_style "openai" to openai-responses (Codex wire_api).
 func migrateLegacyAPIStyles(s *Store) {
 	for i := range s.List {
 		if string(s.List[i].APIStyle) == "openai" {
@@ -179,6 +185,9 @@ func saveNoLock(s *Store) error {
 	}
 	if s.Active == nil {
 		s.Active = map[string]ActiveSelection{}
+	}
+	if s.Backups == nil {
+		s.Backups = map[string]ConfigBackup{}
 	}
 	ensureProxyDefaults(s, s.Version)
 	p, err := cfgpkg.ProfilesPath()
@@ -333,6 +342,9 @@ func (s *Store) SetActive(cli string, providerID string, modelID string) {
 	if s.Active == nil {
 		s.Active = map[string]ActiveSelection{}
 	}
+	if s.Backups == nil {
+		s.Backups = map[string]ConfigBackup{}
+	}
 	sel := ActiveSelection{ProviderID: providerID, ModelID: modelID}.normalized()
 	if sel.valid() {
 		s.Active[cli] = sel
@@ -345,4 +357,26 @@ func (s *Store) ClearActive(cli string) {
 		return
 	}
 	delete(s.Active, cli)
+}
+
+func (s *Store) BackupForCLI(cli string) (ConfigBackup, bool) {
+	if s == nil || s.Backups == nil {
+		return ConfigBackup{}, false
+	}
+	b, ok := s.Backups[cli]
+	return b, ok
+}
+
+func (s *Store) SetBackup(cli string, backup ConfigBackup) {
+	if s.Backups == nil {
+		s.Backups = map[string]ConfigBackup{}
+	}
+	s.Backups[cli] = backup
+}
+
+func (s *Store) ClearBackup(cli string) {
+	if s.Backups == nil {
+		return
+	}
+	delete(s.Backups, cli)
 }

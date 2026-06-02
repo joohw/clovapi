@@ -142,11 +142,7 @@ func queryDeepSeek(apiKey string) Result {
 			})
 		}
 	}
-	res := Result{Success: true, Kind: "balance"}
-	if len(out) > 0 {
-		res.Data = out
-	}
-	return res
+	return resultWithBalanceData(out)
 }
 
 func queryStepFun(apiKey string) Result {
@@ -169,16 +165,12 @@ func queryStepFun(apiKey string) Result {
 	}
 	balance := parseFloatField(payload, "balance")
 	valid := true
-	return Result{
-		Success: true,
-		Kind:    "balance",
-		Data: []Data{{
-			PlanName:  "StepFun",
-			Remaining: balance,
-			Unit:      "CNY",
-			IsValid:   &valid,
-		}},
-	}
+	return resultWithBalanceData([]Data{{
+		PlanName:  "StepFun",
+		Remaining: balance,
+		Unit:      "CNY",
+		IsValid:   &valid,
+	}})
 }
 
 func querySiliconFlow(apiKey string, cn bool) Result {
@@ -213,16 +205,12 @@ func querySiliconFlow(apiKey string, cn bool) Result {
 	}
 	remaining := parseFloatField(data, "totalBalance")
 	valid := true
-	return Result{
-		Success: true,
-		Kind:    "balance",
-		Data: []Data{{
-			PlanName:  plan,
-			Remaining: remaining,
-			Unit:      unit,
-			IsValid:   &valid,
-		}},
-	}
+	return resultWithBalanceData([]Data{{
+		PlanName:  plan,
+		Remaining: remaining,
+		Unit:      unit,
+		IsValid:   &valid,
+	}})
 }
 
 func queryOpenRouter(apiKey string) Result {
@@ -259,19 +247,15 @@ func queryOpenRouter(apiKey string) Result {
 	if remaining != nil && *remaining <= 0 {
 		invalidMsg = "No credits remaining"
 	}
-	return Result{
-		Success: true,
-		Kind:    "balance",
-		Data: []Data{{
-			PlanName:       "OpenRouter",
-			Remaining:      remaining,
-			Total:          total,
-			Used:           used,
-			Unit:           "USD",
-			IsValid:        &valid,
-			InvalidMessage: invalidMsg,
-		}},
-	}
+	return resultWithBalanceData([]Data{{
+		PlanName:       "OpenRouter",
+		Remaining:      remaining,
+		Total:          total,
+		Used:           used,
+		Unit:           "USD",
+		IsValid:        &valid,
+		InvalidMessage: invalidMsg,
+	}})
 }
 
 func queryNovita(apiKey string) Result {
@@ -303,17 +287,31 @@ func queryNovita(apiKey string) Result {
 	if remaining != nil && *remaining <= 0 {
 		invalidMsg = "No balance remaining"
 	}
-	return Result{
-		Success: true,
-		Kind:    "balance",
-		Data: []Data{{
-			PlanName:       "Novita AI",
-			Remaining:      remaining,
-			Unit:           "USD",
-			IsValid:        &valid,
-			InvalidMessage: invalidMsg,
-		}},
+	return resultWithBalanceData([]Data{{
+		PlanName:       "Novita AI",
+		Remaining:      remaining,
+		Unit:           "USD",
+		IsValid:        &valid,
+		InvalidMessage: invalidMsg,
+	}})
+}
+
+func formatBalanceUsageText(rows []Data) string {
+	parts := make([]string, 0, len(rows))
+	for _, row := range rows {
+		if text := strings.TrimSpace(FormatDataRow(row)); text != "" {
+			parts = append(parts, text)
+		}
 	}
+	return strings.Join(parts, " · ")
+}
+
+func resultWithBalanceData(rows []Data) Result {
+	res := Result{Success: true, Kind: "balance", Text: formatBalanceUsageText(rows)}
+	if len(rows) > 0 {
+		res.Data = rows
+	}
+	return res
 }
 
 // QueryBalance queries vendor account balance when base_url matches a known provider.

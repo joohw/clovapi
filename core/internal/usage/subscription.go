@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+var usageTextNow = time.Now
+
 const (
 	SubscriptionClaudeCode = "claude-code"
 	SubscriptionCodex      = "codex"
@@ -150,8 +152,71 @@ func unixSecondsToRFC3339(seconds *int64) string {
 	return time.Unix(*seconds, 0).UTC().Format(time.RFC3339)
 }
 
+func parseSubscriptionResetTime(raw string) (time.Time, bool) {
+	return parseRFC3339ResetTime(raw)
+}
+
+func parseRFC3339ResetTime(raw string) (time.Time, bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return time.Time{}, false
+	}
+	resetAt, err := time.Parse(time.RFC3339Nano, raw)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return resetAt, true
+}
+
+func formatSubscriptionReset(tierName, raw string) string {
+	resetAt, ok := parseSubscriptionResetTime(raw)
+	if !ok {
+		return ""
+	}
+	switch strings.ToLower(strings.TrimSpace(tierName)) {
+	case tierFiveHour:
+		return formatResetDuration(resetAt.Sub(usageTextNow()))
+	case tierSevenDay, tierSevenDayOpus, tierSevenDaySonnet:
+		return resetAt.Format("01-02")
+	default:
+		return ""
+	}
+}
+
+func formatResetDuration(d time.Duration) string {
+	if d < 0 {
+		d = 0
+	}
+	d = d.Truncate(time.Minute)
+	hours := int(d / time.Hour)
+	minutes := int((d % time.Hour) / time.Minute)
+	if hours > 0 {
+		return fmt.Sprintf("%dh%dm", hours, minutes)
+	}
+	return fmt.Sprintf("%dm", minutes)
+}
+
+func formatSubscriptionUsageText(tiers []Tier) string {
+	parts := make([]string, 0, len(tiers))
+	for _, tier := range tiers {
+		name := TierDisplayName(tier.Name)
+		if name == "" {
+			name = strings.TrimSpace(tier.Name)
+		}
+		if name == "" {
+			continue
+		}
+		body := name + " " + formatNumber(tier.Utilization) + "%"
+		if reset := formatSubscriptionReset(tier.Name, tier.ResetsAt); reset != "" {
+			body += "（" + reset + "）"
+		}
+		parts = append(parts, body)
+	}
+	return strings.Join(parts, " · ")
+}
+
 func resultWithTiers(kind string, tiers []Tier) Result {
-	res := Result{Success: true, Kind: kind, Tiers: tiers}
+	res := Result{Success: true, Kind: kind, Text: formatSubscriptionUsageText(tiers), Tiers: tiers}
 	if len(tiers) > 0 {
 		res.Data = TiersToUsageData(tiers)
 	}

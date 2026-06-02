@@ -86,37 +86,16 @@ func FormatDataRow(row Data) string {
 	return name
 }
 
-func formatTierRow(tier Tier) string {
-	name := TierDisplayName(tier.Name)
-	body := formatNumber(tier.Utilization) + "%"
-	if name == "" {
-		return body
-	}
-	return name + " " + body
-}
-
 // FormatResult renders a complete usage query result as plain text.
 func FormatResult(result Result) string {
+	if text := strings.TrimSpace(result.Text); text != "" {
+		return text
+	}
 	if !result.Success {
 		if err := strings.TrimSpace(result.Error); err != "" {
 			return err
 		}
 		return "usage query failed"
 	}
-	rows := result.Data
-	if len(rows) == 0 && len(result.Tiers) > 0 {
-		parts := make([]string, 0, len(result.Tiers))
-		for _, tier := range result.Tiers {
-			parts = append(parts, formatTierRow(tier))
-		}
-		return strings.Join(parts, " · ")
-	}
-	if len(rows) == 0 {
-		return "no usage details"
-	}
-	parts := make([]string, 0, len(rows))
-	for _, row := range rows {
-		parts = append(parts, FormatDataRow(row))
-	}
-	return strings.Join(parts, " · ")
+	return ""
 }

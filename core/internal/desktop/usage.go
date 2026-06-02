@@ -103,7 +103,7 @@ func QueryVendorUsage(vendorName string) VendorUsageResult {
 			OK:       result.Success,
 			Vendor:   name,
 			Template: "subscription",
-			Text:     usage.FormatResult(result),
+			Text:     strings.TrimSpace(result.Text),
 			Usage:    result,
 			Error:    result.Error,
 		}
@@ -117,7 +117,7 @@ func QueryVendorUsage(vendorName string) VendorUsageResult {
 		OK:       result.Success,
 		Vendor:   name,
 		Template: templateType,
-		Text:     usage.FormatResult(result),
+		Text:     strings.TrimSpace(result.Text),
 		Usage:    result,
 		Error:    result.Error,
 	}

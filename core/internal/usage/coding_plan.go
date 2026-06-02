@@ -67,6 +67,21 @@ func extractResetTime(raw any) string {
 	return ""
 }
 
+func formatCodingPlanReset(tierName, raw string) string {
+	resetAt, ok := parseRFC3339ResetTime(raw)
+	if !ok {
+		return ""
+	}
+	switch strings.ToLower(strings.TrimSpace(tierName)) {
+	case tierFiveHour:
+		return formatResetDuration(resetAt.Sub(usageTextNow()))
+	case tierWeeklyLimit:
+		return resetAt.Format("01-02")
+	default:
+		return ""
+	}
+}
+
 func parseZhipuTokenTiers(data map[string]any) []Tier {
 	type row struct {
 		resetMS *int64
@@ -116,7 +131,7 @@ func parseZhipuTokenTiers(data map[string]any) []Tier {
 			if rows[j].resetMS != nil {
 				rightVal = *rows[j].resetMS
 			}
-			if (!leftHas && rightHas) || (leftHas && rightHas && leftVal > rightVal) {
+			if (leftHas && !rightHas) || (leftHas && rightHas && leftVal > rightVal) {
 				rows[i], rows[j] = rows[j], rows[i]
 			}
 		}
@@ -196,7 +211,7 @@ func queryKimiCodingPlan(apiKey string) Result {
 			})
 		}
 	}
-	return Result{Success: true, Kind: "token_plan", Tiers: tiers}
+	return resultWithCodingPlanTiers(tiers)
 }
 
 func queryZhipuCodingPlan(apiKey string) Result {
@@ -229,7 +244,7 @@ func queryZhipuCodingPlan(apiKey string) Result {
 	if data == nil {
 		return Result{Success: false, Kind: "token_plan", Error: "Missing 'data' field in response"}
 	}
-	return Result{Success: true, Kind: "token_plan", Tiers: parseZhipuTokenTiers(data)}
+	return resultWithCodingPlanTiers(parseZhipuTokenTiers(data))
 }
 
 func queryMiniMaxCodingPlan(apiKey string, cn bool) Result {
@@ -297,7 +312,7 @@ func queryMiniMaxCodingPlan(apiKey string, cn bool) Result {
 			}
 		}
 	}
-	return Result{Success: true, Kind: "token_plan", Tiers: tiers}
+	return resultWithCodingPlanTiers(tiers)
 }
 
 // QueryCodingPlan queries token-plan utilization for Kimi / Zhipu / MiniMax coding endpoints.
@@ -349,4 +364,31 @@ func TiersToUsageData(tiers []Tier) []Data {
 		})
 	}
 	return out
+}
+
+func formatCodingPlanUsageText(tiers []Tier) string {
+	parts := make([]string, 0, len(tiers))
+	for _, tier := range tiers {
+		name := TierDisplayName(tier.Name)
+		if name == "" {
+			name = strings.TrimSpace(tier.Name)
+		}
+		if name == "" {
+			continue
+		}
+		body := name + " " + formatNumber(tier.Utilization) + "%"
+		if reset := formatCodingPlanReset(tier.Name, tier.ResetsAt); reset != "" {
+			body += "（" + reset + "）"
+		}
+		parts = append(parts, body)
+	}
+	return strings.Join(parts, " · ")
+}
+
+func resultWithCodingPlanTiers(tiers []Tier) Result {
+	res := Result{Success: true, Kind: "token_plan", Text: formatCodingPlanUsageText(tiers), Tiers: tiers}
+	if len(tiers) > 0 {
+		res.Data = TiersToUsageData(tiers)
+	}
+	return res
 }

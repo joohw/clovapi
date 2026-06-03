@@ -230,7 +230,7 @@ func buildClaudeAuthorizeURL(pkce pkcePair, redirectURI string) string {
 }
 
 func codexRedirectURI() string {
-	return fmt.Sprintf("http://127.0.0.1:%d%s", codexCallbackPort, codexCallbackPath)
+	return fmt.Sprintf("http://localhost:%d%s", codexCallbackPort, codexCallbackPath)
 }
 func buildCodexAuthorizeURL(pkce pkcePair, state, redirectURI string) string {
 	q := url.Values{}

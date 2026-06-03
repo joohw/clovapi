@@ -54,7 +54,7 @@ function windowTitle() {
 
 function buildBrowserWindowOptions() {
   const options = {
-    width: 960,
+    width: 720,
     height: 760,
     minWidth: 640,
     minHeight: 560,

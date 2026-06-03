@@ -40,9 +40,9 @@ func TestBuildClaudeAuthorizeURLUsesClaudeCodeClientID(t *testing.T) {
 	}
 }
 
-func TestCodexRedirectURIUsesLoopbackIP(t *testing.T) {
+func TestCodexRedirectURIUsesLocalhost(t *testing.T) {
 	redirectURI := codexRedirectURI()
-	if redirectURI != "http://127.0.0.1:1455/auth/callback" {
+	if redirectURI != "http://localhost:1455/auth/callback" {
 		t.Fatalf("redirect URI = %q", redirectURI)
 	}
 

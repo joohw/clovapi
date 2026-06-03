@@ -14,6 +14,16 @@ import (
 	"testing"
 )
 
+func TestOAuthHTTPClientBypassesEnvironmentProxy(t *testing.T) {
+	transport, ok := oauthHTTPClient.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("oauth transport = %T, want *http.Transport", oauthHTTPClient.Transport)
+	}
+	if transport.Proxy != nil {
+		t.Fatal("oauth HTTP client must bypass environment proxy settings")
+	}
+}
+
 func TestGeneratePKCEChallenge(t *testing.T) {
 	pair, err := generatePKCE()
 	if err != nil {

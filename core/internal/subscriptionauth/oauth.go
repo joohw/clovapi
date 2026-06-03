@@ -48,6 +48,16 @@ const (
 // claudeTokenURL is a var (not const) so tests can point it at a local server.
 var claudeTokenURL = "https://platform.claude.com/v1/oauth/token"
 
+// oauthHTTPClient deliberately ignores HTTP_PROXY/HTTPS_PROXY/ALL_PROXY.
+// OAuth callback/token/profile traffic should not be routed through user API proxies.
+var oauthHTTPClient = &http.Client{Transport: oauthDirectTransport()}
+
+func oauthDirectTransport() *http.Transport {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = nil
+	return transport
+}
+
 type LoginResult struct {
 	OK           bool   `json:"ok"`
 	LoggedIn     bool   `json:"loggedIn,omitempty"`
@@ -388,7 +398,7 @@ func enrichClaudeProfile(ctx context.Context, creds *tokenCredentials) error {
 	}
 	req.Header.Set("Authorization", "Bearer "+creds.Access)
 	req.Header.Set("Accept", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := oauthHTTPClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -452,7 +462,7 @@ func postForm(ctx context.Context, rawURL string, form url.Values, dest any) err
 }
 
 func doJSON(req *http.Request, dest any, label string) error {
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := oauthHTTPClient.Do(req)
 	if err != nil {
 		return err
 	}

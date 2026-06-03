@@ -541,6 +541,22 @@ export function buildCliBindingOptions(
   return options;
 }
 
+export function hasAvailableCliBindingOptions(
+  clis: readonly CliDef[],
+  vendors: Vendor[],
+  subscriptions: SubscriptionItem[],
+): boolean {
+  return clis.some((cli) =>
+    buildCliBindingOptions(cli, vendors, subscriptions).some(
+      (option) =>
+        option.value &&
+        !option.value.startsWith("__vendor:") &&
+        !option.disabled &&
+        !option.groupOnly,
+    ),
+  );
+}
+
 export function canApplyCliBinding(
   binding: ActiveSelection | string,
   clovapiAvailable: boolean,

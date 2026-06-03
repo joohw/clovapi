@@ -15,6 +15,7 @@ export const store = $state({
   cliUninstallSupported: {} as Record<string, boolean>,
   cliInstallPlan: {} as Record<string, string>,
   cliLifecycleBusy: {} as Record<string, boolean>,
+  cliLifecycleAction: {} as Record<string, "install" | "uninstall" | "">,
   ollamaInstalled: false,
   clovapiAvailable: false,
   editingProfileName: "",

@@ -19,11 +19,11 @@
 </script>
 
 <footer
-  class="electron-no-drag fixed bottom-0 left-1/2 z-10 w-full max-w-3xl -translate-x-1/2 bg-background/95 px-5 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+  class="electron-no-drag fixed bottom-0 left-1/2 z-10 flex min-h-12 w-full max-w-3xl -translate-x-1/2 items-center bg-gradient-to-t from-background via-background/88 via-55% to-transparent px-5 pb-2 pt-5"
 >
   <button
     type="button"
-    class="flex w-full min-w-0 items-center gap-2 px-1 py-0.5 text-left text-xs opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100"
+    class="flex min-h-6 w-full min-w-0 items-center gap-2 px-1 py-0.5 text-left text-xs opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100"
     onclick={() => void copyBaseUrl()}
     title={copy.hint}
     aria-label={`${copy.label}: ${displayUrl}. ${copy.hint}`}

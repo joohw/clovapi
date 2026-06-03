@@ -7,7 +7,8 @@ import { refreshProxyLogs, refreshProxyStatus, autoUpdateCoreOnStartup } from ".
 import { refreshSubscriptions } from "./subscriptions";
 import { refreshAppVersion, waitForDesktopBridge, waitForCliBridge } from "./app-version";
 import { startAppUpdatePolling } from "./desktop-update";
-import { isElectronDev, isElectronRenderer } from "../constants";
+import { CUSTOM_API_PROFILE_NAME, isElectronDev, isElectronRenderer } from "../constants";
+import { hasAvailableCliBindingOptions } from "../helpers";
 import { store } from "./state.svelte";
 
 function updateAppDownloadProgress(payload: { percent?: unknown; received_bytes?: unknown; total_bytes?: unknown }) {
@@ -79,6 +80,11 @@ export async function initApp() {
     store.clovapiAvailable = Boolean(tool?.available);
     await detectCliPath();
     await detectOllamaInstalled();
+  }
+
+  if (!hasAvailableCliBindingOptions(store.clis, store.profiles, store.subscriptions)) {
+    setActiveTab("profiles");
+    openProfilesVendor(CUSTOM_API_PROFILE_NAME);
   }
 
   if (isElectronRenderer() && !isElectronDev()) {

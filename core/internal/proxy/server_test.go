@@ -136,6 +136,7 @@ func TestDebugSystemLogPaginatesDefaultLimit(t *testing.T) {
 		syslog.Write("system", "entry-"+strconv.Itoa(i))
 	}
 	s := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	t.Cleanup(func() { _ = s.CallLogs.Close() })
 	ts := httptest.NewServer(s.Server.Handler)
 	defer ts.Close()
 
@@ -173,24 +174,11 @@ func TestDebugRoutesAllowNonLoopbackClientsByDefault(t *testing.T) {
 	}
 }
 
-func TestDebugRoutesRejectNonLoopbackClientsWhenLocalOnly(t *testing.T) {
-	s := NewServer(profile.ProxyConfig{Host: "0.0.0.0", Port: 27483, DebugLocalOnly: true})
-	req := httptest.NewRequest(http.MethodGet, "http://example.com/__debug/call-log", nil)
-	req.RemoteAddr = "203.0.113.10:45678"
-	rec := httptest.NewRecorder()
-
-	s.Server.Handler.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
-	}
-}
-
-func TestDebugRoutesAllowLoopbackClientsWhenLocalOnly(t *testing.T) {
+func TestDebugRoutesIgnoreLocalOnlyCompatibilityFlag(t *testing.T) {
 	s := NewServer(profile.ProxyConfig{Host: "0.0.0.0", Port: 27483, DebugLocalOnly: true})
 	s.CallLogs = openTestCallLogStore(t)
 	req := httptest.NewRequest(http.MethodGet, "http://example.com/__debug/call-log", nil)
-	req.RemoteAddr = "127.0.0.1:45678"
+	req.RemoteAddr = "203.0.113.10:45678"
 	rec := httptest.NewRecorder()
 
 	s.Server.Handler.ServeHTTP(rec, req)

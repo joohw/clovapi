@@ -14,16 +14,6 @@ import (
 	"testing"
 )
 
-func TestOAuthHTTPClientBypassesEnvironmentProxy(t *testing.T) {
-	transport, ok := oauthHTTPClient.Transport.(*http.Transport)
-	if !ok {
-		t.Fatalf("oauth transport = %T, want *http.Transport", oauthHTTPClient.Transport)
-	}
-	if transport.Proxy != nil {
-		t.Fatal("oauth HTTP client must bypass environment proxy settings")
-	}
-}
-
 func TestGeneratePKCEChallenge(t *testing.T) {
 	pair, err := generatePKCE()
 	if err != nil {
@@ -50,6 +40,21 @@ func TestBuildClaudeAuthorizeURLUsesClaudeCodeClientID(t *testing.T) {
 	}
 }
 
+func TestCodexRedirectURIUsesLoopbackIP(t *testing.T) {
+	redirectURI := codexRedirectURI()
+	if redirectURI != "http://127.0.0.1:1455/auth/callback" {
+		t.Fatalf("redirect URI = %q", redirectURI)
+	}
+
+	raw := buildCodexAuthorizeURL(pkcePair{Verifier: "verifier", Challenge: "challenge"}, "state", redirectURI)
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := parsed.Query().Get("redirect_uri"); got != redirectURI {
+		t.Fatalf("redirect_uri = %q, want %q", got, redirectURI)
+	}
+}
 func TestCodexAccountIDFromAccessToken(t *testing.T) {
 	payload := base64.RawURLEncoding.EncodeToString([]byte(`{"https://api.openai.com/auth":{"chatgpt_account_id":"acct_123"}}`))
 	token := "header." + payload + ".sig"

@@ -123,7 +123,7 @@ export async function runCliInstall(cli: CliDef) {
   }
   const toastId = `cli-install-${cli.id}`;
   store.cliLifecycleBusy[cli.id] = true;
-  toast.loading(t("toast.installingAgent", { name: cli.name }), { id: toastId });
+  store.cliLifecycleAction[cli.id] = "install";
   try {
     const result = await bridge.agentInstall(cli.kind);
     await detectCliPath();
@@ -137,6 +137,7 @@ export async function runCliInstall(cli: CliDef) {
     toast.error(message, { id: toastId });
   } finally {
     store.cliLifecycleBusy[cli.id] = false;
+    delete store.cliLifecycleAction[cli.id];
   }
 }
 
@@ -152,7 +153,7 @@ export async function runCliUninstall(cli: CliDef) {
   }
   const toastId = `cli-uninstall-${cli.id}`;
   store.cliLifecycleBusy[cli.id] = true;
-  toast.loading(t("toast.uninstallingAgent", { name: cli.name }), { id: toastId });
+  store.cliLifecycleAction[cli.id] = "uninstall";
   try {
     const result = await bridge.agentUninstall(cli.kind);
     await detectCliPath();
@@ -166,6 +167,7 @@ export async function runCliUninstall(cli: CliDef) {
     toast.error(message, { id: toastId });
   } finally {
     store.cliLifecycleBusy[cli.id] = false;
+    delete store.cliLifecycleAction[cli.id];
   }
 }
 export async function runCliApply(cli: CliDef) {

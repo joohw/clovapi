@@ -61,7 +61,16 @@ func ResolveCodexExecutable() (string, bool) {
 		return p, true
 	}
 	home, _ := os.UserHomeDir()
-	for _, dir := range CodexSearchDirs(home) {
+	seen := map[string]struct{}{}
+	for _, dir := range append(CodexSearchDirs(home), executableSearchDirs()...) {
+		dir = strings.TrimSpace(dir)
+		if dir == "" {
+			continue
+		}
+		if _, ok := seen[dir]; ok {
+			continue
+		}
+		seen[dir] = struct{}{}
 		for _, name := range codexCommandNames() {
 			candidate := filepath.Join(dir, name)
 			if codexExecutableFile(candidate) && !codexClientExecutablePath(candidate) {

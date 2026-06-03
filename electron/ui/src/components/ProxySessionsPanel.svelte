@@ -120,23 +120,21 @@
 
 {#if inSessionDetail && selectedSession}
   <div class="flex flex-col gap-4">
-    <div class="flex flex-wrap items-center gap-2">
-      <Button size="sm" variant="outline" class="w-fit" type="button" onclick={() => closeProxySession()}>
-        <ArrowLeftIcon class="size-4" />
-        {copy.back}
-      </Button>
-      <Button
-        size="sm"
-        variant="destructive"
-        class="w-fit"
-        type="button"
-        disabled={store.proxyLogsLoading}
-        onclick={() => (deleteConfirmOpen = true)}
-      >
-        {copy.deleteSession}
-      </Button>
-    </div>
+    <Button size="sm" variant="outline" class="w-fit" type="button" onclick={() => closeProxySession()}>
+      <ArrowLeftIcon class="size-4" />
+      {copy.back}
+    </Button>
     <SectionCard title={copy.sessionOverview} description={copy.sessionOverviewDesc}>
+      {#snippet actions()}
+        <Button
+          size="sm"
+          variant="destructive"
+          disabled={store.proxyLogsLoading}
+          onclick={() => (deleteConfirmOpen = true)}
+        >
+          {copy.deleteSession}
+        </Button>
+      {/snippet}
       <div class="space-y-2 px-4 py-3 text-sm">
         <div class="font-medium">{selectedSession.session}</div>
         <div class="text-xs text-muted-foreground">{sessionLine(selectedSession)}</div>

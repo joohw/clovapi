@@ -98,7 +98,7 @@ export function proxyLogInboundRequestText(entry: ProxyLogEntry): string {
 export function proxyLogCardTitle(entry: ProxyLogEntry): string {
   const path = proxyLogIngressPath(entry.request?.url || "");
   const status = entry.upstream?.status || 0;
-  return status ? `${path}（${status}）` : path;
+  return status ? `${path} (${status})` : path;
 }
 
 export function proxyLogStatusClass(status: number): string {

@@ -546,14 +546,20 @@ func resolveExecutable(name string) (string, error) {
 	if err != nil && runtime.GOOS == "windows" {
 		path, err = exec.LookPath(name)
 	}
-	if err != nil && runtime.GOOS == "windows" && strings.EqualFold(name, "npm") {
+	if err == nil {
+		return path, nil
+	}
+	if p, searchErr := resolveExecutableBySearch(name); searchErr == nil {
+		return p, nil
+	}
+	if runtime.GOOS == "windows" && strings.EqualFold(name, "npm") {
 		for _, candidate := range windowsNPMCandidates() {
 			if regularFile(candidate) {
 				return candidate, nil
 			}
 		}
 	}
-	if err != nil && runtime.GOOS == "windows" && strings.EqualFold(name, "python") {
+	if runtime.GOOS == "windows" && strings.EqualFold(name, "python") {
 		if py, pyErr := exec.LookPath("py.exe"); pyErr == nil {
 			return py, nil
 		}

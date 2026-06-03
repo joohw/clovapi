@@ -163,23 +163,6 @@ function agentUninstall(kind) {
   return runDesktopAsync(["agents", "uninstall", "--cli", String(kind || "")], { timeout: 10 * 60 * 1000 });
 }
 
-function authLoginEnv() {
-  const bypass = ["127.0.0.1", "localhost", "::1"].join(",");
-  const merge = (value) => {
-    const current = String(value || "").trim();
-    if (!current) return bypass;
-    const parts = current.split(",").map((part) => part.trim()).filter(Boolean);
-    for (const host of bypass.split(",")) {
-      if (!parts.some((part) => part.toLowerCase() === host.toLowerCase())) parts.push(host);
-    }
-    return parts.join(",");
-  };
-  return {
-    ...process.env,
-    NO_PROXY: merge(process.env.NO_PROXY),
-    no_proxy: merge(process.env.no_proxy),
-  };
-}
 function authStatus() {
   return runAuthAsync(["status"]);
 }
@@ -193,7 +176,6 @@ async function authLogin(provider) {
     cancelKey: providerId,
     onOutput: outputHandler,
     timeout: AUTH_LOGIN_TIMEOUT,
-    env: authLoginEnv(),
   });
   if (result.cancelled) {
     return { ok: false, cancelled: true, error: "已取消登录" };

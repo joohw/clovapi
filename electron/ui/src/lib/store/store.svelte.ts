@@ -75,4 +75,4 @@ export {
   cliApplyTitle,
 } from "./cli";
 export { initApp } from "./init";
-export { buildCliBindingOptions, canApplyCliBinding, userVisibleVendors } from "../helpers";
+export { buildCliBindingOptions, canApplyCliBinding, hasAvailableCliBindingOptions, userVisibleVendors } from "../helpers";

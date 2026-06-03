@@ -48,16 +48,6 @@ const (
 // claudeTokenURL is a var (not const) so tests can point it at a local server.
 var claudeTokenURL = "https://platform.claude.com/v1/oauth/token"
 
-// oauthHTTPClient deliberately ignores HTTP_PROXY/HTTPS_PROXY/ALL_PROXY.
-// OAuth callback/token/profile traffic should not be routed through user API proxies.
-var oauthHTTPClient = &http.Client{Transport: oauthDirectTransport()}
-
-func oauthDirectTransport() *http.Transport {
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.Proxy = nil
-	return transport
-}
-
 type LoginResult struct {
 	OK           bool   `json:"ok"`
 	LoggedIn     bool   `json:"loggedIn,omitempty"`
@@ -160,7 +150,7 @@ func loginCodex(ctx context.Context, openBrowser bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	redirectURI := fmt.Sprintf("http://localhost:%d%s", codexCallbackPort, codexCallbackPath)
+	redirectURI := codexRedirectURI()
 	server, err := startCallbackServer(ctx, callbackOptions{
 		Port: codexCallbackPort,
 		Path: codexCallbackPath,
@@ -239,6 +229,9 @@ func buildClaudeAuthorizeURL(pkce pkcePair, redirectURI string) string {
 	return claudeAuthorizeURL + "?" + q.Encode()
 }
 
+func codexRedirectURI() string {
+	return fmt.Sprintf("http://127.0.0.1:%d%s", codexCallbackPort, codexCallbackPath)
+}
 func buildCodexAuthorizeURL(pkce pkcePair, state, redirectURI string) string {
 	q := url.Values{}
 	q.Set("response_type", "code")
@@ -398,7 +391,7 @@ func enrichClaudeProfile(ctx context.Context, creds *tokenCredentials) error {
 	}
 	req.Header.Set("Authorization", "Bearer "+creds.Access)
 	req.Header.Set("Accept", "application/json")
-	resp, err := oauthHTTPClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -462,7 +455,7 @@ func postForm(ctx context.Context, rawURL string, form url.Values, dest any) err
 }
 
 func doJSON(req *http.Request, dest any, label string) error {
-	resp, err := oauthHTTPClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}

@@ -242,7 +242,7 @@ func shouldSkipAutoProxy(cmd *cobra.Command) bool {
 	}
 	for c := cmd; c != nil; c = c.Parent() {
 		switch c.Name() {
-		case "__proxy-daemon", "update", "version":
+		case "__proxy-daemon", "desktop", "update", "version":
 			return true
 		}
 	}

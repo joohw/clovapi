@@ -30,6 +30,23 @@ func (codexTarget) Installed() bool {
 	return CodexInstalled()
 }
 
+func (codexTarget) InstallPlan() string {
+	return "将通过 npm 安装 Codex CLI（@openai/codex）。如果未检测到 npm，会先尝试自动安装 Node.js LTS/npm。"
+}
+func (codexTarget) Install() error {
+	return npmGlobalInstall("@openai/codex")
+}
+
+func (codexTarget) Uninstall() error {
+	return uninstallFromCandidates(
+		npmGlobalUninstall("@openai/codex"),
+		brewUninstall("codex"),
+		brewUninstall("openai/codex/codex"),
+		standaloneUninstall("codex-npm-shim", npmGlobalShimFiles("codex")...),
+		standaloneUninstall("codex", homeLocalBinFiles("codex")...),
+	)
+}
+
 func (codexTarget) Apply(p profile.Profile) error {
 	if p.CLI != agentkind.Codex || p.APIStyle != apistyle.OpenAIResponses {
 		return errWrongAdapter("codex", "openai-responses", p)

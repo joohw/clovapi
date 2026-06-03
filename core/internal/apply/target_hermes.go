@@ -31,6 +31,30 @@ func (hermesTarget) Installed() bool {
 	return cliExecutableOnPATH("hermes")
 }
 
+func (hermesTarget) InstallPlan() string {
+	return "将优先通过 npm 安装 Hermes（hermes-agent）；如果 npm 不可用，会尝试通过 Python pip 安装。若 npm 或 Python 缺失，会先尝试自动安装对应运行环境。"
+}
+func (hermesTarget) Install() error {
+	return installFromCandidates(
+		npmGlobalInstallCandidate("hermes-agent"),
+		pythonPipInstall("hermes-agent"),
+	)
+}
+
+func (hermesTarget) Stop() error {
+	return stopAgentProcesses([]string{"hermes", "hermes-agent"}, nil)
+}
+
+func (hermesTarget) Uninstall() error {
+	return uninstallFromCandidates(
+		npmGlobalUninstall("hermes-agent"),
+		brewUninstall("hermes-agent"),
+		pythonPipUninstall("hermes-agent"),
+		standaloneUninstall("hermes", append(npmGlobalShimFiles("hermes"), npmGlobalShimFiles("hermes-agent")...)...),
+		standaloneUninstall("hermes-local", append(homeLocalBinFiles("hermes"), homeLocalBinFiles("hermes-agent")...)...),
+	)
+}
+
 func (hermesTarget) Apply(p profile.Profile) error {
 	if p.CLI != agentkind.Hermes {
 		return fmt.Errorf("wrong cli %q for hermes target", p.CLI)

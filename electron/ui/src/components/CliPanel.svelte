@@ -9,6 +9,8 @@
     cliApplyTitle,
     onCliBindingChange,
     runCliApply,
+    runCliInstall,
+    runCliUninstall,
     store,
   } from "../lib/store.svelte";
   import type { CliDef } from "../global";
@@ -25,6 +27,8 @@
       title: t("cli.title"),
       description: t("cli.description"),
       apply: t("common.apply"),
+      install: t("cli.install"),
+      uninstall: t("cli.uninstall"),
     };
   });
 
@@ -37,6 +41,17 @@
     return installed
       ? [t("cli.installedAt", { path: store.cliDetectedPath[cli.id] })]
       : [t("cli.notInstalled")];
+  }
+
+  function confirmInstall(cli: CliDef) {
+    const plan = store.cliInstallPlan[cli.id] || `将安装 ${cli.name}。如果缺少 npm，ClovAPI 会尝试先安装 Node.js LTS/npm。`;
+    if (!window.confirm(`${plan}`)) return;
+    void runCliInstall(cli);
+  }
+
+  function confirmUninstall(cli: CliDef) {
+    if (!window.confirm(t("cli.uninstallConfirm", { name: cli.name }))) return;
+    void runCliUninstall(cli);
   }
 </script>
 
@@ -57,6 +72,26 @@
             onchange={(v) => void onCliBindingChange(cli, v)}
           />
         {/key}
+        {#if !installed && store.cliInstallSupported[cli.id]}
+          <Button
+            size="lg"
+            variant="outline"
+            disabled={store.running || store.cliLifecycleBusy[cli.id]}
+            onclick={() => confirmInstall(cli)}
+          >
+            {copy.install}
+          </Button>
+        {/if}
+        {#if installed && store.cliUninstallSupported[cli.id]}
+          <Button
+            size="lg"
+            variant="outline"
+            disabled={store.running || store.cliLifecycleBusy[cli.id]}
+            onclick={() => confirmUninstall(cli)}
+          >
+            {copy.uninstall}
+          </Button>
+        {/if}
         <Button
           size="lg"
           disabled={

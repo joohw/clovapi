@@ -45,6 +45,12 @@ try {
     agentStatus() {
       return ipcRenderer.invoke("cli:agent-status");
     },
+    agentInstall(kind) {
+      return ipcRenderer.invoke("cli:agent-install", { kind });
+    },
+    agentUninstall(kind) {
+      return ipcRenderer.invoke("cli:agent-uninstall", { kind });
+    },
     authStatus() {
       return ipcRenderer.invoke("cli:auth-status");
     },

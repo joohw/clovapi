@@ -28,6 +28,26 @@ func (openClawTarget) Installed() bool {
 	return cliExecutableOnPATH("openclaw")
 }
 
+func (openClawTarget) InstallPlan() string {
+	return "将通过 npm 安装 OpenClaw（openclaw）。如果未检测到 npm，会先尝试自动安装 Node.js LTS/npm。"
+}
+func (openClawTarget) Install() error {
+	return npmGlobalInstall("openclaw")
+}
+
+func (openClawTarget) Stop() error {
+	return stopAgentProcesses([]string{"openclaw"}, nil)
+}
+
+func (openClawTarget) Uninstall() error {
+	return uninstallFromCandidates(
+		npmGlobalUninstall("openclaw"),
+		brewUninstall("openclaw"),
+		standaloneUninstall("openclaw", npmGlobalShimFiles("openclaw")...),
+		standaloneUninstall("openclaw-local", homeLocalBinFiles("openclaw")...),
+	)
+}
+
 func (openClawTarget) Apply(p profile.Profile) error {
 	if p.CLI != agentkind.OpenClaw {
 		return fmt.Errorf("wrong cli %q for openclaw target", p.CLI)

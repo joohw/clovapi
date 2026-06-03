@@ -28,6 +28,23 @@ func (openCodeTarget) Installed() bool {
 	return cliExecutableOnPATH("opencode")
 }
 
+func (openCodeTarget) InstallPlan() string {
+	return "将通过 npm 安装 OpenCode（opencode-ai）。如果未检测到 npm，会先尝试自动安装 Node.js LTS/npm。"
+}
+func (openCodeTarget) Install() error {
+	return npmGlobalInstall("opencode-ai")
+}
+
+func (openCodeTarget) Uninstall() error {
+	return uninstallFromCandidates(
+		npmGlobalUninstall("opencode-ai"),
+		brewUninstall("opencode"),
+		standaloneUninstall("opencode-npm-shim", npmGlobalShimFiles("opencode")...),
+		standaloneUninstall("opencode", opencodeStandaloneFiles()...),
+		standaloneUninstall("opencode-local", homeLocalBinFiles("opencode")...),
+	)
+}
+
 func (openCodeTarget) Apply(p profile.Profile) error {
 	if p.CLI != agentkind.OpenCode {
 		return fmt.Errorf("wrong cli %q for opencode target", p.CLI)

@@ -36,8 +36,13 @@ type CliBridge = {
       kind?: string;
       installed?: boolean;
       commandPath?: string;
+      installSupported?: boolean;
+      uninstallSupported?: boolean;
+      installPlan?: string;
     }>;
   }>;
+  agentInstall(kind: string): Promise<{ ok?: boolean; kind?: string; status?: string; path?: string; error?: string }>;
+  agentUninstall(kind: string): Promise<{ ok?: boolean; kind?: string; status?: string; path?: string; error?: string }>;
   authStatus(): Promise<{ ok?: boolean; items?: SubscriptionItem[]; error?: string }>;
   authLogin(provider: string): Promise<{ ok?: boolean; cancelled?: boolean; error?: string }>;
   cancelAuthLogin(provider: string): Promise<{ ok?: boolean; error?: string }>;

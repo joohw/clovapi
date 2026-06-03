@@ -155,6 +155,14 @@ function agentStatus() {
   return runDesktopAsync(["agents", "status"], { timeout: 10000 });
 }
 
+function agentInstall(kind) {
+  return runDesktopAsync(["agents", "install", "--cli", String(kind || "")], { timeout: 10 * 60 * 1000 });
+}
+
+function agentUninstall(kind) {
+  return runDesktopAsync(["agents", "uninstall", "--cli", String(kind || "")], { timeout: 10 * 60 * 1000 });
+}
+
 function authStatus() {
   return runAuthAsync(["status"]);
 }
@@ -212,6 +220,8 @@ module.exports = {
   vendorCatalog,
   whichCommand,
   agentStatus,
+  agentInstall,
+  agentUninstall,
   authStatus,
   authLogin,
   cancelAuthLogin,

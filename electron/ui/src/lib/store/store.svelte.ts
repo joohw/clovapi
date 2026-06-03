@@ -70,6 +70,8 @@ export {
   detectCliPath,
   detectOllamaInstalled,
   runCliApply,
+  runCliInstall,
+  runCliUninstall,
   cliApplyTitle,
 } from "./cli";
 export { initApp } from "./init";

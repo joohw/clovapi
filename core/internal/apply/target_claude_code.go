@@ -27,6 +27,28 @@ func (claudeCodeTarget) Installed() bool {
 	return cliExecutableOnPATH("claude")
 }
 
+func (claudeCodeTarget) InstallPlan() string {
+	return "将通过 npm 安装 Claude Code（@anthropic-ai/claude-code）。如果未检测到 npm，会先尝试自动安装 Node.js LTS/npm。"
+}
+func (claudeCodeTarget) Install() error {
+	return npmGlobalInstall("@anthropic-ai/claude-code")
+}
+
+func (claudeCodeTarget) Stop() error {
+	return stopAgentProcesses([]string{"claude"}, nil)
+}
+
+func (claudeCodeTarget) Uninstall() error {
+	return uninstallFromCandidates(
+		npmGlobalUninstall("@anthropic-ai/claude-code"),
+		brewUninstall("claude-code"),
+		brewUninstall("anthropic-ai/claude-code/claude-code"),
+		wingetUninstall("Anthropic.ClaudeCode"),
+		wingetUninstall("Anthropic.Claude"),
+		standaloneUninstall("claude", homeLocalBinFiles("claude")...),
+	)
+}
+
 func (claudeCodeTarget) Apply(p profile.Profile) error {
 	if p.CLI != agentkind.ClaudeCode || p.APIStyle != apistyle.Claude {
 		return errWrongAdapter("claude-code", "claude", p)

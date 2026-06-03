@@ -33,6 +33,26 @@ func (kimiTarget) Installed() bool {
 	return cliExecutableOnPATH("kimi")
 }
 
+func (kimiTarget) InstallPlan() string {
+	return "将通过 npm 安装 Kimi Code CLI（kimi-code）。如果未检测到 npm，会先尝试自动安装 Node.js LTS/npm。"
+}
+func (kimiTarget) Install() error {
+	return npmGlobalInstall("kimi-code")
+}
+
+func (kimiTarget) Stop() error {
+	return stopAgentProcesses([]string{"kimi"}, nil)
+}
+
+func (kimiTarget) Uninstall() error {
+	return uninstallFromCandidates(
+		npmGlobalUninstall("kimi-code"),
+		brewUninstall("kimi-code"),
+		standaloneUninstall("kimi-npm-shim", npmGlobalShimFiles("kimi")...),
+		standaloneUninstall("kimi", homeLocalBinFiles("kimi")...),
+	)
+}
+
 func (kimiTarget) Apply(p profile.Profile) error {
 	if p.CLI != agentkind.KimiCode {
 		return fmt.Errorf("wrong cli %q for kimi-code target", p.CLI)

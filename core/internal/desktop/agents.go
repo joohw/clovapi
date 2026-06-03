@@ -1,6 +1,7 @@
 package desktop
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,12 +13,15 @@ import (
 )
 
 type AgentStatusItem struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Command     string `json:"command"`
-	Kind        string `json:"kind"`
-	Installed   bool   `json:"installed"`
-	CommandPath string `json:"commandPath,omitempty"`
+	ID                 string `json:"id"`
+	Name               string `json:"name"`
+	Command            string `json:"command"`
+	Kind               string `json:"kind"`
+	Installed          bool   `json:"installed"`
+	CommandPath        string `json:"commandPath,omitempty"`
+	InstallSupported   bool   `json:"installSupported"`
+	UninstallSupported bool   `json:"uninstallSupported"`
+	InstallPlan        string `json:"installPlan,omitempty"`
 }
 
 type AgentStatusResult struct {
@@ -31,6 +35,14 @@ type CommandWhichResult struct {
 	Exists bool   `json:"exists"`
 	Path   string `json:"path,omitempty"`
 	Error  string `json:"error,omitempty"`
+}
+
+type AgentLifecycleResult struct {
+	OK     bool   `json:"ok"`
+	Kind   string `json:"kind,omitempty"`
+	Error  string `json:"error,omitempty"`
+	Status string `json:"status,omitempty"`
+	Path   string `json:"path,omitempty"`
 }
 
 type agentDefinition struct {
@@ -85,12 +97,15 @@ func AgentStatus() AgentStatusResult {
 	for _, def := range agentDefinitions {
 		cmdPath, installed := resolveAgentInstall(def)
 		items = append(items, AgentStatusItem{
-			ID:          def.ID,
-			Name:        def.Name,
-			Command:     def.Command,
-			Kind:        string(def.Kind),
-			Installed:   installed,
-			CommandPath: cmdPath,
+			ID:                 def.ID,
+			Name:               def.Name,
+			Command:            def.Command,
+			Kind:               string(def.Kind),
+			Installed:          installed,
+			CommandPath:        cmdPath,
+			InstallSupported:   apply.SupportsInstall(def.Kind),
+			UninstallSupported: apply.SupportsUninstall(def.Kind),
+			InstallPlan:        apply.InstallPlan(def.Kind),
 		})
 	}
 	return AgentStatusResult{OK: true, Items: items}
@@ -162,4 +177,57 @@ func executableFile(path string) bool {
 		return false
 	}
 	return isExecutableFile(path)
+}
+
+func AgentInstall(kindText string) AgentLifecycleResult {
+	kind, err := agentkind.Parse(kindText)
+	if err != nil {
+		return AgentLifecycleResult{OK: false, Error: err.Error()}
+	}
+	if err := apply.InstallAgent(kind); err != nil {
+		return AgentLifecycleResult{OK: false, Kind: string(kind), Error: err.Error()}
+	}
+	cmdPath, installed := resolveAgentInstallForKind(kind)
+	if !installed {
+		return AgentLifecycleResult{OK: false, Kind: string(kind), Status: "not_installed", Path: cmdPath, Error: fmt.Sprintf("%s installer finished, but the CLI was not detected", kind)}
+	}
+	return AgentLifecycleResult{OK: true, Kind: string(kind), Status: "installed", Path: cmdPath}
+}
+
+func AgentUninstall(kindText string) AgentLifecycleResult {
+	kind, err := agentkind.Parse(kindText)
+	if err != nil {
+		return AgentLifecycleResult{OK: false, Error: err.Error()}
+	}
+	if err := apply.UninstallAgent(kind); err != nil {
+		return AgentLifecycleResult{OK: false, Kind: string(kind), Error: err.Error()}
+	}
+	cmdPath, installed := resolveAgentInstallForKind(kind)
+	if installed {
+		return AgentLifecycleResult{OK: false, Kind: string(kind), Status: "installed", Path: cmdPath, Error: fmt.Sprintf("%s is still detected after uninstall: %s", kind, fallbackPath(cmdPath))}
+	}
+	return AgentLifecycleResult{OK: true, Kind: string(kind), Status: "uninstalled"}
+}
+
+func resolveAgentInstallForKind(kind agentkind.Kind) (string, bool) {
+	if def, ok := agentDefinitionForKind(kind); ok {
+		return resolveAgentInstall(def)
+	}
+	return "", false
+}
+
+func fallbackPath(path string) string {
+	if strings.TrimSpace(path) == "" {
+		return "available on PATH"
+	}
+	return path
+}
+
+func agentDefinitionForKind(kind agentkind.Kind) (agentDefinition, bool) {
+	for _, def := range agentDefinitions {
+		if def.Kind == kind {
+			return def, true
+		}
+	}
+	return agentDefinition{}, false
 }

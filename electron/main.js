@@ -912,6 +912,14 @@ ipcMain.handle("cli:agent-status", async () => {
   return clovapiDesktop.agentStatus();
 });
 
+ipcMain.handle("cli:agent-install", async (_event, payload) => {
+  return clovapiDesktop.agentInstall(String(payload?.kind || ""));
+});
+
+ipcMain.handle("cli:agent-uninstall", async (_event, payload) => {
+  return clovapiDesktop.agentUninstall(String(payload?.kind || ""));
+});
+
 ipcMain.handle("cli:auth-status", async () => {
   try {
     return await clovapiDesktop.authStatus();

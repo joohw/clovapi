@@ -42,8 +42,14 @@ export async function detectCliPath() {
   if (!bridge?.agentStatus) return;
 
   const next: Record<string, string> = {};
+  const nextInstallSupported: Record<string, boolean> = {};
+  const nextUninstallSupported: Record<string, boolean> = {};
+  const nextInstallPlan: Record<string, string> = {};
   for (const cli of store.clis) {
     next[cli.id] = "";
+    nextInstallSupported[cli.id] = false;
+    nextUninstallSupported[cli.id] = false;
+    nextInstallPlan[cli.id] = "";
   }
 
   try {
@@ -51,7 +57,11 @@ export async function detectCliPath() {
     if (result?.ok && Array.isArray(result.items)) {
       for (const item of result.items) {
         const id = String(item?.id || "").trim();
-        if (!id || !item?.installed) continue;
+        if (!id) continue;
+        nextInstallSupported[id] = Boolean(item?.installSupported);
+        nextUninstallSupported[id] = Boolean(item?.uninstallSupported);
+        nextInstallPlan[id] = String(item?.installPlan || "").trim();
+        if (!item?.installed) continue;
         next[id] = String(item?.commandPath || "").trim() || "available";
       }
     }
@@ -59,6 +69,9 @@ export async function detectCliPath() {
     /* leave defaults empty; CLI owns detection */
   }
   store.cliDetectedPath = next;
+  store.cliInstallSupported = nextInstallSupported;
+  store.cliUninstallSupported = nextUninstallSupported;
+  store.cliInstallPlan = nextInstallPlan;
 }
 
 export async function detectOllamaInstalled() {
@@ -97,6 +110,64 @@ async function runClovapiArgsAndWait(args: string[], options?: { silent?: boolea
   }
 }
 
+
+export async function runCliInstall(cli: CliDef) {
+  const bridge = window.clovapiCli;
+  if (!bridge?.agentInstall) {
+    toast.error(t("toast.clovapiUnavailable"));
+    return;
+  }
+  if (store.running || store.cliLifecycleBusy[cli.id]) {
+    toast.info(t("toast.commandRunning"));
+    return;
+  }
+  const toastId = `cli-install-${cli.id}`;
+  store.cliLifecycleBusy[cli.id] = true;
+  toast.loading(t("toast.installingAgent", { name: cli.name }), { id: toastId });
+  try {
+    const result = await bridge.agentInstall(cli.kind);
+    await detectCliPath();
+    if (!result?.ok) {
+      toast.error(result?.error || t("toast.agentInstallFailed", { name: cli.name }), { id: toastId });
+      return;
+    }
+    toast.success(t("toast.agentInstallSuccess", { name: cli.name }), { id: toastId });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : t("toast.agentInstallFailed", { name: cli.name });
+    toast.error(message, { id: toastId });
+  } finally {
+    store.cliLifecycleBusy[cli.id] = false;
+  }
+}
+
+export async function runCliUninstall(cli: CliDef) {
+  const bridge = window.clovapiCli;
+  if (!bridge?.agentUninstall) {
+    toast.error(t("toast.clovapiUnavailable"));
+    return;
+  }
+  if (store.running || store.cliLifecycleBusy[cli.id]) {
+    toast.info(t("toast.commandRunning"));
+    return;
+  }
+  const toastId = `cli-uninstall-${cli.id}`;
+  store.cliLifecycleBusy[cli.id] = true;
+  toast.loading(t("toast.uninstallingAgent", { name: cli.name }), { id: toastId });
+  try {
+    const result = await bridge.agentUninstall(cli.kind);
+    await detectCliPath();
+    if (!result?.ok) {
+      toast.error(result?.error || t("toast.agentUninstallFailed", { name: cli.name }), { id: toastId });
+      return;
+    }
+    toast.success(t("toast.agentUninstallSuccess", { name: cli.name }), { id: toastId });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : t("toast.agentUninstallFailed", { name: cli.name });
+    toast.error(message, { id: toastId });
+  } finally {
+    store.cliLifecycleBusy[cli.id] = false;
+  }
+}
 export async function runCliApply(cli: CliDef) {
   let binding = activeBindingForCli(cli.kind);
 

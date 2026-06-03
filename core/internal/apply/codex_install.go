@@ -31,6 +31,9 @@ func CodexSearchDirs(home string) []string {
 	}
 	addWindowsCodexSearchDirs(add)
 	addDarwinCodexSearchDirs(add, home)
+	if prefix, ok := npmGlobalPrefix(); ok {
+		add(prefix)
+	}
 	return dirs
 }
 
@@ -54,31 +57,24 @@ func codexExecutableFile(path string) bool {
 
 // ResolveCodexExecutable finds the Codex CLI binary from PATH or common install roots.
 func ResolveCodexExecutable() (string, bool) {
-	if p, err := exec.LookPath("codex"); err == nil && strings.TrimSpace(p) != "" {
+	if p, err := exec.LookPath("codex"); err == nil && strings.TrimSpace(p) != "" && !codexClientExecutablePath(p) {
 		return p, true
 	}
 	home, _ := os.UserHomeDir()
 	for _, dir := range CodexSearchDirs(home) {
 		for _, name := range codexCommandNames() {
 			candidate := filepath.Join(dir, name)
-			if codexExecutableFile(candidate) {
+			if codexExecutableFile(candidate) && !codexClientExecutablePath(candidate) {
 				return candidate, true
 			}
-		}
-	}
-	for _, candidate := range codexExtraExecutableCandidates() {
-		if codexExecutableFile(candidate) {
-			return candidate, true
 		}
 	}
 	return "", false
 }
 
-// CodexInstalled reports whether Codex is usable (CLI on disk or Codex app install layout).
-// CLI and desktop app share CODEX_HOME; they are not distinguished here.
+// CodexInstalled reports whether the Codex CLI is available.
+// Desktop/Store app installs are intentionally ignored here.
 func CodexInstalled() bool {
-	if _, ok := ResolveCodexExecutable(); ok {
-		return true
-	}
-	return codexRuntimePresent()
+	_, ok := ResolveCodexExecutable()
+	return ok
 }

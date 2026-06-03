@@ -9,15 +9,22 @@ import (
 )
 
 func addWindowsCodexSearchDirs(add func(string)) {
-	if localAppData := strings.TrimSpace(os.Getenv("LOCALAPPDATA")); localAppData != "" {
-		add(filepath.Join(localAppData, "Programs", "OpenAI", "Codex", "bin"))
-	}
 	if appData := strings.TrimSpace(os.Getenv("APPDATA")); appData != "" {
 		add(filepath.Join(appData, "npm"))
 	}
 }
 
 func addDarwinCodexSearchDirs(add func(string), home string) {}
+
+func codexClientExecutablePath(path string) bool {
+	cleaned := strings.ToLower(filepath.Clean(strings.TrimSpace(path)))
+	if cleaned == "" {
+		return false
+	}
+	return strings.Contains(cleaned, strings.ToLower(filepath.Clean(filepath.Join("WindowsApps", "OpenAI.Codex_")))) ||
+		strings.Contains(cleaned, strings.ToLower(filepath.Clean(filepath.Join("Packages", "OpenAI.Codex_")))) ||
+		strings.Contains(cleaned, strings.ToLower(filepath.Clean(filepath.Join("Programs", "OpenAI", "Codex"))))
+}
 
 func codexExtraExecutableCandidates() []string {
 	var out []string

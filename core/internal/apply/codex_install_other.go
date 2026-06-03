@@ -5,6 +5,7 @@ package apply
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func addWindowsCodexSearchDirs(add func(string)) {}
@@ -14,6 +15,16 @@ func addDarwinCodexSearchDirs(add func(string), home string) {
 		return
 	}
 	add(filepath.Join(home, ".npm-global", "bin"))
+}
+
+func codexClientExecutablePath(path string) bool {
+	cleaned := filepath.Clean(path)
+	for _, appRoot := range darwinCodexAppRoots() {
+		if strings.HasPrefix(cleaned, filepath.Clean(appRoot)+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
 }
 
 func codexExtraExecutableCandidates() []string {

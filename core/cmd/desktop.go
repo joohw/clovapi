@@ -241,7 +241,7 @@ func cmdDesktopAgents() *cobra.Command {
 		Use:   "agents",
 		Short: "Detect local agent CLI installations",
 	}
-	c.AddCommand(cmdDesktopAgentsStatus(), cmdDesktopAgentsWhich())
+	c.AddCommand(cmdDesktopAgentsStatus(), cmdDesktopAgentsWhich(), cmdDesktopAgentsInstall(), cmdDesktopAgentsUninstall())
 	return c
 }
 
@@ -268,6 +268,31 @@ func cmdDesktopAgentsWhich() *cobra.Command {
 	return c
 }
 
+func cmdDesktopAgentsInstall() *cobra.Command {
+	var kind string
+	c := &cobra.Command{
+		Use:   "install",
+		Short: "Install one local agent CLI when supported",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return writeDesktopJSON(desktop.AgentInstall(kind))
+		},
+	}
+	c.Flags().StringVar(&kind, "cli", "", "Agent CLI kind to install")
+	return c
+}
+
+func cmdDesktopAgentsUninstall() *cobra.Command {
+	var kind string
+	c := &cobra.Command{
+		Use:   "uninstall",
+		Short: "Uninstall one local agent CLI when supported",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return writeDesktopJSON(desktop.AgentUninstall(kind))
+		},
+	}
+	c.Flags().StringVar(&kind, "cli", "", "Agent CLI kind to uninstall")
+	return c
+}
 func applyBindingSwitch(kind agentkind.Kind, binding string) error {
 	if err := desktop.ApplyBinding(kind, binding); err != nil {
 		return err

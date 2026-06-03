@@ -201,7 +201,7 @@ func TestProbeClaudeFallbackWhenMessages404(t *testing.T) {
 				return
 			}
 			http.NotFound(w, r)
-		case "/v1/chat/completions":
+		case "/anthropic/v1/chat/completions":
 			if r.Method != http.MethodPost || r.Header.Get("Authorization") != "Bearer sk-test" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return

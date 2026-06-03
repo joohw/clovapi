@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -86,7 +85,7 @@ func ProbeToolRoundTrip(openAIResponsesBaseURL, claudeMessagesBaseURL, apiKey, m
 	return nil
 }
 
-// probeClaudeWithFallback tries Anthropic Messages on base, then OpenAI chat on the same origin when Messages is 404.
+// probeClaudeWithFallback tries Anthropic Messages on base, then OpenAI chat on the same base when Messages is 404.
 func probeClaudeWithFallback(base, apiKey, model string) error {
 	mErr := probeAnthropicMessagesPOST(base, apiKey, model)
 	if mErr == nil {
@@ -95,12 +94,7 @@ func probeClaudeWithFallback(base, apiKey, model string) error {
 	if !errors.Is(mErr, errAnthropicMessagesNotFound) {
 		return mErr
 	}
-	u, perr := url.Parse(base)
-	if perr != nil || u.Host == "" {
-		return mErr
-	}
-	origin := u.Scheme + "://" + u.Host
-	return probeOpenAIChatPOST(origin, apiKey, model)
+	return probeOpenAIChatPOST(base, apiKey, model)
 }
 
 func probeAnthropicMessagesPOST(base, apiKey, model string) error {

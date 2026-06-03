@@ -48,6 +48,7 @@ type CliBridge = {
   proxyStop(options?: { suppressAutostart?: boolean }): Promise<{ ok?: boolean; error?: string }>;
   proxyLogsList(payload?: { limit?: number; offset?: number }): Promise<ProxyLogsResult>;
   proxyLogsClear(scope?: "calls" | "system" | "all"): Promise<ProxyLogsResult>;
+  proxyLogsDeleteSession(session: string): Promise<ProxyLogsResult>;
   profilesLoad(): Promise<ProfilesLoadResult>;
   profilesSave(payload: {
     profiles: Vendor[];
@@ -90,6 +91,7 @@ type ProxyBridge = {
 type ProxyLogsBridge = {
   list(payload?: { limit?: number; offset?: number }): Promise<ProxyLogsResult>;
   clear(scope?: "calls" | "system" | "all"): Promise<ProxyLogsResult>;
+  deleteSession(session: string): Promise<ProxyLogsResult>;
 };
 
 type AppEventPayload =

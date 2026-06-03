@@ -35,6 +35,7 @@ export {
   previousProxyLogsPage,
   refreshCoreVersion,
   clearCallLogs,
+  deleteProxySession,
   clearSystemLogs,
   restartLocalProxy,
   runProxyHealthTest,

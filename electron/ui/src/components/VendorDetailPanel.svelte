@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button/index.js";
   import {
+    buildProxyIngressBaseURL,
     modelBindingValue,
     modelTestStatusKey,
     canManuallyManageVendorModels,
@@ -11,10 +12,11 @@
     subscriptionIsUsable,
     vendorKindLabel,
   } from "../lib/helpers";
+  import { copyTextWithToast } from "../lib/clipboard";
   import { OLLAMA_PROFILE_NAME } from "../lib/constants";
   import { displayVendorName, formatSubscriptionSummary, i18n, t } from "../lib/i18n";
   import { cn } from "../lib/utils";
-  import type { ModelTestStatus, Vendor } from "../global";
+  import type { ModelTestStatus, Vendor, VendorModel } from "../global";
   import {
     getModelTest,
     isModelTesting,
@@ -70,8 +72,21 @@
       installed: t("vendorDetail.installed"),
       notInstalled: t("vendorDetail.notInstalled"),
       modelCount: t("vendorDetail.modelCount", { count: visibleModels.length }),
+      proxyBaseUrl: t("vendorDetail.proxyBaseUrl"),
+      clickToCopy: t("app.clickToCopyProxyBaseUrl"),
+      modelRowHint: t("vendorDetail.modelRowHint"),
     };
   });
+
+  const vendorProviderId = $derived(providerIdForVendor(vendor));
+  const vendorProxyBaseUrl = $derived(
+    vendorProviderId ? buildProxyIngressBaseURL(store.proxyPort, vendorProviderId) : "",
+  );
+
+  async function copyVendorProxyBaseUrl() {
+    if (!vendorProxyBaseUrl) return;
+    await copyTextWithToast(vendorProxyBaseUrl);
+  }
 
   const cardDescription = $derived.by(() => {
     void i18n.locale;
@@ -135,12 +150,64 @@
     void runModelTest(binding);
   }
 
+  const MODEL_COPY_DELAY_MS = 400;
+  let modelCopyTimer: ReturnType<typeof setTimeout> | undefined;
+  let modelCopyGeneration = 0;
+
+  function modelNameToCopy(model: VendorModel): string {
+    return String(model.model || model.label || "").trim();
+  }
+
+  function cancelModelCopy() {
+    clearTimeout(modelCopyTimer);
+    modelCopyTimer = undefined;
+    modelCopyGeneration += 1;
+  }
+
+  function onModelRowClick(model: VendorModel, event: MouseEvent) {
+    if (event.detail > 1) {
+      cancelModelCopy();
+      return;
+    }
+    const name = modelNameToCopy(model);
+    if (!name) return;
+    cancelModelCopy();
+    const generation = modelCopyGeneration;
+    modelCopyTimer = setTimeout(() => {
+      if (generation !== modelCopyGeneration) return;
+      modelCopyTimer = undefined;
+      void copyTextWithToast(name, { success: t("toast.modelNameCopied") });
+    }, MODEL_COPY_DELAY_MS);
+  }
+
+  function onModelRowDoubleClick(binding: string, testing: boolean) {
+    cancelModelCopy();
+    runModelTestFromRow(binding, testing);
+  }
+
   const isCustomApi = $derived(isDefaultCustomApiProfile(vendor.name));
 </script>
 
 <SectionCard title={displayVendorName(vendor.name)} description={cardDescription}>
+  {#snippet headerMeta()}
+    {#if vendorProxyBaseUrl}
+      <button
+        type="button"
+        class="flex w-full min-w-0 items-center gap-2 text-left text-xs opacity-80 transition-opacity hover:opacity-100 focus-visible:opacity-100"
+        onclick={() => void copyVendorProxyBaseUrl()}
+        title={copy.clickToCopy}
+        aria-label={`${copy.proxyBaseUrl}: ${vendorProxyBaseUrl}. ${copy.clickToCopy}`}
+      >
+        <span class="shrink-0 text-muted-foreground">{copy.proxyBaseUrl}</span>
+        <span class="min-w-0 truncate font-mono text-foreground">{vendorProxyBaseUrl}</span>
+      </button>
+    {/if}
+  {/snippet}
   {#snippet leading()}
-    <VendorIcon providerId={providerIdForVendor(vendor)} />
+    <VendorIcon
+      providerId={providerIdForVendor(vendor)}
+      class="!size-auto h-full max-h-[4.25rem] min-h-[3.25rem] w-auto max-w-[4.25rem] aspect-square p-2"
+    />
   {/snippet}
   {#snippet actions()}
     {#if vendor.kind === "subscription" && subscription}
@@ -210,7 +277,9 @@
         title={model.label || model.model}
         lines={[isCustomApi ? customApiModelLine(model) : `${model.model} · ${model.apiStyle}`]}
         testStatus={test.status}
-        onDoubleClick={() => runModelTestFromRow(binding, testing)}
+        rowTitle={copy.modelRowHint}
+        onClick={(event) => onModelRowClick(model, event)}
+        onDoubleClick={() => onModelRowDoubleClick(binding, testing)}
       >
         {#snippet actions()}
           {#if canManuallyManageVendorModels(vendor)}

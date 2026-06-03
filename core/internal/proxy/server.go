@@ -183,6 +183,24 @@ func (s *Server) handleDebugCallLog(w http.ResponseWriter, r *http.Request) {
 			"sessions": s.CallLogs.ListSessions(100),
 		})
 	case http.MethodDelete:
+		sessionKey := strings.TrimSpace(r.URL.Query().Get("session"))
+		if sessionKey != "" {
+			deleted, err := s.CallLogs.DeleteSession(sessionKey)
+			if err != nil {
+				status := http.StatusInternalServerError
+				if strings.Contains(strings.ToLower(err.Error()), "invalid session") {
+					status = http.StatusBadRequest
+				}
+				writeJSON(w, status, map[string]string{"error": err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, map[string]any{
+				"ok":      "deleted",
+				"deleted": deleted,
+				"session": sessionKey,
+			})
+			return
+		}
 		s.CallLogs.Clear()
 		writeJSON(w, http.StatusOK, map[string]string{"ok": "cleared"})
 	default:
@@ -465,7 +483,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	trace.setRequestBody(payload)
 	if bodyErr != nil {
 		trace.setError("read request body")
-		logProxyProbeIfNeeded(r, trace, http.StatusBadRequest, "read request body")
+		logProxyProbeIfNeeded(r, trace, pathOK, http.StatusBadRequest, "read request body")
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "read request body"})
 		return
 	}
@@ -474,7 +492,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	if !pathOK {
 		msg := "invalid path; use /{providerId}/v1/messages, /{providerId}/v1/responses, or /{providerId}/v1/chat/completions"
 		trace.setError(msg)
-		logProxyProbeIfNeeded(r, trace, http.StatusNotFound, msg)
+		logProxyProbeIfNeeded(r, trace, pathOK, http.StatusNotFound, msg)
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": msg})
 		return
 	}
@@ -494,7 +512,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	if !shouldTransformProxyMethod(r.Method) {
 		msg := "method not supported for proxy route"
 		trace.setError(msg)
-		logProxyProbeIfNeeded(r, trace, http.StatusMethodNotAllowed, msg)
+		logProxyProbeIfNeeded(r, trace, pathOK, http.StatusMethodNotAllowed, msg)
 		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": msg})
 		return
 	}

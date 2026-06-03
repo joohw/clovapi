@@ -5,6 +5,7 @@
 
   let {
     title,
+    rowTitle = "",
     lines = [],
     showStatusDot = false,
     testStatus = "",
@@ -17,11 +18,13 @@
     titleClass = "",
     class: className = "",
     onOpen,
+    onClick,
     onDoubleClick,
     leading,
     actions,
   }: {
     title: string;
+    rowTitle?: string;
     lines?: string[];
     showStatusDot?: boolean;
     testStatus?: "" | ModelTestStatus;
@@ -34,6 +37,7 @@
     titleClass?: string;
     class?: string;
     onOpen?: () => void;
+    onClick?: (event: MouseEvent) => void;
     onDoubleClick?: () => void;
     leading?: Snippet;
     actions?: Snippet;
@@ -60,31 +64,37 @@
   );
 
   function onRowKeydown(event: KeyboardEvent) {
-    if (!onOpen) return;
+    if (!onOpen && !onClick) return;
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
-    onOpen();
+    handleRowClick();
   }
 
   function stopActionClick(event: MouseEvent) {
-    if ((!onOpen && !onDoubleClick) || !stopActionsPropagation) return;
+    if ((!onOpen && !onClick && !onDoubleClick) || !stopActionsPropagation) return;
     event.stopPropagation();
   }
 
   function stopActionDoubleClick(event: MouseEvent) {
-    if ((!onOpen && !onDoubleClick) || !stopActionsPropagation) return;
+    if ((!onOpen && !onClick && !onDoubleClick) || !stopActionsPropagation) return;
     event.stopPropagation();
   }
 
   function stopActionKeydown(event: KeyboardEvent) {
-    if ((!onOpen && !onDoubleClick) || !stopActionsPropagation) return;
+    if ((!onOpen && !onClick && !onDoubleClick) || !stopActionsPropagation) return;
     event.stopPropagation();
+  }
+
+  function handleRowClick(event: MouseEvent) {
+    onClick?.(event);
+    onOpen?.();
   }
 
   const rowClass = $derived(
     cn(
       "flex flex-col gap-3 border-b border-border px-4 py-3 last:border-b-0 sm:flex-row sm:justify-between",
-      (onOpen || onDoubleClick) && "cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      (onOpen || onClick || onDoubleClick) &&
+        "cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       centerContent ? "sm:items-center" : "sm:items-start",
       muted && "bg-muted/30",
       indent && "pl-8",
@@ -143,8 +153,19 @@
   {/if}
 {/snippet}
 
-{#if onOpen || onDoubleClick}
-  <div role="button" tabindex="0" onclick={onOpen} ondblclick={onDoubleClick} onkeydown={onRowKeydown} class={rowClass}>
+{#if onOpen || onClick || onDoubleClick}
+  <div
+    role="button"
+    tabindex="0"
+    title={rowTitle || undefined}
+    onclick={handleRowClick}
+    ondblclick={(event) => {
+      event.preventDefault();
+      onDoubleClick?.();
+    }}
+    onkeydown={onRowKeydown}
+    class={rowClass}
+  >
     {@render rowContent()}
   </div>
 {:else}

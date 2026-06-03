@@ -1,10 +1,12 @@
 <script lang="ts">
+  import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
   import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
   import { i18n, t } from "../lib/i18n";
   import {
     closeProxySession,
+    deleteProxySession,
     openProxyLog,
     openProxySession,
     refreshProxyLogs,
@@ -26,11 +28,13 @@
       : undefined,
   );
   const inSessionDetail = $derived(Boolean(store.proxyLogSelectedSession));
+  let deleteConfirmOpen = $state(false);
 
   const copy = $derived.by(() => {
     void i18n.locale;
     return {
       back: t("common.back"),
+      cancel: t("common.cancel"),
       refresh: t("common.refresh"),
       refreshing: t("common.refreshing"),
       sessionsTitle: t("callLogs.sessionsTitle"),
@@ -46,6 +50,10 @@
       toolCalls: t("callLogs.toolCalls"),
       rounds: t("callLogs.rounds"),
       timeSpan: t("callLogs.timeSpan"),
+      deleteSession: t("callLogs.deleteSession"),
+      deleteConfirmTitle: t("callLogs.deleteSessionConfirmTitle"),
+      deleteConfirmDescription: t("callLogs.deleteSessionConfirmDescription"),
+      deleteConfirmAction: t("callLogs.deleteSessionConfirmAction"),
     };
   });
 
@@ -96,6 +104,13 @@
     setActiveTab("call-logs");
   }
 
+  function confirmDeleteSession() {
+    const key = store.proxyLogSelectedSession;
+    deleteConfirmOpen = false;
+    if (!key) return;
+    void deleteProxySession(key);
+  }
+
   $effect(() => {
     if (store.proxyLogSelectedSession && !selectedSession) {
       closeProxySession();
@@ -105,10 +120,22 @@
 
 {#if inSessionDetail && selectedSession}
   <div class="flex flex-col gap-4">
-    <Button size="sm" variant="outline" class="w-fit" type="button" onclick={() => closeProxySession()}>
-      <ArrowLeftIcon class="size-4" />
-      {copy.back}
-    </Button>
+    <div class="flex flex-wrap items-center gap-2">
+      <Button size="sm" variant="outline" class="w-fit" type="button" onclick={() => closeProxySession()}>
+        <ArrowLeftIcon class="size-4" />
+        {copy.back}
+      </Button>
+      <Button
+        size="sm"
+        variant="destructive"
+        class="w-fit"
+        type="button"
+        disabled={store.proxyLogsLoading}
+        onclick={() => (deleteConfirmOpen = true)}
+      >
+        {copy.deleteSession}
+      </Button>
+    </div>
     <SectionCard title={copy.sessionOverview} description={copy.sessionOverviewDesc}>
       <div class="space-y-2 px-4 py-3 text-sm">
         <div class="font-medium">{selectedSession.session}</div>
@@ -142,6 +169,26 @@
         </ListRow>
       {/each}
     </SectionCard>
+
+    <Dialog.Root bind:open={deleteConfirmOpen}>
+      <Dialog.Content showCloseButton={false} class="sm:max-w-md">
+        <div class="flex flex-col gap-4">
+          <Dialog.Header>
+            <Dialog.Title>{copy.deleteConfirmTitle}</Dialog.Title>
+            <Dialog.Description>{copy.deleteConfirmDescription}</Dialog.Description>
+          </Dialog.Header>
+
+          <Dialog.Footer class="border-t border-border pt-4">
+            <Button type="button" variant="outline" onclick={() => (deleteConfirmOpen = false)}>
+              {copy.cancel}
+            </Button>
+            <Button type="button" variant="destructive" onclick={confirmDeleteSession}>
+              {copy.deleteConfirmAction}
+            </Button>
+          </Dialog.Footer>
+        </div>
+      </Dialog.Content>
+    </Dialog.Root>
   </div>
 {:else}
   <SectionCard title={copy.sessionsTitle} description={copy.sessionsDescription}>

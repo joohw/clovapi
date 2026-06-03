@@ -498,6 +498,26 @@ async function clearProxyLogs(scope = "all") {
   return listProxyLogs({ offset: 0, limit: callLogsStore.DEFAULT_CALL_LOG_PAGE_SIZE });
 }
 
+async function deleteProxyLogSession(session) {
+  const key = String(session || "").trim();
+  if (!key) {
+    return { ok: false, error: "session is required" };
+  }
+  try {
+    const proxy = await proxyManager.loadProxyConfig();
+    await callLogsStore.deleteCallLogSessionViaHTTP(key, { proxy });
+    return listProxyLogs({
+      offset: 0,
+      limit: callLogsStore.DEFAULT_CALL_LOG_PAGE_SIZE,
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to delete session",
+    };
+  }
+}
+
 function scheduleCoreProxyRestart() {
   clearTimeout(coreDevRestartTimer);
   coreDevRestartTimer = setTimeout(async () => {
@@ -984,6 +1004,10 @@ ipcMain.handle("cli:proxy-logs-list", async (_event, payload) => listProxyLogs(p
 
 ipcMain.handle("cli:proxy-logs-clear", async (_event, payload) =>
   clearProxyLogs(String(payload?.scope || "all")),
+);
+
+ipcMain.handle("cli:proxy-logs-delete-session", async (_event, payload) =>
+  deleteProxyLogSession(String(payload?.session || "")),
 );
 
 ipcMain.handle("cli:tool-status", async () => {

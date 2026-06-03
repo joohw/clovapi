@@ -311,6 +311,26 @@ func clearCallLogDB(db *sql.DB) error {
 	return nil
 }
 
+func deleteCallLogsBySession(db *sql.DB, kind, sessionID string) (int64, error) {
+	if db == nil {
+		return 0, errors.New("call log db is nil")
+	}
+	kind = strings.TrimSpace(strings.ToLower(kind))
+	sessionID = strings.TrimSpace(sessionID)
+	if kind == "" || sessionID == "" {
+		return 0, errors.New("session kind and id are required")
+	}
+	result, err := db.Exec(
+		`DELETE FROM call_logs WHERE session_kind = ? AND session_id = ?`,
+		kind,
+		sessionID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 func exportCallLogDB(db *sql.DB, w io.Writer) (int, error) {
 	if db == nil {
 		return 0, errors.New("call log db is nil")

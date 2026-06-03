@@ -94,6 +94,27 @@ func TestShouldUseCallLogRoutesProbesToSystemLog(t *testing.T) {
 	if !shouldUseCallLog(post, ingress, ok) {
 		t.Fatal("POST messages should stay in call log")
 	}
+
+	invalidPost, _ := http.NewRequest(http.MethodPost, "http://127.0.0.1:27483/v1/messages", nil)
+	invalidIngress, invalidOK := provider.ParseProxyIngressPath(invalidPost.URL.Path)
+	if invalidOK {
+		t.Fatal("host-level /v1/messages must not parse as ingress")
+	}
+	if shouldUseCallLog(invalidPost, invalidIngress, invalidOK) {
+		t.Fatal("POST on invalid host-level /v1 path should skip call log")
+	}
+}
+
+func TestIsHostLevelLegacyV1Path(t *testing.T) {
+	if !isHostLevelLegacyV1Path("/v1/messages") {
+		t.Fatal("expected host-level /v1/messages")
+	}
+	if !isHostLevelLegacyV1Path("/v1/chat/completions") {
+		t.Fatal("expected host-level /v1/chat/completions")
+	}
+	if isHostLevelLegacyV1Path("/claude-code/v1/messages") {
+		t.Fatal("provider ingress path must not match host-level /v1")
+	}
 }
 
 func TestCallLogPreservesFullBody(t *testing.T) {

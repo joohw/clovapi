@@ -4,12 +4,14 @@
   let {
     title,
     description = "",
+    headerMeta,
     leading,
     actions,
     children,
   }: {
     title: string;
     description?: string;
+    headerMeta?: Snippet;
     leading?: Snippet;
     actions?: Snippet;
     children: Snippet;
@@ -19,9 +21,9 @@
 <section class="overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-none">
   <header class="border-b border-border px-4 py-3">
     <div class="flex items-start justify-between gap-3">
-      <div class="flex min-w-0 items-center gap-3">
+      <div class="flex min-w-0 items-stretch gap-3">
         {#if leading}
-          <div class="shrink-0">
+          <div class="flex shrink-0 items-center self-stretch">
             {@render leading()}
           </div>
         {/if}
@@ -29,6 +31,11 @@
           <h2 class="text-sm font-medium leading-none">{title}</h2>
           {#if description}
             <p class="mt-1.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
+          {/if}
+          {#if headerMeta}
+            <div class="mt-1.5 min-w-0 empty:hidden">
+              {@render headerMeta()}
+            </div>
           {/if}
         </div>
       </div>

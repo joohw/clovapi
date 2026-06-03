@@ -7,6 +7,7 @@
   import ProxySessionsPanel from "./components/ProxySessionsPanel.svelte";
   import ProxySystemLogsPanel from "./components/ProxySystemLogsPanel.svelte";
   import SettingsPanel from "./components/SettingsPanel.svelte";
+  import ProxyBaseUrlFooter from "./components/ProxyBaseUrlFooter.svelte";
   import ProfileDialog from "./components/ProfileDialog.svelte";
   import ModelDialog from "./components/ModelDialog.svelte";
   import { Button } from "$lib/components/ui/button/index.js";
@@ -72,7 +73,7 @@
 {/if}
 
 <main
-  class="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-5 py-5 {inElectron ? 'electron-window-chrome' : ''}"
+  class="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-5 py-5 pb-14 {inElectron ? 'electron-window-chrome' : ''}"
 >
   <header class="mb-5 shrink-0 select-none {inElectron ? 'pt-8' : ''}">
     <div class="flex items-center justify-between gap-3">
@@ -154,6 +155,8 @@
       <SettingsPanel />
     </Tabs.Content>
   </Tabs.Root>
+
+  <ProxyBaseUrlFooter />
 </main>
 
 <ProfileDialog />

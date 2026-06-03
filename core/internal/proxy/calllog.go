@@ -190,6 +190,20 @@ func (s *CallLogStore) Clear() {
 	_ = clearCallLogDB(s.db)
 }
 
+// DeleteSession removes all call log rows for a grouped session key (kind-sessionId).
+func (s *CallLogStore) DeleteSession(sessionKey string) (int64, error) {
+	if s == nil || s.db == nil {
+		return 0, errors.New("call log store unavailable")
+	}
+	kind, sessionID, ok := parseCallLogSessionKey(sessionKey)
+	if !ok {
+		return 0, errors.New("invalid session key")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return deleteCallLogsBySession(s.db, kind, sessionID)
+}
+
 func shouldRecordCallLog(path string) bool {
 	p := strings.TrimSpace(path)
 	if p == "" {
@@ -214,9 +228,9 @@ func isProbeMethod(method string) bool {
 }
 
 // shouldUseCallLog decides whether a request gets a full call-log trace.
-// GET/HEAD probes (connectivity checks, invalid paths) go to system logs instead.
+// Invalid ingress paths and GET/HEAD probes (except GET /v1/models) are excluded.
 func shouldUseCallLog(r *http.Request, ingress provider.Ingress, pathOK bool) bool {
-	if r == nil {
+	if r == nil || !pathOK {
 		return false
 	}
 	path := r.URL.EscapedPath()
@@ -229,7 +243,7 @@ func shouldUseCallLog(r *http.Request, ingress provider.Ingress, pathOK bool) bo
 	if !isProbeMethod(r.Method) {
 		return true
 	}
-	return pathOK && isModelsPath(ingress.PathSuffix)
+	return isModelsPath(ingress.PathSuffix)
 }
 
 func startRequestTraceIfNeeded(store *CallLogStore, r *http.Request, ingress provider.Ingress, pathOK bool) *requestTrace {
@@ -239,11 +253,24 @@ func startRequestTraceIfNeeded(store *CallLogStore, r *http.Request, ingress pro
 	return startRequestTrace(store, r)
 }
 
-func logProxyProbeIfNeeded(r *http.Request, trace *requestTrace, status int, detail string) {
-	if trace != nil || r == nil || !isProbeMethod(r.Method) {
+func logProxyProbeIfNeeded(r *http.Request, trace *requestTrace, pathOK bool, status int, detail string) {
+	if trace != nil || r == nil || pathOK {
 		return
 	}
-	syslog.LogProxyProbe(r.Method, inboundRequestURL(r), status, detail)
+	if isHostLevelLegacyV1Path(inboundRequestPath(r)) {
+		return
+	}
+	if !isProbeMethod(r.Method) {
+		return
+	}
+	syslog.LogProxyProbe(r.Method, inboundRequestPath(r), status, detail)
+}
+
+// isHostLevelLegacyV1Path matches bare /v1/... requests (no /{providerId} prefix).
+// Connectivity fallbacks used to hit these against the local proxy; they are not logged.
+func isHostLevelLegacyV1Path(path string) bool {
+	parts := strings.Split(strings.Trim(strings.TrimSpace(path), "/"), "/")
+	return len(parts) >= 2 && strings.EqualFold(parts[0], "v1")
 }
 
 type requestTrace struct {
@@ -278,7 +305,7 @@ func startRequestTrace(store *CallLogStore, r *http.Request) *requestTrace {
 	}
 }
 
-func inboundRequestURL(r *http.Request) string {
+func inboundRequestPath(r *http.Request) string {
 	if r == nil || r.URL == nil {
 		return ""
 	}
@@ -287,8 +314,16 @@ func inboundRequestURL(r *http.Request) string {
 		path = r.URL.Path
 	}
 	if r.URL.RawQuery != "" {
-		path = path + "?" + r.URL.RawQuery
+		return path + "?" + r.URL.RawQuery
 	}
+	return path
+}
+
+func inboundRequestURL(r *http.Request) string {
+	if r == nil || r.URL == nil {
+		return ""
+	}
+	path := inboundRequestPath(r)
 	host := strings.TrimSpace(r.Host)
 	if host == "" {
 		host = strings.TrimSpace(r.URL.Host)

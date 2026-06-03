@@ -163,6 +163,14 @@ export function isFixedProviderId(providerId: string): providerId is FixedProvid
   return (FIXED_PROVIDER_IDS as readonly string[]).includes(String(providerId || "").trim());
 }
 
+/** Local proxy ingress base URL: http://127.0.0.1:{port}/{providerId}/v1 */
+export function buildProxyIngressBaseURL(port: number, providerId: string): string {
+  const id = String(providerId || "").trim();
+  if (!id) return "";
+  const p = Number(port) > 0 ? Number(port) : 27483;
+  return `http://127.0.0.1:${p}/${id}/v1`;
+}
+
 export function providerIdForVendor(vendor: Vendor): FixedProviderId | "" {
   if (vendor.kind === "subscription") {
     const subId = String(vendor.subscriptionProviderId || "").trim();

@@ -156,6 +156,18 @@ async function clearProxyDebugLogs(scope = "all", options = {}) {
   }
 }
 
+async function deleteCallLogSessionViaHTTP(session, options = {}) {
+  const key = String(session || "").trim();
+  if (!key) {
+    throw new Error("session is required");
+  }
+  return fetchProxyDebugJSON(
+    "/__debug/call-log",
+    { session: key },
+    { method: "DELETE", proxy: options.proxy },
+  );
+}
+
 module.exports = {
   logsDir,
   callLogsDBPath,
@@ -169,4 +181,5 @@ module.exports = {
   readSystemLogsViaHTTP,
   clearSystemLogsViaCLI,
   clearProxyDebugLogs,
+  deleteCallLogSessionViaHTTP,
 };

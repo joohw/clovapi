@@ -116,6 +116,29 @@ func callLogSessionKey(kind, sessionID string) string {
 	return k + "-" + id
 }
 
+var callLogSessionKindPrefixes = []string{"claudecode", "codex", "opencode", "test"}
+
+// parseCallLogSessionKey splits a UI session key (kind-sessionId) back into DB fields.
+func parseCallLogSessionKey(session string) (kind, sessionID string, ok bool) {
+	session = strings.TrimSpace(session)
+	if session == "" {
+		return "", "", false
+	}
+	lower := strings.ToLower(session)
+	for _, prefix := range callLogSessionKindPrefixes {
+		marker := prefix + "-"
+		if !strings.HasPrefix(lower, marker) {
+			continue
+		}
+		id := strings.TrimSpace(session[len(marker):])
+		if id == "" {
+			return "", "", false
+		}
+		return prefix, id, true
+	}
+	return "", "", false
+}
+
 func sanitizeSessionFilename(sessionID string) string {
 	id := strings.TrimSpace(sessionID)
 	if id == "" {

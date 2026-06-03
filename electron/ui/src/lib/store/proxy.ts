@@ -148,6 +148,40 @@ export async function clearCallLogs() {
   store.proxyLogSelectedSession = null;
 }
 
+export async function deleteProxySession(session: string) {
+  const key = String(session || "").trim();
+  if (!key) return;
+
+  const bridge = window.clovapiCli;
+  if (!bridge?.proxyLogsDeleteSession) {
+    toast.error(t("toast.proxyDeleteSessionUnsupported"));
+    return;
+  }
+
+  const result = await bridge.proxyLogsDeleteSession(key);
+  if (!result?.ok) {
+    toast.error(result?.error || t("toast.proxyDeleteSessionFailed"));
+    return;
+  }
+
+  if (store.proxyLogSelectedSession === key) {
+    store.proxyLogSelectedSession = null;
+    store.proxyLogSelectedId = null;
+  }
+  if (Array.isArray(result.requests)) {
+    store.proxyLogs = result.requests;
+  }
+  if (Array.isArray(result.sessions)) {
+    store.proxyLogSessions = result.sessions;
+  }
+  if (result.callLogPage) {
+    store.proxyLogsOffset = Number(result.callLogPage.offset) || 0;
+    store.proxyLogsPageSize = Number(result.callLogPage.limit) || store.proxyLogsPageSize;
+    store.proxyLogsHasMore = Boolean(result.callLogPage.hasMore);
+  }
+  toast.success(t("toast.proxyDeleteSessionSuccess"));
+}
+
 export async function clearSystemLogs() {
   const bridge = window.clovapiCli;
   if (!bridge?.proxyLogsClear) return;

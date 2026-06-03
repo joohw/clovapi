@@ -178,6 +178,42 @@ func TestListCallLogSessions(t *testing.T) {
 	}
 }
 
+func TestParseCallLogSessionKey(t *testing.T) {
+	kind, id, ok := parseCallLogSessionKey("codex-019e64f8-2705-7e43-8413-d2d823f16f50")
+	if !ok || kind != "codex" || id != "019e64f8-2705-7e43-8413-d2d823f16f50" {
+		t.Fatalf("parse codex session = %q %q ok=%v", kind, id, ok)
+	}
+	if _, _, ok := parseCallLogSessionKey("invalid"); ok {
+		t.Fatal("expected invalid session key to fail")
+	}
+}
+
+func TestDeleteCallLogSession(t *testing.T) {
+	store := openTestCallLogStore(t)
+	store.Push(CallLogEntry{
+		Request: CallLogRequest{
+			Method: "POST",
+			URL:    "/codex/gpt-5.4/openai-responses/v1/responses",
+			Headers: map[string]string{
+				"Originator": "codex-tui",
+				"Session-Id": "sess-delete-me",
+			},
+		},
+	})
+	store.Push(CallLogEntry{Request: CallLogRequest{Method: "POST", URL: "/other"}})
+
+	deleted, err := store.DeleteSession("codex-sess-delete-me")
+	if err != nil || deleted != 1 {
+		t.Fatalf("DeleteSession() = %d, %v", deleted, err)
+	}
+	if entries := store.ListRecent(0); len(entries) != 1 {
+		t.Fatalf("expected 1 remaining entry, got %d", len(entries))
+	}
+	if sessions := store.ListSessions(0); len(sessions) != 0 {
+		t.Fatalf("expected no session groups, got %#v", sessions)
+	}
+}
+
 func TestClearCallLogDB(t *testing.T) {
 	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{Request: CallLogRequest{Method: "POST", URL: "/a"}})

@@ -75,6 +75,9 @@ try {
     proxyLogsClear(scope) {
       return ipcRenderer.invoke("cli:proxy-logs-clear", { scope });
     },
+    proxyLogsDeleteSession(session) {
+      return ipcRenderer.invoke("cli:proxy-logs-delete-session", { session });
+    },
     profilesLoad() {
       return ipcRenderer.invoke("cli:profiles-load");
     },

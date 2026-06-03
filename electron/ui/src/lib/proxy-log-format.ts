@@ -10,7 +10,7 @@ export function formatProxyLogTime(value: string): string {
   }
 }
 
-/** Compact ingress path by stripping the /v1/... endpoint suffix. */
+/** Compact ingress path as /{providerId}/v1[/{endpoint}]. Legacy model/style segments are omitted. */
 export function proxyLogIngressPath(url: string): string {
   let path = String(url || "").trim();
   if (/^https?:\/\//i.test(path)) {
@@ -20,11 +20,33 @@ export function proxyLogIngressPath(url: string): string {
       /* keep raw url */
     }
   }
-  const match = path.match(/^(\/[^/]+\/[^/]+\/[^/]+)(?:\/v1(?:\/.*)?)?$/);
-  if (match) return match[1];
-  const v1Index = path.indexOf("/v1");
-  if (v1Index > 0) return path.slice(0, v1Index);
+  try {
+    path = decodeURI(path);
+  } catch {
+    /* keep encoded path */
+  }
+
+  const legacy = path.match(/^\/([^/]+)\/([^/]+)\/([^/]+)\/v1(\/.*)?$/);
+  if (legacy) {
+    return formatProxyIngressDisplayPath(legacy[1], legacy[4] || "");
+  }
+
+  const modern = path.match(/^\/([^/]+)\/v1(\/.*)?$/);
+  if (modern) {
+    return formatProxyIngressDisplayPath(modern[1], modern[2] || "");
+  }
+
   return path;
+}
+
+function formatProxyIngressDisplayPath(providerSegment: string, suffix: string): string {
+  const provider = String(providerSegment || "").trim();
+  if (!provider) return "/";
+  const endpoint = String(suffix || "")
+    .split("/")
+    .map((part) => part.trim())
+    .find(Boolean);
+  return endpoint ? `/${provider}/v1/${endpoint}` : `/${provider}/v1`;
 }
 
 export function proxyLogVendorName(entry: ProxyLogEntry): string {

@@ -41,7 +41,8 @@ const (
 	codexScope        = "openid profile email offline_access"
 	codexAuthClaim    = "https://api.openai.com/auth"
 
-	loginTimeout = 10 * time.Minute
+	loginTimeout         = 10 * time.Minute
+	tokenExchangeTimeout = 45 * time.Second
 )
 
 // claudeTokenURL is a var (not const) so tests can point it at a local server.
@@ -127,7 +128,9 @@ func loginClaude(ctx context.Context, openBrowser bool) (string, error) {
 	if err != nil {
 		return authURL, err
 	}
-	creds, err := exchangeClaudeCode(ctx, cb.Code, cb.State, pkce.Verifier, redirectURI)
+	exchangeCtx, exchangeCancel := context.WithTimeout(ctx, tokenExchangeTimeout)
+	defer exchangeCancel()
+	creds, err := exchangeClaudeCode(exchangeCtx, cb.Code, cb.State, pkce.Verifier, redirectURI)
 	if err != nil {
 		return authURL, err
 	}
@@ -178,7 +181,9 @@ func loginCodex(ctx context.Context, openBrowser bool) (string, error) {
 	if err != nil {
 		return authURL, err
 	}
-	creds, err := exchangeCodexCode(ctx, cb.Code, pkce.Verifier, redirectURI)
+	exchangeCtx, exchangeCancel := context.WithTimeout(ctx, tokenExchangeTimeout)
+	defer exchangeCancel()
+	creds, err := exchangeCodexCode(exchangeCtx, cb.Code, pkce.Verifier, redirectURI)
 	if err != nil {
 		return authURL, err
 	}

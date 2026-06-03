@@ -699,12 +699,22 @@ async function runClovapiLongAsync(args, options = {}) {
     const stderrChunks = [];
     let settled = false;
     const onOutput = options.onOutput;
+    const longRunTimeout = Number(options.timeout);
+    let timeoutTimer = null;
+    if (Number.isFinite(longRunTimeout) && longRunTimeout > 0) {
+      timeoutTimer = setTimeout(() => {
+        emitLongRunOutput(onOutput, "system", `\n[timeout] after ${longRunTimeout}ms\n`);
+        killChildTree(child);
+      }, longRunTimeout);
+      timeoutTimer.unref?.();
+    }
     emitLongRunOutput(onOutput, "system", `$ ${exe} ${args.join(" ")}\n`);
 
     const finish = (result) => {
       if (settled) return;
       settled = true;
       if (cancelKey) activeLongRuns.delete(cancelKey);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
       resolve(result);
     };
 

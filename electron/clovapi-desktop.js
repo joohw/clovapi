@@ -175,6 +175,7 @@ async function authLogin(provider) {
   const result = await runClovapiLongAsync(["auth", "login", "--provider", providerId, "--json"], {
     cancelKey: providerId,
     onOutput: outputHandler,
+    timeout: AUTH_LOGIN_TIMEOUT,
   });
   if (result.cancelled) {
     return { ok: false, cancelled: true, error: "已取消登录" };

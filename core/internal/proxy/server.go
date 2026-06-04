@@ -599,7 +599,11 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		capture := &cappedBuffer{limit: maxCallLogBodyBytes}
 		tee := io.TeeReader(buf, capture)
 		var streamErr error
-		streamErr = protocol.TranscodePlaintextSSEToIngress(r.Context(), route.IngressStyle, route.EgressStyle, ir.Model, tee, w)
+		if route.IngressStyle == apistyle.OpenAIResponses && route.EgressStyle == apistyle.OpenAIResponses {
+			streamErr = protocol.CopyPlaintextSSEToDownstream(r.Context(), tee, w)
+		} else {
+			streamErr = protocol.TranscodePlaintextSSEToIngress(r.Context(), route.IngressStyle, route.EgressStyle, ir.Model, tee, w)
+		}
 		if shouldRecordStreamError(streamErr) {
 			trace.setError(streamErr.Error())
 		}

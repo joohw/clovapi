@@ -433,6 +433,55 @@ func wireResponsesUpstreamStore(base string) *profile.Store {
 	}
 }
 
+func TestSameProtocolOpenAIResponsesSSEPassthroughPreservesLifecycle(t *testing.T) {
+	upstreamBody := strings.Join([]string{
+		`event: response.created`,
+		`data: {"type":"response.created","response":{"id":"resp_test","object":"response","model":"gpt-wire","status":"in_progress","output":[]},"sequence_number":0}`,
+		``,
+		`event: response.reasoning_summary_text.delta`,
+		`data: {"type":"response.reasoning_summary_text.delta","delta":"thinking","sequence_number":1}`,
+		``,
+		`event: response.completed`,
+		`data: {"type":"response.completed","response":{"id":"resp_test","object":"response","model":"gpt-wire","status":"completed","output":[],"usage":{"input_tokens":1,"output_tokens":1}},"sequence_number":2}`,
+		``,
+	}, "\n")
+
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/responses" {
+			t.Errorf("unexpected upstream path %q", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+		_, _ = w.Write([]byte(upstreamBody))
+	}))
+	defer up.Close()
+
+	s := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	s.ProfileLoader = func() (*profile.Store, error) { return wireResponsesUpstreamStore(up.URL + "/v1"), nil }
+	ts := httptest.NewServer(s.Server.Handler)
+	defer ts.Close()
+
+	payload := `{"model":"cross-model-id","input":"ping","stream":true}`
+	resp, err := http.Post(ts.URL+"/custom-api/cross-model-id/openai-responses/v1/responses", "application/json", strings.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status=%d body=%s", resp.StatusCode, body)
+	}
+	raw := string(body)
+	for _, want := range []string{
+		`event: response.reasoning_summary_text.delta`,
+		`"type":"response.reasoning_summary_text.delta"`,
+		`event: response.completed`,
+		`"type":"response.completed"`,
+	} {
+		if !strings.Contains(raw, want) {
+			t.Fatalf("same-protocol Responses stream lost %s in %s", want, raw)
+		}
+	}
+}
 func TestCrossProtocolOpenAIIngressWithClaudeUpstreamTranscodesJSON(t *testing.T) {
 	var upstreamHits int
 	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

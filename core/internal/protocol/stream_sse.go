@@ -71,6 +71,32 @@ func streamFlushMaybe(w http.ResponseWriter) func() {
 	return func() {}
 }
 
+// CopyPlaintextSSEToDownstream relays an already-decoded SSE stream without
+// parsing it. This is used for same-protocol proxying, where the safest
+// behavior is to preserve provider-specific event types and lifecycle details.
+func CopyPlaintextSSEToDownstream(ctx context.Context, plaintext io.Reader, w http.ResponseWriter) error {
+	flush := streamFlushMaybe(w)
+	buf := make([]byte, 16*1024)
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		n, readErr := plaintext.Read(buf)
+		if n > 0 {
+			if _, err := w.Write(buf[:n]); err != nil {
+				return err
+			}
+			flush()
+		}
+		if readErr != nil {
+			if errors.Is(readErr, io.EOF) {
+				return nil
+			}
+			return readErr
+		}
+	}
+}
+
 // TranscodePlaintextSSEToIngress converts egress-shaped SSE plaintext into ingress-shaped SSE (decoder -> IR -> encoder), mirroring Electron transformResponse.
 //
 // prependModel emits an initial message_start event like Electron eventsWithModel.

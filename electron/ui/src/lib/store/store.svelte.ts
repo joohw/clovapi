@@ -70,6 +70,7 @@ export {
   detectCliPath,
   detectOllamaInstalled,
   runCliApply,
+  runCliReset,
   runCliInstall,
   runCliUninstall,
   cliApplyTitle,

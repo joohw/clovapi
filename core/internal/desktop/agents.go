@@ -54,6 +54,7 @@ type agentDefinition struct {
 
 var agentDefinitions = []agentDefinition{
 	{ID: "cli-claude", Name: "ClaudeCli", Command: "claude", Kind: agentkind.ClaudeCode},
+	{ID: "app-claudedesktop", Name: "ClaudeDesktop", Command: "", Kind: agentkind.ClaudeDesktop},
 	{ID: "cli-codex", Name: "Codex", Command: "codex", Kind: agentkind.Codex},
 	{ID: "cli-opencode", Name: "OpenCodeCli", Command: "opencode", Kind: agentkind.OpenCode},
 	{ID: "cli-openclaw", Name: "OpenClaw", Command: "openclaw", Kind: agentkind.OpenClaw},
@@ -112,6 +113,12 @@ func AgentStatus() AgentStatusResult {
 }
 
 func resolveAgentInstall(def agentDefinition) (cmdPath string, installed bool) {
+	if def.Kind == agentkind.ClaudeDesktop {
+		if t, ok := apply.TargetFor(def.Kind); ok && t != nil {
+			return "", t.Installed()
+		}
+		return "", false
+	}
 	if def.Kind == agentkind.Codex {
 		installed = apply.CodexInstalled()
 		if p, ok := apply.ResolveCodexExecutable(); ok {

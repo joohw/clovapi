@@ -6,6 +6,7 @@ export const CUSTOM_PRESET_ID = "custom";
 
 export const DEFAULT_CLIS = [
   { id: "cli-claude", name: "ClaudeCli", command: "claude", kind: "claude-code" },
+  { id: "app-claudedesktop", name: "ClaudeDesktop", command: "", kind: "claudedesktop" },
   { id: "cli-codex", name: "Codex", command: "codex", kind: "codex" },
   { id: "cli-opencode", name: "OpenCodeCli", command: "opencode", kind: "opencode" },
   { id: "cli-openclaw", name: "OpenClaw", command: "openclaw", kind: "openclaw" },

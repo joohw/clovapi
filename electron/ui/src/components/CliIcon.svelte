@@ -4,6 +4,7 @@
   /** Official product favicons bundled from each CLI's website. */
   const ICONS: Record<string, string> = {
     "claude-code": "./agenticons/claude-code.ico",
+    claudedesktop: "./agenticons/claude-code.ico",
     codex: "./agenticons/codex.svg",
     opencode: "./agenticons/opencode.svg",
     openclaw: "./agenticons/openclaw.svg",

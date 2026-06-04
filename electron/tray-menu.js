@@ -1,7 +1,8 @@
 const VALID_TABS = new Set(["cli", "profiles", "call-logs", "sessions", "system-logs", "settings"]);
-const TRAY_CLI_ORDER = ["claude-code", "codex", "hermes", "opencode", "openclaw", "kimi-code"];
+const TRAY_CLI_ORDER = ["claude-code", "claudedesktop", "codex", "hermes", "opencode", "openclaw", "kimi-code"];
 const CLI_LABELS = {
   "claude-code": "Claude Code",
+  claudedesktop: "Claude Desktop",
   codex: "Codex",
   hermes: "Hermes",
   opencode: "OpenCode",
@@ -53,7 +54,7 @@ function cliLabel(kind) {
 }
 
 function apiStylesForCli(kind) {
-  if (kind === "claude-code") return ["claude"];
+  if (kind === "claude-code" || kind === "claudedesktop") return ["claude"];
   if (kind === "codex") return ["openai-responses"];
   if (kind === "hermes" || kind === "kimi-code" || kind === "opencode" || kind === "openclaw") {
     return ["claude", "openai-responses", "openai-chat", "gemini"];

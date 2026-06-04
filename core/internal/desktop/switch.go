@@ -53,8 +53,10 @@ func ApplyProviderModel(kind agentkind.Kind, providerID, modelID string) error {
 	if !apply.KindSupportsStyle(kind, p.APIStyle) {
 		return fmt.Errorf("cli %q does not support api_style %q", kind, p.APIStyle)
 	}
-	if err := EnsureCLIBackup(kind); err != nil {
-		return err
+	if kind != agentkind.ClaudeDesktop {
+		if err := EnsureCLIBackup(kind); err != nil {
+			return err
+		}
 	}
 	if err := apply.Apply(p); err != nil {
 		return err

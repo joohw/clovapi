@@ -15,7 +15,7 @@ type ProfileTarget interface {
 	SupportedStyles() []apistyle.Style
 	Description() string
 	Apply(p profile.Profile) error
-	// ResetDefault removes clovapi-injected settings from that tool’s config (best-effort; no-op if file missing).
+	// ResetDefault removes clovapi-injected settings from that tool's config (best-effort; no-op if file missing).
 	ResetDefault() error
 	// Installed reports whether this CLI appears present on the local machine (e.g. binary on PATH).
 	Installed() bool
@@ -45,6 +45,7 @@ func TargetFor(k agentkind.Kind) (ProfileTarget, bool) {
 func RegisteredKinds() []agentkind.Kind {
 	return []agentkind.Kind{
 		agentkind.ClaudeCode,
+		agentkind.ClaudeDesktop,
 		agentkind.Codex,
 		agentkind.OpenCode,
 		agentkind.OpenClaw,
@@ -109,7 +110,7 @@ func Apply(p profile.Profile) error {
 	return nil
 }
 
-// ResetDefault runs the registered target’s ResetDefault (clears relay bindings written by Apply).
+// ResetDefault runs the registered target's ResetDefault (clears relay bindings written by Apply).
 func ResetDefault(k agentkind.Kind) error {
 	t, ok := TargetFor(k)
 	if !ok || t == nil {

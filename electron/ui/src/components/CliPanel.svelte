@@ -14,6 +14,7 @@
     cliApplyTitle,
     onCliBindingChange,
     runCliApply,
+    runCliReset,
     runCliInstall,
     runCliUninstall,
     openProfilesVendor,
@@ -44,6 +45,7 @@
       apply: t("common.apply"),
       install: t("cli.install"),
       uninstall: t("cli.uninstall"),
+      resetSettings: t("cli.resetSettings"),
       installing: t("cli.installing"),
       uninstalling: t("cli.uninstalling"),
       command: t("cli.command"),
@@ -157,6 +159,16 @@
               <LoaderCircleIcon class="size-4 animate-spin" />
             {/if}
             {lifecycle === "uninstall" ? copy.uninstalling : copy.uninstall}
+          </Button>
+        {/if}
+        {#if installed}
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={store.running || store.cliLifecycleBusy[cli.id]}
+            onclick={() => void runCliReset(cli)}
+          >
+            {copy.resetSettings}
           </Button>
         {/if}
       {/snippet}

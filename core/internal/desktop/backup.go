@@ -15,6 +15,8 @@ func cliConfigPath(kind agentkind.Kind) (string, error) {
 	switch kind {
 	case agentkind.ClaudeCode:
 		return apply.ClaudeSettingsPath()
+	case agentkind.ClaudeDesktop:
+		return apply.ClaudeDesktopProfilePath()
 	case agentkind.Codex:
 		return apply.CodexConfigPath()
 	case agentkind.OpenCode:

@@ -170,6 +170,60 @@ export async function runCliUninstall(cli: CliDef) {
     delete store.cliLifecycleAction[cli.id];
   }
 }
+
+export async function runCliReset(cli: CliDef, toastId = `cli-reset-${cli.id}`) {
+  if (!store.clovapiAvailable) {
+    toast.error(t("toast.clovapiMissing"));
+    return false;
+  }
+
+  if (!installedCli(cli)) {
+    toast.error(t("toast.cliNotInstalled", { name: cli.name }));
+    return false;
+  }
+
+  if (store.running) {
+    toast.info(t("toast.commandRunning"));
+    return false;
+  }
+
+  await refreshProxyStatus();
+  toast.loading(t("toast.resetting", { name: cli.name }), { id: toastId });
+  try {
+    const exit = await runClovapiArgsAndWait(["switch", "--cli", cli.kind, "--reset"], {
+      silent: true,
+    });
+    if (!exit?.ok) {
+      const exitCode = exit && "code" in exit ? exit.code : undefined;
+      const bridgeError = exit && "error" in exit ? String(exit.error || "").trim() : "";
+      const stderr = exit && "stderr" in exit ? String(exit.stderr || "").trim() : "";
+      toast.error(
+        bridgeError ||
+          stderr ||
+          (exitCode != null
+            ? t("toast.cliWriteFailed", { name: cli.name, code: String(exitCode) })
+            : t("toast.cliWriteFailedGeneric")),
+        { id: toastId },
+      );
+      return false;
+    }
+    delete store.active[cli.kind];
+    const saved = await persistProfiles();
+    if (!saved?.ok) {
+      toast.error(saved?.error || t("toast.profilesSaveFailed"), { id: toastId });
+      return false;
+    }
+    toast.success(t("toast.resetSuccess"), { id: toastId });
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : t("toast.cliWriteFailedGeneric");
+    toast.error(message, { id: toastId });
+    return false;
+  } finally {
+    void refreshProxyLogs();
+  }
+}
+
 export async function runCliApply(cli: CliDef) {
   let binding = activeBindingForCli(cli.kind);
 
@@ -190,40 +244,8 @@ export async function runCliApply(cli: CliDef) {
 
   const toastId = `cli-apply-${cli.id}`;
   await refreshProxyStatus();
-
   if (!binding) {
-    toast.loading(t("toast.applying", { name: cli.name }), { id: toastId });
-    try {
-      const exit = await runClovapiArgsAndWait(["switch", "--cli", cli.kind, "--reset"], {
-        silent: true,
-      });
-      if (!exit?.ok) {
-        const exitCode = exit && "code" in exit ? exit.code : undefined;
-        const bridgeError = exit && "error" in exit ? String(exit.error || "").trim() : "";
-        const stderr = exit && "stderr" in exit ? String(exit.stderr || "").trim() : "";
-        toast.error(
-          bridgeError ||
-            stderr ||
-            (exitCode != null
-              ? t("toast.cliWriteFailed", { name: cli.name, code: String(exitCode) })
-              : t("toast.cliWriteFailedGeneric")),
-          { id: toastId },
-        );
-        return;
-      }
-      delete store.active[cli.kind];
-      const saved = await persistProfiles();
-      if (!saved?.ok) {
-        toast.error(saved?.error || t("toast.profilesSaveFailed"), { id: toastId });
-        return;
-      }
-      toast.success(t("toast.resetSuccess"), { id: toastId });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t("toast.cliWriteFailedGeneric");
-      toast.error(message, { id: toastId });
-    } finally {
-      void refreshProxyLogs();
-    }
+    await runCliReset(cli, toastId);
     return;
   }
 

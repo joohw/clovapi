@@ -6,6 +6,7 @@ const test = require("node:test");
 
 const { cliBinPath } = require("./config-paths");
 const { resolveClovapiExecutable, runClovapiArgsAsync } = require("./clovapi-exec");
+const { mergeNoProxy } = require("./clovapi-desktop");
 
 function withTempAppData(t) {
   const previousAppData = process.env.APPDATA;
@@ -97,3 +98,8 @@ test("runClovapiArgsAsync captures output without spawnSync", async (t) => {
   assert.equal(result.ok, true);
   assert.equal(result.stdout.trim(), "async:probe");
 });
+
+test("mergeNoProxy appends loopback hosts without dropping existing entries", () => {
+  assert.equal(mergeNoProxy("example.com, localhost"), "example.com,localhost,127.0.0.1,::1");
+});
+

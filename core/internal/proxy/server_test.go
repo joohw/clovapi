@@ -19,11 +19,34 @@ import (
 	"github.com/clovapi/switcher/internal/syslog"
 )
 
-func TestServerHealthAndModelsList(t *testing.T) {
-	s := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
-	s.ProfileLoader = func() (*profile.Store, error) {
-		return &profile.Store{Version: profile.StoreVersion}, nil
+func newTestServer(cfg profile.ProxyConfig) *Server {
+	s := NewServer(cfg)
+	s.CallLogs = nil
+	return s
+}
+
+func TestNewTestServerDoesNotUseUserCallLogStore(t *testing.T) {
+	s := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	if s.CallLogs != nil {
+		t.Fatal("test server should not attach the user call log store")
 	}
+}
+
+func TestServerHealthAndModelsList(t *testing.T) {
+	store := &profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:                   provider.ClaudeCodeVendorName,
+			Kind:                   "subscription",
+			SubscriptionProviderID: provider.ClaudeCodeProviderID,
+			Models: []profile.Model{{
+				ID:    "claude-opus-4",
+				Model: "claude-opus-4",
+			}},
+		}},
+	}
+	s := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	s.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(s.Server.Handler)
 	defer ts.Close()
 
@@ -50,6 +73,34 @@ func TestServerHealthAndModelsList(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("models status = %d", resp.StatusCode)
+	}
+	var legacyBody struct {
+		Data []struct {
+			ID      string `json:"id"`
+			Object  string `json:"object"`
+			OwnedBy string `json:"owned_by"`
+		} `json:"data"`
+		Object string `json:"object"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&legacyBody); err != nil {
+		t.Fatal(err)
+	}
+	if legacyBody.Object != "list" || len(legacyBody.Data) != 1 || legacyBody.Data[0].ID != "claude-opus-4" {
+		t.Fatalf("models body = %+v", legacyBody)
+	}
+
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/claude-code/v1/models", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer clovapi--claude-desktop")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("desktop models status = %d", resp.StatusCode)
 	}
 	var body struct {
 		Data []struct {
@@ -84,18 +135,15 @@ func TestServerHealthAndModelsList(t *testing.T) {
 	}
 	var encodedBody struct {
 		Data []struct {
-			ID          string `json:"id"`
-			Type        string `json:"type"`
-			DisplayName string `json:"display_name"`
+			ID     string `json:"id"`
+			Object string `json:"object"`
 		} `json:"data"`
-		HasMore bool   `json:"has_more"`
-		FirstID string `json:"first_id"`
-		LastID  string `json:"last_id"`
+		Object string `json:"object"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&encodedBody); err != nil {
 		t.Fatal(err)
 	}
-	if len(encodedBody.Data) != 1 || encodedBody.Data[0].ID != "claude opus/4" {
+	if encodedBody.Object != "list" || len(encodedBody.Data) != 1 || encodedBody.Data[0].ID != "claude-opus-4" {
 		t.Fatalf("encoded slash models body = %+v", encodedBody)
 	}
 }
@@ -110,7 +158,7 @@ func TestShouldRecordStreamErrorIgnoresContextCanceled(t *testing.T) {
 }
 
 func TestDebugCallLogPaginatesDefaultLimit(t *testing.T) {
-	s := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	s := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
 	s.CallLogs = openTestCallLogStore(t)
 	for i := 0; i < 25; i++ {
 		s.CallLogs.Push(CallLogEntry{
@@ -151,7 +199,7 @@ func TestDebugSystemLogPaginatesDefaultLimit(t *testing.T) {
 	for i := 0; i < 25; i++ {
 		syslog.Write("system", "entry-"+strconv.Itoa(i))
 	}
-	s := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	s := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
 	t.Cleanup(func() { _ = s.CallLogs.Close() })
 	ts := httptest.NewServer(s.Server.Handler)
 	defer ts.Close()
@@ -177,7 +225,7 @@ func TestDebugSystemLogPaginatesDefaultLimit(t *testing.T) {
 }
 
 func TestDebugRoutesAllowNonLoopbackClientsByDefault(t *testing.T) {
-	s := NewServer(profile.ProxyConfig{Host: "0.0.0.0", Port: 27483})
+	s := newTestServer(profile.ProxyConfig{Host: "0.0.0.0", Port: 27483})
 	s.CallLogs = openTestCallLogStore(t)
 	req := httptest.NewRequest(http.MethodGet, "http://example.com/__debug/call-log", nil)
 	req.RemoteAddr = "203.0.113.10:45678"
@@ -191,7 +239,7 @@ func TestDebugRoutesAllowNonLoopbackClientsByDefault(t *testing.T) {
 }
 
 func TestDebugRoutesIgnoreLocalOnlyCompatibilityFlag(t *testing.T) {
-	s := NewServer(profile.ProxyConfig{Host: "0.0.0.0", Port: 27483, DebugLocalOnly: true})
+	s := newTestServer(profile.ProxyConfig{Host: "0.0.0.0", Port: 27483, DebugLocalOnly: true})
 	s.CallLogs = openTestCallLogStore(t)
 	req := httptest.NewRequest(http.MethodGet, "http://example.com/__debug/call-log", nil)
 	req.RemoteAddr = "203.0.113.10:45678"
@@ -232,7 +280,7 @@ func TestServerCodexModelsListReturnsLocalVendorModels(t *testing.T) {
 		}},
 	}
 
-	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
@@ -282,7 +330,7 @@ func fixtureDesktopCustomAPIStore() *profile.Store {
 
 func TestDebugEndpointsWithoutSecrets(t *testing.T) {
 	st := fixtureDesktopCustomAPIStore()
-	srv := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	srv := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	srv.ProfileLoader = func() (*profile.Store, error) { return st, nil }
 	ts := httptest.NewServer(srv.Server.Handler)
 	defer ts.Close()
@@ -375,7 +423,7 @@ func TestPassthroughForwardingSameIngressEgressOpenAIChat(t *testing.T) {
 			}},
 		}},
 	}
-	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
@@ -471,7 +519,7 @@ func TestSameProtocolOpenAIResponsesSSEPassthroughPreservesLifecycle(t *testing.
 	}))
 	defer up.Close()
 
-	s := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	s := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
 	s.ProfileLoader = func() (*profile.Store, error) { return wireResponsesUpstreamStore(up.URL + "/v1"), nil }
 	ts := httptest.NewServer(s.Server.Handler)
 	defer ts.Close()
@@ -524,7 +572,7 @@ func TestCrossProtocolOpenAIIngressWithClaudeUpstreamTranscodesJSON(t *testing.T
 	base := strings.TrimRight(up.URL, "/") + "/v1"
 	store := wireClaudeUpstreamStore(base)
 
-	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
@@ -583,7 +631,7 @@ func TestCrossProtocolIngressDecompressesGzipUpstream(t *testing.T) {
 	base := strings.TrimRight(up.URL, "/") + "/v1"
 	store := wireClaudeUpstreamStore(base)
 
-	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
@@ -634,7 +682,7 @@ func TestCrossProtocolSSEUpstreamTranscodedForOpenAIChatIngress(t *testing.T) {
 	base := strings.TrimRight(up.URL, "/") + "/v1"
 	store := wireResponsesUpstreamStore(base)
 
-	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
@@ -675,7 +723,7 @@ func TestIngressStreamWithDefaultsHitsUpstreamConnRefused(t *testing.T) {
 		}},
 	}
 
-	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
@@ -722,7 +770,7 @@ func TestStreamOpenAIChatIngressViaClaudeUpstreamSSE(t *testing.T) {
 	base := strings.TrimRight(up.URL, "/") + "/v1"
 	store := wireClaudeUpstreamStore(base)
 
-	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
@@ -794,7 +842,7 @@ func TestStreamClaudeIngressViaOpenAIResponsesUpstreamSSE(t *testing.T) {
 		}},
 	}
 
-	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
@@ -871,7 +919,7 @@ func TestStreamOpenAIChatIngressViaResponsesUpstreamSSEWithoutContentType(t *tes
 		}},
 	}
 
-	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
@@ -939,7 +987,7 @@ func TestStreamOpenAIChatIngressViaClaudeUpstreamGzipSSE(t *testing.T) {
 	base := strings.TrimRight(up.URL, "/") + "/v1"
 	store := wireClaudeUpstreamStore(base)
 
-	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
@@ -1016,7 +1064,7 @@ func TestStreamSameOpenAIChatIngressUpstreamSSENormalized(t *testing.T) {
 	base := strings.TrimRight(up.URL, "/") + "/v1"
 	store := wireOpenAIChatUpstreamStore(base)
 
-	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
@@ -1092,7 +1140,7 @@ func TestStreamSameOpenAIResponsesIngressUpstreamSSEExtensionRelay(t *testing.T)
 		}},
 	}
 
-	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
@@ -1176,7 +1224,7 @@ func TestKimiCodexSubscriptionClaudeIngressDefaultsStreamTrueWhenOmitted(t *test
 		}},
 	}
 
-	core := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
@@ -1196,5 +1244,66 @@ func TestKimiCodexSubscriptionClaudeIngressDefaultsStreamTrueWhenOmitted(t *test
 	}
 	if !strings.Contains(string(raw), "content_block_delta") {
 		t.Fatalf("expected claude sse downstream:\n%s", raw)
+	}
+}
+
+func TestClaudeDesktopGatewayRouteMapsToCodexWireModel(t *testing.T) {
+	var upstreamBody []byte
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upstreamBody, _ = io.ReadAll(io.LimitReader(r.Body, 1<<20))
+		var parsed map[string]any
+		if err := json.Unmarshal(upstreamBody, &parsed); err != nil {
+			t.Fatal(err)
+		}
+		if parsed["model"] != "gpt-5.5" {
+			t.Fatalf("upstream model = %v want gpt-5.5", parsed["model"])
+		}
+		w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, "event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n")
+	}))
+	defer up.Close()
+
+	store := &profile.Store{
+		Version: profile.StoreVersion,
+		Active: map[string]profile.ActiveSelection{
+			"claudedesktop": {ProviderID: provider.CodexProviderID, ModelID: "gpt-5.5"},
+		},
+		List: []profile.Profile{{
+			Name:                   provider.CodexVendorName,
+			Kind:                   "subscription",
+			SubscriptionProviderID: provider.CodexProviderID,
+			APIStyle:               apistyle.OpenAIResponses,
+			BaseURL:                strings.TrimRight(up.URL, "/"),
+			APIKey:                 "oauth-token",
+			AccountID:              "test-acct",
+			Model:                  "gpt-5.5",
+			Models: []profile.Model{{
+				ID:       "gpt-5.5",
+				Model:    "gpt-5.5",
+				APIStyle: apistyle.OpenAIResponses,
+			}},
+		}},
+	}
+
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
+	ts := httptest.NewServer(core.Server.Handler)
+	defer ts.Close()
+
+	payload := `{"model":"claude-sonnet-4-6","max_tokens":16,"messages":[{"role":"user","content":"."}]}`
+	req, err := http.NewRequest(http.MethodPost, ts.URL+"/codex/v1/messages", strings.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer clovapi--claude-desktop")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		raw, _ := io.ReadAll(resp.Body)
+		t.Fatalf("status=%d body=%s upstream=%s", resp.StatusCode, raw, upstreamBody)
 	}
 }

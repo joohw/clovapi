@@ -13,8 +13,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/buildinfo"
+	"github.com/clovapi/switcher/internal/ingresstoken"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/protocol"
 	"github.com/clovapi/switcher/internal/provider"
@@ -448,7 +450,11 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		path = r.URL.Path
 	}
 	ingress, pathOK := provider.ParseProxyIngressPath(path)
+	ingressAuth := ingresstoken.FromHTTPRequest(r)
 	trace := startRequestTraceIfNeeded(s.CallLogs, r, ingress, pathOK)
+	if trace != nil {
+		trace.setIngressAgent(ingressAuth.Agent)
+	}
 	defer func() {
 		if trace != nil {
 			trace.finish()
@@ -503,6 +509,9 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 
 	if strings.TrimSpace(ingress.ModelID) == "" {
 		ingress.ModelID = modelIDFromIngressPayload(payload, ingress)
+	}
+	if ingressAuth.Agent == agentkind.ClaudeDesktop || ingressAuth.Token == ingresstoken.Legacy {
+		ingress.ModelID = profile.ResolveIngressModelID(store, ingress.ProviderID, ingress.ModelID)
 	}
 	if strings.TrimSpace(ingress.ModelID) == "" {
 		msg := "request body model is required for proxy route"

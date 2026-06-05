@@ -6,6 +6,7 @@ import (
 
 	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apply"
+	"github.com/clovapi/switcher/internal/ingresstoken"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
 )
@@ -45,7 +46,7 @@ func ApplyProviderModel(kind agentkind.Kind, providerID, modelID string) error {
 		Kind:                   hit.Vendor.Kind,
 		SubscriptionProviderID: hit.Vendor.SubscriptionProviderID,
 		BaseURL:                baseURL,
-		APIKey:                 "clovapi-local",
+		APIKey:                 ingresstoken.ForAgent(kind),
 		Model:                  modelWire,
 		Models:                 hit.Vendor.Models,
 		APIStyle:               ingressStyle,

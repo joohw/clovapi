@@ -84,6 +84,7 @@ func ensureCallLogTokenColumns(db *sql.DB) error {
 		"cache_creation_tokens": "INTEGER NOT NULL DEFAULT 0",
 		"reasoning_tokens":      "INTEGER NOT NULL DEFAULT 0",
 		"tool_call_count":       "INTEGER NOT NULL DEFAULT 0",
+		"agent_kind":            "TEXT NOT NULL DEFAULT ''",
 	}
 	for name, spec := range columns {
 		if _, err := db.Exec(fmt.Sprintf("ALTER TABLE call_logs ADD COLUMN %s %s", name, spec)); err != nil {
@@ -119,15 +120,16 @@ func insertCallLogEntry(db *sql.DB, entry CallLogEntry) error {
 	}
 	_, err = db.Exec(
 		`INSERT OR REPLACE INTO call_logs (
-			id, session_id, session_kind, started_at, completed_at, duration_ms,
+			id, session_id, session_kind, agent_kind, started_at, completed_at, duration_ms,
 			request_json, upstream_json,
 			input_tokens, output_tokens, total_tokens, cache_read_tokens, cache_creation_tokens, reasoning_tokens,
 			tool_call_count,
 			error
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		entry.ID,
 		sessionID,
 		kind,
+		entry.AgentKind,
 		entry.StartedAt,
 		entry.CompletedAt,
 		entry.DurationMs,
@@ -167,7 +169,7 @@ func callLogUsageValue(usage *CallLogTokenUsage, key string) int {
 	}
 }
 
-const callLogEntrySelectColumns = `id, session_id, session_kind, started_at, completed_at, duration_ms,
+const callLogEntrySelectColumns = `id, session_id, session_kind, agent_kind, started_at, completed_at, duration_ms,
 	request_json, upstream_json,
 	input_tokens, output_tokens, total_tokens, cache_read_tokens, cache_creation_tokens, reasoning_tokens,
 	tool_call_count,
@@ -181,6 +183,7 @@ func scanCallLogEntry(rows *sql.Rows) (CallLogEntry, error) {
 		&entry.ID,
 		&entry.SessionID,
 		&entry.SessionKind,
+		&entry.AgentKind,
 		&entry.StartedAt,
 		&entry.CompletedAt,
 		&entry.DurationMs,
@@ -268,6 +271,7 @@ func findCallLogEntryInDB(db *sql.DB, id string) (CallLogEntry, error) {
 		&entry.ID,
 		&entry.SessionID,
 		&entry.SessionKind,
+		&entry.AgentKind,
 		&entry.StartedAt,
 		&entry.CompletedAt,
 		&entry.DurationMs,

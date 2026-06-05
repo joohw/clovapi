@@ -23,7 +23,7 @@ func TestClaudeDesktopGatewayModelsListFormat(t *testing.T) {
 			},
 		}},
 	}
-	s := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	s := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
 	s.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(s.Server.Handler)
 	defer ts.Close()
@@ -32,7 +32,7 @@ func TestClaudeDesktopGatewayModelsListFormat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Set("Authorization", "Bearer clovapi-local")
+	req.Header.Set("Authorization", "Bearer clovapi--claude-desktop")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -48,7 +48,7 @@ func TestClaudeDesktopGatewayModelsListFormat(t *testing.T) {
 	if body["has_more"] != false {
 		t.Fatalf("has_more = %#v", body["has_more"])
 	}
-	if body["first_id"] != "gpt-5.5" || body["last_id"] != "gpt-5.4" {
+	if body["first_id"] != "claude-sonnet-4-6" || body["last_id"] != "claude-sonnet-4-5" {
 		t.Fatalf("first/last id = %#v / %#v", body["first_id"], body["last_id"])
 	}
 	data, ok := body["data"].([]any)
@@ -56,7 +56,7 @@ func TestClaudeDesktopGatewayModelsListFormat(t *testing.T) {
 		t.Fatalf("data = %#v", body["data"])
 	}
 	item, _ := data[0].(map[string]any)
-	if item["type"] != "model" || item["id"] != "gpt-5.5" {
+	if item["type"] != "model" || item["id"] != "claude-sonnet-4-6" {
 		t.Fatalf("item = %#v", item)
 	}
 }
@@ -72,7 +72,7 @@ func TestCodexModelsListWithoutDesktopBearerStaysOpenAIFormat(t *testing.T) {
 			},
 		}},
 	}
-	s := NewServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	s := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
 	s.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(s.Server.Handler)
 	defer ts.Close()
@@ -96,12 +96,12 @@ func TestCodexModelsListWithoutDesktopBearerStaysOpenAIFormat(t *testing.T) {
 
 func TestIsClaudeDesktopGatewayRequest(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:27483/codex/v1/models", nil)
-	req.Header.Set("Authorization", "Bearer clovapi-local")
+	req.Header.Set("Authorization", "Bearer clovapi--claude-desktop")
 	if !isClaudeDesktopGatewayRequest(req) {
 		t.Fatal("expected desktop gateway request")
 	}
-	req.Header.Set("Authorization", "Bearer sk-other")
+	req.Header.Set("Authorization", "Bearer clovapi--codex")
 	if isClaudeDesktopGatewayRequest(req) {
-		t.Fatal("unexpected desktop gateway match")
+		t.Fatal("unexpected desktop gateway match for codex token")
 	}
 }

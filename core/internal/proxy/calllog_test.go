@@ -13,8 +13,7 @@ import (
 
 func openTestCallLogStore(t *testing.T) *CallLogStore {
 	t.Helper()
-	dir := t.TempDir()
-	store := newCallLogStoreAt(dir)
+	store := NewCallLogStoreInDir(t.TempDir())
 	t.Cleanup(func() { _ = store.Close() })
 	return store
 }

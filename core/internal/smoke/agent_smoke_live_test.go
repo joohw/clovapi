@@ -278,11 +278,14 @@ func smokeStore(providers []smokeProvider) *profile.Store {
 
 func smokeProxyBaseURL(t *testing.T, store *profile.Store) (string, *proxy.CallLogStore) {
 	t.Helper()
+	logs := proxy.NewCallLogStoreInDir(t.TempDir())
+	t.Cleanup(func() { _ = logs.Close() })
 	srv := proxy.NewServer(profile.ProxyConfig{Enabled: true, Host: "127.0.0.1", Port: 27483})
+	srv.CallLogs = logs
 	srv.ProfileLoader = func() (*profile.Store, error) { return store, nil }
 	ts := httptest.NewServer(srv.Server.Handler)
 	t.Cleanup(ts.Close)
-	return strings.TrimRight(ts.URL, "/"), srv.CallLogs
+	return strings.TrimRight(ts.URL, "/"), logs
 }
 
 func smokeIngressBaseURL(baseURL, providerID, modelID string, style apistyle.Style) string {

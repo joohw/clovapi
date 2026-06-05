@@ -5,19 +5,19 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
+	"github.com/clovapi/switcher/internal/ingresstoken"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
 )
 
 const (
-	claudeDesktopGatewayAPIKey = "clovapi-local"
-	claudeDesktopModelCreated  = "2024-01-01T00:00:00Z"
+	claudeDesktopModelCreated = "2024-01-01T00:00:00Z"
 )
 
 func (s *Server) serveIngressModels(w http.ResponseWriter, r *http.Request, trace *requestTrace, ingress provider.Ingress, store *profile.Store) {
-	claudeDesktop := isClaudeDesktopGatewayRequest(r) ||
-		strings.EqualFold(strings.TrimSpace(ingress.APIStyle), string(apistyle.Claude))
+	claudeDesktop := isClaudeDesktopIngress(r, ingress)
 	body := buildModelsListBody(ingress.ProviderID, ingress.ModelID, store, claudeDesktop)
 	trace.setUpstreamResponse(http.StatusOK, http.Header{"Content-Type": []string{"application/json"}}, []byte(body))
 	w.Header().Set("content-type", "application/json")
@@ -27,27 +27,32 @@ func (s *Server) serveIngressModels(w http.ResponseWriter, r *http.Request, trac
 	}
 }
 
+func isClaudeDesktopIngress(r *http.Request, ingress provider.Ingress) bool {
+	auth := ingresstoken.FromHTTPRequest(r)
+	if auth.Agent == agentkind.ClaudeDesktop {
+		return true
+	}
+	if auth.Token == ingresstoken.Legacy &&
+		strings.EqualFold(strings.TrimSpace(ingress.APIStyle), string(apistyle.Claude)) {
+		return true
+	}
+	return false
+}
+
 func isClaudeDesktopGatewayRequest(r *http.Request) bool {
-	if r == nil {
-		return false
-	}
-	auth := strings.TrimSpace(r.Header.Get("Authorization"))
-	if auth == "" {
-		return false
-	}
-	const prefix = "Bearer "
-	if !strings.HasPrefix(auth, prefix) && !strings.HasPrefix(auth, "bearer ") {
-		return false
-	}
-	token := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(auth, "Bearer "), "bearer "))
-	return token == claudeDesktopGatewayAPIKey
+	return ingresstoken.FromHTTPRequest(r).Agent == agentkind.ClaudeDesktop ||
+		strings.TrimSpace(ingresstoken.FromHTTPRequest(r).Token) == ingresstoken.Legacy
 }
 
 func buildModelsListBody(providerID, modelID string, store *profile.Store, claudeDesktop bool) string {
-	ids := vendorModelIDs(providerID, modelID, store)
 	if claudeDesktop {
-		return buildClaudeDesktopModelsListBody(ids)
+		routes := profile.ClaudeDesktopRouteIDs(store, providerID)
+		if len(routes) == 0 && strings.TrimSpace(modelID) != "" {
+			routes = []string{profile.ClaudeDesktopRouteName(modelID, 0)}
+		}
+		return buildClaudeDesktopModelsListBody(routes)
 	}
+	ids := vendorModelIDs(providerID, modelID, store)
 	rows := make([]map[string]string, 0, len(ids))
 	for _, id := range ids {
 		rows = append(rows, map[string]string{"id": id, "object": "model", "owned_by": "clovapi"})

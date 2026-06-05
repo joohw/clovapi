@@ -15,6 +15,7 @@ import (
 	"github.com/clovapi/switcher/internal/protocol"
 	"github.com/clovapi/switcher/internal/provider"
 	"github.com/clovapi/switcher/internal/syslog"
+	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/google/uuid"
 )
 
@@ -56,6 +57,7 @@ type CallLogEntry struct {
 	Upstream      CallLogUpstream    `json:"upstream"`
 	TokenUsage    *CallLogTokenUsage `json:"tokenUsage,omitempty"`
 	ToolCallCount int                `json:"toolCallCount,omitempty"`
+	AgentKind     string             `json:"agentKind,omitempty"`
 	Error         string             `json:"error,omitempty"`
 }
 
@@ -75,6 +77,11 @@ func NewCallLogStore() *CallLogStore {
 		return &CallLogStore{dbPath: dbPath}
 	}
 	return &CallLogStore{dbPath: dbPath, db: db}
+}
+
+// NewCallLogStoreInDir opens an isolated call log database under dir (for tests).
+func NewCallLogStoreInDir(dir string) *CallLogStore {
+	return newCallLogStoreAt(dir)
 }
 
 func newCallLogStoreAt(dir string) *CallLogStore {
@@ -365,6 +372,13 @@ func cloneInboundRequestHeaders(r *http.Request) map[string]string {
 	}
 	out["Host"] = host
 	return out
+}
+
+func (t *requestTrace) setIngressAgent(kind agentkind.Kind) {
+	if t == nil || kind == "" {
+		return
+	}
+	t.entry.AgentKind = string(kind)
 }
 
 func (t *requestTrace) setRequestBody(body []byte) {

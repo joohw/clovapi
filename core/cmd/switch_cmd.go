@@ -13,6 +13,7 @@ import (
 	"github.com/clovapi/switcher/internal/apply"
 	"github.com/clovapi/switcher/internal/cliswitch"
 	"github.com/clovapi/switcher/internal/desktop"
+	"github.com/clovapi/switcher/internal/ingresstoken"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/syslog"
 )
@@ -314,7 +315,7 @@ func applyDirectToCLI(kind agentkind.Kind, baseURL, apiKey, model, styleStr stri
 	}
 	key := strings.TrimSpace(apiKey)
 	if key == "" {
-		key = "clovapi-local"
+		key = ingresstoken.ForAgent(kind)
 	}
 	p := profile.Profile{
 		Name:     "__direct__",

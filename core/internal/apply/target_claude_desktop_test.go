@@ -8,6 +8,7 @@ import (
 
 	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
+	"github.com/clovapi/switcher/internal/ingresstoken"
 	"github.com/clovapi/switcher/internal/profile"
 )
 
@@ -29,7 +30,7 @@ func TestClaudeDesktopApplyWritesThreePProfile(t *testing.T) {
 		CLI:      agentkind.ClaudeDesktop,
 		APIStyle: apistyle.Claude,
 		BaseURL:  "http://127.0.0.1:27483/custom-api/v1",
-		APIKey:   "clovapi-local",
+		APIKey:   ingresstoken.ForAgent(agentkind.ClaudeDesktop),
 		Model:    "gpt-5.5/pro",
 	}
 	if err := (claudeDesktopTarget{}).Apply(p); err != nil {
@@ -51,7 +52,7 @@ func TestClaudeDesktopApplyWritesThreePProfile(t *testing.T) {
 	if prof["inferenceGatewayBaseUrl"] != wantBase {
 		t.Fatalf("base url = %q want %q", prof["inferenceGatewayBaseUrl"], wantBase)
 	}
-	if prof["inferenceGatewayApiKey"] != "clovapi-local" || prof["inferenceGatewayAuthScheme"] != "bearer" || prof["inferenceProvider"] != "gateway" {
+	if prof["inferenceGatewayApiKey"] != "clovapi--claude-desktop" || prof["inferenceGatewayAuthScheme"] != "bearer" || prof["inferenceProvider"] != "gateway" {
 		t.Fatalf("profile auth/provider fields = %#v", prof)
 	}
 	models, ok := prof["inferenceModels"].([]any)
@@ -59,8 +60,8 @@ func TestClaudeDesktopApplyWritesThreePProfile(t *testing.T) {
 		t.Fatalf("inferenceModels = %#v", prof["inferenceModels"])
 	}
 	model, _ := models[0].(map[string]any)
-	if model["name"] != "gpt-5.5/pro" {
-		t.Fatalf("model route = %#v", model)
+	if model["name"] != "claude-sonnet-4-6" {
+		t.Fatalf("model route = %#v want claude-sonnet-4-6 alias for gpt-5.5/pro", model)
 	}
 	if meta["appliedId"] != claudeDesktopProfileID {
 		t.Fatalf("meta = %#v", meta)
@@ -74,7 +75,7 @@ func TestClaudeDesktopResetRestoresOfficialMode(t *testing.T) {
 		CLI:      agentkind.ClaudeDesktop,
 		APIStyle: apistyle.Claude,
 		BaseURL:  "http://127.0.0.1:27483/custom-api/v1",
-		APIKey:   "clovapi-local",
+		APIKey:   ingresstoken.ForAgent(agentkind.ClaudeDesktop),
 		Model:    "gpt-5.5",
 	}
 	if err := (claudeDesktopTarget{}).Apply(p); err != nil {

@@ -62,7 +62,7 @@ func (claudeDesktopTarget) Apply(p profile.Profile) error {
 		return err
 	}
 	return withClaudeDesktopRollback(paths, func() error {
-		profileJSON := claudeDesktopGatewayProfile(ensureAnthropicWireBaseURL(p.BaseURL), p.APIKey, p.Model)
+		profileJSON := claudeDesktopGatewayProfile(ensureAnthropicWireBaseURL(p.BaseURL), p.APIKey, profile.ClaudeDesktopRouteName(p.Model, 0))
 		if err := writeClaudeDesktopDeploymentMode(paths.normalConfigPath, "3p"); err != nil {
 			return err
 		}

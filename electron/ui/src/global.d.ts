@@ -156,6 +156,7 @@ export type ProxyLogEntry = {
   session?: string;
   sessionId?: string;
   sessionKind?: string;
+  agentKind?: string;
   upstream: {
     method: string;
     url: string;

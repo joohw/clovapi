@@ -76,13 +76,19 @@ export function proxyLogOverviewText(entry: ProxyLogEntry): string {
   const rows = [
     `${t("callLogs.overviewResult")}: ${proxyLogResultText(entry)}`,
     `${t("callLogs.overviewSession")}: ${session}`,
+  ];
+  const agent = String(entry.agentKind || "").trim();
+  if (agent) {
+    rows.push(`Agent: ${agent}`);
+  }
+  rows.push(
     `${t("callLogs.overviewTokens")}: ${usage}`,
     `${t("callLogs.overviewTime")}: ${proxyLogTimeRangeText(entry)}`,
     `${t("callLogs.toolCalls")}: ${entry.toolCallCount || 0}`,
     `${t("callLogs.overviewInbound")}: ${proxyLogInboundRequestLine(entry)}`,
     `${t("callLogs.overviewUpstream")}: ${proxyLogUpstreamRequestLine(entry) || t("common.none")}`,
     `${t("callLogs.overviewStatus")}: HTTP ${status}`,
-  ];
+  );
   if (entry.error) {
     rows.push(`${t("callLogs.proxyError")}: ${entry.error}`);
   }

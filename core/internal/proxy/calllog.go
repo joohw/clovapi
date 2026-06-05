@@ -421,7 +421,25 @@ func (t *requestTrace) finish() {
 	if t.entry.ToolCallCount == 0 {
 		t.entry.ToolCallCount = ExtractCallLogToolCallCount(t.entry.Upstream.Body)
 	}
+	backfillUpstreamBodyFromError(&t.entry)
 	t.store.Push(t.entry)
+}
+
+func backfillUpstreamBodyFromError(entry *CallLogEntry) {
+	if entry == nil {
+		return
+	}
+	if strings.TrimSpace(entry.Upstream.Body) != "" {
+		return
+	}
+	errMsg := strings.TrimSpace(entry.Error)
+	if errMsg == "" {
+		return
+	}
+	entry.Upstream.Body = errMsg
+	if entry.Upstream.Status == 0 {
+		entry.Upstream.Status = http.StatusBadGateway
+	}
 }
 
 func cloneRedactedHeaders(headers http.Header) map[string]string {

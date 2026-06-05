@@ -8,6 +8,33 @@ import (
 	"github.com/clovapi/switcher/internal/apistyle"
 )
 
+func TestPrepareResponsesStringInputEncodesAsArrayForSameEgress(t *testing.T) {
+	body := []byte(`{"model":"gpt-5.5","input":"ping","stream":true,"max_output_tokens":16}`)
+
+	upstream, _, err := PrepareUpstreamRequest(apistyle.OpenAIResponses, apistyle.OpenAIResponses, body, PrepareOptions{
+		Model:       "gpt-5.5",
+		ForceStream: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wire map[string]any
+	if err := json.Unmarshal(upstream, &wire); err != nil {
+		t.Fatal(err)
+	}
+	input, ok := wire["input"].([]any)
+	if !ok {
+		t.Fatalf("input = %#v, want array", wire["input"])
+	}
+	if len(input) != 1 {
+		t.Fatalf("input length = %d, want 1", len(input))
+	}
+	item, _ := input[0].(map[string]any)
+	if item["type"] != "message" || item["role"] != "user" {
+		t.Fatalf("input item = %#v", item)
+	}
+}
+
 func TestPrepareResponsesInputArrayWithoutTypeForClaudeEgress(t *testing.T) {
 	body := []byte(`{
 		"model":"claude-sonnet-4-6",

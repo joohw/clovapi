@@ -5,6 +5,7 @@
     proxyLogBodyText,
     proxyLogHeaderText,
     proxyLogOverviewText,
+    proxyLogUpstreamBodyText,
   } from "../lib/proxy-log-format";
   import SectionCard from "./SectionCard.svelte";
 
@@ -55,6 +56,6 @@
   <SectionCard title={copy.upstreamBody} description={copy.upstreamBodyDesc}>
     <pre
       class="max-h-96 overflow-auto px-4 py-3 font-mono text-[11px] leading-relaxed whitespace-pre-wrap"
-    >{proxyLogBodyText(entry.upstream.body)}</pre>
+    >{proxyLogUpstreamBodyText(entry)}</pre>
   </SectionCard>
 </div>

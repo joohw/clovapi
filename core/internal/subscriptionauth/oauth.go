@@ -73,21 +73,26 @@ func Login(ctx context.Context, providerID string, openBrowser bool) LoginResult
 	ctx, cancel := context.WithTimeout(ctx, loginTimeout)
 	defer cancel()
 
+	providerID = strings.TrimSpace(providerID)
+	logAuthEvent(providerID, "login started (openBrowser=%t)", openBrowser)
+
 	var (
 		authorizeURL string
 		err          error
 	)
-	switch strings.TrimSpace(providerID) {
+	switch providerID {
 	case ProviderClaudeCode:
 		authorizeURL, err = loginClaude(ctx, openBrowser)
 	case ProviderCodex:
 		authorizeURL, err = loginCodex(ctx, openBrowser)
 	default:
-		return LoginResult{OK: false, Error: fmt.Sprintf("unknown provider: %s", providerID)}
+		err = fmt.Errorf("unknown provider: %s", providerID)
 	}
 	if err != nil {
+		logAuthFailure(providerID, "login", err)
 		return LoginResult{OK: false, AuthorizeURL: authorizeURL, Error: err.Error()}
 	}
+	logAuthSuccess(providerID, "login", "credentials saved")
 	return LoginResult{OK: true, LoggedIn: true, Refreshed: true, AuthorizeURL: authorizeURL}
 }
 
@@ -97,9 +102,11 @@ func loginClaude(ctx context.Context, openBrowser bool) (string, error) {
 		return "", err
 	}
 	redirectURI := fmt.Sprintf("http://localhost:%d%s", claudeCallbackPort, claudeCallbackPath)
+	logAuthEvent(ProviderClaudeCode, "listening on %s", callbackListenAddr(ProviderClaudeCode, claudeCallbackPort, claudeCallbackPath))
 	server, err := startCallbackServer(ctx, callbackOptions{
-		Port: claudeCallbackPort,
-		Path: claudeCallbackPath,
+		Provider: ProviderClaudeCode,
+		Port:     claudeCallbackPort,
+		Path:     claudeCallbackPath,
 		Validate: func(values url.Values) (callbackData, callbackError) {
 			if msg := values.Get("error"); msg != "" {
 				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "Claude authorization was not completed.", Details: msg}
@@ -128,6 +135,7 @@ func loginClaude(ctx context.Context, openBrowser bool) (string, error) {
 	if err != nil {
 		return authURL, err
 	}
+	logAuthSuccess(ProviderClaudeCode, "callback", "code received")
 	exchangeCtx, exchangeCancel := context.WithTimeout(ctx, tokenExchangeTimeout)
 	defer exchangeCancel()
 	creds, err := exchangeClaudeCode(exchangeCtx, cb.Code, cb.State, pkce.Verifier, redirectURI)
@@ -151,9 +159,11 @@ func loginCodex(ctx context.Context, openBrowser bool) (string, error) {
 		return "", err
 	}
 	redirectURI := codexRedirectURI()
+	logAuthEvent(ProviderCodex, "listening on %s", callbackListenAddr(ProviderCodex, codexCallbackPort, codexCallbackPath))
 	server, err := startCallbackServer(ctx, callbackOptions{
-		Port: codexCallbackPort,
-		Path: codexCallbackPath,
+		Provider: ProviderCodex,
+		Port:     codexCallbackPort,
+		Path:     codexCallbackPath,
 		Validate: func(values url.Values) (callbackData, callbackError) {
 			if msg := values.Get("error"); msg != "" {
 				return callbackData{}, callbackError{Status: http.StatusBadRequest, Message: "OpenAI authorization was not completed.", Details: msg}
@@ -181,6 +191,7 @@ func loginCodex(ctx context.Context, openBrowser bool) (string, error) {
 	if err != nil {
 		return authURL, err
 	}
+	logAuthSuccess(ProviderCodex, "callback", "code received")
 	exchangeCtx, exchangeCancel := context.WithTimeout(ctx, tokenExchangeTimeout)
 	defer exchangeCancel()
 	creds, err := exchangeCodexCode(exchangeCtx, cb.Code, pkce.Verifier, redirectURI)
@@ -369,6 +380,7 @@ func exchangeCodexCode(ctx context.Context, code, verifier, redirectURI string) 
 	if err := postForm(ctx, codexTokenURL, form, &out); err != nil {
 		return tokenCredentials{}, err
 	}
+	logAuthSuccess(ProviderCodex, "token exchange", "tokens received")
 	if strings.TrimSpace(out.AccessToken) == "" || strings.TrimSpace(out.RefreshToken) == "" || out.ExpiresIn <= 0 {
 		return tokenCredentials{}, fmt.Errorf("Codex token response is missing required fields")
 	}
@@ -391,9 +403,9 @@ func enrichClaudeProfile(ctx context.Context, creds *tokenCredentials) error {
 	}
 	req.Header.Set("Authorization", "Bearer "+creds.Access)
 	req.Header.Set("Accept", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := oauthHTTPClient.Do(req)
 	if err != nil {
-		return err
+		return formatOAuthHTTPError("Claude profile request failed", err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
@@ -455,9 +467,9 @@ func postForm(ctx context.Context, rawURL string, form url.Values, dest any) err
 }
 
 func doJSON(req *http.Request, dest any, label string) error {
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := oauthHTTPClient.Do(req)
 	if err != nil {
-		return err
+		return formatOAuthHTTPError(label, err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))

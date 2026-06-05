@@ -1133,7 +1133,7 @@ var ingressStylePriority = []apistyle.Style{
 
 func ingressStylesForCLI(kind agentkind.Kind) []apistyle.Style {
 	switch kind {
-	case agentkind.ClaudeCode:
+	case agentkind.ClaudeCode, agentkind.ClaudeDesktop:
 		return []apistyle.Style{apistyle.Claude}
 	case agentkind.Codex:
 		return []apistyle.Style{apistyle.OpenAIResponses}

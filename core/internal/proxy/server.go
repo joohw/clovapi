@@ -679,18 +679,6 @@ func ensureProtocolMeta(r *protocol.Request) *protocol.Metadata {
 	return r.Meta
 }
 
-func defaultUpstreamHTTPClient() *http.Client {
-	return &http.Client{
-		// Do not set Timeout: it applies to the full round trip including long SSE bodies.
-		Transport: &http.Transport{
-			Proxy:                 http.ProxyFromEnvironment,
-			ForceAttemptHTTP2:     true,
-			DisableCompression:    true,
-			ResponseHeaderTimeout: 10 * time.Minute,
-		},
-	}
-}
-
 func (s *Server) upstreamHTTP() *http.Client {
 	if s.HTTPClient != nil {
 		return s.HTTPClient

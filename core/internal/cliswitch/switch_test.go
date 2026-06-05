@@ -59,6 +59,50 @@ func TestKimiCanResolveCodexSubscriptionSelection(t *testing.T) {
 	}
 }
 
+func TestClaudeDesktopCanResolveCustomAPIModel(t *testing.T) {
+	s := &profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:     provider.CustomAPIVendorName,
+			Kind:     "api",
+			APIStyle: apistyle.Claude,
+			BaseURL:  "https://example.test/v1",
+			APIKey:   "sk-test",
+			Models: []profile.Model{{
+				ID:       "claude-sonnet-4-6",
+				Model:    "claude-sonnet-4-6",
+				APIStyle: apistyle.Claude,
+			}},
+		}},
+	}
+
+	selection, err := ResolveSelection(s, agentkind.ClaudeDesktop, provider.CustomAPIVendorName, "claude-sonnet-4-6")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if selection.ProviderID != provider.CustomAPIProviderID || selection.ModelID != "claude-sonnet-4-6" {
+		t.Fatalf("selection = %+v", selection)
+	}
+}
+
+func TestClaudeDesktopIngressStyleIsClaude(t *testing.T) {
+	hit := profile.VendorModelHit{
+		Vendor: profile.Profile{
+			Name:     provider.CustomAPIVendorName,
+			Kind:     "api",
+			APIStyle: apistyle.OpenAIResponses,
+		},
+		Model: profile.Model{
+			ID:       "gpt-5.4",
+			Model:    "gpt-5.4",
+			APIStyle: apistyle.OpenAIResponses,
+		},
+	}
+	if got := profile.IngressStyleForCLI(agentkind.ClaudeDesktop, hit); got != apistyle.Claude {
+		t.Fatalf("claudedesktop ingress = %s, want %s", got, apistyle.Claude)
+	}
+}
+
 func TestMultiStyleCLIsUsePreferredIngressForCodexSubscription(t *testing.T) {
 	hit := profile.VendorModelHit{
 		Vendor: profile.Profile{

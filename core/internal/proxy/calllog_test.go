@@ -408,6 +408,28 @@ func TestRequestTraceRedactsAuthorization(t *testing.T) {
 	}
 }
 
+func TestRequestTraceBackfillsUpstreamBodyFromError(t *testing.T) {
+	trace := startRequestTrace(openTestCallLogStore(t), mustHTTPRequest(t))
+	if trace == nil {
+		t.Fatal("expected trace")
+	}
+	trace.setUpstreamRequest(http.MethodPost, "https://chatgpt.com/backend-api/codex/responses")
+	trace.setError(`upstream request failed: Post "https://chatgpt.com/backend-api/codex/responses": EOF`)
+	trace.finish()
+
+	entries := trace.store.ListRecent(1)
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+	entry := entries[0]
+	if entry.Upstream.Status != http.StatusBadGateway {
+		t.Fatalf("upstream status = %d, want 502", entry.Upstream.Status)
+	}
+	if !strings.Contains(entry.Upstream.Body, "EOF") {
+		t.Fatalf("upstream body = %q", entry.Upstream.Body)
+	}
+}
+
 func TestRequestTraceCapturesRedactedUpstreamRequestHeaders(t *testing.T) {
 	upReq, err := http.NewRequest(http.MethodPost, "https://api.anthropic.com/v1/messages", strings.NewReader(`{"ping":true}`))
 	if err != nil {

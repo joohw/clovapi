@@ -224,6 +224,14 @@ function assignNumber(target: TokenUsage, key: keyof TokenUsage, value: unknown)
   }
 }
 
+export function proxyLogUpstreamBodyText(entry: ProxyLogEntry): string {
+  const body = String(entry.upstream?.body || "").trim();
+  if (body) return body;
+  const err = String(entry.error || "").trim();
+  if (err) return err;
+  return t("common.empty");
+}
+
 export function proxyLogBodyText(body: string): string {
   const text = String(body || "");
   if (!text) return t("common.empty");

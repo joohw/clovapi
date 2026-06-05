@@ -175,14 +175,6 @@ func decodeResponsesInputSlots(input any) ([]InputSlot, []Message, []ExtensionNo
 }
 
 func responsesInputWireFromIR(r Request) any {
-	for _, ext := range r.Extensions {
-		if ext.Kind == ExtOpenAIResponsesInputString {
-			var s string
-			if json.Unmarshal(ext.Payload, &s) == nil {
-				return s
-			}
-		}
-	}
 	if len(r.InputSlots) > 0 {
 		out := make([]any, 0, len(r.InputSlots))
 		for _, slot := range r.InputSlots {
@@ -190,9 +182,25 @@ func responsesInputWireFromIR(r Request) any {
 				out = append(out, item)
 			}
 		}
-		return out
+		if len(out) > 0 {
+			return out
+		}
 	}
-	return messagesToResponsesInputArray(r.Messages)
+	if arr := messagesToResponsesInputArray(r.Messages); len(arr) > 0 {
+		return arr
+	}
+	for _, ext := range r.Extensions {
+		if ext.Kind == ExtOpenAIResponsesInputString {
+			var s string
+			if json.Unmarshal(ext.Payload, &s) == nil {
+				s = strings.TrimSpace(s)
+				if s != "" {
+					return []any{messageToResponsesInputItem(Message{Role: RoleUser, Content: s})}
+				}
+			}
+		}
+	}
+	return []any{}
 }
 
 func messageToResponsesInputItem(m Message) map[string]any {

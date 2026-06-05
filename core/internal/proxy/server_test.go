@@ -53,14 +53,25 @@ func TestServerHealthAndModelsList(t *testing.T) {
 	}
 	var body struct {
 		Data []struct {
-			ID string `json:"id"`
+			ID          string `json:"id"`
+			Type        string `json:"type"`
+			DisplayName string `json:"display_name"`
 		} `json:"data"`
+		HasMore bool   `json:"has_more"`
+		FirstID string `json:"first_id"`
+		LastID  string `json:"last_id"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	if len(body.Data) != 1 || body.Data[0].ID != "claude-opus-4" {
+	if len(body.Data) != 1 || body.Data[0].ID != "claude-opus-4" || body.Data[0].Type != "model" {
 		t.Fatalf("models body = %+v", body)
+	}
+	if body.HasMore {
+		t.Fatalf("has_more = true")
+	}
+	if body.FirstID != "claude-opus-4" || body.LastID != "claude-opus-4" {
+		t.Fatalf("pagination fields = %+v", body)
 	}
 
 	resp, err = http.Get(ts.URL + "/claude-code/claude%20opus%2F4/claude/v1/models")
@@ -71,16 +82,21 @@ func TestServerHealthAndModelsList(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("encoded slash models status = %d", resp.StatusCode)
 	}
-	body = struct {
+	var encodedBody struct {
 		Data []struct {
-			ID string `json:"id"`
+			ID          string `json:"id"`
+			Type        string `json:"type"`
+			DisplayName string `json:"display_name"`
 		} `json:"data"`
-	}{}
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		HasMore bool   `json:"has_more"`
+		FirstID string `json:"first_id"`
+		LastID  string `json:"last_id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&encodedBody); err != nil {
 		t.Fatal(err)
 	}
-	if len(body.Data) != 1 || body.Data[0].ID != "claude opus/4" {
-		t.Fatalf("encoded slash models body = %+v", body)
+	if len(encodedBody.Data) != 1 || encodedBody.Data[0].ID != "claude opus/4" {
+		t.Fatalf("encoded slash models body = %+v", encodedBody)
 	}
 }
 

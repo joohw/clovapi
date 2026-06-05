@@ -25,3 +25,19 @@ func TestResolveVendorCredentialsFallsBackToModelConnection(t *testing.T) {
 		t.Fatalf("template = %q want %q", template, usage.TemplateAuto)
 	}
 }
+
+func TestQuerySubscriptionVendorUsageRequiresLogin(t *testing.T) {
+	profile.SetClaudeCredentialsPathOverride(t.TempDir() + "/missing-claude.json")
+	t.Cleanup(func() { profile.SetClaudeCredentialsPathOverride("") })
+
+	result := querySubscriptionVendorUsage(profile.Profile{
+		Kind:                   "subscription",
+		SubscriptionProviderID: "claude-code",
+	})
+	if result.Success {
+		t.Fatal("expected usage query to fail without subscription credentials")
+	}
+	if result.Error != "subscription not logged in" {
+		t.Fatalf("error = %q want %q", result.Error, "subscription not logged in")
+	}
+}

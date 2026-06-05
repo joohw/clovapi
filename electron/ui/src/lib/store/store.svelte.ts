@@ -27,7 +27,13 @@ export {
   removeVendorModel,
 } from "./profiles";
 export { canFetchVendorModels, isVendorFetching, fetchVendorModels } from "./vendor-models";
-export { queryVendorUsage, vendorUsageSummary, isVendorUsageLoading } from "./vendor-usage";
+export {
+  queryVendorUsage,
+  vendorUsageSummary,
+  vendorUsageSummaryForVendor,
+  clearVendorUsage,
+  isVendorUsageLoading,
+} from "./vendor-usage";
 export {
   refreshProxyStatus,
   refreshProxyLogs,

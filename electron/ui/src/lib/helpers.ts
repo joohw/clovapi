@@ -467,6 +467,19 @@ export function subscriptionIsUsable(subscription: SubscriptionItem | undefined)
   return subscription.active !== false;
 }
 
+/** Whether vendor quota/balance should be queried or shown in the UI. */
+export function shouldShowVendorUsage(vendor: Vendor, subscriptions: SubscriptionItem[]): boolean {
+  if (vendor.kind === "local") return false;
+  if (vendor.kind === "subscription") {
+    return subscriptionIsUsable(subscriptionStatusForVendor(vendor, subscriptions));
+  }
+  if (vendor.kind === "api") {
+    if (vendor.baseUrl && vendor.apiKey) return true;
+    return Boolean(vendor.models?.some((model) => model.baseUrl && model.apiKey));
+  }
+  return false;
+}
+
 export type CliBindingOption = {
   value: string;
   label: string;

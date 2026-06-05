@@ -23,7 +23,7 @@
     isSubscriptionLogging,
     openModelDialog,
     openProfileDialog,
-    vendorUsageSummary,
+    vendorUsageSummaryForVendor,
     removeVendorModel,
     runModelTest,
     runSubscriptionLogin,
@@ -90,7 +90,7 @@
 
   const cardDescription = $derived.by(() => {
     void i18n.locale;
-    const usage = vendor.kind === "api" || vendor.kind === "subscription" ? vendorUsageSummary(vendor.name) : "";
+    const usage = vendorUsageSummaryForVendor(vendor, store.subscriptions);
     const parts: string[] = [];
     if (vendor.kind === "subscription") {
       parts.push(formatSubscriptionSummary(subscription?.summary || ""));

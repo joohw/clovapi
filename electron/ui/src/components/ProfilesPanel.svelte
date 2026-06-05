@@ -9,6 +9,7 @@
     subscriptionStatusForVendor,
     vendorSummaryLine,
     subscriptionIsUsable,
+    shouldShowVendorUsage,
   } from "../lib/helpers";
   import { displayVendorName, i18n, t } from "../lib/i18n";
   import {
@@ -17,7 +18,7 @@
     openProfilesVendor,
     queryVendorUsage,
     store,
-    vendorUsageSummary,
+    vendorUsageSummaryForVendor,
     canFetchVendorModels,
   } from "../lib/store.svelte";
   import ListRow from "./ListRow.svelte";
@@ -75,7 +76,7 @@
 
   function canQueryUsage(vendor: (typeof vendorList)[number]) {
     if (vendor.kind === "subscription") {
-      return subscriptionStatusForVendor(vendor, store.subscriptions)?.active === true;
+      return shouldShowVendorUsage(vendor, store.subscriptions);
     }
     if (vendor.kind === "api") {
       return Boolean((vendor.baseUrl && vendor.apiKey) || vendor.models?.some((model) => model.baseUrl && model.apiKey));
@@ -86,7 +87,7 @@
   function summaryLine(vendor: (typeof vendorList)[number]) {
     const sub = subscriptionStatusForVendor(vendor, store.subscriptions);
     const base = vendorSummaryLine(vendor, sub, store.ollamaInstalled);
-    const usage = vendor.kind === "api" || vendor.kind === "subscription" ? vendorUsageSummary(vendor.name) : "";
+    const usage = vendorUsageSummaryForVendor(vendor, store.subscriptions);
     return usage ? `${base} · ${usage}` : base;
   }
 

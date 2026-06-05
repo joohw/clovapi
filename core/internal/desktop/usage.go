@@ -80,6 +80,9 @@ func resolveVendorCredentials(vendor profile.Profile) (baseURL, apiKey, template
 func querySubscriptionVendorUsage(vendor profile.Profile) usage.Result {
 	flat := vendor
 	profile.HydrateSubscriptionCredentials(&flat)
+	if strings.TrimSpace(flat.APIKey) == "" {
+		return usage.Result{Success: false, Kind: "subscription", Error: "subscription not logged in"}
+	}
 	return usage.QuerySubscriptionUsage(flat.SubscriptionProviderID, flat.APIKey, flat.AccountID)
 }
 

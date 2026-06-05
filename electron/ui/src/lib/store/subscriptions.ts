@@ -13,6 +13,7 @@ import { clearModelTest } from "./model-tests";
 import { runModelTest } from "./model-runner";
 import { loadProfilesFromDisk, persistProfiles } from "./profiles";
 import { fetchVendorModels } from "./vendor-models";
+import { clearVendorUsage, pruneVendorUsageForSubscriptions } from "./vendor-usage";
 import { store } from "./state.svelte";
 import { toast } from "../toast";
 import type { SubscriptionItem, SubscriptionVendorRow } from "../../global";
@@ -39,6 +40,7 @@ export async function refreshSubscriptions() {
   } catch {
     store.subscriptions = [];
   }
+  pruneVendorUsageForSubscriptions(store.subscriptions);
 }
 
 export async function cancelSubscriptionLogin(providerId: string) {
@@ -98,6 +100,7 @@ export async function runSubscriptionLogout(providerId: string, label: string) {
   const previousVendor = getSubscriptionVendors(store.profiles).find(
     (item) => item.subscriptionProviderId === providerId,
   );
+  if (previousVendor?.name) clearVendorUsage(previousVendor.name);
   const result = await bridge.authLogout(providerId);
   if (!result?.ok) {
     toast.error(result?.error || t("toast.logoutFailed"));

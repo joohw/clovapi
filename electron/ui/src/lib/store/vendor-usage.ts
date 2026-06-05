@@ -1,10 +1,31 @@
-import type { Vendor, VendorUsageData, VendorUsageResult } from "../../global";
+import type { SubscriptionItem, Vendor, VendorUsageData, VendorUsageResult } from "../../global";
+import { getSubscriptionVendors, shouldShowVendorUsage } from "../helpers";
 import { t } from "../i18n";
 import { toast } from "../toast";
 import { store } from "./state.svelte";
 
 export function vendorUsageSummary(vendorName: string): string {
   return store.vendorUsage[vendorName]?.summary || "";
+}
+
+export function vendorUsageSummaryForVendor(vendor: Vendor, subscriptions: SubscriptionItem[]): string {
+  if (!shouldShowVendorUsage(vendor, subscriptions)) return "";
+  return vendorUsageSummary(vendor.name);
+}
+
+export function clearVendorUsage(vendorName: string): void {
+  const name = String(vendorName || "").trim();
+  if (!name) return;
+  delete store.vendorUsage[name];
+  delete store.vendorUsageLoading[name];
+}
+
+export function pruneVendorUsageForSubscriptions(subscriptions: SubscriptionItem[]): void {
+  for (const vendor of getSubscriptionVendors(store.profiles)) {
+    if (!shouldShowVendorUsage(vendor, subscriptions)) {
+      clearVendorUsage(vendor.name);
+    }
+  }
 }
 
 export function isVendorUsageLoading(vendorName: string): boolean {
@@ -74,6 +95,10 @@ export async function queryVendorUsage(vendor: Vendor, options: { silent?: boole
   const name = String(vendor?.name || "").trim();
   if (!name) return;
   if (vendor.kind === "local") return;
+  if (vendor.kind === "subscription" && !shouldShowVendorUsage(vendor, store.subscriptions)) {
+    clearVendorUsage(name);
+    return;
+  }
   if (vendor.kind === "api" && !vendorHasUsageCredentials(vendor)) return;
   const bridge = window.clovapiCli;
   if (!bridge?.profilesUsage) {
@@ -87,7 +112,12 @@ export async function queryVendorUsage(vendor: Vendor, options: { silent?: boole
     const result = await bridge.profilesUsage(name);
     if (!result?.ok || !result.usage?.success) {
       const message = result?.error || result?.usage?.error || t("toast.vendorUsageFailed");
-      if (options.silent) return;
+      if (vendor.kind === "subscription") {
+        clearVendorUsage(name);
+        if (options.silent) return;
+      } else if (options.silent) {
+        return;
+      }
       store.vendorUsage[name] = { summary: message, rows: [], error: message };
       if (!options.silent) toast.error(message);
       return;

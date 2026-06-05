@@ -2,7 +2,7 @@
 
 .useCaseShot {
   overflow: hidden;
-  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border: 1px solid var(--border);
   border-radius: 0.75rem;
   background: color-mix(in oklch, var(--card) 88%, var(--muted) 12%);
 }
@@ -11,6 +11,8 @@
   display: block;
   width: 100%;
   height: auto;
+  transform: scale(1.01);
+  transform-origin: center center;
 }
 
 /* 纯灰渐变背景：oklch 第二项为 chroma，全程为 0，避免任何色相 */

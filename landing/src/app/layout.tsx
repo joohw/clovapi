@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import { AppShell } from "@/components/app-shell";
 import { I18nProvider } from "@/components/i18n-provider";
@@ -9,6 +10,12 @@ import { LANG_STORAGE_KEY } from "@/i18n/config";
 import { buildBaseJsonLdGraph, buildPageMetadata } from "@/lib/seo";
 import { getPublicSiteUrlFromRequest } from "@/lib/site";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata("home");
@@ -32,7 +39,7 @@ export default async function RootLayout({
   const jsonLdScript = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
 
   return (
-    <html lang={language} suppressHydrationWarning className="h-full antialiased">
+    <html lang={language} suppressHydrationWarning className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <ServerScripts jsonLd={jsonLdScript} />
         <I18nProvider language={language}>

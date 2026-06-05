@@ -6,6 +6,7 @@
 
 :root {
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-header: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --card: oklch(1 0 0);
   --border: oklch(0.922 0 0);
@@ -72,6 +73,7 @@
   --color-foreground: var(--foreground);
   --color-border: var(--border);
   --font-sans: var(--font-sans);
+  --font-header: var(--font-header);
   --font-mono: var(--font-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -160,6 +162,12 @@ a:visited {
   background: transparent;
 }
 
+.site-header {
+  font-family: var(--font-header);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 .app-header {
   position: fixed;
   top: var(--app-header-float-top);
@@ -172,24 +180,16 @@ a:visited {
   align-items: center;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   box-sizing: border-box;
-  border: 1px solid var(--border);
   border-radius: 0;
-  background: var(--app-primary-surface-bg);
   box-shadow: none;
-  backdrop-filter: blur(16px) saturate(1.5);
   padding: 0 0.875rem;
+  font-family: var(--font-header);
 }
 
 @media (min-width: 640px) {
   .app-header {
     padding: 0 1.25rem;
   }
-}
-
-.dark .app-header {
-  border-color: var(--border);
-  background: var(--app-primary-surface-bg);
-  box-shadow: none;
 }
 
 .header-brand {
@@ -241,7 +241,10 @@ a:visited {
 .header-nav-link {
   color: #71717a;
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1;
   padding: 0.35rem 0.75rem;
   border-radius: 0;
 }
@@ -249,6 +252,7 @@ a:visited {
 .header-nav-link-active {
   color: var(--foreground);
   font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 .header-user-area {

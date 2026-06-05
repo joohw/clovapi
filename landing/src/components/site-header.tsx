@@ -57,22 +57,22 @@ export function SiteHeader() {
 
   function navLinkClass(active: boolean) {
     return cn(
-      "relative rounded-md px-2.5 py-1.5 text-sm font-medium",
+      "relative rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium leading-none tracking-[-0.01em]",
       "motion-safe:transition-[color,opacity] motion-safe:duration-300 motion-safe:ease-out",
       "motion-reduce:transition-none",
       active
-        ? "font-semibold text-foreground opacity-100"
+        ? "font-semibold tracking-[-0.015em] text-foreground opacity-100"
         : cn(
-            "text-muted-foreground opacity-[0.62]",
-            "hover:text-foreground hover:opacity-100",
+            "text-muted-foreground/80 opacity-100",
+            "hover:text-foreground",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            "focus-visible:text-foreground focus-visible:opacity-100"
+            "focus-visible:text-foreground"
           )
     );
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/85">
+    <header className="site-header fixed top-0 left-0 right-0 z-40">
       <div className="flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-5 sm:gap-6">
           <Link
@@ -106,7 +106,7 @@ export function SiteHeader() {
           </a>
           <button
             type="button"
-            className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-card px-2 text-xs font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-card px-2 text-[0.75rem] font-medium leading-none tracking-[-0.01em] transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             onClick={() => void toggleLanguage()}
             aria-label={t("header.language")}
             title={isEnglish ? t("header.switchToZh") : t("header.switchToEn")}

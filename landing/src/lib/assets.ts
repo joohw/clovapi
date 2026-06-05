@@ -1,7 +1,7 @@
 import type { AppLanguage } from "@/i18n/config";
 
 /** Bump version when replacing use-case screenshots under the same filename. */
-const USE_CASE_VERSION = "2";
+const USE_CASE_VERSION = "3";
 
 export type UseCaseImage = {
   src: string;

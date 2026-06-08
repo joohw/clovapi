@@ -45,12 +45,11 @@ func (kimiTarget) Stop() error {
 }
 
 func (kimiTarget) Uninstall() error {
-	return uninstallFromCandidates(
-		npmGlobalUninstall("kimi-code"),
+	return uninstallFromCandidates(append(npmGlobalUninstallCandidates("kimi-code"),
 		brewUninstall("kimi-code"),
 		standaloneUninstall("kimi-npm-shim", npmGlobalShimFiles("kimi")...),
 		standaloneUninstall("kimi", homeLocalBinFiles("kimi")...),
-	)
+	)...)
 }
 
 func (kimiTarget) Apply(p profile.Profile) error {

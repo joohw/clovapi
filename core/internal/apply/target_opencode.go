@@ -36,13 +36,12 @@ func (openCodeTarget) Install() error {
 }
 
 func (openCodeTarget) Uninstall() error {
-	return uninstallFromCandidates(
-		npmGlobalUninstall("opencode-ai"),
+	return uninstallFromCandidates(append(npmGlobalUninstallCandidates("opencode-ai"),
 		brewUninstall("opencode"),
 		standaloneUninstall("opencode-npm-shim", npmGlobalShimFiles("opencode")...),
 		standaloneUninstall("opencode", opencodeStandaloneFiles()...),
 		standaloneUninstall("opencode-local", homeLocalBinFiles("opencode")...),
-	)
+	)...)
 }
 
 func (openCodeTarget) Apply(p profile.Profile) error {

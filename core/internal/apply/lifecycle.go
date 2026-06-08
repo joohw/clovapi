@@ -115,7 +115,11 @@ type uninstallCandidate struct {
 }
 
 func npmGlobalInstall(pkg string) error {
-	return installFromCandidates(npmGlobalInstallCandidate(pkg))
+	if err := installFromCandidates(npmGlobalInstallCandidates(pkg)...); err != nil {
+		return err
+	}
+	_ = ensureUserNpmGlobalBinOnPathIfNeeded()
+	return nil
 }
 
 func npmGlobalInstallCandidate(pkg string) installCandidate {
@@ -180,10 +184,22 @@ func homeLocalBinFiles(command string) []string {
 }
 
 func npmGlobalShimFiles(command string) []string {
-	if prefix, ok := npmGlobalPrefix(); ok {
-		return commandShimFiles(prefix, command)
+	var files []string
+	seen := map[string]struct{}{}
+	for _, prefix := range npmGlobalShimDirs() {
+		for _, file := range commandShimFiles(prefix, command) {
+			file = strings.TrimSpace(file)
+			if file == "" {
+				continue
+			}
+			if _, ok := seen[file]; ok {
+				continue
+			}
+			seen[file] = struct{}{}
+			files = append(files, file)
+		}
 	}
-	return nil
+	return files
 }
 
 func opencodeStandaloneFiles() []string {
@@ -403,7 +419,7 @@ func safeStandaloneCLIPath(path string) bool {
 	if strings.TrimSpace(home) != "" {
 		roots = append(roots, filepath.Join(home, ".local", "bin"))
 	}
-	if prefix, ok := npmGlobalPrefix(); ok {
+	for _, prefix := range npmGlobalShimDirs() {
 		roots = append(roots, prefix)
 	}
 	for _, root := range roots {

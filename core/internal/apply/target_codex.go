@@ -38,13 +38,12 @@ func (codexTarget) Install() error {
 }
 
 func (codexTarget) Uninstall() error {
-	return uninstallFromCandidates(
-		npmGlobalUninstall("@openai/codex"),
+	return uninstallFromCandidates(append(npmGlobalUninstallCandidates("@openai/codex"),
 		brewUninstall("codex"),
 		brewUninstall("openai/codex/codex"),
 		standaloneUninstall("codex-npm-shim", npmGlobalShimFiles("codex")...),
 		standaloneUninstall("codex", homeLocalBinFiles("codex")...),
-	)
+	)...)
 }
 
 func (codexTarget) Apply(p profile.Profile) error {

@@ -40,12 +40,11 @@ func (openClawTarget) Stop() error {
 }
 
 func (openClawTarget) Uninstall() error {
-	return uninstallFromCandidates(
-		npmGlobalUninstall("openclaw"),
+	return uninstallFromCandidates(append(npmGlobalUninstallCandidates("openclaw"),
 		brewUninstall("openclaw"),
 		standaloneUninstall("openclaw", npmGlobalShimFiles("openclaw")...),
 		standaloneUninstall("openclaw-local", homeLocalBinFiles("openclaw")...),
-	)
+	)...)
 }
 
 func (openClawTarget) Apply(p profile.Profile) error {

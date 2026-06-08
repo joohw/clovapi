@@ -28,7 +28,7 @@ func (claudeCodeTarget) Installed() bool {
 }
 
 func (claudeCodeTarget) InstallPlan() string {
-	return "将通过 npm 安装 Claude Code（@anthropic-ai/claude-code）。如果未检测到 npm，会先尝试自动安装 Node.js LTS/npm。"
+	return "将通过 npm 安装 Claude Code（@anthropic-ai/claude-code）。如果未检测到 npm，会先尝试自动安装 Node.js LTS/npm；若系统级 npm 全局目录不可写，会改用到 ~/.npm-global。"
 }
 func (claudeCodeTarget) Install() error {
 	return npmGlobalInstall("@anthropic-ai/claude-code")
@@ -39,14 +39,13 @@ func (claudeCodeTarget) Stop() error {
 }
 
 func (claudeCodeTarget) Uninstall() error {
-	return uninstallFromCandidates(
-		npmGlobalUninstall("@anthropic-ai/claude-code"),
+	return uninstallFromCandidates(append(npmGlobalUninstallCandidates("@anthropic-ai/claude-code"),
 		brewUninstall("claude-code"),
 		brewUninstall("anthropic-ai/claude-code/claude-code"),
 		wingetUninstall("Anthropic.ClaudeCode"),
 		wingetUninstall("Anthropic.Claude"),
 		standaloneUninstall("claude", homeLocalBinFiles("claude")...),
-	)
+	)...)
 }
 
 func (claudeCodeTarget) Apply(p profile.Profile) error {

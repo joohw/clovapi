@@ -46,13 +46,12 @@ func (hermesTarget) Stop() error {
 }
 
 func (hermesTarget) Uninstall() error {
-	return uninstallFromCandidates(
-		npmGlobalUninstall("hermes-agent"),
+	return uninstallFromCandidates(append(npmGlobalUninstallCandidates("hermes-agent"),
 		brewUninstall("hermes-agent"),
 		pythonPipUninstall("hermes-agent"),
 		standaloneUninstall("hermes", append(npmGlobalShimFiles("hermes"), npmGlobalShimFiles("hermes-agent")...)...),
 		standaloneUninstall("hermes-local", append(homeLocalBinFiles("hermes"), homeLocalBinFiles("hermes-agent")...)...),
-	)
+	)...)
 }
 
 func (hermesTarget) Apply(p profile.Profile) error {

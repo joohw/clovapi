@@ -188,7 +188,7 @@ async function readTrayProxyState() {
       managed: Boolean(status?.managed),
       external: Boolean(status?.external),
       port: Number(status?.port) || Number(cfg?.port) || 27483,
-      host: String(status?.host || cfg?.host || "127.0.0.1"),
+      host: String(status?.host || cfg?.host || "0.0.0.0"),
       baseUrl: String(status?.baseUrl || ""),
       error: String(status?.error || ""),
     };
@@ -199,7 +199,7 @@ async function readTrayProxyState() {
       managed: false,
       external: false,
       port: 27483,
-      host: "127.0.0.1",
+      host: "0.0.0.0",
       baseUrl: "",
       error: error instanceof Error ? error.message : "Failed to read proxy status",
     };

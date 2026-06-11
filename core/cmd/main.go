@@ -621,6 +621,7 @@ func cmdProxyLogs() *cobra.Command {
 		Short: "List recent call log entries",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			store := coreproxy.NewCallLogStore()
+			defer store.Close()
 			var entries []coreproxy.CallLogEntry
 			if strings.TrimSpace(sessionID) != "" {
 				entries = store.ListRecentSessionPage(limit, offset, sessionID)
@@ -666,6 +667,7 @@ func cmdProxyLogs() *cobra.Command {
 		Short: "List grouped call log sessions",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			store := coreproxy.NewCallLogStore()
+			defer store.Close()
 			items := store.ListSessions(limit)
 			if jsonOut {
 				data, err := json.MarshalIndent(items, "", "  ")
@@ -756,7 +758,9 @@ func cmdProxyLogs() *cobra.Command {
 					return nil
 				}
 			}
-			coreproxy.NewCallLogStore().Clear()
+			store := coreproxy.NewCallLogStore()
+			defer store.Close()
+			store.Clear()
 			fmt.Println("Call logs cleared.")
 			return nil
 		},

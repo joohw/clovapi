@@ -25,12 +25,12 @@ type TestResult struct {
 }
 
 func proxyConfigForTest(s *profile.Store, portOverride int) profile.ProxyConfig {
-	cfg := profile.ProxyConfig{Enabled: true, Host: "127.0.0.1", Port: 27483}
+	cfg := profile.ProxyConfig{Enabled: true, Host: "0.0.0.0", Port: 27483}
 	if s != nil {
 		cfg = s.Proxy
 	}
 	if strings.TrimSpace(cfg.Host) == "" {
-		cfg.Host = "127.0.0.1"
+		cfg.Host = "0.0.0.0"
 	}
 	if cfg.Port == 0 {
 		cfg.Port = 27483

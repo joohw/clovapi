@@ -20,9 +20,9 @@ func openTestCallLogStore(t *testing.T) *CallLogStore {
 
 func TestCallLogStorePushAndList(t *testing.T) {
 	store := openTestCallLogStore(t)
-	store.Push(CallLogEntry{Request: CallLogRequest{Method: "POST", URL: "/a"}})
-	store.Push(CallLogEntry{Request: CallLogRequest{Method: "GET", URL: "/b"}})
-	store.Push(CallLogEntry{Request: CallLogRequest{Method: "DELETE", URL: "/c"}})
+	store.Push(CallLogEntry{StartedAt: "2026-01-01T00:00:01Z", Request: CallLogRequest{Method: "POST", URL: "/a"}})
+	store.Push(CallLogEntry{StartedAt: "2026-01-01T00:00:02Z", Request: CallLogRequest{Method: "GET", URL: "/b"}})
+	store.Push(CallLogEntry{StartedAt: "2026-01-01T00:00:03Z", Request: CallLogRequest{Method: "DELETE", URL: "/c"}})
 
 	entries := store.ListRecent(0)
 	if len(entries) != 3 {

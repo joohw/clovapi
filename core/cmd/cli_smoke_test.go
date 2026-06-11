@@ -69,6 +69,11 @@ func smokeIsolatedEnv(t *testing.T) []string {
 	if runtime.GOOS == "windows" {
 		env = append(env, "USERPROFILE="+home)
 	}
+	t.Cleanup(func() {
+		cmd := exec.Command(smokeClovapiBinary(t), "proxy", "stop")
+		cmd.Env = env
+		_ = cmd.Run()
+	})
 	return env
 }
 

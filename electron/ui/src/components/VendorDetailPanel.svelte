@@ -15,7 +15,6 @@
   import { copyTextWithToast } from "../lib/clipboard";
   import { OLLAMA_PROFILE_NAME } from "../lib/constants";
   import { displayVendorName, formatSubscriptionSummary, i18n, t } from "../lib/i18n";
-  import { cn } from "../lib/utils";
   import type { ModelTestStatus, Vendor, VendorModel } from "../global";
   import {
     getModelTest,
@@ -119,26 +118,6 @@
       summary: formatModelTestSummary(entry),
       detail: "",
     };
-  }
-
-  function modelTestDotClass(status: "" | ModelTestStatus) {
-    return cn(
-      "size-1.5 shrink-0 rounded-full",
-      status === "pass" && "bg-emerald-500",
-      status === "fail" && "bg-red-500",
-      status === "testing" && "animate-pulse bg-amber-500",
-      status !== "pass" && status !== "fail" && status !== "testing" && "bg-muted-foreground/40",
-    );
-  }
-
-  function modelTestSummaryClass(status: "" | ModelTestStatus) {
-    return cn(
-      "max-w-36 truncate text-xs font-normal leading-none",
-      status === "pass" && "text-emerald-600 dark:text-emerald-400",
-      status === "fail" && "text-red-600 dark:text-red-400",
-      status === "testing" && "text-amber-600 dark:text-amber-400",
-      status !== "pass" && status !== "fail" && status !== "testing" && "text-muted-foreground",
-    );
   }
 
   function canRunModelTest(testing: boolean) {
@@ -276,7 +255,9 @@
       <ListRow
         title={model.label || model.model}
         lines={[isCustomApi ? customApiModelLine(model) : `${model.model} · ${model.apiStyle}`]}
+        showStatusDot={Boolean(test.status || test.summary)}
         testStatus={test.status}
+        testSummary={test.summary}
         rowTitle={copy.modelRowHint}
         onClick={(event) => onModelRowClick(model, event)}
         onDoubleClick={() => onModelRowDoubleClick(binding, testing)}
@@ -292,16 +273,6 @@
               {copy.edit}
             </Button>
           {/if}
-          <span
-            class="flex h-8 min-w-8 shrink-0 items-center justify-center gap-2 rounded-md px-2"
-            title={vendor.kind === "subscription" && !subscriptionUsable ? copy.loginFirst : test.summary || copy.testConnectivity}
-            aria-label={test.summary || copy.testConnectivity}
-          >
-            <span class={modelTestDotClass(test.status)} aria-hidden="true"></span>
-            {#if test.summary}
-              <span class={modelTestSummaryClass(test.status)}>{test.summary}</span>
-            {/if}
-          </span>
           {#if canManuallyManageVendorModels(vendor)}
             <Button
               size="sm"

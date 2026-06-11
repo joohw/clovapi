@@ -21,6 +21,7 @@ import (
 
 func newTestServer(cfg profile.ProxyConfig) *Server {
 	s := NewServer(cfg)
+	_ = s.CallLogs.Close()
 	s.CallLogs = nil
 	return s
 }

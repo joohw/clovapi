@@ -45,7 +45,7 @@ export async function persistProfiles() {
       active: activeForSave(),
       proxy: {
         enabled: true,
-        host: "127.0.0.1",
+        host: "0.0.0.0",
         port: store.proxyPort,
       },
     });

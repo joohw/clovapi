@@ -11,8 +11,8 @@ func TestProxyConfigForTestAppliesDefaultsAndOverride(t *testing.T) {
 		Proxy: profile.ProxyConfig{Host: "", Port: 1234},
 	}, 5678)
 
-	if cfg.Host != "127.0.0.1" {
-		t.Fatalf("Host = %q, want 127.0.0.1", cfg.Host)
+	if cfg.Host != "0.0.0.0" {
+		t.Fatalf("Host = %q, want 0.0.0.0", cfg.Host)
 	}
 	if cfg.Port != 5678 {
 		t.Fatalf("Port = %d, want 5678", cfg.Port)

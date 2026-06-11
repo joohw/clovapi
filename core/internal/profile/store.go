@@ -16,7 +16,7 @@ import (
 )
 
 func defaultProxyConfig() ProxyConfig {
-	return ProxyConfig{Enabled: true, Host: "127.0.0.1", Port: 27483}
+	return ProxyConfig{Enabled: true, Host: "0.0.0.0", Port: 27483}
 }
 
 func ensureProxyDefaults(s *Store, oldVersion int) {
@@ -24,7 +24,7 @@ func ensureProxyDefaults(s *Store, oldVersion int) {
 		return
 	}
 	if strings.TrimSpace(s.Proxy.Host) == "" {
-		s.Proxy.Host = "127.0.0.1"
+		s.Proxy.Host = "0.0.0.0"
 	}
 	if s.Proxy.Port == 0 {
 		s.Proxy.Port = 27483

@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -302,6 +303,9 @@ func postJSONProbe(u string, headers map[string]string, payload map[string]any) 
 func readProbeResponse(resp *http.Response) error {
 	defer resp.Body.Close()
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		if strings.Contains(strings.ToLower(strings.TrimSpace(resp.Header.Get("Content-Type"))), "text/event-stream") {
+			return readProbeSSETerminal(resp.Body)
+		}
 		if _, err := io.Copy(io.Discard, resp.Body); err != nil {
 			return fmt.Errorf("read response: %w", err)
 		}
@@ -312,4 +316,59 @@ func readProbeResponse(resp *http.Response) error {
 		return fmt.Errorf("%w: HTTP %s: %s", errAnthropicMessagesNotFound, resp.Status, strings.TrimSpace(string(body)))
 	}
 	return fmt.Errorf("HTTP %s: %s", resp.Status, strings.TrimSpace(string(body)))
+}
+
+func readProbeSSETerminal(r io.Reader) error {
+	scanner := bufio.NewScanner(r)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	var event string
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			event = ""
+			continue
+		}
+		if strings.HasPrefix(line, "event:") {
+			event = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
+			if isProbeTerminalSSEEvent(event) {
+				return nil
+			}
+			continue
+		}
+		if strings.HasPrefix(line, "data:") {
+			data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+			if data == "[DONE]" || isProbeTerminalSSEData(data) || isProbeTerminalSSEEvent(event) {
+				return nil
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("read response: %w", err)
+	}
+	return nil
+}
+
+func isProbeTerminalSSEEvent(event string) bool {
+	switch strings.TrimSpace(event) {
+	case "response.completed", "message_stop":
+		return true
+	default:
+		return false
+	}
+}
+
+func isProbeTerminalSSEData(data string) bool {
+	var obj map[string]any
+	if err := json.Unmarshal([]byte(data), &obj); err != nil {
+		return false
+	}
+	if typ, _ := obj["type"].(string); isProbeTerminalSSEEvent(typ) {
+		return true
+	}
+	if status, _ := obj["status"].(string); strings.TrimSpace(status) == "completed" {
+		return true
+	}
+	resp, _ := obj["response"].(map[string]any)
+	status, _ := resp["status"].(string)
+	return strings.TrimSpace(status) == "completed"
 }

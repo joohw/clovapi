@@ -24,6 +24,12 @@ func TestJoinURLDedupV1Suffix(t *testing.T) {
 	if got := proxyresolve.JoinURL("https://chatgpt.com/backend-api", "/codex/responses"); got != "https://chatgpt.com/backend-api/codex/responses" {
 		t.Fatalf("codex path mismatch: %q", got)
 	}
+	if got := proxyresolve.JoinURL("http://192.168.43.63:27483/codex", "/responses"); got != "http://192.168.43.63:27483/codex/v1/responses" {
+		t.Fatalf("chained clovapi responses route mismatch: %q", got)
+	}
+	if got := proxyresolve.JoinURL("http://192.168.43.63:27483/codex/v1", "/responses"); got != "http://192.168.43.63:27483/codex/v1/responses" {
+		t.Fatalf("chained clovapi responses route with v1 base mismatch: %q", got)
+	}
 }
 
 func TestDefaultUpstreamCodexResponsesPath(t *testing.T) {

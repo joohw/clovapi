@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/clovapi/switcher/internal/apistyle"
 )
@@ -268,6 +269,34 @@ func TestReadProbeResponseDrainsSuccessfulBody(t *testing.T) {
 	}
 	if !body.closed {
 		t.Fatal("body was not closed")
+	}
+}
+
+func TestReadProbeResponseStopsAtSSETerminalEvent(t *testing.T) {
+	done := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer close(done)
+		w.Header().Set("Content-Type", "text/event-stream")
+		if f, ok := w.(http.Flusher); ok {
+			_, _ = w.Write([]byte("event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n"))
+			f.Flush()
+		}
+		<-r.Context().Done()
+	}))
+	t.Cleanup(srv.Close)
+
+	client := &http.Client{Timeout: time.Second}
+	resp, err := client.Get(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := readProbeResponse(resp); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("probe did not close SSE response after terminal event")
 	}
 }
 

@@ -61,7 +61,7 @@ type debugTransformResponse struct {
 
 func NewServer(cfg profile.ProxyConfig) *Server {
 	if strings.TrimSpace(cfg.Host) == "" {
-		cfg.Host = "127.0.0.1"
+		cfg.Host = "0.0.0.0"
 	}
 	if cfg.Port == 0 {
 		cfg.Port = 27483

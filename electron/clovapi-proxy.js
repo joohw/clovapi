@@ -6,15 +6,10 @@ const {
 const clovapiDesktop = require("./clovapi-desktop");
 
 const DEFAULT_PORT = 27483;
-const DEFAULT_HOST = "127.0.0.1";
+const DEFAULT_HOST = "0.0.0.0";
 
 function normalizeHost(host) {
-  const raw = String(host || "").trim() || DEFAULT_HOST;
-  const lower = raw.toLowerCase();
-  if (lower === "0.0.0.0" || lower === "::" || lower === "::ffff:0.0.0.0") {
-    return DEFAULT_HOST;
-  }
-  return raw;
+  return String(host || "").trim() || DEFAULT_HOST;
 }
 
 function normalizePort(port) {

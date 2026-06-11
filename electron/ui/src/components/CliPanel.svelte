@@ -245,6 +245,7 @@
         testStatus={lifecycle ? "testing" : ""}
         linesNowrap
         centerContent
+        inlineActions
         muted={!installed}
         class="py-4"
         onOpen={() => (selectedCliId = cli.id)}

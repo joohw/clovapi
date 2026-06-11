@@ -14,6 +14,7 @@
     indent = false,
     linesNowrap = false,
     centerContent = false,
+    inlineActions = false,
     stopActionsPropagation = true,
     titleClass = "",
     class: className = "",
@@ -33,6 +34,7 @@
     indent?: boolean;
     linesNowrap?: boolean;
     centerContent?: boolean;
+    inlineActions?: boolean;
     stopActionsPropagation?: boolean;
     titleClass?: string;
     class?: string;
@@ -93,6 +95,7 @@
   const rowClass = $derived(
     cn(
       "flex flex-col gap-3 border-b border-border px-4 py-3 last:border-b-0 sm:flex-row sm:justify-between",
+      inlineActions && "flex-row items-center justify-between",
       (onOpen || onClick || onDoubleClick) &&
         "cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       centerContent ? "sm:items-center" : "sm:items-start",
@@ -142,7 +145,7 @@
   </div>
   {#if actions}
     <div
-      class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end"
+      class={cn("flex shrink-0 items-center gap-2 sm:justify-end", inlineActions ? "flex-nowrap" : "flex-wrap")}
       role="presentation"
       onclick={stopActionClick}
       ondblclick={stopActionDoubleClick}

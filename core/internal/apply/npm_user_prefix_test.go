@@ -64,7 +64,6 @@ func TestEnsureUnixUserBinOnPathWritesMarkedBlock(t *testing.T) {
 	}
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	profile := filepath.Join(home, ".zshrc")
 	binDir := filepath.Join(home, ".npm-global", "bin")
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -73,6 +72,7 @@ func TestEnsureUnixUserBinOnPathWritesMarkedBlock(t *testing.T) {
 	if err := ensureUnixUserBinOnPath(binDir); err != nil {
 		t.Fatal(err)
 	}
+	profile := pickShellProfile(shellProfileCandidates())
 	data, err := os.ReadFile(profile)
 	if err != nil {
 		t.Fatal(err)

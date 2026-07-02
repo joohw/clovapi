@@ -46,12 +46,12 @@ test("installerDownloadUrl uses versioned desktop path", () => {
 test("installerLaunchArgs uses NSIS silent flags on Windows", () => {
   const { installerLaunchArgs } = require("./desktop-update");
   if (process.platform !== "win32") {
-    assert.deepEqual(installerLaunchArgs("C:\\Apps\\ClovAPI Switcher"), []);
+    assert.deepEqual(installerLaunchArgs("C:\\Apps\\Clov API代理"), []);
     return;
   }
-  assert.deepEqual(installerLaunchArgs("C:\\Apps\\ClovAPI Switcher"), [
+  assert.deepEqual(installerLaunchArgs("C:\\Apps\\Clov API代理"), [
     "/S",
-    "/D=C:\\Apps\\ClovAPI Switcher",
+    "/D=C:\\Apps\\Clov API代理",
   ]);
   assert.deepEqual(installerLaunchArgs(""), ["/S"]);
 });

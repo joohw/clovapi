@@ -1,35 +1,46 @@
-English | [中文](README.md)
-
 # clovapi
 
-**Built-in local proxy · Manage agent APIs with ease**
+clovapi is a local API proxy. It stores upstream provider/model profiles, runs a local HTTP proxy, routes requests by provider, and transcodes between OpenAI, Anthropic, and Gemini-compatible formats.
 
-**Website:** https://clovapi.com — [agents](https://clovapi.com/agents) · [guides](https://clovapi.com/guides) · [Agent Skill](https://clovapi.com/skill)
+Agent CLI configuration switching and management now live in [clovagent](https://github.com/joohw/clovagent).
 
+## Features
 
-Open-source CLI and desktop app built around a built-in local proxy: save upstream profiles and `switch` them to Claude Code, Codex, OpenCode, and other agents. After switch, traffic goes through `localhost` while clovapi routes upstream and transcodes API formats.
+- Local profiles for base URL, API key, API style, and model.
+- Local proxy, defaulting to `http://127.0.0.1:27483`.
+- Provider routing via `/{providerId}/v1/...`.
+- Protocol conversion for Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini.
+- Desktop UI for profiles, proxy status, call logs, and system logs.
 
-Flow: **`clovapi add --name …`** (save + probe) → **`clovapi switch --cli …`** or interactive **`clovapi switch`** (one CLI at a time).
-
-For **Claude Code**, env wiring matches community **cc-switch** / **ccswitch** (`env.ANTHROPIC_AUTH_TOKEN` + `ANTHROPIC_BASE_URL`).
-
-## Install
+## Quick Start
 
 ```bash
-npm i -g @clovapi/cli
-clovapi --help
+cd core
+go build ./cmd/clovapi
+./clovapi proxy start
 ```
 
-## Common commands
+Common commands:
 
-| Command | Description |
-|---------|-------------|
-| `clovapi list` | Show profiles and active CLI bindings (alias `ls`) |
-| `clovapi profiles` | JSON API for load/save/test/catalog (`--json`; see `core/README.md`) |
-| `clovapi add --name NAME` | Save upstream profile and probe (`set` / `new`) |
-| `clovapi switch [--cli KIND]` | Apply binding to one CLI (`use`; add `--json` for scripts) |
-| `clovapi auth` | Subscription OAuth (`status` / `login` / `logout`; `--json`) |
-| `clovapi proxy` | Built-in local proxy (`start` / `stop` / `status` / `health`; `--json` where supported) |
-| `clovapi reset` | Clear all profiles and bindings (`--yes`) |
+```bash
+clovapi profiles load --json
+clovapi profiles test --provider custom-api --model my-model --json
+clovapi proxy status
+clovapi proxy logs list
+```
 
-Details: [core/README.md](core/README.md).
+## Layout
+
+| Directory | Role |
+| --- | --- |
+| `core/` | Go CLI and local proxy core |
+| `npm/` | npm launcher package (`@clovapi/cli`) |
+| `electron/` | Electron + Svelte desktop app |
+| `landing/` | clovapi.com site |
+
+## Development
+
+```bash
+cd core
+go test ./...
+```

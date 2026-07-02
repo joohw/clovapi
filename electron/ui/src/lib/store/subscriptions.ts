@@ -1,14 +1,10 @@
 import {
   getSubscriptionVendors,
-  isSubscriptionBinding,
   modelBindingValue,
   normalizeVendor,
   subscriptionIsUsable,
-  subscriptionProviderFromBinding,
-  subscriptionProviderIdsForCli,
 } from "../helpers";
 import { t } from "../i18n";
-import { activeBindingForCli } from "./bindings";
 import { clearModelTest } from "./model-tests";
 import { runModelTest } from "./model-runner";
 import { loadProfilesFromDisk, persistProfiles } from "./profiles";
@@ -114,7 +110,6 @@ export async function runSubscriptionLogout(providerId: string, label: string) {
   }
   if (Array.isArray(result.profiles)) {
     store.profiles = result.profiles.map(normalizeVendor);
-    store.active = result.active && typeof result.active === "object" ? result.active : {};
   } else {
     await loadProfilesFromDisk();
   }
@@ -125,16 +120,6 @@ export async function runSubscriptionLogout(providerId: string, label: string) {
   if (vendor?.models?.length) {
     for (const model of vendor.models) {
       clearModelTest(modelBindingValue(providerId, model.id));
-    }
-  }
-  for (const cli of store.clis) {
-    if (!subscriptionProviderIdsForCli(cli.kind).includes(providerId)) continue;
-    const binding = activeBindingForCli(cli.kind);
-    if (
-      isSubscriptionBinding(binding, store.profiles) &&
-      subscriptionProviderFromBinding(binding, store.profiles) === providerId
-    ) {
-      delete store.active[cli.kind];
     }
   }
   if (vendor) {

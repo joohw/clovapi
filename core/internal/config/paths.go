@@ -100,7 +100,7 @@ func SystemLogsDBPath() (string, error) {
 	return filepath.Join(d, "system-logs.sqlite"), nil
 }
 
-// CallLogsPath returns the default JSONL file for requests without a session id.
+// CallLogsPath returns the legacy default JSONL call log file.
 func CallLogsPath() (string, error) {
 	d, err := CallLogsDir()
 	if err != nil {

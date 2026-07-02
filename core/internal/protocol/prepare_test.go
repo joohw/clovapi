@@ -221,38 +221,6 @@ func TestPrepareClaudeOAuthSameStylePreservesClaudeWireFields(t *testing.T) {
 	}
 }
 
-func TestPrepareClaudeOAuthScrubsHermesIdentitySystemText(t *testing.T) {
-	body := []byte(`{
-		"model":"claude-opus-4-7",
-		"max_tokens":12000,
-		"stream":false,
-		"system":"# Hermes Agent Persona\n\nIf the user asks about configuring Hermes Agent itself, load the ` + "`hermes-agent`" + ` skill. Docs: https://hermes-agent.nousresearch.com/docs\n\nYou are Hermes running a scheduled job.\n\nKeep answers concise.",
-		"messages":[{"role":"user","content":"hello"}]
-	}`)
-
-	upstream, _, err := PrepareUpstreamRequest(apistyle.Claude, apistyle.Claude, body, PrepareOptions{
-		Model:       "claude-sonnet-4-6",
-		ForceStream: true,
-		Configure: func(r *Request) {
-			meta := ensureMeta(r)
-			meta.ClaudeOAuthEncodingCompatibility = true
-			meta.ScrubHermesIdentity = true
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	text := strings.ToLower(string(upstream))
-	if strings.Contains(text, "hermes") {
-		t.Fatalf("upstream system leaked Hermes identity: %s", upstream)
-	}
-	if !strings.Contains(string(upstream), "You are the agent running a scheduled job.") ||
-		!strings.Contains(string(upstream), "Keep answers concise.") ||
-		!strings.Contains(string(upstream), claudeOAuthSystemBootstrap) {
-		t.Fatalf("scrubbed upstream lost expected instructions: %s", upstream)
-	}
-}
-
 func TestPrepareClaudeSameStylePreservesWireFieldsViaExtensions(t *testing.T) {
 	body := []byte(`{
 		"model":"claude-opus-4-7",

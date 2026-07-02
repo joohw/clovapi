@@ -16,8 +16,8 @@ export function HomeFaq() {
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           {language === "en"
-            ? "Quick answers about clovapi, supported agents, and how it compares to cc-switch."
-            : "关于 clovapi、支持的 Agent 及与 cc-switch 对比的常见问题。"}
+            ? "Quick answers about clovapi local proxy behavior."
+            : "关于 clovapi 本地代理行为的常见问题。"}
         </p>
 
         <dl className="mt-8 divide-y divide-border/60 rounded-lg border border-border/60">

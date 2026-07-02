@@ -1,4 +1,5 @@
 import { isElectronRenderer } from "../constants";
+import { t } from "../i18n";
 import { store } from "./state.svelte";
 
 export async function waitForCliBridge(timeoutMs = 5000): Promise<boolean> {
@@ -27,7 +28,7 @@ export async function refreshAppVersion() {
     const version = await window.clovapiEnv?.getVersion?.();
     store.appVersion = String(version || "").trim();
     if (store.appVersion) {
-      document.title = `ClovAPI Switcher v${store.appVersion}`;
+      document.title = `${t("app.title")} v${store.appVersion}`;
     }
   } catch {
     store.appVersion = "";

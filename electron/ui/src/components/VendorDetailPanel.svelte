@@ -49,7 +49,9 @@
   const subscriptionUsable = $derived(
     vendor.kind !== "subscription" || subscriptionIsUsable(subscription),
   );
-  const visibleModels = $derived(subscriptionUsable ? vendor.models || [] : []);
+  const localRuntimeUsable = $derived(!isOllamaVendor(vendor) || store.ollamaInstalled);
+  const vendorUsable = $derived(subscriptionUsable && localRuntimeUsable);
+  const visibleModels = $derived(vendorUsable ? vendor.models || [] : []);
 
   const copy = $derived.by(() => {
     void i18n.locale;
@@ -66,6 +68,7 @@
       emptyCustom: t("vendorDetail.emptyCustom"),
       emptySubscriptionNeedLogin: t("vendorDetail.emptySubscriptionNeedLogin"),
       emptySubscriptionUnavailable: t("vendorDetail.emptySubscriptionUnavailable"),
+      emptyOllamaUnavailable: t("vendorDetail.emptyOllamaUnavailable"),
       emptySubscription: t("vendorDetail.emptySubscription"),
       emptyMixed: t("vendorDetail.emptyMixed"),
       installed: t("vendorDetail.installed"),
@@ -79,7 +82,7 @@
 
   const vendorProviderId = $derived(providerIdForVendor(vendor));
   const vendorProxyBaseUrl = $derived(
-    vendorProviderId ? buildProxyIngressBaseURL(store.proxyPort, vendorProviderId) : "",
+    vendorProviderId && vendorUsable ? buildProxyIngressBaseURL(store.proxyPort, vendorProviderId, store.proxyHost) : "",
   );
 
   async function copyVendorProxyBaseUrl() {
@@ -121,7 +124,7 @@
   }
 
   function canRunModelTest(testing: boolean) {
-    return !store.running && !testing && !(vendor.kind === "subscription" && (!subscriptionUsable || logging));
+    return !store.running && !testing && vendorUsable && !(vendor.kind === "subscription" && logging);
   }
 
   function runModelTestFromRow(binding: string, testing: boolean) {
@@ -237,7 +240,9 @@
       {#if isCustomApi}
         {copy.emptyCustom}
       {:else if !canManuallyManageVendorModels(vendor)}
-        {#if vendor.kind === "subscription" && subscription && !subscriptionUsable && !logging}
+        {#if isOllamaVendor(vendor) && !store.ollamaInstalled}
+          {copy.emptyOllamaUnavailable}
+        {:else if vendor.kind === "subscription" && subscription && !subscriptionUsable && !logging}
           {subscription.loggedIn ? copy.emptySubscriptionUnavailable : copy.emptySubscriptionNeedLogin}
         {:else}
           {copy.emptySubscription}

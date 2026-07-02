@@ -31,28 +31,8 @@ async function readCallLogsViaCLI(options = {}) {
   }
 }
 
-async function readCallLogSessionsViaCLI(limit = 100) {
-  const result = await runClovapiArgsAsync(
-    ["proxy", "logs", "sessions", "--json", "--limit", String(Number(limit) || 100)],
-    { timeout: 8000 },
-  );
-  if (!result.ok) return [];
-  const raw = String(result.stdout || "").trim();
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
 async function readCallLogs(options = {}) {
   return readCallLogsViaCLI(options);
-}
-
-async function readCallLogSessions(limit = 100) {
-  return readCallLogSessionsViaCLI(limit);
 }
 
 async function clearCallLogsFile() {
@@ -113,7 +93,6 @@ async function readCallLogsViaHTTP(options = {}) {
   const entries = Array.isArray(parsed?.entries) ? parsed.entries : [];
   return {
     entries,
-    sessions: Array.isArray(parsed?.sessions) ? parsed.sessions : [],
     limit: Number(parsed?.limit) || limit,
     offset: Number(parsed?.offset) || offset,
     hasMore: Boolean(parsed?.hasMore),
@@ -142,6 +121,28 @@ async function readSystemLogsViaHTTP(limit = 20, options = {}) {
   return Array.isArray(parsed?.entries) ? parsed.entries : [];
 }
 
+async function readUsageViaHTTP(options = {}) {
+  const parsed = await fetchProxyDebugJSON(
+    "/__debug/usage",
+    { refresh: options.refresh ? "1" : "" },
+    { proxy: options.proxy, timeout: options.timeout ?? 30000 },
+  );
+  return {
+    ok: parsed?.ok !== false,
+    usages: Array.isArray(parsed?.usages) ? parsed.usages : [],
+    updatedAt: String(parsed?.updatedAt || ""),
+    polling: Boolean(parsed?.polling),
+    error: String(parsed?.error || ""),
+  };
+}
+
+async function readProfilesViaHTTP(options = {}) {
+  return fetchProxyDebugJSON("/__debug/profiles", {}, {
+    proxy: options.proxy,
+    timeout: options.timeout ?? 10000,
+  });
+}
+
 async function clearSystemLogsViaCLI() {
   await runClovapiArgsAsync(["proxy", "syslogs", "clear", "--yes"], { timeout: 10000 });
 }
@@ -156,30 +157,18 @@ async function clearProxyDebugLogs(scope = "all", options = {}) {
   }
 }
 
-async function deleteCallLogSessionViaHTTP(session, options = {}) {
-  const key = String(session || "").trim();
-  if (!key) {
-    throw new Error("session is required");
-  }
-  return fetchProxyDebugJSON(
-    "/__debug/call-log",
-    { session: key },
-    { method: "DELETE", proxy: options.proxy },
-  );
-}
-
 module.exports = {
   logsDir,
   callLogsDBPath,
   callLogsPath: callLogsDBPath,
   DEFAULT_CALL_LOG_PAGE_SIZE,
   readCallLogs,
-  readCallLogSessions,
   clearCallLogsFile,
   readCallLogsViaHTTP,
   readSystemLogsViaCLI,
   readSystemLogsViaHTTP,
+  readUsageViaHTTP,
+  readProfilesViaHTTP,
   clearSystemLogsViaCLI,
   clearProxyDebugLogs,
-  deleteCallLogSessionViaHTTP,
 };

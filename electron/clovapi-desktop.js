@@ -1,4 +1,5 @@
 const { runClovapiArgsAsync, runClovapiLongAsync, cancelClovapiLongRun } = require("./clovapi-exec");
+const { spawn } = require("node:child_process");
 
 const AUTH_PROVIDERS = new Set(["claude-code", "codex"]);
 const AUTH_LOGIN_TIMEOUT = 10 * 60 * 1000;
@@ -88,50 +89,21 @@ function saveProfiles(payload) {
   });
 }
 
-async function switchProviderModel(cliKind, providerId, modelId) {
-  const result = await runClovapiArgsAsync(
-    [
-      "switch",
-      "--cli",
-      String(cliKind || ""),
-      "--provider",
-      String(providerId || ""),
-      "--model",
-      String(modelId || ""),
-      "--json",
-    ],
-    { timeout: 45000 },
-  );
-  if (result.error && result.error.code === "ETIMEDOUT") {
-    return { ok: false, error: "clovapi switch timed out" };
-  }
-  if (!result.ok) {
-    const message = String(result.stderr || result.stdout || "clovapi switch failed").trim();
-    return { ok: false, error: message || "clovapi switch failed" };
-  }
-  return parseCliJSON(result);
-}
-
 function listVendorModels(vendorName) {
   return runProfilesAsync(["list-models", "--vendor", String(vendorName || "")], {
     timeout: 45000,
   });
 }
 
+function listModels() {
+  return runProfilesAsync(["models"], { timeout: 15000 });
+}
+
 async function testBinding(payload) {
-  const binding = String(payload?.binding || "").trim();
   const provider = String(payload?.provider || payload?.provider_id || "").trim();
   const model = String(payload?.model || payload?.model_id || "").trim();
   const args = ["test"];
-  if (provider || model) {
-    args.push("--provider", provider, "--model", model);
-  } else {
-    args.push("--binding", binding);
-  }
-  const cli = String(payload?.cli || "").trim();
-  if (cli) {
-    args.push("--cli", cli);
-  }
+  args.push("--provider", provider, "--model", model);
   const port = Number(payload?.proxy?.port);
   if (Number.isFinite(port) && port > 0) {
     args.push("--port", String(port));
@@ -148,19 +120,41 @@ function vendorCatalog() {
 }
 
 function whichCommand(command) {
-  return runDesktopAsync(["agents", "which", "--command", String(command || "")], { timeout: 10000 });
-}
-
-function agentStatus() {
-  return runDesktopAsync(["agents", "status"], { timeout: 10000 });
-}
-
-function agentInstall(kind) {
-  return runDesktopAsync(["agents", "install", "--cli", String(kind || "")], { timeout: 10 * 60 * 1000 });
-}
-
-function agentUninstall(kind) {
-  return runDesktopAsync(["agents", "uninstall", "--cli", String(kind || "")], { timeout: 10 * 60 * 1000 });
+  const name = String(command || "").trim();
+  if (!name) return Promise.resolve({ ok: false, exists: false, path: "" });
+  const tool = process.platform === "win32" ? "where.exe" : "which";
+  return new Promise((resolve) => {
+    const child = spawn(tool, [name], {
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    const timer = setTimeout(() => {
+      child.kill();
+      resolve({ ok: false, exists: false, path: "", error: "which timed out" });
+    }, 10000);
+    child.stdout.on("data", (chunk) => {
+      stdout += String(chunk || "");
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += String(chunk || "");
+    });
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      resolve({ ok: false, exists: false, path: "", error: error.message });
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      const first = stdout.split(/\r?\n/).map((line) => line.trim()).find(Boolean) || "";
+      resolve({
+        ok: code === 0,
+        exists: code === 0 && Boolean(first),
+        path: first,
+        error: code === 0 ? "" : String(stderr || stdout || "").trim(),
+      });
+    });
+  });
 }
 
 function mergeNoProxy(value) {
@@ -234,15 +228,12 @@ module.exports = {
   loadProxyConfig,
   saveProxyConfig,
   saveProfiles,
-  switchProviderModel,
   listVendorModels,
+  listModels,
   testBinding,
   modelAdapters,
   vendorCatalog,
   whichCommand,
-  agentStatus,
-  agentInstall,
-  agentUninstall,
   authStatus,
   authLogin,
   cancelAuthLogin,

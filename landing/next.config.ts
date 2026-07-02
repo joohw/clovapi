@@ -12,7 +12,6 @@ const nextConfig: NextConfig = {
       { source: "/docs/:path*", destination: "/", permanent: true },
       { source: "/pricing", destination: "/", permanent: true },
       { source: "/models", destination: "/", permanent: true },
-      { source: "/agents", destination: "/", permanent: true },
       { source: "/personal", destination: "/", permanent: true },
       { source: "/apikeys", destination: "/", permanent: true },
       { source: "/token", destination: "/", permanent: false },

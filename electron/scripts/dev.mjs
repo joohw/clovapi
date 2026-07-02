@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const electronDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = path.resolve(electronDir, "..");
+const coreCliPath = path.join(repoRoot, "core", process.platform === "win32" ? "clovapi.exe" : "clovapi");
 const devPort = Number(process.env.VITE_DEV_PORT) || 31873;
 const devServerUrl = process.env.VITE_DEV_SERVER_URL || `http://127.0.0.1:${devPort}`;
 
@@ -190,6 +192,11 @@ process.on("SIGINT", () => shutdown(0));
 process.on("SIGTERM", () => shutdown(0));
 
 async function main() {
+  execSync("npm run prepare:cli:dev", {
+    cwd: electronDir,
+    stdio: "inherit",
+    env: process.env,
+  });
   killOrphanProjectElectron();
   killOrphanProjectVite();
   await freePort(devPort);
@@ -217,7 +224,7 @@ async function main() {
   }
 
   console.log("[dev] Vite ready — launching Electron.");
-  console.log("[dev] Use the Electron window titled \"ClovAPI Switcher\" — do not open the Vite URL in a browser.");
+  console.log("[dev] Use the Electron window titled \"Clov API代理\" — do not open the Vite URL in a browser.");
 
   electron = spawn(electronBinary(), [electronDir, "--clovapi-dev"], {
     cwd: electronDir,
@@ -226,6 +233,7 @@ async function main() {
     env: {
       ...process.env,
       ELECTRON_DEV: "1",
+      CLOVAPI_ELECTRON_CLI_PATH: coreCliPath,
       VITE_DEV_SERVER_URL: devServerUrl,
     },
   });

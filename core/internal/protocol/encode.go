@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/protocolcompat"
 )
 
 // EncodeRequestClaude maps IR to Anthropic Messages API JSON.
@@ -37,9 +36,6 @@ func EncodeRequestClaude(r Request) ([]byte, error) {
 		payload["tools"] = tools
 	}
 	system := CollectSystemPrompt(r)
-	if r.Meta != nil && r.Meta.ScrubHermesIdentity {
-		system = protocolcompat.ScrubHermesIdentitySystemText(system)
-	}
 	if r.Meta != nil && r.Meta.ClaudeOAuthEncodingCompatibility {
 		system = stripClaudeOAuthBillingText(system)
 		if system != "" && !strings.Contains(system, claudeOAuthSystemBootstrap) {

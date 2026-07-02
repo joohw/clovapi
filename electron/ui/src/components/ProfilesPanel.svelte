@@ -9,14 +9,12 @@
     subscriptionStatusForVendor,
     vendorSummaryLine,
     subscriptionIsUsable,
-    shouldShowVendorUsage,
   } from "../lib/helpers";
   import { displayVendorName, i18n, t } from "../lib/i18n";
   import {
     closeProfilesVendor,
     fetchVendorModels,
     openProfilesVendor,
-    queryVendorUsage,
     store,
     vendorUsageSummaryForVendor,
     canFetchVendorModels,
@@ -33,6 +31,7 @@
   );
   const inVendorDetail = $derived(Boolean(selectedVendorName));
   let autoRefreshActive = false;
+  let autoRefreshOllamaInstalled = false;
 
   const copy = $derived.by(() => {
     void i18n.locale;
@@ -50,18 +49,22 @@
   });
 
   $effect(() => {
+    const ollamaInstalled = store.ollamaInstalled;
     if (store.activeTab !== "profiles") {
       autoRefreshActive = false;
       return;
     }
     if (!vendorList.length) return;
+    if (autoRefreshOllamaInstalled !== ollamaInstalled) {
+      autoRefreshActive = false;
+    }
     if (autoRefreshActive) return;
     autoRefreshActive = true;
+    autoRefreshOllamaInstalled = ollamaInstalled;
     const vendors = [...vendorList];
     window.setTimeout(() => {
       for (const vendor of vendors) {
         if (canFetchModels(vendor)) void fetchVendorModels(vendor.name, { silent: true });
-        if (canQueryUsage(vendor)) void queryVendorUsage(vendor, { silent: true });
       }
     }, 0);
   });
@@ -71,17 +74,10 @@
     if (vendor.kind === "subscription") {
       return subscriptionIsUsable(subscriptionStatusForVendor(vendor, store.subscriptions));
     }
-    return vendor.kind !== "local" || vendor.localProvider === "ollama";
-  }
-
-  function canQueryUsage(vendor: (typeof vendorList)[number]) {
-    if (vendor.kind === "subscription") {
-      return shouldShowVendorUsage(vendor, store.subscriptions);
+    if (vendor.kind === "local" && vendor.localProvider === "ollama") {
+      return store.ollamaInstalled;
     }
-    if (vendor.kind === "api") {
-      return Boolean((vendor.baseUrl && vendor.apiKey) || vendor.models?.some((model) => model.baseUrl && model.apiKey));
-    }
-    return false;
+    return vendor.kind !== "local";
   }
 
   function summaryLine(vendor: (typeof vendorList)[number]) {

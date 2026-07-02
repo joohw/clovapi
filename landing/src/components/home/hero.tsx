@@ -12,8 +12,8 @@ import styles from "@/app/page.module.css";
 
 const WORKFLOW_LINES = [
   { prompt: true, text: "npm i -g @clovapi/cli" },
-  { prompt: true, text: "clovapi add --name prod" },
-  { prompt: true, text: 'clovapi switch --cli claude-code --vendor "Custom API" --model <model-id>' },
+  { prompt: true, text: "clovapi proxy start" },
+  { prompt: true, text: "clovapi profiles test --provider custom-api --model my-model --json" },
 ] as const;
 
 export function HomeHero() {

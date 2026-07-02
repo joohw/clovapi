@@ -9,7 +9,7 @@ import (
 )
 
 // OAuth token/profile requests must bypass HTTP(S)_PROXY. Desktop users often
-// route agent traffic through the local clovapi proxy via env vars; sending
+// route local traffic through the clovapi proxy via env vars; sending
 // auth.openai.com through that proxy commonly fails with EOF/reset errors.
 var oauthHTTPClient = &http.Client{
 	Timeout: 45 * time.Second,

@@ -69,7 +69,6 @@ type Metadata struct {
 	Instructions                     string `json:"instructions,omitempty"`
 	OpenAIResponsesOmitSampling      bool   `json:"openai_responses_omit_sampling,omitempty"`
 	ClaudeOAuthEncodingCompatibility bool   `json:"claude_oauth_encoding_compatibility,omitempty"`
-	ScrubHermesIdentity              bool   `json:"scrub_hermes_identity,omitempty"`
 }
 
 // Request is normalized IR consumed by egress encoders.
@@ -87,7 +86,7 @@ type Request struct {
 	Extensions []ExtensionNode `json:"-"`
 }
 
-// NewRequest returns defaults matching agent CLIs (stream defaults true when unset at JSON layer).
+// NewRequest returns streaming defaults used by the proxy request pipeline.
 func NewRequest(model string, messages []Message, streamDefaultTrue bool, max *int, temp *float64, meta *Metadata) Request {
 	return Request{
 		Model:       strings.TrimSpace(model),

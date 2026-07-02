@@ -10,7 +10,7 @@ import (
 	"github.com/clovapi/switcher/internal/provider"
 )
 
-func TestClaudeDesktopGatewayModelsListFormat(t *testing.T) {
+func TestModelsListUsesOpenAIListFormat(t *testing.T) {
 	store := &profile.Store{
 		Version: profile.StoreVersion,
 		List: []profile.Profile{{
@@ -28,12 +28,7 @@ func TestClaudeDesktopGatewayModelsListFormat(t *testing.T) {
 	ts := httptest.NewServer(s.Server.Handler)
 	defer ts.Close()
 
-	req, err := http.NewRequest(http.MethodGet, ts.URL+"/codex/v1/models", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("Authorization", "Bearer clovapi--claude-desktop")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.Get(ts.URL + "/codex/v1/models")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,63 +40,15 @@ func TestClaudeDesktopGatewayModelsListFormat(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	if body["has_more"] != false {
-		t.Fatalf("has_more = %#v", body["has_more"])
-	}
-	if body["first_id"] != "claude-sonnet-4-6" || body["last_id"] != "claude-sonnet-4-5" {
-		t.Fatalf("first/last id = %#v / %#v", body["first_id"], body["last_id"])
+	if body["object"] != "list" {
+		t.Fatalf("object = %#v", body["object"])
 	}
 	data, ok := body["data"].([]any)
 	if !ok || len(data) != 2 {
 		t.Fatalf("data = %#v", body["data"])
 	}
 	item, _ := data[0].(map[string]any)
-	if item["type"] != "model" || item["id"] != "claude-sonnet-4-6" {
+	if item["id"] != "gpt-5.5" || item["object"] != "model" {
 		t.Fatalf("item = %#v", item)
-	}
-}
-
-func TestCodexModelsListWithoutDesktopBearerStaysOpenAIFormat(t *testing.T) {
-	store := &profile.Store{
-		Version: profile.StoreVersion,
-		List: []profile.Profile{{
-			Name: provider.CodexVendorName,
-			Kind: "subscription",
-			Models: []profile.Model{
-				{ID: "gpt-5.5", Model: "gpt-5.5"},
-			},
-		}},
-	}
-	s := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
-	s.ProfileLoader = func() (*profile.Store, error) { return store, nil }
-	ts := httptest.NewServer(s.Server.Handler)
-	defer ts.Close()
-
-	resp, err := http.Get(ts.URL + "/codex/v1/models")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
-	var body map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-		t.Fatal(err)
-	}
-	if body["object"] != "list" {
-		t.Fatalf("object = %#v", body["object"])
-	}
-	if _, ok := body["has_more"]; ok {
-		t.Fatalf("unexpected Claude Desktop fields: %#v", body)
-	}
-}
-
-func TestIsClaudeDesktopGatewayRequest(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:27483/codex/v1/models", nil)
-	req.Header.Set("Authorization", "Bearer clovapi--claude-desktop")
-	if !isClaudeDesktopGatewayRequest(req) {
-		t.Fatal("expected desktop gateway request")
-	}
-	req.Header.Set("Authorization", "Bearer clovapi--codex")
-	if isClaudeDesktopGatewayRequest(req) {
-		t.Fatal("unexpected desktop gateway match for codex token")
 	}
 }

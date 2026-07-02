@@ -90,42 +90,6 @@ func TestServerHealthAndModelsList(t *testing.T) {
 		t.Fatalf("models body = %+v", legacyBody)
 	}
 
-	req, err := http.NewRequest(http.MethodGet, ts.URL+"/claude-code/v1/models", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("Authorization", "Bearer clovapi--claude-desktop")
-	resp, err = http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("desktop models status = %d", resp.StatusCode)
-	}
-	var body struct {
-		Data []struct {
-			ID          string `json:"id"`
-			Type        string `json:"type"`
-			DisplayName string `json:"display_name"`
-		} `json:"data"`
-		HasMore bool   `json:"has_more"`
-		FirstID string `json:"first_id"`
-		LastID  string `json:"last_id"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-		t.Fatal(err)
-	}
-	if len(body.Data) != 1 || body.Data[0].ID != "claude-opus-4" || body.Data[0].Type != "model" {
-		t.Fatalf("models body = %+v", body)
-	}
-	if body.HasMore {
-		t.Fatalf("has_more = true")
-	}
-	if body.FirstID != "claude-opus-4" || body.LastID != "claude-opus-4" {
-		t.Fatalf("pagination fields = %+v", body)
-	}
-
 	resp, err = http.Get(ts.URL + "/claude-code/claude%20opus%2F4/claude/v1/models")
 	if err != nil {
 		t.Fatal(err)
@@ -146,6 +110,37 @@ func TestServerHealthAndModelsList(t *testing.T) {
 	}
 	if encodedBody.Object != "list" || len(encodedBody.Data) != 1 || encodedBody.Data[0].ID != "claude-opus-4" {
 		t.Fatalf("encoded slash models body = %+v", encodedBody)
+	}
+}
+
+func TestDebugUsageReturnsCoreCacheEnvelope(t *testing.T) {
+	store := &profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:          provider.OllamaVendorName,
+			Kind:          "local",
+			LocalProvider: "ollama",
+		}},
+	}
+	s := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	s.ProfileLoader = func() (*profile.Store, error) { return store, nil }
+	ts := httptest.NewServer(s.Server.Handler)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/__debug/usage?refresh=1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("usage status = %d", resp.StatusCode)
+	}
+	var body UsagePollerSnapshot
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if !body.OK || len(body.Usages) != 0 || body.UpdatedAt == "" {
+		t.Fatalf("usage body = %+v", body)
 	}
 }
 
@@ -848,7 +843,7 @@ func TestStreamClaudeIngressViaOpenAIResponsesUpstreamSSE(t *testing.T) {
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
 
-	payload := `{"model":"responses-edge","max_tokens":512,"messages":[{"role":"user","content":"你好"}],"stream":true}`
+	payload := `{"model":"responses-edge","max_tokens":512,"messages":[{"role":"user","content":"浣犲ソ"}],"stream":true}`
 	resp, err := http.Post(ts.URL+"/custom-api/responses-edge/claude/v1/messages", "application/json", strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
@@ -1245,66 +1240,5 @@ func TestKimiCodexSubscriptionClaudeIngressDefaultsStreamTrueWhenOmitted(t *test
 	}
 	if !strings.Contains(string(raw), "content_block_delta") {
 		t.Fatalf("expected claude sse downstream:\n%s", raw)
-	}
-}
-
-func TestClaudeDesktopGatewayRouteMapsToCodexWireModel(t *testing.T) {
-	var upstreamBody []byte
-	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		upstreamBody, _ = io.ReadAll(io.LimitReader(r.Body, 1<<20))
-		var parsed map[string]any
-		if err := json.Unmarshal(upstreamBody, &parsed); err != nil {
-			t.Fatal(err)
-		}
-		if parsed["model"] != "gpt-5.5" {
-			t.Fatalf("upstream model = %v want gpt-5.5", parsed["model"])
-		}
-		w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_, _ = io.WriteString(w, "event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n")
-	}))
-	defer up.Close()
-
-	store := &profile.Store{
-		Version: profile.StoreVersion,
-		Active: map[string]profile.ActiveSelection{
-			"claudedesktop": {ProviderID: provider.CodexProviderID, ModelID: "gpt-5.5"},
-		},
-		List: []profile.Profile{{
-			Name:                   provider.CodexVendorName,
-			Kind:                   "subscription",
-			SubscriptionProviderID: provider.CodexProviderID,
-			APIStyle:               apistyle.OpenAIResponses,
-			BaseURL:                strings.TrimRight(up.URL, "/"),
-			APIKey:                 "oauth-token",
-			AccountID:              "test-acct",
-			Model:                  "gpt-5.5",
-			Models: []profile.Model{{
-				ID:       "gpt-5.5",
-				Model:    "gpt-5.5",
-				APIStyle: apistyle.OpenAIResponses,
-			}},
-		}},
-	}
-
-	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
-	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
-	ts := httptest.NewServer(core.Server.Handler)
-	defer ts.Close()
-
-	payload := `{"model":"claude-sonnet-4-6","max_tokens":16,"messages":[{"role":"user","content":"."}]}`
-	req, err := http.NewRequest(http.MethodPost, ts.URL+"/codex/v1/messages", strings.NewReader(payload))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("Authorization", "Bearer clovapi--claude-desktop")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		raw, _ := io.ReadAll(resp.Body)
-		t.Fatalf("status=%d body=%s upstream=%s", resp.StatusCode, raw, upstreamBody)
 	}
 }

@@ -27,11 +27,11 @@ const (
 	ProviderCodex      = "codex"
 
 	claudeClientID     = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
-	claudeAuthorizeURL = "https://claude.ai/oauth/authorize"
+	claudeAuthorizeURL = "https://claude.com/cai/oauth/authorize"
 	claudeProfileURL   = "https://api.anthropic.com/api/oauth/profile"
 	claudeCallbackPort = 53692
 	claudeCallbackPath = "/callback"
-	claudeScopes       = "org:create_api_key user:profile user:inference user:sessions:claude_code user:mcp_servers user:file_upload"
+	claudeScopes       = "user:profile user:inference user:sessions:claude_code user:mcp_servers user:file_upload"
 
 	codexClientID     = "app_EMoamEEZ73f0CkXaXp7hrann"
 	codexAuthorizeURL = "https://auth.openai.com/oauth/authorize"
@@ -129,7 +129,11 @@ func loginClaude(ctx context.Context, openBrowser bool) (string, error) {
 
 	authURL := buildClaudeAuthorizeURL(pkce, redirectURI)
 	if openBrowser {
-		_ = openBrowserURL(authURL)
+		if err := openBrowserURL(authURL); err != nil {
+			logAuthFailure(ProviderClaudeCode, "open browser", err)
+			return authURL, err
+		}
+		logAuthSuccess(ProviderClaudeCode, "open browser", "authorize URL launched")
 	}
 	cb, err := server.Wait(ctx)
 	if err != nil {
@@ -185,7 +189,11 @@ func loginCodex(ctx context.Context, openBrowser bool) (string, error) {
 
 	authURL := buildCodexAuthorizeURL(pkce, state, redirectURI)
 	if openBrowser {
-		_ = openBrowserURL(authURL)
+		if err := openBrowserURL(authURL); err != nil {
+			logAuthFailure(ProviderCodex, "open browser", err)
+			return authURL, err
+		}
+		logAuthSuccess(ProviderCodex, "open browser", "authorize URL launched")
 	}
 	cb, err := server.Wait(ctx)
 	if err != nil {
@@ -571,11 +579,15 @@ func codexAccountIDFromAccessToken(accessToken string) string {
 }
 
 func openBrowserURL(rawURL string) error {
+	rawURL = strings.TrimSpace(rawURL)
+	if rawURL == "" {
+		return fmt.Errorf("authorize URL is empty")
+	}
 	switch runtime.GOOS {
 	case "darwin":
 		return exec.Command("open", rawURL).Start()
 	case "windows":
-		return exec.Command("rundll32", "url.dll,FileProtocolHandler", rawURL).Start()
+		return openBrowserURLWindows(rawURL)
 	default:
 		return exec.Command("xdg-open", rawURL).Start()
 	}

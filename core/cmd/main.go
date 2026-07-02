@@ -5,14 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
 
-	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
-	"github.com/clovapi/switcher/internal/apply"
 	"github.com/clovapi/switcher/internal/buildinfo"
 	"github.com/clovapi/switcher/internal/profile"
 	coreproxy "github.com/clovapi/switcher/internal/proxy"
@@ -30,8 +27,8 @@ func main() {
 func newRoot() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "clovapi",
-		Short: "One Uniform API for Agents",
-		Long:  fmt.Sprintf("One Uniform API for Agents\n\n%s", buildinfo.Display()),
+		Short: "Local API proxy for model providers",
+		Long:  fmt.Sprintf("Local API proxy for model providers\n\n%s", buildinfo.Display()),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
 		},
@@ -45,7 +42,7 @@ func newRoot() *cobra.Command {
 		},
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(cmdProfiles(), cmdProfilesGroup(), cmdSet(), cmdRemove(), cmdSwitch(), cmdProxy(), cmdReset(), cmdAuth(), cmdDesktop(), cmdVersion(), cmdUpdate(), cmdHiddenProxyDaemon())
+	root.AddCommand(cmdProfiles(), cmdProfilesGroup(), cmdSet(), cmdRemove(), cmdProxy(), cmdReset(), cmdAuth(), cmdDesktop(), cmdVersion(), cmdUpdate(), cmdHiddenProxyDaemon())
 	return root
 }
 
@@ -67,7 +64,7 @@ func cmdProfiles() *cobra.Command {
 					}
 					kindCol := strings.TrimSpace(p.Kind)
 					if kindCol == "" {
-						kindCol = "—"
+						kindCol = "-"
 					}
 					modelCount := len(p.Models)
 					defModel := truncate(p.Model, 20)
@@ -75,17 +72,10 @@ func cmdProfiles() *cobra.Command {
 						defModel = truncate(p.Models[0].ID, 20)
 					}
 					if defModel == "" {
-						defModel = "—"
+						defModel = "-"
 					}
 					nm := truncate(p.Name, 15)
 					fmt.Printf("%-15s %-14s %-7d %s\n", nm, kindCol, modelCount, defModel)
-				}
-				if len(s.Active) > 0 {
-					fmt.Println()
-					fmt.Println("Active selections:")
-					for cli, selection := range s.Active {
-						fmt.Printf("  %s -> %s/%s\n", cli, selection.ProviderID, selection.ModelID)
-					}
 				}
 			}
 			return nil
@@ -103,7 +93,7 @@ func cmdSet() *cobra.Command {
 		Use:   "add",
 		Short: "Save one API profile (flags or prompts); connectivity test before save",
 		Long: "Writes one vendor model under profiles list (name, api_style, base URL, key, model).\n" +
-			"Prefer configuring vendors in the desktop app; use `clovapi switch --cli <kind>` to pick vendor and model.",
+			"Configure providers in profiles.json or the desktop app.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			sc := bufio.NewScanner(os.Stdin)
 			name = strings.TrimSpace(name)
@@ -190,10 +180,10 @@ func cmdSet() *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&name, "name", "", "Profile name (required)")
-	c.Flags().StringVar(&styleStr, "api-style", "", "API style: claude|openai-chat|openai-responses|gemini (alias openai→openai-responses)")
+	c.Flags().StringVar(&styleStr, "api-style", "", "API style: claude|openai-chat|openai-responses|gemini (alias openai鈫抩penai-responses)")
 	c.Flags().StringVar(&baseURL, "base-url", "", "Upstream base URL")
 	c.Flags().StringVar(&apiKey, "api-key", "", "API key (or prompt)")
-	c.Flags().StringVar(&model, "model", "", "Default model id (required; used for connectivity test and CLI config)")
+	c.Flags().StringVar(&model, "model", "", "Default model id (required; used for connectivity test)")
 	c.Aliases = []string{"set", "new"}
 	return c
 }
@@ -224,131 +214,23 @@ func cmdRemove() *cobra.Command {
 	return c
 }
 
-func cmdSwitch() *cobra.Command {
-	var cliStr string
-	var resetFlag bool
-	var directBaseURL string
-	var directAPIKey string
-	var directAPIStyle string
-	var bindingFlag string
-	var providerFlag string
-	var vendorFlag string
-	var modelFlag string
-	var jsonFlag bool
-	c := &cobra.Command{
-		Use:   "switch [VENDOR/MODEL]",
-		Short: "Apply a vendor model binding to one CLI",
-		Long: "Applies a @model:Vendor/model-id binding through the local proxy.\n\n" +
-			"Non-interactive examples:\n" +
-			"  clovapi switch --cli codex --vendor \"Codex Subscription\" --model gpt-5.5\n" +
-			"  clovapi switch --cli codex \"Codex Subscription/gpt-5.5\"\n" +
-			"  clovapi switch --cli codex --binding \"@model:Codex Subscription/gpt-5.5\"\n\n" +
-			"Interactive mode (no vendor/model): pick CLI, vendor, then model.",
-		Args: cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			sc := newSwitchScanner()
-			s, err := profile.Load()
-			if err != nil {
-				return err
-			}
-
-			kindStr := strings.TrimSpace(cliStr)
-			var kind agentkind.Kind
-			if kindStr == "" {
-				k, err := promptCLIPick(sc)
-				if err != nil {
-					return err
-				}
-				kind = k
-			} else {
-				k, err := agentkind.Parse(kindStr)
-				if err != nil {
-					return err
-				}
-				kind = k
-			}
-
-			positional := ""
-			if len(args) >= 1 {
-				positional = strings.TrimSpace(args[0])
-			}
-
-			if jsonFlag {
-				return runSwitchJSON(sc, s, kind, resetFlag, bindingFlag, providerFlag, vendorFlag, modelFlag, directBaseURL, directAPIKey, modelFlag, directAPIStyle, positional)
-			}
-			return runSwitch(sc, s, kind, resetFlag, bindingFlag, providerFlag, vendorFlag, modelFlag, directBaseURL, directAPIKey, modelFlag, directAPIStyle, positional)
-		},
-	}
-	c.Flags().StringVar(&cliStr, "cli", "", "Target CLI (omit to prompt): claude-code|codex|opencode|openclaw|hermes|kimi-code")
-	c.Flags().BoolVar(&resetFlag, "reset", false, "Clear clovapi relay bindings for this CLI only (use with --cli)")
-	c.Flags().StringVar(&providerFlag, "provider", "", "Provider id (claude-code|codex|ollama|custom-api)")
-	c.Flags().StringVar(&vendorFlag, "vendor", "", "Vendor name (e.g. Codex Subscription, Custom API)")
-	c.Flags().StringVar(&modelFlag, "model", "", "Model id (with --vendor, or required with --base-url)")
-	c.Flags().StringVar(&directBaseURL, "base-url", "", "Apply a custom endpoint directly (bypasses vendor bindings)")
-	c.Flags().StringVar(&directAPIKey, "api-key", "clovapi-local", "API key written to CLI config when using --base-url")
-	c.Flags().StringVar(&directAPIStyle, "api-style", "", "API style when using --base-url (default: openai-chat for opencode, claude for claude-code, etc.)")
-	c.Flags().StringVar(&bindingFlag, "binding", "", "Model binding (@model:Vendor/model-id)")
-	c.Flags().BoolVar(&jsonFlag, "json", false, "Return JSON")
-	c.Aliases = []string{"use"}
-	return c
-}
-
-// promptCLIPick asks which agent CLI to target (no reset option — reset comes after selection).
-func promptCLIPick(sc *bufio.Scanner) (agentkind.Kind, error) {
-	installed, notReady := apply.PartitionKindsByInstall()
-	if len(installed) > 0 {
-		fmt.Println("Choose CLI (installed on this machine):")
-		for i, k := range installed {
-			fmt.Printf("  %d) %s\n", i+1, k)
-		}
-	} else {
-		fmt.Println("Choose CLI (no adapter executable found on PATH — type the CLI kind name):")
-	}
-	if len(notReady) > 0 {
-		fmt.Println()
-		fmt.Println("Not ready on this machine:")
-		for _, k := range notReady {
-			fmt.Printf("  %s\n", k)
-		}
-	}
-	fmt.Print("Enter number or name: ")
-	if !sc.Scan() {
-		return "", fmt.Errorf("read cli: %w", sc.Err())
-	}
-	line := strings.TrimSpace(sc.Text())
-	if line == "" {
-		return "", fmt.Errorf("cli is required")
-	}
-	if n, err := strconv.Atoi(line); err == nil {
-		if len(installed) == 0 {
-			return "", fmt.Errorf("no numbered choices — type a CLI kind name (e.g. claude-code|opencode)")
-		}
-		if n < 1 || n > len(installed) {
-			return "", fmt.Errorf("choose 1–%d or type e.g. claude-code", len(installed))
-		}
-		return installed[n-1], nil
-	}
-	return agentkind.Parse(line)
-}
-
 func cmdReset() *cobra.Command {
 	var yes bool
 	c := &cobra.Command{
 		Use:   "reset",
-		Short: "Clear saved profiles and active bindings in profiles.json",
-		Long: "Removes all profile rows and the active map from the clovapi state file.\n" +
-			"Does not modify ~/.claude, ~/.codex, or opencode config already written by `clovapi switch`.",
+		Short: "Clear saved profiles in profiles.json",
+		Long:  "Removes all profile rows from the clovapi state file.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s, err := profile.Load()
 			if err != nil {
 				return err
 			}
-			if len(s.List) == 0 && len(s.Active) == 0 {
+			if len(s.List) == 0 {
 				fmt.Println("Nothing to reset (store is already empty).")
 				return nil
 			}
 			if !yes {
-				fmt.Printf("This will delete %d profile(s) and all bindings. Continue? [y/N]: ", len(s.List))
+				fmt.Printf("This will delete %d profile(s). Continue? [y/N]: ", len(s.List))
 				sc := bufio.NewScanner(os.Stdin)
 				if !sc.Scan() {
 					return sc.Err()
@@ -595,12 +477,17 @@ func cmdProxyLogs() *cobra.Command {
 	var jsonOut bool
 	var outPath string
 	var yes bool
-	var sessionID string
 
 	c := &cobra.Command{
 		Use:   "logs",
 		Short: "Read and export persisted proxy call logs (SQLite)",
 		Long:  "Call logs are stored in ~/.config/clovapi/logs/call-logs.sqlite.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				return fmt.Errorf("unknown logs command: %s", args[0])
+			}
+			return cmd.Help()
+		},
 	}
 
 	pathCmd := &cobra.Command{
@@ -622,12 +509,7 @@ func cmdProxyLogs() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			store := coreproxy.NewCallLogStore()
 			defer store.Close()
-			var entries []coreproxy.CallLogEntry
-			if strings.TrimSpace(sessionID) != "" {
-				entries = store.ListRecentSessionPage(limit, offset, sessionID)
-			} else {
-				entries = store.ListRecentPage(limit, offset)
-			}
+			entries := store.ListRecentPage(limit, offset)
 			if jsonOut {
 				data, err := json.MarshalIndent(entries, "", "  ")
 				if err != nil {
@@ -660,40 +542,6 @@ func cmdProxyLogs() *cobra.Command {
 	listCmd.Flags().IntVar(&limit, "limit", 20, "Max entries to show (0 = all)")
 	listCmd.Flags().IntVar(&offset, "offset", 0, "Entries to skip before listing")
 	listCmd.Flags().BoolVar(&jsonOut, "json", false, "Output JSON")
-	listCmd.Flags().StringVar(&sessionID, "session", "", "Filter by session id (e.g. Claude Code session)")
-
-	sessionsCmd := &cobra.Command{
-		Use:   "sessions",
-		Short: "List grouped call log sessions",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			store := coreproxy.NewCallLogStore()
-			defer store.Close()
-			items := store.ListSessions(limit)
-			if jsonOut {
-				data, err := json.MarshalIndent(items, "", "  ")
-				if err != nil {
-					return err
-				}
-				fmt.Println(string(data))
-				return nil
-			}
-			if len(items) == 0 {
-				fmt.Println("(no sessions)")
-				return nil
-			}
-			for _, item := range items {
-				fmt.Printf("%s  kind=%s  entries=%d  last=%s\n",
-					item.SessionID,
-					item.SessionKind,
-					item.EntryCount,
-					item.LastStartedAt,
-				)
-			}
-			return nil
-		},
-	}
-	sessionsCmd.Flags().IntVar(&limit, "limit", 50, "Max sessions to show (0 = all)")
-	sessionsCmd.Flags().BoolVar(&jsonOut, "json", false, "Output JSON")
 
 	readCmd := &cobra.Command{
 		Use:   "read <id>",
@@ -767,21 +615,13 @@ func cmdProxyLogs() *cobra.Command {
 	}
 	clearCmd.Flags().BoolVarP(&yes, "yes", "y", false, "Skip confirmation prompt")
 
-	c.AddCommand(pathCmd, listCmd, sessionsCmd, readCmd, exportCmd, clearCmd)
+	c.AddCommand(pathCmd, listCmd, readCmd, exportCmd, clearCmd)
 	return c
 }
 
 func apiStyleChoices() string {
 	var o []string
 	for _, s := range apistyle.All() {
-		o = append(o, string(s))
-	}
-	return strings.Join(o, "|")
-}
-
-func styleChoices(k agentkind.Kind) string {
-	var o []string
-	for _, s := range apply.SupportedStyles(k) {
 		o = append(o, string(s))
 	}
 	return strings.Join(o, "|")

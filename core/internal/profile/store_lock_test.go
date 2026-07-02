@@ -14,13 +14,13 @@ func TestWithLockedStoreAppliesSequentialUpdatesToLatestStore(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := WithLockedStore(func(s *Store) (bool, error) {
-		s.SetActive("claude-code", "codex", "gpt-5.4")
+		s.Upsert(Profile{Name: "Custom API", Kind: "api", Model: "first", BaseURL: "https://one.example/v1", APIKey: "one"})
 		return true, nil
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := WithLockedStore(func(s *Store) (bool, error) {
-		s.SetActive("codex", "claude-code", "claude-opus-4-7")
+		s.Upsert(Profile{Name: "Ollama", Kind: "local", Model: "llama3.2", BaseURL: "http://127.0.0.1:11434/v1", APIKey: "ollama"})
 		return true, nil
 	}); err != nil {
 		t.Fatal(err)
@@ -30,11 +30,11 @@ func TestWithLockedStoreAppliesSequentialUpdatesToLatestStore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Active["claude-code"].ModelID != "gpt-5.4" {
-		t.Fatalf("claude-code active = %+v", got.Active["claude-code"])
+	if _, ok := got.Get("Custom API"); !ok {
+		t.Fatal("Custom API profile was not persisted")
 	}
-	if got.Active["codex"].ModelID != "claude-opus-4-7" {
-		t.Fatalf("codex active = %+v", got.Active["codex"])
+	if _, ok := got.Get("Ollama"); !ok {
+		t.Fatal("Ollama profile was not persisted")
 	}
 }
 
@@ -42,22 +42,13 @@ func TestWithLockedDesktopStorePersistsNormalizeOnlyChanges(t *testing.T) {
 	config.SetDirOverride(t.TempDir())
 	t.Cleanup(func() { config.SetDirOverride("") })
 
-	if err := Save(&Store{
-		Version: StoreVersion,
-		Active: map[string]ActiveSelection{
-			"claude-code": {ProviderID: "missing-provider", ModelID: "missing-model"},
-		},
-		Proxy: defaultProxyConfig(),
-	}); err != nil {
+	if err := Save(&Store{Version: StoreVersion, Proxy: defaultProxyConfig()}); err != nil {
 		t.Fatal(err)
 	}
 
 	got, err := WithLockedDesktopStore(func(s *Store) (bool, error) {
 		if len(s.List) == 0 {
 			t.Fatal("expected desktop normalization to add default vendors before callback")
-		}
-		if _, ok := s.Active["claude-code"]; ok {
-			t.Fatal("expected desktop normalization to remove stale active binding before callback")
 		}
 		return false, nil
 	})
@@ -74,8 +65,5 @@ func TestWithLockedDesktopStorePersistsNormalizeOnlyChanges(t *testing.T) {
 	}
 	if len(raw.List) == 0 {
 		t.Fatal("expected normalize-only default vendors to be persisted")
-	}
-	if _, ok := raw.Active["claude-code"]; ok {
-		t.Fatal("expected normalize-only stale active cleanup to be persisted")
 	}
 }

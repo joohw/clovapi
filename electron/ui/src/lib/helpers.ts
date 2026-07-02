@@ -16,7 +16,6 @@ import {
 } from "./constants";
 import type { FixedProviderId } from "./constants";
 import type {
-  CliDef,
   ActiveSelection,
   ModelAdapterId,
   Preset,
@@ -25,30 +24,6 @@ import type {
   VendorKind,
   VendorModel,
 } from "../global";
-
-export function apiStylesForCli(kind: string): string[] {
-  if (kind === "claude-code" || kind === "claudedesktop") return ["claude"];
-  if (kind === "codex") return ["openai-responses"];
-  if (kind === "hermes" || kind === "kimi-code" || kind === "opencode" || kind === "openclaw") {
-    return ["claude", "openai-responses", "openai-chat", "gemini"];
-  }
-  return [];
-}
-
-/** Preferred request style for CLIs; local proxy base URLs are provider-scoped. */
-export function defaultCliIngressStyle(kind: string): string {
-  return apiStylesForCli(kind)[0] || "openai-chat";
-}
-
-export function modelCompatibleWithCli(model: VendorModel, kind: string): boolean {
-  // CLI compatibility is determined by its fixed ingress style; upstream styles are converted by the proxy.
-  return apiStylesForCli(kind).length > 0 && API_STYLES.includes(model.apiStyle as (typeof API_STYLES)[number]);
-}
-
-export function subscriptionProviderIdsForCli(kind: string): string[] {
-  if (!apiStylesForCli(kind).length) return [];
-  return SUBSCRIPTION_VENDOR_DEFS.map((item) => item.subscriptionProviderId);
-}
 
 export function isDefaultOllamaProfile(name: string): boolean {
   return String(name || "").trim().toLowerCase() === OLLAMA_PROFILE_NAME.toLowerCase();
@@ -163,12 +138,13 @@ export function isFixedProviderId(providerId: string): providerId is FixedProvid
   return (FIXED_PROVIDER_IDS as readonly string[]).includes(String(providerId || "").trim());
 }
 
-/** Local proxy ingress base URL: http://127.0.0.1:{port}/{providerId}/v1 */
-export function buildProxyIngressBaseURL(port: number, providerId: string): string {
+/** Local proxy ingress base URL: http://{host}:{port}/{providerId}/v1 */
+export function buildProxyIngressBaseURL(port: number, providerId: string, host = "127.0.0.1"): string {
   const id = String(providerId || "").trim();
   if (!id) return "";
   const p = Number(port) > 0 ? Number(port) : 27483;
-  return `http://127.0.0.1:${p}/${id}/v1`;
+  const h = String(host || "").trim() || "127.0.0.1";
+  return `http://${h}:${p}/${id}/v1`;
 }
 
 export function providerIdForVendor(vendor: Vendor): FixedProviderId | "" {
@@ -200,46 +176,10 @@ export function activeModelId(value: ActiveSelection | string | undefined): stri
   return String(value?.model_id || value?.modelId || "").trim();
 }
 
-export function activeSelection(providerId: string, modelId: string): ActiveSelection {
-  return { provider_id: String(providerId || "").trim(), model_id: String(modelId || "").trim() };
-}
-
 export function activeSelectionKey(value: ActiveSelection | string | undefined): string {
   const providerId = activeProviderId(value);
   const modelId = activeModelId(value);
   return providerId && modelId ? `${providerId}/${modelId}` : "";
-}
-
-export function isSubscriptionBinding(value: ActiveSelection | string | undefined, vendors: Vendor[] = []): boolean {
-  const providerId = activeProviderId(value);
-  return getSubscriptionVendors(vendors).some((vendor) => vendor.subscriptionProviderId === providerId);
-}
-
-export function isModelBinding(value: ActiveSelection | string | undefined): boolean {
-  return Boolean(activeSelectionKey(value));
-}
-
-export function subscriptionProviderFromBinding(value: ActiveSelection | string | undefined, _vendors: Vendor[] = []): string {
-  return activeProviderId(value);
-}
-
-/** Pick the CLI ingress style used for cross-subscription routing tests. */
-export function crossSubscriptionTestCli(
-  binding: ActiveSelection | string,
-  vendors: Vendor[] = [],
-  active: Record<string, ActiveSelection> = {},
-  clis: CliDef[] = [],
-): string {
-  const key = activeSelectionKey(binding);
-  for (const cli of clis) {
-    if (activeSelectionKey(active[cli.kind]) === key) {
-      return cli.kind;
-    }
-  }
-  const providerId = subscriptionProviderFromBinding(binding, vendors);
-  if (providerId === "claude-code") return "codex";
-  if (providerId === "codex") return "claude-code";
-  return "";
 }
 
 export function modelBindingValue(vendorName: string, modelId: string): string {
@@ -344,6 +284,8 @@ export function vendorSummaryLine(
   const count =
     vendor.kind === "subscription" && !subscriptionIsUsable(subscription)
       ? 0
+      : isOllamaVendor(vendor) && !ollamaInstalled
+        ? 0
       : vendor.models?.length || 0;
   const models = t("vendorDetail.modelCount", { count });
   if (vendor.kind === "subscription") {
@@ -406,7 +348,6 @@ export function normalizeVendor(input: Partial<Vendor>): Vendor {
     modelAdapter: normalizeModelAdapter(input?.modelAdapter, kind, input?.localProvider),
     baseUrl: String(input?.baseUrl || "").trim(),
     apiKey: String(input?.apiKey || ""),
-    cli: String(input?.cli || ""),
     usageQuery:
       kind === "api"
         ? {
@@ -415,6 +356,7 @@ export function normalizeVendor(input: Partial<Vendor>): Vendor {
             autoIntervalMinutes: Number(input?.usageQuery?.autoIntervalMinutes || 0) || 0,
           }
         : undefined,
+    usage: input?.usage,
     models,
   };
 }
@@ -478,124 +420,6 @@ export function shouldShowVendorUsage(vendor: Vendor, subscriptions: Subscriptio
     return Boolean(vendor.models?.some((model) => model.baseUrl && model.apiKey));
   }
   return false;
-}
-
-export type CliBindingOption = {
-  value: string;
-  label: string;
-  triggerLabel?: string;
-  providerId?: string;
-  group?: string;
-  groupOnly?: boolean;
-  groupDisabled?: boolean;
-  disabled?: boolean;
-  hint?: string;
-};
-
-export function buildCliBindingOptions(
-  cli: CliDef,
-  vendors: Vendor[],
-  subscriptions: SubscriptionItem[],
-): CliBindingOption[] {
-  const options: CliBindingOption[] = [{ value: "", label: t("common.default") }];
-
-  for (const vendor of managedVendorList(vendors)) {
-    const providerLabel = displayVendorName(vendor.name) || "Provider";
-    const vendorProviderId = providerIdForVendor(vendor);
-    let vendorOptionCount = 0;
-    for (const model of vendor.models || []) {
-      if (!modelCompatibleWithCli(model, cli.kind)) continue;
-      const modelLabel = String(model.label || model.model || model.id || "").trim() || "Model";
-      const triggerLabel = modelLabel;
-
-      if (vendor.kind === "subscription") {
-        const providerId = vendor.subscriptionProviderId;
-        if (!providerId || !subscriptionProviderIdsForCli(cli.kind).includes(providerId)) {
-          continue;
-        }
-        const sub = subscriptions.find((item) => item.id === providerId);
-        if (!subscriptionIsUsable(sub)) {
-          continue;
-        }
-        vendorOptionCount += 1;
-        options.push({
-          value: modelBindingValue(providerId, model.id),
-          label: modelLabel,
-          triggerLabel,
-          providerId,
-          group: providerLabel,
-          hint: `${providerLabel}/${modelLabel}`,
-        });
-        continue;
-      }
-
-      vendorOptionCount += 1;
-      options.push({
-        value: modelBindingValue(vendorProviderId, model.id),
-        label: modelLabel,
-        triggerLabel,
-        providerId: vendorProviderId,
-        group: providerLabel,
-        hint: `${providerLabel}/${modelLabel}`,
-      });
-    }
-    if (vendorOptionCount === 0) {
-      options.push({
-        value: `__vendor:${providerLabel}`,
-        label: providerLabel,
-        providerId: vendorProviderId,
-        group: providerLabel,
-        groupOnly: true,
-        groupDisabled: true,
-      });
-    }
-  }
-
-  return options;
-}
-
-export function hasAvailableCliBindingOptions(
-  clis: readonly CliDef[],
-  vendors: Vendor[],
-  subscriptions: SubscriptionItem[],
-): boolean {
-  return clis.some((cli) =>
-    buildCliBindingOptions(cli, vendors, subscriptions).some(
-      (option) =>
-        option.value &&
-        !option.value.startsWith("__vendor:") &&
-        !option.disabled &&
-        !option.groupOnly,
-    ),
-  );
-}
-
-export function canApplyCliBinding(
-  binding: ActiveSelection | string,
-  clovapiAvailable: boolean,
-  subscriptions: SubscriptionItem[],
-  vendors: Vendor[],
-): boolean {
-  if (!clovapiAvailable) return false;
-  if (!activeSelectionKey(binding)) return true;
-  if (isSubscriptionBinding(binding, vendors)) {
-    const providerId = subscriptionProviderFromBinding(binding, vendors);
-    return subscriptionIsUsable(subscriptions.find((item) => item.id === providerId));
-  }
-  return isModelBinding(binding);
-}
-
-export function sortedClisForDisplay(
-  clis: readonly CliDef[],
-  cliDetectedPath: Record<string, string>,
-): CliDef[] {
-  const installed: CliDef[] = [];
-  const uninstalled: CliDef[] = [];
-  for (const cli of clis) {
-    if (cliDetectedPath[cli.id]) installed.push(cli);
-    else uninstalled.push(cli);
-  }
-  return [...installed, ...uninstalled];
 }
 
 export function formatTestBody(result: {

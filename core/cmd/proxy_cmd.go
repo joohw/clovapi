@@ -126,7 +126,7 @@ func spawnDetachedProxyServe(cfg profile.ProxyConfig) (int, error) {
 
 	host := strings.TrimSpace(cfg.Host)
 	if host == "" {
-		host = "0.0.0.0"
+		host = profile.DefaultProxyHost
 	}
 	args := []string{"__proxy-daemon", "--host", host, "--port", strconv.Itoa(cfg.Port)}
 	cmd := exec.Command(exe, args...)

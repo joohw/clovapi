@@ -9,7 +9,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/desktop"
 )
 
@@ -18,7 +17,7 @@ func cmdDesktop() *cobra.Command {
 		Use:   "desktop",
 		Short: "Desktop shell JSON API (profiles, auth, tests)",
 	}
-	c.AddCommand(cmdDesktopProfiles(), cmdDesktopProxy(), cmdDesktopVendor(), cmdDesktopAuth(), cmdDesktopAgents())
+	c.AddCommand(cmdDesktopProfiles(), cmdDesktopProxy(), cmdDesktopVendor(), cmdDesktopAuth())
 	return c
 }
 
@@ -69,26 +68,22 @@ func cmdDesktopProfilesSave() *cobra.Command {
 }
 
 func cmdDesktopProfilesTest() *cobra.Command {
-	var binding string
 	var providerID string
 	var modelID string
 	var port int
-	var cliKind string
 	c := &cobra.Command{
 		Use:   "test",
 		Short: "Probe a provider/model via the local proxy",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if strings.TrimSpace(providerID) != "" || strings.TrimSpace(modelID) != "" {
-				return writeDesktopJSON(desktop.TestProviderModel(providerID, modelID, port, cliKind))
+			if strings.TrimSpace(providerID) == "" || strings.TrimSpace(modelID) == "" {
+				return writeDesktopJSON(desktop.TestResult{OK: false, Passed: false, Error: "--provider and --model are required"})
 			}
-			return writeDesktopJSON(desktop.TestBinding(binding, port, cliKind))
+			return writeDesktopJSON(desktop.TestProviderModel(providerID, modelID, port))
 		},
 	}
 	c.Flags().StringVar(&providerID, "provider", "", "Provider id")
 	c.Flags().StringVar(&modelID, "model", "", "Model id")
-	c.Flags().StringVar(&binding, "binding", "", "Deprecated model binding (@model:Vendor/model-id)")
 	c.Flags().IntVar(&port, "port", 0, "Local proxy port override")
-	c.Flags().StringVar(&cliKind, "cli", "", "CLI kind for ingress style (e.g. codex|claude-code)")
 	return c
 }
 
@@ -234,77 +229,4 @@ func cmdDesktopAuthLogout() *cobra.Command {
 	}
 	c.Flags().StringVar(&providerID, "provider", "", "Provider id: claude-code|codex")
 	return c
-}
-
-func cmdDesktopAgents() *cobra.Command {
-	c := &cobra.Command{
-		Use:   "agents",
-		Short: "Detect local agent CLI installations",
-	}
-	c.AddCommand(cmdDesktopAgentsStatus(), cmdDesktopAgentsWhich(), cmdDesktopAgentsInstall(), cmdDesktopAgentsUninstall())
-	return c
-}
-
-func cmdDesktopAgentsStatus() *cobra.Command {
-	return &cobra.Command{
-		Use:   "status",
-		Short: "List local agent CLI installation status",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return writeDesktopJSON(desktop.AgentStatus())
-		},
-	}
-}
-
-func cmdDesktopAgentsWhich() *cobra.Command {
-	var command string
-	c := &cobra.Command{
-		Use:   "which",
-		Short: "Resolve one local agent CLI command",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return writeDesktopJSON(desktop.CommandWhich(command))
-		},
-	}
-	c.Flags().StringVar(&command, "command", "", "Command name to resolve")
-	return c
-}
-
-func cmdDesktopAgentsInstall() *cobra.Command {
-	var kind string
-	c := &cobra.Command{
-		Use:   "install",
-		Short: "Install one local agent CLI when supported",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return writeDesktopJSON(desktop.AgentInstall(kind))
-		},
-	}
-	c.Flags().StringVar(&kind, "cli", "", "Agent CLI kind to install")
-	return c
-}
-
-func cmdDesktopAgentsUninstall() *cobra.Command {
-	var kind string
-	c := &cobra.Command{
-		Use:   "uninstall",
-		Short: "Uninstall one local agent CLI when supported",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return writeDesktopJSON(desktop.AgentUninstall(kind))
-		},
-	}
-	c.Flags().StringVar(&kind, "cli", "", "Agent CLI kind to uninstall")
-	return c
-}
-func applyBindingSwitch(kind agentkind.Kind, binding string) error {
-	if err := desktop.ApplyBinding(kind, binding); err != nil {
-		return err
-	}
-	fmt.Printf("Applied binding %q to %s\n", binding, kind)
-	return nil
-}
-
-func applyProviderModelSwitch(kind agentkind.Kind, providerID, modelID string) error {
-	if err := desktop.ApplyProviderModel(kind, providerID, modelID); err != nil {
-		return err
-	}
-	fmt.Printf("Applied provider/model %q/%q to %s\n", providerID, modelID, kind)
-	return nil
 }

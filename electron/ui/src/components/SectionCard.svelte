@@ -19,7 +19,7 @@
 </script>
 
 <section class="overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-none">
-  <header class="border-b border-border px-4 py-3">
+  <header class="border-b border-border p-4">
     <div class="flex items-start justify-between gap-3">
       <div class="flex min-w-0 items-stretch gap-3">
         {#if leading}

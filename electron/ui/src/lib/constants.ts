@@ -4,16 +4,6 @@ export const MODEL_TEST_STORAGE_KEY = "clovapi-model-tests-v2";
 export const MODEL_TEST_VALIDITY_MS = 3 * 60 * 60 * 1000;
 export const CUSTOM_PRESET_ID = "custom";
 
-export const DEFAULT_CLIS = [
-  { id: "cli-claude", name: "ClaudeCli", command: "claude", kind: "claude-code" },
-  { id: "app-claudedesktop", name: "ClaudeDesktop", command: "", kind: "claudedesktop" },
-  { id: "cli-codex", name: "Codex", command: "codex", kind: "codex" },
-  { id: "cli-opencode", name: "OpenCodeCli", command: "opencode", kind: "opencode" },
-  { id: "cli-openclaw", name: "OpenClaw", command: "openclaw", kind: "openclaw" },
-  { id: "cli-hermes", name: "Hermes", command: "hermes", kind: "hermes" },
-  { id: "cli-kimi-code", name: "KimiCodeCli", command: "kimi", kind: "kimi-code" },
-] as const;
-
 export const DEFAULT_PRESETS = [
   {
     id: CUSTOM_PRESET_ID,

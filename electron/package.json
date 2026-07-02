@@ -2,7 +2,7 @@
   "name": "clovapi-switcher",
   "private": true,
   "version": "0.2.13",
-  "description": "ClovAPI Switcher desktop app",
+  "description": "Clov API proxy desktop app",
   "main": "main.js",
   "type": "commonjs",
   "scripts": {
@@ -13,7 +13,7 @@
     "build:icons": "node scripts/build-icons.mjs",
     "build:mac": "npm run build:ui && npm run build:icons && electron-builder --mac dmg",
     "build:win": "npm run build:ui && electron-builder --win nsis",
-    "test": "node --test clovapi-proxy.test.js clovapi-exec.test.js cli-path-register.test.js tray-menu.test.js tray-model-switch.test.js desktop-update.test.js call-logs-store.test.js",
+    "test": "node --test clovapi-proxy.test.js clovapi-exec.test.js cli-path-register.test.js tray-menu.test.js desktop-update.test.js call-logs-store.test.js",
     "start": "npm run build:ui && electron ."
   },
   "devDependencies": {
@@ -46,7 +46,7 @@
   },
   "build": {
     "appId": "com.clovapi.switcher",
-    "productName": "ClovAPI Switcher",
+    "productName": "Clov API代理",
     "icon": "assets/icon.ico",
     "directories": {
       "output": "dist"
@@ -82,7 +82,7 @@
     },
     "win": {
       "icon": "assets/icon.ico",
-      "executableName": "ClovAPI Switcher",
+      "executableName": "Clov API代理",
       "target": [
         {
           "target": "nsis",
@@ -98,8 +98,8 @@
       "allowToChangeInstallationDirectory": false,
       "allowElevation": true,
       "runAfterFinish": true,
-      "shortcutName": "ClovAPI Switcher",
-      "uninstallDisplayName": "ClovAPI Switcher"
+      "shortcutName": "Clov API代理",
+      "uninstallDisplayName": "Clov API代理"
     }
   }
 }

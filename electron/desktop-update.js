@@ -82,7 +82,7 @@ function fetchText(url, timeoutMs = 15_000) {
     const request = transport.get(
       requestUrl,
       {
-        headers: { "User-Agent": "ClovAPI-Switcher-Desktop-Update" },
+        headers: { "User-Agent": "ClovAPI-Proxy-Desktop-Update" },
       },
       (response) => {
         if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
@@ -131,7 +131,7 @@ function downloadFile(url, outPath, timeoutMs = 30 * 60_000, onProgress = null) 
     const request = transport.get(
       requestUrl,
       {
-        headers: { "User-Agent": "ClovAPI-Switcher-Desktop-Update" },
+        headers: { "User-Agent": "ClovAPI-Proxy-Desktop-Update" },
       },
       (response) => {
         if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
@@ -251,7 +251,7 @@ function resolveDesktopInstallDir() {
   const execPath = process.execPath;
   if (!execPath) return "";
   if (process.platform === "darwin") {
-    // .../ClovAPI Switcher.app/Contents/MacOS/ClovAPI Switcher
+    // .../Clov API代理.app/Contents/MacOS/Clov API代理
     const macOSDir = path.dirname(path.dirname(path.dirname(execPath)));
     return macOSDir.endsWith(".app") ? macOSDir : "";
   }

@@ -13,10 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/clovapi/switcher/internal/apistyle"
 	"github.com/clovapi/switcher/internal/buildinfo"
-	"github.com/clovapi/switcher/internal/ingresstoken"
+	"github.com/clovapi/switcher/internal/desktop"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/protocol"
 	"github.com/clovapi/switcher/internal/provider"
@@ -32,6 +31,7 @@ type Server struct {
 	HTTPClient *http.Client
 	Server     *http.Server
 	CallLogs   *CallLogStore
+	Usage      *UsagePoller
 }
 
 type Health struct {
@@ -61,10 +61,10 @@ type debugTransformResponse struct {
 
 func NewServer(cfg profile.ProxyConfig) *Server {
 	if strings.TrimSpace(cfg.Host) == "" {
-		cfg.Host = "0.0.0.0"
+		cfg.Host = profile.DefaultProxyHost
 	}
 	if cfg.Port == 0 {
-		cfg.Port = 27483
+		cfg.Port = profile.DefaultProxyPort
 	}
 	s := &Server{
 		Config:        cfg,
@@ -72,10 +72,13 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 		CallLogs:      NewCallLogStore(),
 		HTTPClient:    defaultUpstreamHTTPClient(),
 	}
+	s.Usage = NewUsagePoller(s)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
 	mux.HandleFunc("/__debug/call-log", s.handleDebugCallLog)
 	mux.HandleFunc("/__debug/system-log", s.handleDebugSystemLog)
+	mux.HandleFunc("/__debug/profiles", s.handleDebugProfiles)
+	mux.HandleFunc("/__debug/usage", s.handleDebugUsage)
 	mux.HandleFunc("/__debug/transform-request", s.handleDebugTransform)
 	mux.HandleFunc("/__debug/resolve-route", s.handleDebugResolveRoute)
 	mux.HandleFunc("/__debug/shutdown", s.handleDebugShutdown)
@@ -93,11 +96,66 @@ func (s *Server) loadStore() (*profile.Store, error) {
 }
 
 func (s *Server) ListenAndServe() error {
+	if s.Usage != nil {
+		s.Usage.Start()
+		defer s.Usage.Stop()
+	}
 	return s.Server.ListenAndServe()
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
+	if s.Usage != nil {
+		s.Usage.Stop()
+	}
 	return s.Server.Shutdown(ctx)
+}
+
+func (s *Server) handleDebugUsage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "GET only"})
+		return
+	}
+	if s.Usage == nil {
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "usages": []UsageSnapshot{}})
+		return
+	}
+	refresh := r.URL.Query().Get("refresh") == "1" || strings.EqualFold(r.URL.Query().Get("refresh"), "true")
+	if refresh {
+		_ = s.Usage.Refresh(r.Context())
+	} else {
+		s.Usage.RefreshIfStaleAsync()
+	}
+	writeJSON(w, http.StatusOK, s.Usage.Snapshot())
+}
+
+func (s *Server) handleDebugProfiles(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "GET only"})
+		return
+	}
+	result := desktop.LoadProfiles()
+	if !result.OK {
+		writeJSON(w, http.StatusInternalServerError, result)
+		return
+	}
+	if s.Usage != nil {
+		s.Usage.RefreshIfStaleAsync()
+		usageSnapshot := s.Usage.Snapshot()
+		byName := map[string]UsageSnapshot{}
+		for _, item := range usageSnapshot.Usages {
+			name := strings.ToLower(strings.TrimSpace(item.Vendor))
+			if name != "" {
+				byName[name] = item
+			}
+		}
+		for i := range result.Profiles {
+			name := strings.ToLower(strings.TrimSpace(result.Profiles[i].Name))
+			if usage, ok := byName[name]; ok {
+				result.Profiles[i].Usage = usage
+			}
+		}
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) handleDebugSystemLog(w http.ResponseWriter, r *http.Request) {
@@ -141,6 +199,10 @@ func (s *Server) handleDebugShutdown(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDebugCallLog(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet, http.MethodHead:
+		if r.URL.Query().Has("session") {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "call log session API has been removed"})
+			return
+		}
 		limit := queryIntDefault(r, "limit", 20)
 		offset := queryIntDefault(r, "offset", 0)
 		if limit < 1 {
@@ -155,29 +217,14 @@ func (s *Server) handleDebugCallLog(w http.ResponseWriter, r *http.Request) {
 			entries = entries[:limit]
 		}
 		writeJSON(w, http.StatusOK, map[string]any{
-			"entries":  entries,
-			"limit":    limit,
-			"offset":   offset,
-			"hasMore":  hasMore,
-			"sessions": s.CallLogs.ListSessions(100),
+			"entries": entries,
+			"limit":   limit,
+			"offset":  offset,
+			"hasMore": hasMore,
 		})
 	case http.MethodDelete:
-		sessionKey := strings.TrimSpace(r.URL.Query().Get("session"))
-		if sessionKey != "" {
-			deleted, err := s.CallLogs.DeleteSession(sessionKey)
-			if err != nil {
-				status := http.StatusInternalServerError
-				if strings.Contains(strings.ToLower(err.Error()), "invalid session") {
-					status = http.StatusBadRequest
-				}
-				writeJSON(w, status, map[string]string{"error": err.Error()})
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{
-				"ok":      "deleted",
-				"deleted": deleted,
-				"session": sessionKey,
-			})
+		if r.URL.Query().Has("session") {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "call log session API has been removed"})
 			return
 		}
 		s.CallLogs.Clear()
@@ -233,7 +280,7 @@ func (s *Server) handleDebugResolveRoute(w http.ResponseWriter, r *http.Request)
 		status := http.StatusBadRequest
 		if errors.Is(err, proxyresolve.ErrSubscriptionUpstreamNotReady) {
 			status = http.StatusConflict
-			writeJSON(w, status, map[string]string{"error": "subscription upstream requires Desktop auth/session wiring"})
+			writeJSON(w, status, map[string]string{"error": "subscription upstream requires Desktop auth wiring"})
 			return
 		}
 		writeJSON(w, status, map[string]string{"error": err.Error()})
@@ -343,7 +390,7 @@ const maxInboundProxyBody = 1 << 22
 const maxUpstreamBufferedBody int64 = 1 << 26
 
 // maxCallLogBodyBytes bounds how much of a streaming SSE response is retained in
-// memory for the call log (~8Mi). Long agent sessions can stream many MB/hour;
+// memory for the call log (~8Mi). Long streaming responses can produce many MB/hour;
 // without a cap the capture buffer grows for the lifetime of the request.
 const maxCallLogBodyBytes int64 = 1 << 23
 
@@ -450,11 +497,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		path = r.URL.Path
 	}
 	ingress, pathOK := provider.ParseProxyIngressPath(path)
-	ingressAuth := ingresstoken.FromHTTPRequest(r)
 	trace := startRequestTraceIfNeeded(s.CallLogs, r, ingress, pathOK)
-	if trace != nil {
-		trace.setIngressAgent(ingressAuth.Agent)
-	}
 	defer func() {
 		if trace != nil {
 			trace.finish()
@@ -510,9 +553,6 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(ingress.ModelID) == "" {
 		ingress.ModelID = modelIDFromIngressPayload(payload, ingress)
 	}
-	if ingressAuth.Agent == agentkind.ClaudeDesktop || ingressAuth.Token == ingresstoken.Legacy {
-		ingress.ModelID = profile.ResolveIngressModelID(store, ingress.ProviderID, ingress.ModelID)
-	}
 	if strings.TrimSpace(ingress.ModelID) == "" {
 		msg := "request body model is required for proxy route"
 		trace.setError(msg)
@@ -523,8 +563,8 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	route, err := proxyresolve.ResolveForwardRoute(store, ingress.ProviderID, ingress.ModelID, ingress.APIStyle)
 	if err != nil {
 		if errors.Is(err, proxyresolve.ErrSubscriptionUpstreamNotReady) {
-			trace.setError("subscription upstream requires Desktop auth/session wiring")
-			writeJSON(w, http.StatusConflict, map[string]string{"error": "subscription upstream requires Desktop auth/session wiring"})
+			trace.setError("subscription upstream requires Desktop auth wiring")
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "subscription upstream requires Desktop auth wiring"})
 			return
 		}
 		trace.setError(err.Error())
@@ -677,7 +717,6 @@ func applyUpstreamRequestPolicy(r *protocol.Request, source string) {
 	case "subscription:claude-code":
 		meta := ensureProtocolMeta(r)
 		meta.ClaudeOAuthEncodingCompatibility = true
-		meta.ScrubHermesIdentity = true
 	}
 }
 

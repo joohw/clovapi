@@ -42,15 +42,6 @@ try {
     which(command) {
       return ipcRenderer.invoke("cli:which", { command });
     },
-    agentStatus() {
-      return ipcRenderer.invoke("cli:agent-status");
-    },
-    agentInstall(kind) {
-      return ipcRenderer.invoke("cli:agent-install", { kind });
-    },
-    agentUninstall(kind) {
-      return ipcRenderer.invoke("cli:agent-uninstall", { kind });
-    },
     authStatus() {
       return ipcRenderer.invoke("cli:auth-status");
     },
@@ -69,8 +60,11 @@ try {
     proxyHealth() {
       return ipcRenderer.invoke("cli:proxy-health");
     },
-    proxyStart(port) {
-      return ipcRenderer.invoke("cli:proxy-start", { port });
+    proxyStart(port, host) {
+      return ipcRenderer.invoke("cli:proxy-start", { port, host });
+    },
+    proxyConfigSave(payload) {
+      return ipcRenderer.invoke("cli:proxy-config-save", cloneForIpc(payload || {}));
     },
     proxyStop(options) {
       return ipcRenderer.invoke("cli:proxy-stop", cloneForIpc(options || {}));
@@ -80,9 +74,6 @@ try {
     },
     proxyLogsClear(scope) {
       return ipcRenderer.invoke("cli:proxy-logs-clear", { scope });
-    },
-    proxyLogsDeleteSession(session) {
-      return ipcRenderer.invoke("cli:proxy-logs-delete-session", { session });
     },
     profilesLoad() {
       return ipcRenderer.invoke("cli:profiles-load");
@@ -100,9 +91,7 @@ try {
               provider_id: payload?.provider_id,
               model: payload?.model,
               model_id: payload?.model_id,
-              cli: payload?.cli,
               vendors: payload?.vendors,
-              active: payload?.active,
               proxy: payload?.proxy,
             };
       return ipcRenderer.invoke("cli:profiles-test", cloneForIpc(body));
@@ -110,14 +99,14 @@ try {
     profilesListModels(vendorName) {
       return ipcRenderer.invoke("cli:profiles-list-models", { vendorName });
     },
+    profilesModels() {
+      return ipcRenderer.invoke("cli:profiles-models");
+    },
     profilesUsage(vendorName) {
       return ipcRenderer.invoke("cli:profiles-usage", { vendorName });
     },
     profilesCatalog() {
       return ipcRenderer.invoke("cli:profiles-catalog");
-    },
-    switchCli(payload) {
-      return ipcRenderer.invoke("cli:switch", cloneForIpc(payload || {}));
     },
     onOutput(callback) {
       const listener = (_event, payload) => callback(payload);

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/clovapi/switcher/internal/agentkind"
 	cfgpkg "github.com/clovapi/switcher/internal/config"
 	"github.com/clovapi/switcher/internal/profile"
 )
@@ -31,8 +30,8 @@ type UIVendor struct {
 	ModelAdapter           string        `json:"modelAdapter"`
 	BaseURL                string        `json:"baseUrl,omitempty"`
 	APIKey                 string        `json:"apiKey,omitempty"`
-	CLI                    string        `json:"cli,omitempty"`
 	UsageQuery             *UsageQueryUI `json:"usageQuery,omitempty"`
+	Usage                  any           `json:"usage,omitempty"`
 	Models                 []UIModel     `json:"models"`
 }
 
@@ -44,29 +43,26 @@ type UIProxyConfig struct {
 }
 
 type LoadResult struct {
-	OK       bool                               `json:"ok"`
-	Path     string                             `json:"path,omitempty"`
-	Version  int                                `json:"version,omitempty"`
-	Active   map[string]profile.ActiveSelection `json:"active,omitempty"`
-	Proxy    UIProxyConfig                      `json:"proxy,omitempty"`
-	Profiles []UIVendor                         `json:"profiles,omitempty"`
-	Error    string                             `json:"error,omitempty"`
+	OK       bool          `json:"ok"`
+	Path     string        `json:"path,omitempty"`
+	Version  int           `json:"version,omitempty"`
+	Proxy    UIProxyConfig `json:"proxy,omitempty"`
+	Profiles []UIVendor    `json:"profiles,omitempty"`
+	Error    string        `json:"error,omitempty"`
 }
 
 type SaveInput struct {
-	Profiles []UIVendor                         `json:"profiles"`
-	Active   map[string]profile.ActiveSelection `json:"active"`
-	Proxy    *UIProxyConfig                     `json:"proxy"`
+	Profiles []UIVendor     `json:"profiles"`
+	Proxy    *UIProxyConfig `json:"proxy"`
 }
 
 type SaveResult struct {
-	OK       bool                               `json:"ok"`
-	Path     string                             `json:"path,omitempty"`
-	Version  int                                `json:"version,omitempty"`
-	Active   map[string]profile.ActiveSelection `json:"active,omitempty"`
-	Proxy    UIProxyConfig                      `json:"proxy,omitempty"`
-	Profiles []UIVendor                         `json:"profiles,omitempty"`
-	Error    string                             `json:"error,omitempty"`
+	OK       bool          `json:"ok"`
+	Path     string        `json:"path,omitempty"`
+	Version  int           `json:"version,omitempty"`
+	Proxy    UIProxyConfig `json:"proxy,omitempty"`
+	Profiles []UIVendor    `json:"profiles,omitempty"`
+	Error    string        `json:"error,omitempty"`
 }
 
 func vendorToUI(p profile.Profile) UIVendor {
@@ -93,7 +89,6 @@ func vendorToUI(p profile.Profile) UIVendor {
 		ModelAdapter:           adapter,
 		BaseURL:                p.BaseURL,
 		APIKey:                 p.APIKey,
-		CLI:                    string(p.CLI),
 		UsageQuery:             usageQueryToUI(p.UsageQuery),
 		Models:                 models,
 	}
@@ -111,17 +106,12 @@ func vendorFromUI(v UIVendor) profile.Profile {
 			APIKey:   m.APIKey,
 		})
 	}
-	var cliKind agentkind.Kind
-	if k, err := agentkind.Parse(v.CLI); err == nil {
-		cliKind = k
-	}
 	return profile.NormalizeVendorProfile(profile.Profile{
 		Name:                   v.Name,
 		Kind:                   v.Kind,
 		LocalProvider:          v.LocalProvider,
 		SubscriptionProviderID: v.SubscriptionProviderID,
 		ModelAdapter:           v.ModelAdapter,
-		CLI:                    cliKind,
 		BaseURL:                v.BaseURL,
 		APIKey:                 v.APIKey,
 		UsageQuery:             usageQueryFromUI(v.UsageQuery),
@@ -131,12 +121,6 @@ func vendorFromUI(v UIVendor) profile.Profile {
 
 func storeToUI(s *profile.Store) LoadResult {
 	path, _ := cfgpkg.ProfilesPath()
-	active := map[string]profile.ActiveSelection{}
-	if s.Active != nil {
-		for k, v := range s.Active {
-			active[k] = v
-		}
-	}
 	profiles := make([]UIVendor, 0, len(s.List))
 	for _, p := range s.List {
 		if strings.HasPrefix(strings.TrimSpace(p.Name), "__") {
@@ -148,7 +132,6 @@ func storeToUI(s *profile.Store) LoadResult {
 		OK:      true,
 		Path:    path,
 		Version: s.Version,
-		Active:  active,
 		Proxy: UIProxyConfig{
 			Enabled:        s.Proxy.Enabled,
 			Host:           s.Proxy.Host,
@@ -162,7 +145,7 @@ func storeToUI(s *profile.Store) LoadResult {
 // LoadProfiles loads and normalizes profiles.json for the desktop UI.
 func LoadProfiles() LoadResult {
 	s, err := profile.WithLockedDesktopStore(func(s *profile.Store) (bool, error) {
-		return profile.EnsureDefaultOllamaProfile(s) || profile.SanitizeActiveBindings(s), nil
+		return profile.EnsureDefaultOllamaProfile(s), nil
 	})
 	if err != nil {
 		return LoadResult{OK: false, Error: err.Error()}
@@ -195,12 +178,6 @@ func SaveProfiles(input SaveInput) SaveResult {
 		}
 		current.List = append(incoming, preserved...)
 
-		if input.Active != nil {
-			current.Active = map[string]profile.ActiveSelection{}
-			for k, v := range input.Active {
-				current.Active[k] = v
-			}
-		}
 		if input.Proxy != nil {
 			current.Proxy = profile.ProxyConfig{
 				Enabled:        input.Proxy.Enabled,
@@ -222,7 +199,6 @@ func SaveProfiles(input SaveInput) SaveResult {
 		OK:       true,
 		Path:     out.Path,
 		Version:  out.Version,
-		Active:   out.Active,
 		Proxy:    out.Proxy,
 		Profiles: out.Profiles,
 	}
@@ -276,53 +252,16 @@ func SaveProxyConfig(input UIProxyConfig) ProxyConfigResult {
 }
 
 // ParseSaveInput decodes stdin JSON for profiles save.
-// active accepts both structured {provider_id, model_id} objects and legacy
-// per-agent binding strings (e.g. codex/gpt-5.4 or @model:Vendor/model-id).
 func ParseSaveInput(data []byte) (SaveInput, error) {
 	var raw struct {
-		Profiles []UIVendor                 `json:"profiles"`
-		Active   map[string]json.RawMessage `json:"active"`
-		Proxy    *UIProxyConfig             `json:"proxy"`
+		Profiles []UIVendor     `json:"profiles"`
+		Proxy    *UIProxyConfig `json:"proxy"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return SaveInput{}, fmt.Errorf("parse save payload: %w", err)
 	}
-	input := SaveInput{
+	return SaveInput{
 		Profiles: raw.Profiles,
-		Active:   map[string]profile.ActiveSelection{},
 		Proxy:    raw.Proxy,
-	}
-	if raw.Active == nil {
-		return input, nil
-	}
-	legacyStore := &profile.Store{Active: map[string]profile.ActiveSelection{}}
-	for agent, payload := range raw.Active {
-		agent = strings.TrimSpace(agent)
-		if agent == "" {
-			continue
-		}
-		var sel profile.ActiveSelection
-		if err := json.Unmarshal(payload, &sel); err == nil {
-			sel.ProviderID = strings.TrimSpace(sel.ProviderID)
-			sel.ModelID = strings.TrimSpace(sel.ModelID)
-			if sel.ProviderID != "" && sel.ModelID != "" {
-				input.Active[agent] = sel
-				continue
-			}
-		}
-		var legacy string
-		if err := json.Unmarshal(payload, &legacy); err == nil {
-			if migrated, ok := legacyStore.ActiveSelectionFromLegacyValue(legacy); ok {
-				input.Active[agent] = migrated
-				continue
-			}
-			if parts := strings.SplitN(strings.TrimSpace(legacy), "/", 2); len(parts) == 2 {
-				input.Active[agent] = profile.ActiveSelection{
-					ProviderID: strings.TrimSpace(parts[0]),
-					ModelID:    strings.TrimSpace(parts[1]),
-				}
-			}
-		}
-	}
-	return input, nil
+	}, nil
 }

@@ -1,14 +1,14 @@
-import { detectCliPath, detectOllamaInstalled, setRunning } from "./cli";
+import { detectOllamaInstalled, setRunning } from "./local-runtime";
 import { loadVendorCatalog } from "./catalog";
 import { loadModelTests } from "./model-tests";
 import { openProfilesVendor, setActiveTab } from "./navigation";
+import { refreshModelList } from "./model-list";
 import { loadProfilesFromDisk } from "./profiles";
 import { refreshProxyLogs, refreshProxyStatus, autoUpdateCoreOnStartup } from "./proxy";
 import { refreshSubscriptions } from "./subscriptions";
 import { refreshAppVersion, waitForDesktopBridge, waitForCliBridge } from "./app-version";
 import { startAppUpdatePolling } from "./desktop-update";
-import { CUSTOM_API_PROFILE_NAME, isElectronDev, isElectronRenderer } from "../constants";
-import { hasAvailableCliBindingOptions } from "../helpers";
+import { isElectronDev, isElectronRenderer } from "../constants";
 import { store } from "./state.svelte";
 
 function updateAppDownloadProgress(payload: { percent?: unknown; received_bytes?: unknown; total_bytes?: unknown }) {
@@ -36,6 +36,9 @@ export async function initApp() {
   await loadVendorCatalog();
   await loadProfilesFromDisk();
   await refreshSubscriptions();
+  if (store.activeTab === "models") {
+    await refreshModelList({ silent: true });
+  }
   await refreshProxyStatus();
   await refreshProxyLogs();
 
@@ -78,13 +81,7 @@ export async function initApp() {
     setRunning(Boolean(runState?.running));
     const tool = await bridge.toolStatus?.().catch(() => null);
     store.clovapiAvailable = Boolean(tool?.available);
-    await detectCliPath();
     await detectOllamaInstalled();
-  }
-
-  if (!hasAvailableCliBindingOptions(store.clis, store.profiles, store.subscriptions)) {
-    setActiveTab("profiles");
-    openProfilesVendor(CUSTOM_API_PROFILE_NAME);
   }
 
   if (isElectronRenderer() && !isElectronDev()) {

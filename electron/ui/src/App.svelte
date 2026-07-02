@@ -1,10 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import * as Tabs from "$lib/components/ui/tabs/index.js";
-  import CliPanel from "./components/CliPanel.svelte";
   import ProfilesPanel from "./components/ProfilesPanel.svelte";
+  import ModelListPanel from "./components/ModelListPanel.svelte";
   import ProxyCallLogsPanel from "./components/ProxyCallLogsPanel.svelte";
-  import ProxySessionsPanel from "./components/ProxySessionsPanel.svelte";
   import ProxySystemLogsPanel from "./components/ProxySystemLogsPanel.svelte";
   import SettingsPanel from "./components/SettingsPanel.svelte";
   import ProxyBaseUrlFooter from "./components/ProxyBaseUrlFooter.svelte";
@@ -27,10 +26,9 @@
 
   function onTabChange(value: string) {
     if (
-      value === "cli" ||
       value === "profiles" ||
+      value === "models" ||
       value === "call-logs" ||
-      value === "sessions" ||
       value === "system-logs" ||
       value === "settings"
     ) {
@@ -44,10 +42,9 @@
       title: t("app.title"),
       subtitle: t("app.subtitle"),
       tabs: {
-        cli: t("tabs.cli"),
         profiles: t("tabs.profiles"),
+        models: t("tabs.models"),
         callLogs: t("tabs.callLogs"),
-        sessions: t("tabs.sessions"),
         systemLogs: t("tabs.systemLogs"),
         settings: t("tabs.settings"),
       },
@@ -60,6 +57,10 @@
   const appUpdateButtonTitle = $derived(
     store.appUpdating ? `${copy.updateBadge} · ${appUpdateProgress}%` : copy.updateBadge,
   );
+  $effect(() => {
+    if (!inElectron) return;
+    document.title = store.appVersion ? `${copy.title} v${store.appVersion}` : copy.title;
+  });
 </script>
 
 {#if !inElectron}
@@ -128,25 +129,21 @@
 
   <Tabs.Root value={store.activeTab} onValueChange={onTabChange} class="flex min-h-0 flex-1 flex-col gap-4">
     <Tabs.List>
-      <Tabs.Trigger value="cli">{copy.tabs.cli}</Tabs.Trigger>
+      <Tabs.Trigger value="models">{copy.tabs.models}</Tabs.Trigger>
       <Tabs.Trigger value="profiles">{copy.tabs.profiles}</Tabs.Trigger>
       <Tabs.Trigger value="call-logs">{copy.tabs.callLogs}</Tabs.Trigger>
-      <Tabs.Trigger value="sessions">{copy.tabs.sessions}</Tabs.Trigger>
       <Tabs.Trigger value="system-logs">{copy.tabs.systemLogs}</Tabs.Trigger>
       <Tabs.Trigger value="settings">{copy.tabs.settings}</Tabs.Trigger>
     </Tabs.List>
 
-    <Tabs.Content value="cli" class="min-h-0 outline-none">
-      <CliPanel />
+    <Tabs.Content value="models" class="min-h-0 outline-none">
+      <ModelListPanel />
     </Tabs.Content>
     <Tabs.Content value="profiles" class="min-h-0 outline-none">
       <ProfilesPanel />
     </Tabs.Content>
     <Tabs.Content value="call-logs" class="min-h-0 outline-none">
       <ProxyCallLogsPanel />
-    </Tabs.Content>
-    <Tabs.Content value="sessions" class="min-h-0 outline-none">
-      <ProxySessionsPanel />
     </Tabs.Content>
     <Tabs.Content value="system-logs" class="min-h-0 outline-none">
       <ProxySystemLogsPanel />

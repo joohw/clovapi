@@ -21,6 +21,7 @@ func cmdProfilesGroup() *cobra.Command {
 		cmdProfilesSave(),
 		cmdProfilesTest(),
 		cmdProfilesListModels(),
+		cmdProfilesModels(),
 		cmdProfilesUsage(),
 		cmdProfilesCatalog(),
 	)
@@ -84,22 +85,18 @@ func cmdProfilesSave() *cobra.Command {
 }
 
 func cmdProfilesTest() *cobra.Command {
-	var binding string
 	var providerID string
 	var modelID string
 	var port int
-	var cliKind string
 	var jsonFlag bool
 	c := &cobra.Command{
 		Use:   "test",
 		Short: "Probe a provider/model via the local proxy",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var result desktop.TestResult
-			if strings.TrimSpace(providerID) != "" || strings.TrimSpace(modelID) != "" {
-				result = desktop.TestProviderModel(providerID, modelID, port, cliKind)
-			} else {
-				result = desktop.TestBinding(binding, port, cliKind)
+			if strings.TrimSpace(providerID) == "" || strings.TrimSpace(modelID) == "" {
+				return fmt.Errorf("--provider and --model are required")
 			}
+			result := desktop.TestProviderModel(providerID, modelID, port)
 			if jsonFlag {
 				return writeDesktopJSON(result)
 			}
@@ -108,9 +105,7 @@ func cmdProfilesTest() *cobra.Command {
 	}
 	c.Flags().StringVar(&providerID, "provider", "", "Provider id")
 	c.Flags().StringVar(&modelID, "model", "", "Model id")
-	c.Flags().StringVar(&binding, "binding", "", "Deprecated model binding (@model:Vendor/model-id)")
 	c.Flags().IntVar(&port, "port", 0, "Local proxy port override")
-	c.Flags().StringVar(&cliKind, "cli", "", "CLI kind for ingress style (e.g. codex|claude-code)")
 	c.Flags().BoolVar(&jsonFlag, "json", false, "Return JSON")
 	return c
 }
@@ -130,6 +125,32 @@ func cmdProfilesListModels() *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&vendorName, "vendor", "", "Vendor display name")
+	c.Flags().BoolVar(&jsonFlag, "json", false, "Return JSON")
+	return c
+}
+
+func cmdProfilesModels() *cobra.Command {
+	var jsonFlag bool
+	c := &cobra.Command{
+		Use:   "models",
+		Short: "List configured local proxy models across all providers",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			result := desktop.ListModels()
+			if jsonFlag {
+				return writeDesktopJSON(result)
+			}
+			if !result.OK {
+				if msg := strings.TrimSpace(result.Error); msg != "" {
+					return fmt.Errorf("%s", msg)
+				}
+				return fmt.Errorf("failed to list models")
+			}
+			for _, item := range result.Models {
+				fmt.Printf("%s\t%s\t%s\t%s\n", item.ProviderID, item.ModelID, item.Label, item.APIStyle)
+			}
+			return nil
+		},
+	}
 	c.Flags().BoolVar(&jsonFlag, "json", false, "Return JSON")
 	return c
 }

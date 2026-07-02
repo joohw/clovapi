@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/clovapi/switcher/internal/protocolcompat"
 	"github.com/google/uuid"
 )
 
@@ -63,8 +62,8 @@ func applyClaudeOAuthBilling(payload map[string]any, systemText string) {
 	payload["metadata"] = meta
 }
 
-// EncodeClaudeOAuthCompatibleRawRequest keeps Claude Messages wire fields that
-// Claude Code may rely on while still applying proxy-owned routing policy.
+// EncodeClaudeOAuthCompatibleRawRequest keeps Claude Messages wire fields while
+// still applying proxy-owned routing policy.
 func EncodeClaudeOAuthCompatibleRawRequest(body []byte, r Request) ([]byte, error) {
 	payload, err := jsonDecodeMap(body)
 	if err != nil {
@@ -86,9 +85,6 @@ func EncodeClaudeOAuthCompatibleRawRequest(body []byte, r Request) ([]byte, erro
 
 	system := CollectSystemPrompt(r)
 	system = stripClaudeOAuthBillingText(system)
-	if r.Meta != nil && r.Meta.ScrubHermesIdentity {
-		system = protocolcompat.ScrubHermesIdentitySystemText(system)
-	}
 	if system != "" && !strings.Contains(system, claudeOAuthSystemBootstrap) {
 		system = claudeOAuthSystemBootstrap + "\n\n" + system
 	} else if system == "" {

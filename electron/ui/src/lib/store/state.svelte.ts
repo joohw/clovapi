@@ -1,21 +1,13 @@
-import { DEFAULT_CLIS, FIXED_PROVIDER_IDS } from "../constants";
-import type { ActiveSelection, CliDef, ModelAdapterDef, ModelTestEntry, ProxyLogEntry, ProxyLogSession, ProxySystemLogEntry, ProviderDef, SubscriptionItem, Vendor } from "../../global";
+import { FIXED_PROVIDER_IDS } from "../constants";
+import type { ModelAdapterDef, ModelListItem, ModelTestEntry, ProxyLogEntry, ProxySystemLogEntry, ProviderDef, SubscriptionItem, Vendor } from "../../global";
 
-export type TabId = "cli" | "profiles" | "call-logs" | "sessions" | "system-logs" | "settings";
+export type TabId = "profiles" | "models" | "call-logs" | "system-logs" | "settings";
 
 export const store = $state({
-  activeTab: "cli" as TabId,
+  activeTab: "models" as TabId,
   profiles: [] as Vendor[],
-  active: {} as Record<string, ActiveSelection>,
   profilesPath: "",
-  clis: [...DEFAULT_CLIS] as CliDef[],
   running: false,
-  cliDetectedPath: {} as Record<string, string>,
-  cliInstallSupported: {} as Record<string, boolean>,
-  cliUninstallSupported: {} as Record<string, boolean>,
-  cliInstallPlan: {} as Record<string, string>,
-  cliLifecycleBusy: {} as Record<string, boolean>,
-  cliLifecycleAction: {} as Record<string, "install" | "uninstall" | "">,
   ollamaInstalled: false,
   clovapiAvailable: false,
   editingProfileName: "",
@@ -39,8 +31,10 @@ export const store = $state({
   formModelApiKey: "",
   formModelApiStyle: "openai-responses",
   proxyRunning: false,
+  proxyHost: "0.0.0.0",
   proxyPort: 27483,
   proxyBaseUrl: "http://127.0.0.1:27483",
+  proxyAddressDraft: "http://127.0.0.1:27483",
   proxyHealthTest: null as import("../../global").ModelTestEntry | null,
   appVersion: "",
   appUpdateAvailable: false,
@@ -56,14 +50,12 @@ export const store = $state({
   coreUpdating: false,
   coreUpdateCheck: null as import("../../global").ModelTestEntry | null,
   proxyLogs: [] as ProxyLogEntry[],
-  proxyLogSessions: [] as ProxyLogSession[],
   proxySystemLogs: [] as ProxySystemLogEntry[],
   proxyLogsLoading: false,
   proxyLogsPageSize: 20,
   proxyLogsOffset: 0,
   proxyLogsHasMore: false,
   proxyLogSelectedId: null as string | null,
-  proxyLogSelectedSession: null as string | null,
   proxySystemLogSelectedId: null as string | null,
   vendorFetching: {} as Record<string, boolean>,
   vendorUsage: {} as Record<string, { summary: string; rows: import("../../global").VendorUsageData[]; error: string }>,
@@ -72,4 +64,6 @@ export const store = $state({
   modelAdapters: [] as ModelAdapterDef[],
   providers: [] as ProviderDef[],
   fixedProviderIds: [...FIXED_PROVIDER_IDS] as string[],
+  modelList: [] as ModelListItem[],
+  modelListLoading: false,
 });

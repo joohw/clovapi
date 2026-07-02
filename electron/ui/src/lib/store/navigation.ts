@@ -1,5 +1,6 @@
 import { resolveVendorByName } from "../helpers";
-import { detectCliPath, detectOllamaInstalled } from "./cli";
+import { detectOllamaInstalled } from "./local-runtime";
+import { refreshModelList } from "./model-list";
 import { loadProfilesFromDisk } from "./profiles";
 import { refreshProxyLogs, refreshProxyStatus } from "./proxy";
 import { refreshAppVersion } from "./app-version";
@@ -9,7 +10,7 @@ import { store, type TabId } from "./state.svelte";
 import { toast } from "../toast";
 
 function isLogTab(tab: TabId): boolean {
-  return tab === "call-logs" || tab === "sessions" || tab === "system-logs";
+  return tab === "call-logs" || tab === "system-logs";
 }
 
 export function setActiveTab(tab: TabId) {
@@ -19,14 +20,10 @@ export function setActiveTab(tab: TabId) {
   }
   if (isLogTab(store.activeTab) && !isLogTab(tab)) {
     store.proxyLogSelectedId = null;
-    store.proxyLogSelectedSession = null;
     store.proxySystemLogSelectedId = null;
   }
   if (store.activeTab === "call-logs" && tab !== "call-logs") {
     store.proxyLogSelectedId = null;
-  }
-  if (store.activeTab === "sessions" && tab !== "sessions") {
-    store.proxyLogSelectedSession = null;
   }
   if (store.activeTab === "system-logs" && tab !== "system-logs") {
     store.proxySystemLogSelectedId = null;
@@ -43,11 +40,10 @@ export function setActiveTab(tab: TabId) {
       await refreshSubscriptions();
       await detectOllamaInstalled();
     })();
+  } else if (tab === "models") {
+    void refreshModelList();
   } else {
     void refreshSubscriptions();
-  }
-  if (tab === "cli") {
-    void detectCliPath();
   }
   if (tab === "settings") {
     void refreshAppVersion();
@@ -81,13 +77,6 @@ export function openProxyLog(id: string) {
   store.proxyLogSelectedId = logId;
 }
 
-export function openProxySession(session: string) {
-  const key = String(session || "").trim();
-  if (!key) return;
-  if (!store.proxyLogSessions.some((item) => item.session === key)) return;
-  store.proxyLogSelectedSession = key;
-}
-
 export function openProxySystemLog(id: string) {
   const logId = String(id || "").trim();
   if (!logId) return;
@@ -98,9 +87,4 @@ export function openProxySystemLog(id: string) {
 export function closeProxyLog() {
   store.proxyLogSelectedId = null;
   store.proxySystemLogSelectedId = null;
-}
-
-export function closeProxySession() {
-  store.proxyLogSelectedSession = null;
-  store.proxyLogSelectedId = null;
 }

@@ -3,33 +3,7 @@ package syslog
 import (
 	"fmt"
 	"strings"
-
-	"github.com/clovapi/switcher/internal/agentkind"
-	"github.com/clovapi/switcher/internal/apistyle"
 )
-
-func LogCLIApplied(kind agentkind.Kind, model string, style apistyle.Style) {
-	Write(
-		"system",
-		fmt.Sprintf(
-			"apply %s model=%s style=%s",
-			kind,
-			strings.TrimSpace(model),
-			style,
-		),
-	)
-}
-
-func LogCLIReset(kind agentkind.Kind) {
-	Write("system", fmt.Sprintf("reset %s", kind))
-}
-
-func LogCLIApplyFailed(kind agentkind.Kind, err error) {
-	if err == nil {
-		return
-	}
-	Write("stderr", fmt.Sprintf("apply %s failed: %v", kind, err))
-}
 
 func LogProxyStarted(host string, port int) {
 	Write("stdout", fmt.Sprintf("proxy listen %s:%d", strings.TrimSpace(host), port))

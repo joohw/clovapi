@@ -6,26 +6,23 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
-	"github.com/clovapi/switcher/internal/apply"
 	"github.com/clovapi/switcher/internal/config"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
 )
 
 type AuthStatusItem struct {
-	OK          bool   `json:"ok"`
-	ID          string `json:"id"`
-	Label       string `json:"label"`
-	Command     string `json:"command"`
-	Installed   bool   `json:"installed"`
-	CommandPath string `json:"commandPath,omitempty"`
-	LoggedIn    bool   `json:"loggedIn"`
-	Active      bool   `json:"active"`
-	Summary     string `json:"summary"`
-	Error       string `json:"error,omitempty"`
+	OK       bool   `json:"ok"`
+	ID       string `json:"id"`
+	Label    string `json:"label"`
+	LoggedIn bool   `json:"loggedIn"`
+	Active   bool   `json:"active"`
+	Summary  string `json:"summary"`
+	Error    string `json:"error,omitempty"`
 }
 
 type AuthStatusResult struct {
@@ -35,35 +32,32 @@ type AuthStatusResult struct {
 }
 
 type AuthLogoutResult struct {
-	OK       bool                               `json:"ok"`
-	Path     string                             `json:"path,omitempty"`
-	Version  int                                `json:"version,omitempty"`
-	Active   map[string]profile.ActiveSelection `json:"active,omitempty"`
-	Proxy    UIProxyConfig                      `json:"proxy,omitempty"`
-	Profiles []UIVendor                         `json:"profiles,omitempty"`
-	Error    string                             `json:"error,omitempty"`
+	OK       bool          `json:"ok"`
+	Path     string        `json:"path,omitempty"`
+	Version  int           `json:"version,omitempty"`
+	Proxy    UIProxyConfig `json:"proxy,omitempty"`
+	Profiles []UIVendor    `json:"profiles,omitempty"`
+	Error    string        `json:"error,omitempty"`
 }
 
 var authProviders = []struct {
-	ID      string
-	Label   string
-	Command string
+	ID    string
+	Label string
 }{
-	{ID: provider.ClaudeCodeProviderID, Label: provider.ClaudeCodeVendorName, Command: "claude"},
-	{ID: provider.CodexProviderID, Label: provider.CodexVendorName, Command: "codex"},
+	{ID: provider.ClaudeCodeProviderID, Label: provider.ClaudeCodeVendorName},
+	{ID: provider.CodexProviderID, Label: provider.CodexVendorName},
 }
 
 const codexClientVersion = "0.133.0"
 
 // claudeAuthPath returns clovapi's own Claude OAuth store (independent from
-// Claude Code's ~/.claude/.credentials.json). Auth status and logout operate on
-// this file only.
+// Claude's CLI credentials). Auth status and logout operate on this file only.
 func claudeAuthPath() (string, error) {
 	return config.ClaudeSubscriptionAuthPath()
 }
 
 // codexAuthPath returns clovapi's own Codex OAuth store (independent from
-// Codex CLI's ~/.codex/auth.json). Auth status and logout operate on this file only.
+// Codex CLI credentials). Auth status and logout operate on this file only.
 func codexAuthPath() (string, error) {
 	return config.CodexSubscriptionAuthPath()
 }
@@ -190,28 +184,14 @@ func providerLoggedIn(providerID string, data map[string]any) bool {
 }
 
 // AuthStatus reports subscription OAuth status for built-in providers.
-// Subscription login and model fetch are independent of whether the agent CLI
-// binary is installed; Installed is informational only.
 func AuthStatus() AuthStatusResult {
 	items := make([]AuthStatusItem, 0, len(authProviders))
 	for _, cfg := range authProviders {
-		cmdPath, installed := ResolveCommandPath(cfg.Command)
-		if cfg.ID == provider.CodexProviderID {
-			installed = apply.CodexInstalled()
-			if p, ok := apply.ResolveCodexExecutable(); ok {
-				cmdPath = p
-			}
-		}
 		item := AuthStatusItem{
-			OK:        true,
-			ID:        cfg.ID,
-			Label:     cfg.Label,
-			Command:   cfg.Command,
-			Installed: installed,
-			Summary:   "Not logged in",
-		}
-		if cmdPath != "" {
-			item.CommandPath = cmdPath
+			OK:      true,
+			ID:      cfg.ID,
+			Label:   cfg.Label,
+			Summary: "Not logged in",
 		}
 		authPath, err := authPathForProvider(cfg.ID)
 		if err == nil {
@@ -249,12 +229,6 @@ func clearSubscriptionProviderState(s *profile.Store, providerID string) bool {
 			}
 		}
 	}
-	for cli, active := range s.Active {
-		if strings.TrimSpace(active.ProviderID) == id {
-			delete(s.Active, cli)
-			changed = true
-		}
-	}
 	return changed
 }
 
@@ -280,7 +254,6 @@ func AuthLogout(providerID string) AuthLogoutResult {
 		OK:       true,
 		Path:     out.Path,
 		Version:  out.Version,
-		Active:   out.Active,
 		Proxy:    out.Proxy,
 		Profiles: out.Profiles,
 	}
@@ -294,6 +267,141 @@ type ListModelsResult struct {
 	Message   string     `json:"message,omitempty"`
 	Profiles  []UIVendor `json:"profiles,omitempty"`
 	Error     string     `json:"error,omitempty"`
+}
+
+type ModelListItem struct {
+	VendorName   string `json:"vendorName"`
+	VendorKind   string `json:"vendorKind"`
+	ProviderID   string `json:"providerId"`
+	ModelID      string `json:"modelId"`
+	Label        string `json:"label"`
+	APIStyle     string `json:"apiStyle"`
+	ProxyBaseURL string `json:"proxyBaseUrl,omitempty"`
+}
+
+type ModelListResult struct {
+	OK     bool            `json:"ok"`
+	Models []ModelListItem `json:"models,omitempty"`
+	Error  string          `json:"error,omitempty"`
+}
+
+// ListModels returns the configured local proxy model surface across providers.
+// It intentionally omits upstream URLs and upstream model names; callers should
+// treat model IDs as the public local-proxy IDs exposed by clovapi.
+func ListModels() ModelListResult {
+	s, err := profile.LoadDesktop()
+	if err != nil {
+		return ModelListResult{OK: false, Error: err.Error()}
+	}
+	if s == nil {
+		return ModelListResult{OK: true}
+	}
+	port := s.Proxy.Port
+	if port <= 0 {
+		port = profile.DefaultProxyPort
+	}
+	host := proxyClientHost(s.Proxy.Host)
+	if host == "" {
+		host = profile.DefaultProxyHost
+	}
+	items := make([]ModelListItem, 0)
+	for _, vendor := range s.List {
+		if strings.HasPrefix(strings.TrimSpace(vendor.Name), "__") {
+			continue
+		}
+		if !profileUsableForModelList(vendor) {
+			continue
+		}
+		providerID := profile.ProviderIDFromStoreProfile(vendor)
+		if providerID == "" {
+			continue
+		}
+		proxyBaseURL := fmt.Sprintf("http://%s:%d/%s/v1", host, port, providerID)
+		models := vendor.Models
+		if len(models) == 0 && strings.TrimSpace(vendor.Model) != "" {
+			models = []profile.Model{{
+				ID:       vendor.Model,
+				Label:    vendor.Model,
+				Model:    vendor.Model,
+				APIStyle: vendor.APIStyle,
+			}}
+		}
+		for i, raw := range models {
+			model := profile.NormalizeModelEntry(raw, i)
+			items = append(items, ModelListItem{
+				VendorName:   vendor.Name,
+				VendorKind:   vendor.Kind,
+				ProviderID:   providerID,
+				ModelID:      model.ID,
+				Label:        firstDisplayLabel(model.Label, model.ID),
+				APIStyle:     string(model.APIStyle),
+				ProxyBaseURL: proxyBaseURL,
+			})
+		}
+	}
+	return ModelListResult{OK: true, Models: items}
+}
+
+func profileUsableForModelList(vendor profile.Profile) bool {
+	kind := strings.ToLower(strings.TrimSpace(vendor.Kind))
+	switch kind {
+	case "subscription":
+		return subscriptionUsableForModelList(vendor)
+	case "local":
+		if strings.EqualFold(strings.TrimSpace(vendor.LocalProvider), "ollama") ||
+			profile.ProviderIDFromStoreProfile(vendor) == provider.OllamaProviderID {
+			return ollamaInstalledForModelList()
+		}
+		return false
+	default:
+		return true
+	}
+}
+
+func subscriptionUsableForModelList(vendor profile.Profile) bool {
+	providerID := strings.TrimSpace(vendor.SubscriptionProviderID)
+	if providerID == "" {
+		return false
+	}
+	var data map[string]any
+	var ok bool
+	if providerID == provider.ClaudeCodeProviderID {
+		data, ok = readAuthJSONOrClaudeFallback()
+	} else if authPath, err := authPathForProvider(providerID); err == nil {
+		data, ok = readAuthJSON(authPath)
+	}
+	if !ok {
+		return false
+	}
+	loggedIn := providerLoggedIn(providerID, data)
+	return providerSubscriptionActive(providerID, loggedIn, data)
+}
+
+func ollamaInstalledForModelList() bool {
+	_, err := exec.LookPath("ollama")
+	return err == nil
+}
+
+func proxyClientHost(bindHost string) string {
+	host := strings.TrimSpace(bindHost)
+	if host == "" {
+		return "127.0.0.1"
+	}
+	switch strings.ToLower(host) {
+	case "0.0.0.0", "::", "::ffff:0.0.0.0":
+		return "127.0.0.1"
+	default:
+		return host
+	}
+}
+
+func firstDisplayLabel(values ...string) string {
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
 }
 
 const fetchTimeout = 20 * time.Second

@@ -478,7 +478,7 @@ func (c *claudeStreamEncoder) closeBlocks(reason string) ([][]byte, error) {
 		"type":  "message_delta",
 		"delta": map[string]any{"stop_reason": stopReason},
 	}
-	// Hermes / Anthropic SDKs read final usage from message_delta.usage. Always
+	// Anthropic-compatible clients read final usage from message_delta.usage. Always
 	// emit output_tokens, and include input_tokens when known so prompt token
 	// accounting isn't silently dropped (message_start only carries zeros).
 	usage := map[string]any{"output_tokens": c.outputTokens}

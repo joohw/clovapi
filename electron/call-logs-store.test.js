@@ -10,7 +10,6 @@ test("debug log readers use proxy HTTP endpoints from supplied CLI proxy config"
     if (req.url.startsWith("/__debug/call-log")) {
       res.end(JSON.stringify({
         entries: [{ id: "call-1" }],
-        sessions: [{ session: "s1" }],
         limit: 20,
         offset: 0,
         hasMore: false,
@@ -19,6 +18,21 @@ test("debug log readers use proxy HTTP endpoints from supplied CLI proxy config"
     }
     if (req.url.startsWith("/__debug/system-log")) {
       res.end(JSON.stringify({ entries: [{ id: "sys-1" }], limit: 20 }));
+      return;
+    }
+    if (req.url.startsWith("/__debug/usage")) {
+      res.end(JSON.stringify({
+        ok: true,
+        usages: [{ vendor: "Codex Subscription", ok: true }],
+        updatedAt: "2026-07-02T07:05:46Z",
+      }));
+      return;
+    }
+    if (req.url.startsWith("/__debug/profiles")) {
+      res.end(JSON.stringify({
+        ok: true,
+        profiles: [{ name: "Codex Subscription", usage: { ok: true } }],
+      }));
       return;
     }
     res.statusCode = 404;
@@ -33,9 +47,18 @@ test("debug log readers use proxy HTTP endpoints from supplied CLI proxy config"
   const store = require("./call-logs-store");
   const callLogs = await store.readCallLogsViaHTTP({ limit: 20, offset: 0, proxy });
   const systemLogs = await store.readSystemLogsViaHTTP(20, { proxy });
+  const usage = await store.readUsageViaHTTP({ refresh: true, proxy });
+  const profiles = await store.readProfilesViaHTTP({ proxy });
 
   assert.deepEqual(callLogs.entries, [{ id: "call-1" }]);
-  assert.deepEqual(callLogs.sessions, [{ session: "s1" }]);
   assert.deepEqual(systemLogs, [{ id: "sys-1" }]);
-  assert.deepEqual(requests, ["/__debug/call-log?limit=20&offset=0", "/__debug/system-log?limit=20"]);
+  assert.deepEqual(usage.usages, [{ vendor: "Codex Subscription", ok: true }]);
+  assert.equal(usage.updatedAt, "2026-07-02T07:05:46Z");
+  assert.deepEqual(profiles.profiles, [{ name: "Codex Subscription", usage: { ok: true } }]);
+  assert.deepEqual(requests, [
+    "/__debug/call-log?limit=20&offset=0",
+    "/__debug/system-log?limit=20",
+    "/__debug/usage?refresh=1",
+    "/__debug/profiles",
+  ]);
 });

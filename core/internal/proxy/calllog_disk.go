@@ -21,7 +21,7 @@ func CallLogsDirPath() (string, error) {
 	return cfgpkg.CallLogsDir()
 }
 
-// CallLogsFilePath returns the default JSONL path for requests without a session id.
+// CallLogsFilePath returns the legacy default JSONL path.
 func CallLogsFilePath() (string, error) {
 	return cfgpkg.CallLogsPath()
 }

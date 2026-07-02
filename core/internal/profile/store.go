@@ -16,7 +16,7 @@ import (
 )
 
 func defaultProxyConfig() ProxyConfig {
-	return ProxyConfig{Enabled: true, Host: "0.0.0.0", Port: 27483}
+	return ProxyConfig{Enabled: true, Host: DefaultProxyHost, Port: DefaultProxyPort}
 }
 
 func ensureProxyDefaults(s *Store, oldVersion int) {
@@ -24,10 +24,10 @@ func ensureProxyDefaults(s *Store, oldVersion int) {
 		return
 	}
 	if strings.TrimSpace(s.Proxy.Host) == "" {
-		s.Proxy.Host = "0.0.0.0"
+		s.Proxy.Host = DefaultProxyHost
 	}
 	if s.Proxy.Port == 0 {
-		s.Proxy.Port = 27483
+		s.Proxy.Port = DefaultProxyPort
 	}
 	// Preserve an explicit false when loading an existing v4 store. Empty stores
 	// and pre-v4 stores have no way to express false, so default them to enabled.
@@ -39,62 +39,12 @@ func ensureProxyDefaults(s *Store, oldVersion int) {
 func emptyStore() *Store {
 	return &Store{
 		Version: StoreVersion,
-		Active:  map[string]ActiveSelection{},
 		List:    nil,
 		Proxy:   defaultProxyConfig(),
-		Backups: map[string]ConfigBackup{},
 	}
 }
 
-func (a ActiveSelection) normalized() ActiveSelection {
-	return ActiveSelection{
-		ProviderID: strings.TrimSpace(a.ProviderID),
-		ModelID:    strings.TrimSpace(a.ModelID),
-	}
-}
-
-func (a ActiveSelection) valid() bool {
-	a = a.normalized()
-	return a.ProviderID != "" && a.ModelID != ""
-}
-
-// UnmarshalJSON accepts both the v5 structured active map and the v4
-// string-shaped map used for @model:Vendor/model bindings.
-func (s *Store) UnmarshalJSON(data []byte) error {
-	var raw struct {
-		Version int                        `json:"version"`
-		Active  map[string]json.RawMessage `json:"active"`
-		List    []Profile                  `json:"profiles"`
-		Proxy   ProxyConfig                `json:"proxy"`
-		Backups map[string]ConfigBackup    `json:"backups"`
-	}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	*s = Store{
-		Version: raw.Version,
-		Active:  map[string]ActiveSelection{},
-		List:    raw.List,
-		Proxy:   raw.Proxy,
-		Backups: raw.Backups,
-	}
-	for agent, payload := range raw.Active {
-		var sel ActiveSelection
-		if err := json.Unmarshal(payload, &sel); err == nil && sel.valid() {
-			s.Active[agent] = sel.normalized()
-			continue
-		}
-		var legacy string
-		if err := json.Unmarshal(payload, &legacy); err == nil {
-			if migrated, ok := s.activeSelectionFromLegacyValue(legacy); ok {
-				s.Active[agent] = migrated
-			}
-		}
-	}
-	return nil
-}
-
-// Reset clears all profiles and active bindings and persists an empty store.
+// Reset clears all profiles and persists an empty store.
 func Reset() error {
 	return Save(emptyStore())
 }
@@ -120,12 +70,6 @@ func loadNoLock() (*Store, error) {
 	oldVersion := s.Version
 	if s.Version == 0 {
 		s.Version = StoreVersion
-	}
-	if s.Active == nil {
-		s.Active = map[string]ActiveSelection{}
-	}
-	if s.Backups == nil {
-		s.Backups = map[string]ConfigBackup{}
 	}
 	ensureProxyDefaults(&s, oldVersion)
 	return &s, nil
@@ -153,7 +97,6 @@ func migrateLegacyCurrentIntoProfiles(raw []byte, s *Store) {
 	if strings.TrimSpace(cur.BaseURL) == "" || cur.APIStyle == "" {
 		return
 	}
-	cur.CLI = ""
 	cur.Name = ""
 	if len(s.List) == 0 {
 		s.List = append(s.List, cur)
@@ -182,12 +125,6 @@ func migrateLegacyAPIStyles(s *Store) {
 func saveNoLock(s *Store) error {
 	if s.Version == 0 {
 		s.Version = StoreVersion
-	}
-	if s.Active == nil {
-		s.Active = map[string]ActiveSelection{}
-	}
-	if s.Backups == nil {
-		s.Backups = map[string]ConfigBackup{}
 	}
 	ensureProxyDefaults(s, s.Version)
 	p, err := cfgpkg.ProfilesPath()
@@ -251,22 +188,16 @@ func WithLockedStore(fn func(*Store) (bool, error)) (*Store, error) {
 
 func (s *Store) LogSavedMessage() string {
 	if s == nil {
-		return "profiles saved vendors=0 bindings=0"
+		return "profiles saved vendors=0"
 	}
 	vendors := 0
-	bindings := 0
 	for _, prof := range s.List {
 		name := strings.TrimSpace(prof.Name)
 		if name != "" && !strings.HasPrefix(name, "__") {
 			vendors++
 		}
 	}
-	for _, sel := range s.Active {
-		if sel.valid() {
-			bindings++
-		}
-	}
-	return fmt.Sprintf("profiles saved vendors=%d bindings=%d", vendors, bindings)
+	return fmt.Sprintf("profiles saved vendors=%d", vendors)
 }
 
 func (s *Store) LogSummary() string {
@@ -277,18 +208,7 @@ func (s *Store) LogSummary() string {
 			userCount++
 		}
 	}
-	parts := make([]string, 0, len(s.Active))
-	for cli, sel := range s.Active {
-		sel = sel.normalized()
-		if sel.valid() {
-			parts = append(parts, fmt.Sprintf("%s=%s/%s", cli, sel.ProviderID, sel.ModelID))
-		}
-	}
-	activeSummary := "none"
-	if len(parts) > 0 {
-		activeSummary = strings.Join(parts, ", ")
-	}
-	return fmt.Sprintf("%d vendors, active: %s", userCount, activeSummary)
+	return fmt.Sprintf("%d vendors", userCount)
 }
 
 // ProfilesPath returns the on-disk profiles.json path.
@@ -329,54 +249,6 @@ func (s *Store) Remove(name string) bool {
 	}
 	removed := s.List[i]
 	s.List = slices.Delete(s.List, i, i+1)
-	providerID := ProviderIDFromStoreProfile(removed)
-	for k, v := range s.Active {
-		if strings.TrimSpace(providerID) != "" && strings.EqualFold(strings.TrimSpace(v.ProviderID), providerID) {
-			delete(s.Active, k)
-		}
-	}
+	_ = removed
 	return true
-}
-
-func (s *Store) SetActive(cli string, providerID string, modelID string) {
-	if s.Active == nil {
-		s.Active = map[string]ActiveSelection{}
-	}
-	if s.Backups == nil {
-		s.Backups = map[string]ConfigBackup{}
-	}
-	sel := ActiveSelection{ProviderID: providerID, ModelID: modelID}.normalized()
-	if sel.valid() {
-		s.Active[cli] = sel
-	}
-}
-
-// ClearActive removes the saved active profile binding for this CLI kind (e.g. after reset-default).
-func (s *Store) ClearActive(cli string) {
-	if s.Active == nil {
-		return
-	}
-	delete(s.Active, cli)
-}
-
-func (s *Store) BackupForCLI(cli string) (ConfigBackup, bool) {
-	if s == nil || s.Backups == nil {
-		return ConfigBackup{}, false
-	}
-	b, ok := s.Backups[cli]
-	return b, ok
-}
-
-func (s *Store) SetBackup(cli string, backup ConfigBackup) {
-	if s.Backups == nil {
-		s.Backups = map[string]ConfigBackup{}
-	}
-	s.Backups[cli] = backup
-}
-
-func (s *Store) ClearBackup(cli string) {
-	if s.Backups == nil {
-		return
-	}
-	delete(s.Backups, cli)
 }

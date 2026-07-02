@@ -15,6 +15,43 @@ type CoreUpdateOptions = {
   silent?: boolean;
 };
 
+const DEFAULT_BIND_HOST = "0.0.0.0";
+const DEFAULT_CLIENT_HOST = "127.0.0.1";
+const DEFAULT_PROXY_PORT = 27483;
+
+function clientHost(host: string): string {
+  const value = String(host || "").trim();
+  if (!value || value === "0.0.0.0" || value === "::" || value === "::ffff:0.0.0.0") {
+    return DEFAULT_CLIENT_HOST;
+  }
+  return value;
+}
+
+function proxyBaseUrl(host: string, port: number): string {
+  return `http://${clientHost(host)}:${Number(port) > 0 ? Number(port) : DEFAULT_PROXY_PORT}`;
+}
+
+function applyProxyConfig(config: { host?: string; port?: number } | undefined) {
+  const host = String(config?.host || "").trim() || DEFAULT_BIND_HOST;
+  const port = Number(config?.port) || DEFAULT_PROXY_PORT;
+  store.proxyHost = host;
+  store.proxyPort = port;
+  store.proxyBaseUrl = proxyBaseUrl(host, port);
+  store.proxyAddressDraft = store.proxyBaseUrl;
+}
+
+function parseProxyAddress(value: string): { host: string; port: number } {
+  const raw = String(value || "").trim();
+  if (!raw) throw new Error(t("proxy.localAddressRequired"));
+  const url = new URL(raw.includes("://") ? raw : `http://${raw}`);
+  const host = url.hostname.trim();
+  const port = Number(url.port || DEFAULT_PROXY_PORT);
+  if (!host || !Number.isFinite(port) || port <= 0 || port > 65535) {
+    throw new Error(t("proxy.localAddressInvalid"));
+  }
+  return { host, port };
+}
+
 function applyCoreUpdateCheckDetail(detail: UpdateDetail, silent: boolean) {
   if (detail.up_to_date) {
     store.coreUpdateAvailable = false;
@@ -86,8 +123,14 @@ export async function refreshProxyStatus() {
     const result = await bridge.proxyStatus();
     if (result?.ok) {
       store.proxyRunning = Boolean(result.running);
-      store.proxyPort = Number(result.port) || store.proxyPort;
-      store.proxyBaseUrl = result.baseUrl || `http://127.0.0.1:${store.proxyPort}`;
+      applyProxyConfig({
+        host: String(result.config?.host || result.host || store.proxyHost),
+        port: Number(result.config?.port || result.port || store.proxyPort),
+      });
+      if (result.baseUrl) {
+        store.proxyBaseUrl = result.baseUrl;
+        store.proxyAddressDraft = result.baseUrl;
+      }
     }
   } catch {
     store.proxyRunning = false;
@@ -106,9 +149,6 @@ export async function refreshProxyLogs(offset = store.proxyLogsOffset) {
     if (result?.ok) {
       if (Array.isArray(result.requests)) {
         store.proxyLogs = result.requests;
-      }
-      if (Array.isArray(result.sessions)) {
-        store.proxyLogSessions = result.sessions;
       }
       store.proxyLogsOffset = Number(result.callLogPage?.offset) || nextOffset;
       store.proxyLogsPageSize = Number(result.callLogPage?.limit) || pageSize;
@@ -141,45 +181,9 @@ export async function clearCallLogs() {
     return;
   }
   store.proxyLogs = [];
-  store.proxyLogSessions = [];
   store.proxyLogsOffset = 0;
   store.proxyLogsHasMore = false;
   store.proxyLogSelectedId = null;
-  store.proxyLogSelectedSession = null;
-}
-
-export async function deleteProxySession(session: string) {
-  const key = String(session || "").trim();
-  if (!key) return;
-
-  const bridge = window.clovapiCli;
-  if (!bridge?.proxyLogsDeleteSession) {
-    toast.error(t("toast.proxyDeleteSessionUnsupported"));
-    return;
-  }
-
-  const result = await bridge.proxyLogsDeleteSession(key);
-  if (!result?.ok) {
-    toast.error(result?.error || t("toast.proxyDeleteSessionFailed"));
-    return;
-  }
-
-  if (store.proxyLogSelectedSession === key) {
-    store.proxyLogSelectedSession = null;
-    store.proxyLogSelectedId = null;
-  }
-  if (Array.isArray(result.requests)) {
-    store.proxyLogs = result.requests;
-  }
-  if (Array.isArray(result.sessions)) {
-    store.proxyLogSessions = result.sessions;
-  }
-  if (result.callLogPage) {
-    store.proxyLogsOffset = Number(result.callLogPage.offset) || 0;
-    store.proxyLogsPageSize = Number(result.callLogPage.limit) || store.proxyLogsPageSize;
-    store.proxyLogsHasMore = Boolean(result.callLogPage.hasMore);
-  }
-  toast.success(t("toast.proxyDeleteSessionSuccess"));
 }
 
 export async function clearSystemLogs() {
@@ -396,8 +400,36 @@ export async function restartLocalProxy() {
     return;
   }
   await bridge.proxyStop({ suppressAutostart: false });
-  const result = await bridge.proxyStart(store.proxyPort);
+  const result = await bridge.proxyStart(store.proxyPort, store.proxyHost);
   await refreshProxyStatus();
   if (result?.ok) toast.success(t("toast.proxyRestarted"));
   else toast.error(result?.error || t("toast.proxyRestartFailed"));
+}
+
+export async function saveLocalProxyAddress() {
+  const bridge = window.clovapiCli;
+  if (!bridge?.proxyConfigSave || !bridge?.proxyStop || !bridge?.proxyStart) {
+    toast.error(t("toast.proxyUnsupported"));
+    return;
+  }
+
+  let parsed: { host: string; port: number };
+  try {
+    parsed = parseProxyAddress(store.proxyAddressDraft);
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : t("proxy.localAddressInvalid"));
+    return;
+  }
+
+  const result = await bridge.proxyConfigSave({
+    enabled: true,
+    host: parsed.host,
+    port: parsed.port,
+  });
+  if (!result?.ok) {
+    toast.error(result?.error || t("proxy.localAddressSaveFailed"));
+    return;
+  }
+  applyProxyConfig(result.proxy || parsed);
+  await restartLocalProxy();
 }

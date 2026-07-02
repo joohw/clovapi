@@ -45,11 +45,11 @@ func probeProxyHealthBody(cfg profile.ProxyConfig) (bool, map[string]any, int64,
 func buildProxyStatusJSON(cfg profile.ProxyConfig, includeLatency bool) proxyStatusJSON {
 	host := strings.TrimSpace(cfg.Host)
 	if host == "" {
-		host = "0.0.0.0"
+		host = profile.DefaultProxyHost
 	}
 	port := cfg.Port
 	if port <= 0 {
-		port = 27483
+		port = profile.DefaultProxyPort
 	}
 	clientHost := proxyHealthClientHost(host)
 	baseURL := fmt.Sprintf("http://%s:%d", clientHost, port)

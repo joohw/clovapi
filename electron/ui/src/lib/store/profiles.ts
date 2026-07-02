@@ -1,6 +1,5 @@
 import {
   canManuallyManageVendorModels,
-  activeSelection,
   isBuiltinCustomApiVendorName,
   isBuiltinSubscriptionVendorName,
   isDefaultCustomApiProfile,
@@ -8,8 +7,6 @@ import {
   isOllamaVendor,
   normalizeVendor,
   normalizeVendorModel,
-  parseModelBinding,
-  providerIdForVendor,
   resolveVendorByName,
 } from "../helpers";
 import { OLLAMA_DEFAULTS, OLLAMA_PROFILE_NAME } from "../constants";
@@ -17,33 +14,10 @@ import { isElectronRenderer } from "../constants";
 import { t } from "../i18n";
 import { toast } from "../toast";
 import { store } from "./state.svelte";
-import { clearModelBinding, clearVendorBindings } from "./bindings";
 import { persistProfiles } from "./profile-persist";
-import type { Vendor } from "../../global";
+import { applyVendorUsageFromProfiles } from "./vendor-usage";
 
 export { persistProfiles };
-
-function normalizeActiveSelections(raw: unknown, vendors: Vendor[]) {
-  const out: typeof store.active = {};
-  if (!raw || typeof raw !== "object") return out;
-  for (const [kind, value] of Object.entries(raw as Record<string, unknown>)) {
-    if (typeof value === "string") {
-      const parsed = parseModelBinding(value);
-      if (!parsed) continue;
-      const vendor = resolveVendorByName(vendors, parsed.vendorName);
-      const providerId = vendor ? providerIdForVendor(vendor) : parsed.providerId;
-      if (providerId && parsed.modelId) out[kind] = activeSelection(providerId, parsed.modelId);
-      continue;
-    }
-    if (value && typeof value === "object") {
-      const row = value as { provider_id?: string; model_id?: string; providerId?: string; modelId?: string };
-      const providerId = String(row.provider_id || row.providerId || "").trim();
-      const modelId = String(row.model_id || row.modelId || "").trim();
-      if (providerId && modelId) out[kind] = activeSelection(providerId, modelId);
-    }
-  }
-  return out;
-}
 
 export async function loadProfilesFromDisk() {
   const bridge = window.clovapiCli;
@@ -59,10 +33,14 @@ export async function loadProfilesFromDisk() {
   }
 
   store.profiles = (result.profiles || []).map(normalizeVendor);
-  store.active = normalizeActiveSelections(result.active, store.profiles);
+  applyVendorUsageFromProfiles(store.profiles);
   if (result.proxy) {
+    store.proxyHost = String(result.proxy.host || store.proxyHost || "127.0.0.1");
     store.proxyPort = Number(result.proxy.port) || 27483;
-    store.proxyBaseUrl = `http://127.0.0.1:${store.proxyPort}`;
+    const displayHost =
+      store.proxyHost === "0.0.0.0" || store.proxyHost === "::" ? "127.0.0.1" : store.proxyHost;
+    store.proxyBaseUrl = `http://${displayHost}:${store.proxyPort}`;
+    store.proxyAddressDraft = store.proxyBaseUrl;
   }
   store.profilesPath = result.path || "";
 
@@ -254,7 +232,6 @@ export async function removeProfile(profileName: string) {
     toast.warning(t("toast.customApiBuiltin"));
     return;
   }
-  clearVendorBindings(key);
   store.profiles = store.profiles.filter((item) => item.name.toLowerCase() !== key.toLowerCase());
   if (store.profilesSelectedVendor?.toLowerCase() === key.toLowerCase()) {
     store.profilesSelectedVendor = null;
@@ -276,7 +253,6 @@ export async function removeVendorModel(vendorName: string, modelId: string) {
     toast.warning(t("toast.subscriptionKeepOne"));
     return;
   }
-  clearModelBinding(vendorName, modelId);
   vendor.models = (vendor.models || []).filter((item) => item.id !== modelId);
   const saved = await persistProfiles();
   if (!saved?.ok) {

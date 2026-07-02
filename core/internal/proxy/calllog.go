@@ -15,7 +15,6 @@ import (
 	"github.com/clovapi/switcher/internal/protocol"
 	"github.com/clovapi/switcher/internal/provider"
 	"github.com/clovapi/switcher/internal/syslog"
-	"github.com/clovapi/switcher/internal/agentkind"
 	"github.com/google/uuid"
 )
 
@@ -47,9 +46,6 @@ type CallLogTokenUsage struct {
 
 type CallLogEntry struct {
 	ID            string             `json:"id"`
-	Session       string             `json:"session,omitempty"`
-	SessionID     string             `json:"sessionId,omitempty"`
-	SessionKind   string             `json:"sessionKind,omitempty"`
 	StartedAt     string             `json:"startedAt"`
 	CompletedAt   string             `json:"completedAt"`
 	DurationMs    int64              `json:"durationMs"`
@@ -57,7 +53,6 @@ type CallLogEntry struct {
 	Upstream      CallLogUpstream    `json:"upstream"`
 	TokenUsage    *CallLogTokenUsage `json:"tokenUsage,omitempty"`
 	ToolCallCount int                `json:"toolCallCount,omitempty"`
-	AgentKind     string             `json:"agentKind,omitempty"`
 	Error         string             `json:"error,omitempty"`
 }
 
@@ -145,38 +140,17 @@ func (s *CallLogStore) ListRecent(limit int) []CallLogEntry {
 	return s.ListRecentPage(limit, 0)
 }
 
-func (s *CallLogStore) ListRecentSession(limit int, sessionID string) []CallLogEntry {
-	return s.ListRecentSessionPage(limit, 0, sessionID)
-}
-
 func (s *CallLogStore) ListRecentPage(limit int, offset int) []CallLogEntry {
-	return s.ListRecentSessionPage(limit, offset, "")
-}
-
-func (s *CallLogStore) ListRecentSessionPage(limit int, offset int, sessionID string) []CallLogEntry {
 	if s == nil || s.db == nil {
 		return nil
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	entries, err := listCallLogEntries(s.db, limit, offset, sessionID)
+	entries, err := listCallLogEntries(s.db, limit, offset)
 	if err != nil {
 		return nil
 	}
 	return entries
-}
-
-func (s *CallLogStore) ListSessions(limit int) []CallLogSessionSummary {
-	if s == nil || s.db == nil {
-		return nil
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	out, err := listCallLogSessions(s.db, limit)
-	if err != nil {
-		return nil
-	}
-	return out
 }
 
 func (s *CallLogStore) Find(id string) (CallLogEntry, error) {
@@ -195,20 +169,6 @@ func (s *CallLogStore) Clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	_ = clearCallLogDB(s.db)
-}
-
-// DeleteSession removes all call log rows for a grouped session key (kind-sessionId).
-func (s *CallLogStore) DeleteSession(sessionKey string) (int64, error) {
-	if s == nil || s.db == nil {
-		return 0, errors.New("call log store unavailable")
-	}
-	kind, sessionID, ok := parseCallLogSessionKey(sessionKey)
-	if !ok {
-		return 0, errors.New("invalid session key")
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return deleteCallLogsBySession(s.db, kind, sessionID)
 }
 
 func shouldRecordCallLog(path string) bool {
@@ -372,13 +332,6 @@ func cloneInboundRequestHeaders(r *http.Request) map[string]string {
 	}
 	out["Host"] = host
 	return out
-}
-
-func (t *requestTrace) setIngressAgent(kind agentkind.Kind) {
-	if t == nil || kind == "" {
-		return
-	}
-	t.entry.AgentKind = string(kind)
 }
 
 func (t *requestTrace) setRequestBody(body []byte) {

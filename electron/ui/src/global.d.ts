@@ -26,53 +26,27 @@ type CliBridge = {
     stderr?: string;
   }>;
   which(command: string): Promise<{ ok?: boolean; exists?: boolean; path?: string; error?: string }>;
-  agentStatus(): Promise<{
-    ok?: boolean;
-    error?: string;
-    items?: Array<{
-      id?: string;
-      name?: string;
-      command?: string;
-      kind?: string;
-      installed?: boolean;
-      commandPath?: string;
-      installSupported?: boolean;
-      uninstallSupported?: boolean;
-      installPlan?: string;
-    }>;
-  }>;
-  agentInstall(kind: string): Promise<{ ok?: boolean; kind?: string; status?: string; path?: string; error?: string }>;
-  agentUninstall(kind: string): Promise<{ ok?: boolean; kind?: string; status?: string; path?: string; error?: string }>;
   authStatus(): Promise<{ ok?: boolean; items?: SubscriptionItem[]; error?: string }>;
   authLogin(provider: string): Promise<{ ok?: boolean; cancelled?: boolean; error?: string }>;
   cancelAuthLogin(provider: string): Promise<{ ok?: boolean; error?: string }>;
   authLogout(provider: string): Promise<ProfilesLoadResult>;
   proxyStatus(): Promise<ProxyStatusResult>;
   proxyHealth(): Promise<ProxyHealthResult>;
-  proxyStart(port?: number): Promise<ProxyStatusResult>;
+  proxyStart(port?: number, host?: string): Promise<ProxyStatusResult>;
+  proxyConfigSave(payload: ProxyConfig): Promise<{ ok?: boolean; proxy?: ProxyConfig; error?: string }>;
   proxyStop(options?: { suppressAutostart?: boolean }): Promise<{ ok?: boolean; error?: string }>;
   proxyLogsList(payload?: { limit?: number; offset?: number }): Promise<ProxyLogsResult>;
   proxyLogsClear(scope?: "calls" | "system" | "all"): Promise<ProxyLogsResult>;
-  proxyLogsDeleteSession(session: string): Promise<ProxyLogsResult>;
   profilesLoad(): Promise<ProfilesLoadResult>;
   profilesSave(payload: {
     profiles: Vendor[];
-    active: Record<string, ActiveSelection>;
     proxy?: ProxyConfig;
   }): Promise<ProfilesSaveResult>;
   profilesTest(payload: string | ProfileTestPayload): Promise<ProfileTestResult>;
   profilesListModels(vendorName: string): Promise<ListVendorModelsResult>;
+  profilesModels(): Promise<ModelListResult>;
   profilesUsage(vendorName: string): Promise<VendorUsageResult>;
   profilesCatalog(): Promise<ModelAdaptersResult>;
-  switchCli(payload: {
-    cli?: string;
-    cliKind?: string;
-    provider?: string;
-    providerId?: string;
-    model?: string;
-    modelId?: string;
-    reset?: boolean;
-  }): Promise<{ ok?: boolean; error?: string; reset?: boolean }>;
   onOutput(callback: (payload: unknown) => void): () => void;
   onExit(callback: (payload: { code?: number | null }) => void): () => void;
 };
@@ -96,11 +70,10 @@ type ProxyBridge = {
 type ProxyLogsBridge = {
   list(payload?: { limit?: number; offset?: number }): Promise<ProxyLogsResult>;
   clear(scope?: "calls" | "system" | "all"): Promise<ProxyLogsResult>;
-  deleteSession(session: string): Promise<ProxyLogsResult>;
 };
 
 type AppEventPayload =
-  | { type: "open-tab"; tab: "cli" | "profiles" | "call-logs" | "sessions" | "system-logs" | "settings" }
+  | { type: "open-tab"; tab: "profiles" | "models" | "call-logs" | "system-logs" | "settings" }
   | { type: "open-profiles-vendor"; vendorName: string }
   | { type: "profiles-changed" }
   | { type: "proxy-status-changed" }
@@ -153,10 +126,6 @@ export type ProxyLogEntry = {
     headers: Record<string, string>;
     body: string;
   };
-  session?: string;
-  sessionId?: string;
-  sessionKind?: string;
-  agentKind?: string;
   upstream: {
     method: string;
     url: string;
@@ -184,30 +153,10 @@ export type ProxySystemLogEntry = {
   message: string;
 };
 
-export type ProxyLogSession = {
-  session: string;
-  sessionId: string;
-  sessionKind: string;
-  entryCount: number;
-  firstStartedAt: string;
-  lastStartedAt: string;
-  logIds: string[];
-  tokenUsage?: {
-    inputTokens?: number;
-    outputTokens?: number;
-    totalTokens?: number;
-    cacheReadTokens?: number;
-    cacheCreationTokens?: number;
-    reasoningTokens?: number;
-  };
-  toolCallCount?: number;
-};
-
 type ProxyLogsResult = {
   ok?: boolean;
   error?: string;
   requests?: ProxyLogEntry[];
-  sessions?: ProxyLogSession[];
   system?: ProxySystemLogEntry[];
   callLogPage?: {
     limit?: number;
@@ -220,7 +169,6 @@ type ProfilesLoadResult = {
   ok?: boolean;
   error?: string;
   profiles?: Vendor[];
-  active?: Record<string, ActiveSelection>;
   proxy?: ProxyConfig;
   path?: string;
 };
@@ -292,7 +240,6 @@ export type SubscriptionItem = {
   loggedIn: boolean;
   active?: boolean;
   summary: string;
-  command?: string;
 };
 
 export type VendorModel = {
@@ -337,6 +284,26 @@ export type VendorUsageResult = {
   error?: string;
 };
 
+export type VendorUsageCacheItem = {
+  ok?: boolean;
+  vendor?: string;
+  vendorKind?: VendorKind | string;
+  providerId?: string;
+  templateType?: string;
+  text?: string;
+  usage?: VendorUsageResult["usage"];
+  error?: string;
+  updatedAt?: string;
+};
+
+type VendorUsageCacheResult = {
+  ok?: boolean;
+  usages?: VendorUsageCacheItem[];
+  updatedAt?: string;
+  polling?: boolean;
+  error?: string;
+};
+
 /** 供应商：远程 API（api）、本地 Ollama（local）、官方订阅（subscription） */
 export type Vendor = {
   name: string;
@@ -346,16 +313,9 @@ export type Vendor = {
   modelAdapter: ModelAdapterId;
   baseUrl: string;
   apiKey: string;
-  cli: string;
   usageQuery?: VendorUsageQuery;
+  usage?: VendorUsageCacheItem;
   models: VendorModel[];
-};
-
-export type CliDef = {
-  id: string;
-  name: string;
-  command: string;
-  kind: string;
 };
 
 export type Preset = {
@@ -378,9 +338,7 @@ type ProfileTestPayload = {
   provider_id?: string;
   model?: string;
   model_id?: string;
-  cli?: string;
   vendors?: Vendor[];
-  active?: Record<string, ActiveSelection>;
   proxy?: ProxyConfig;
 };
 
@@ -392,6 +350,22 @@ type ListVendorModelsResult = {
   profiles?: Vendor[];
   source?: string;
   message?: string;
+};
+
+export type ModelListItem = {
+  vendorName: string;
+  vendorKind: VendorKind;
+  providerId: string;
+  modelId: string;
+  label: string;
+  apiStyle: string;
+  proxyBaseUrl?: string;
+};
+
+type ModelListResult = {
+  ok?: boolean;
+  error?: string;
+  models?: ModelListItem[];
 };
 
 type ModelAdaptersResult = {

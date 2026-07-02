@@ -25,15 +25,15 @@ type TestResult struct {
 }
 
 func proxyConfigForTest(s *profile.Store, portOverride int) profile.ProxyConfig {
-	cfg := profile.ProxyConfig{Enabled: true, Host: "0.0.0.0", Port: 27483}
+	cfg := profile.ProxyConfig{Enabled: true, Host: profile.DefaultProxyHost, Port: profile.DefaultProxyPort}
 	if s != nil {
 		cfg = s.Proxy
 	}
 	if strings.TrimSpace(cfg.Host) == "" {
-		cfg.Host = "0.0.0.0"
+		cfg.Host = profile.DefaultProxyHost
 	}
 	if cfg.Port == 0 {
-		cfg.Port = 27483
+		cfg.Port = profile.DefaultProxyPort
 	}
 	if portOverride > 0 {
 		cfg.Port = portOverride
@@ -86,7 +86,7 @@ func waitProxyHealth(cfg profile.ProxyConfig, deadline time.Duration) error {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	return fmt.Errorf("本地代理未就绪: %s", proxyHealthURL(cfg))
+	return fmt.Errorf("鏈湴浠ｇ悊鏈氨缁? %s", proxyHealthURL(cfg))
 }
 
 func ensureProxyForTest(cfg profile.ProxyConfig) error {
@@ -95,11 +95,11 @@ func ensureProxyForTest(cfg profile.ProxyConfig) error {
 	}
 	exe, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("找不到 clovapi 可执行文件: %w", err)
+		return fmt.Errorf("鎵句笉鍒?clovapi 鍙墽琛屾枃浠? %w", err)
 	}
 	cmd := exec.Command(exe, "proxy", "start", "--host", cfg.Host, "--port", strconv.Itoa(cfg.Port))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("启动本地代理失败: %w: %s", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("鍚姩鏈湴浠ｇ悊澶辫触: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	return waitProxyHealth(cfg, 15*time.Second)
 }
@@ -107,41 +107,40 @@ func ensureProxyForTest(cfg profile.ProxyConfig) error {
 // TestProviderModel probes connectivity via the local proxy ingress URLs.
 // Desktop model tests intentionally hit both Responses and Messages ingress
 // routes so the call log captures the two core protocol paths.
-func TestProviderModel(providerID, modelID string, portOverride int, cliKindStr string) TestResult {
-	_ = strings.TrimSpace(cliKindStr)
+func TestProviderModel(providerID, modelID string, portOverride int) TestResult {
 	providerID = strings.TrimSpace(providerID)
 	modelID = strings.TrimSpace(modelID)
 	if providerID == "" || modelID == "" {
 		return TestResult{
-			OK: false, Passed: false, Summary: "测试失败", Error: "未指定测试目标",
-			Text: "未指定要测试的 provider/model。",
+			OK: false, Passed: false, Summary: "Test failed", Error: "provider/model is required",
+			Text: "Pass both provider and model to run a proxy connectivity test.",
 		}
 	}
 
 	s, err := profile.LoadDesktop()
 	if err != nil {
-		return TestResult{OK: false, Passed: false, Summary: "测试失败", Error: err.Error()}
+		return TestResult{OK: false, Passed: false, Summary: "Test failed", Error: err.Error()}
 	}
 
 	hit, ok := profile.FindProviderModel(s, providerID, modelID)
 	if !ok {
 		return TestResult{
-			OK: false, Passed: false, Summary: "测试失败", Error: fmt.Sprintf("未找到模型: %s/%s", providerID, modelID),
-			Text: fmt.Sprintf("未在供应商配置中找到该模型（%s/%s）。请先拉取或添加模型。", providerID, modelID),
+			OK: false, Passed: false, Summary: "Test failed", Error: fmt.Sprintf("model not found: %s/%s", providerID, modelID),
+			Text: fmt.Sprintf("The configured provider models do not include %s/%s.", providerID, modelID),
 		}
 	}
 
 	if !provider.IsFixedProviderID(providerID) {
 		return TestResult{
-			OK: false, Passed: false, Summary: "测试失败",
-			Error: fmt.Sprintf("不支持的供应商: %s", providerID),
+			OK: false, Passed: false, Summary: "Test failed",
+			Error: fmt.Sprintf("unsupported provider: %s", providerID),
 		}
 	}
 	proxyCfg := proxyConfigForTest(s, portOverride)
 	if err := ensureProxyForTest(proxyCfg); err != nil {
 		return TestResult{
-			OK: true, Passed: false, Summary: "测试失败",
-			Text:  fmt.Sprintf("本地代理不可用：%v", err),
+			OK: true, Passed: false, Summary: "Test failed",
+			Text:  fmt.Sprintf("local proxy is unavailable: %v", err),
 			Error: err.Error(),
 		}
 	}
@@ -152,29 +151,13 @@ func TestProviderModel(providerID, modelID string, portOverride int, cliKindStr 
 
 	if err := testclient.ProbeToolRoundTrip(responsesBaseURL, claudeBaseURL, "clovapi-local", modelWire); err != nil {
 		return TestResult{
-			OK: true, Passed: false, Summary: "测试失败",
-			Text:  fmt.Sprintf("连通性测试失败：%v", err),
+			OK: true, Passed: false, Summary: "Test failed",
+			Text:  fmt.Sprintf("connectivity probe failed: %v", err),
 			Error: err.Error(),
 		}
 	}
 	return TestResult{
-		OK: true, Passed: true, Summary: "测试成功",
-		Text: fmt.Sprintf("已通过本地代理工具测试 %s/%s（%s）：openai-responses + anthropic messages。", providerID, pathModelID, modelWire),
+		OK: true, Passed: true, Summary: "Test passed",
+		Text: fmt.Sprintf("Local proxy probe passed for %s/%s (%s): openai-responses + anthropic messages.", providerID, pathModelID, modelWire),
 	}
-}
-
-// TestBinding is deprecated compatibility for old desktop/CLI callers.
-func TestBinding(binding string, portOverride int, cliKindStr string) TestResult {
-	s, err := profile.LoadDesktop()
-	if err != nil {
-		return TestResult{OK: false, Passed: false, Summary: "测试失败", Error: err.Error()}
-	}
-	sel, ok := s.ActiveSelectionFromLegacyValue(binding)
-	if !ok {
-		return TestResult{
-			OK: false, Passed: false, Summary: "测试失败", Error: "binding 格式无效",
-			Text: fmt.Sprintf("无效的模型绑定：%s", binding),
-		}
-	}
-	return TestProviderModel(sel.ProviderID, sel.ModelID, portOverride, cliKindStr)
 }

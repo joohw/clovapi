@@ -35,8 +35,14 @@ func TestBuildClaudeAuthorizeURLUsesClaudeCodeClientID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if got, want := parsed.Scheme+"://"+parsed.Host+parsed.Path, "https://claude.com/cai/oauth/authorize"; got != want {
+		t.Fatalf("authorize URL = %q, want %q", got, want)
+	}
 	if got, want := parsed.Query().Get("client_id"), "9d1c250a-e61b-44d9-88ed-5944d1962f5e"; got != want {
 		t.Fatalf("client_id = %q, want %q", got, want)
+	}
+	if got, want := parsed.Query().Get("scope"), "user:profile user:inference user:sessions:claude_code user:mcp_servers user:file_upload"; got != want {
+		t.Fatalf("scope = %q, want %q", got, want)
 	}
 }
 

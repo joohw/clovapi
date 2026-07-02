@@ -169,12 +169,6 @@ func TestCLISmokeProfilesLoadSaveRoundtrip(t *testing.T) {
 				},
 			},
 		},
-		"active": map[string]any{
-			"opencode": map[string]any{
-				"provider_id": provider.CustomAPIProviderID,
-				"model_id":    "smoke-model",
-			},
-		},
 		"proxy": map[string]any{
 			"enabled": true,
 			"host":    "127.0.0.1",
@@ -200,78 +194,9 @@ func TestCLISmokeProfilesLoadSaveRoundtrip(t *testing.T) {
 		t.Fatalf("profiles reload exit=%d stderr=%q", reload.Code, reload.Stderr)
 	}
 	again := parseSmokeJSON(t, reload.Stdout)
-	active, _ := again["active"].(map[string]any)
-	opencode, _ := active["opencode"].(map[string]any)
-	if opencode["provider_id"] != provider.CustomAPIProviderID || opencode["model_id"] != "smoke-model" {
-		t.Fatalf("active selection not persisted: %+v", active)
-	}
-}
-
-func TestCLISmokeSwitchJSON(t *testing.T) {
-	env := smokeIsolatedEnv(t)
-
-	seed := map[string]any{
-		"profiles": []any{
-			map[string]any{
-				"name":         provider.CustomAPIVendorName,
-				"kind":         "api",
-				"modelAdapter": "manual",
-				"baseUrl":      "http://127.0.0.1:59999/v1",
-				"apiKey":       "smoke-test-key",
-				"models": []any{
-					map[string]any{
-						"id":       "smoke-model",
-						"label":    "Smoke Model",
-						"model":    "smoke-model",
-						"apiStyle": "openai-chat",
-					},
-				},
-			},
-		},
-		"active": map[string]any{},
-		"proxy": map[string]any{
-			"enabled": true,
-			"host":    "127.0.0.1",
-			"port":    27483,
-		},
-	}
-	raw, err := json.Marshal(seed)
-	if err != nil {
-		t.Fatal(err)
-	}
-	save := runSmokeCLI(t, env, string(raw), "profiles", "save", "--json")
-	if save.Code != 0 {
-		t.Fatalf("seed save exit=%d stderr=%q", save.Code, save.Stderr)
-	}
-
-	switchRes := runSmokeCLI(t, env, "",
-		"switch",
-		"--cli", "opencode",
-		"--provider", provider.CustomAPIProviderID,
-		"--model", "smoke-model",
-		"--json",
-	)
-	if switchRes.Code != 0 {
-		t.Fatalf("switch exit=%d stderr=%q stdout=%q", switchRes.Code, switchRes.Stderr, switchRes.Stdout)
-	}
-	doc := parseSmokeJSON(t, switchRes.Stdout)
-	if doc["ok"] != true {
-		t.Fatalf("switch not ok: %+v stderr=%q", doc, switchRes.Stderr)
-	}
-	if doc["cli"] != "opencode" {
-		t.Fatalf("unexpected cli field: %+v", doc)
-	}
-	if doc["providerId"] != provider.CustomAPIProviderID || doc["modelId"] != "smoke-model" {
-		t.Fatalf("unexpected provider/model: %+v", doc)
-	}
-
-	reset := runSmokeCLI(t, env, "", "switch", "--cli", "opencode", "--reset", "--json")
-	if reset.Code != 0 {
-		t.Fatalf("switch reset exit=%d stderr=%q stdout=%q", reset.Code, reset.Stderr, reset.Stdout)
-	}
-	resetDoc := parseSmokeJSON(t, reset.Stdout)
-	if resetDoc["ok"] != true || resetDoc["reset"] != true {
-		t.Fatalf("reset not ok: %+v", resetDoc)
+	profiles, _ := again["profiles"].([]any)
+	if len(profiles) == 0 {
+		t.Fatalf("profiles not persisted: %+v", again)
 	}
 }
 

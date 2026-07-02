@@ -376,4 +376,3 @@ func extractFromTarGz(data []byte) ([]byte, error) {
 	}
 	return nil, fmt.Errorf("clovapi not found in archive")
 }
-

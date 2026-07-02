@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { actionButtonGridClass } from "@/components/home/client-download-buttons";
 import { getDesktopDownloadUrls } from "@/lib/downloads";
@@ -26,9 +25,6 @@ export function HomeCta() {
           <a href={windows} className={actionButtonGridClass} download rel="noopener noreferrer">
             {t("home.downloadWindows")}
           </a>
-          <Link href="/skill" className={actionButtonGridClass}>
-            {t("home.installAgentSkill")}
-          </Link>
           <a
             href={githubUrl}
             target="_blank"

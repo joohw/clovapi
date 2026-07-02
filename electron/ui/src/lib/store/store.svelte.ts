@@ -1,11 +1,5 @@
 export { store, type TabId } from "./state.svelte";
 export {
-  activeBindingForCli,
-  clearModelBinding,
-  clearVendorBindings,
-  isValidModelBinding,
-} from "./bindings";
-export {
   getModelTest,
   isModelTesting,
   setModelTestResult,
@@ -14,6 +8,7 @@ export {
   clearVendorModelTests,
 } from "./model-tests";
 export { runModelTest } from "./model-runner";
+export { refreshModelList } from "./model-list";
 export {
   persistProfiles,
   loadProfilesFromDisk,
@@ -33,6 +28,8 @@ export {
   vendorUsageSummaryForVendor,
   clearVendorUsage,
   isVendorUsageLoading,
+  applyVendorUsageCache,
+  applyVendorUsageFromProfiles,
 } from "./vendor-usage";
 export {
   refreshProxyStatus,
@@ -41,9 +38,9 @@ export {
   previousProxyLogsPage,
   refreshCoreVersion,
   clearCallLogs,
-  deleteProxySession,
   clearSystemLogs,
   restartLocalProxy,
+  saveLocalProxyAddress,
   runProxyHealthTest,
   checkCoreUpdate,
   installCoreUpdate,
@@ -56,8 +53,6 @@ export {
   closeProfilesVendor,
   openProxyLog,
   closeProxyLog,
-  openProxySession,
-  closeProxySession,
   openProxySystemLog,
 } from "./navigation";
 export {
@@ -72,14 +67,7 @@ export {
 } from "./subscriptions";
 export {
   setRunning,
-  onCliBindingChange,
-  detectCliPath,
   detectOllamaInstalled,
-  runCliApply,
-  runCliReset,
-  runCliInstall,
-  runCliUninstall,
-  cliApplyTitle,
-} from "./cli";
+} from "./local-runtime";
 export { initApp } from "./init";
-export { buildCliBindingOptions, canApplyCliBinding, hasAvailableCliBindingOptions, userVisibleVendors } from "../helpers";
+export { userVisibleVendors } from "../helpers";

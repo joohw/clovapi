@@ -24,7 +24,7 @@ const probeOutputTokens = 16
 const toolProbeReplyInstruction = "reply ok of tool response pong"
 
 // Probe checks reachability for style using base_url, api_key, and model (all required).
-// Probes use streaming requests to match agent CLIs and subscription upstreams (e.g. Codex /responses).
+// Probes use streaming requests to match production clients and subscription upstreams.
 // Claude uses Anthropic Messages with a same-host OpenAI chat fallback when Messages returns 404.
 func Probe(style apistyle.Style, baseURL, apiKey, model string) error {
 	base := strings.TrimRight(strings.TrimSpace(baseURL), "/")

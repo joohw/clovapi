@@ -6,7 +6,6 @@ const { createClovapiProxy } = require("./clovapi-proxy");
 const callLogsStore = require("./call-logs-store");
 const clovapiDesktop = require("./clovapi-desktop");
 clovapiDesktop.setOutputHandler((kind, chunk) => emitOutput(kind, chunk));
-const { applyTrayModelSwitch } = require("./tray-model-switch");
 const {
   coreDevStatePath,
   resolveClovapiExecutableAsync,
@@ -19,10 +18,11 @@ const { sanitizeForIpc } = require("./ipc-utils");
 
 const isElectronDev =
   process.env.ELECTRON_DEV === "1" || process.argv.includes("--clovapi-dev");
+const APP_DISPLAY_NAME = "Clov API代理";
 
 // Overlay scrollbars float above content instead of reserving layout width (Windows/Linux).
 app.commandLine.appendSwitch("enable-features", "OverlayScrollbar,FluentOverlayScrollbar");
-app.setName("ClovAPI Switcher");
+app.setName(APP_DISPLAY_NAME);
 
 const electronDataDir = isElectronDev ? electronDevUserDataDir() : electronUserDataDir();
 fs.mkdirSync(electronDataDir, { recursive: true });
@@ -49,7 +49,7 @@ const WINDOW_BG_TOP = "#FBF9F9";
 const TITLE_BAR_OVERLAY_HEIGHT = 32;
 
 function windowTitle() {
-  return `ClovAPI Switcher v${app.getVersion()}`;
+  return `${APP_DISPLAY_NAME} v${app.getVersion()}`;
 }
 
 function buildBrowserWindowOptions() {
@@ -206,78 +206,15 @@ async function readTrayProxyState() {
   }
 }
 
-async function readTrayDesktopState() {
-  try {
-    const result = await clovapiDesktop.loadProfiles();
-    if (!result?.ok) {
-      return {
-        ok: false,
-        profiles: [],
-        active: {},
-        error: String(result?.error || "").trim(),
-      };
-    }
-    return {
-      ok: true,
-      profiles: Array.isArray(result?.profiles) ? result.profiles : [],
-      active: result?.active && typeof result.active === "object" ? result.active : {},
-      error: "",
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      profiles: [],
-      active: {},
-      error: error instanceof Error ? error.message : "Failed to read desktop profiles",
-    };
-  }
-}
-
-async function readTrayAgentInstallState() {
-  try {
-    const result = await clovapiDesktop.agentStatus();
-    return {
-      ok: Boolean(result?.ok),
-      agents: Array.isArray(result?.items) ? result.items : [],
-      error: String(result?.error || "").trim(),
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      agents: [],
-      error: error instanceof Error ? error.message : "Failed to read agent install status",
-    };
-  }
-}
-
-async function switchTrayAgentModel(cliKind, providerId, modelId) {
-  await applyTrayModelSwitch({
-    desktop: clovapiDesktop,
-    cliKind,
-    providerId,
-    modelId,
-    emitOutput,
-    dispatchRendererEvent,
-    updateTrayMenu,
-  });
-}
-
 async function updateTrayMenu() {
   if (!tray) return;
-  const [state, desktop, agentsState] = await Promise.all([
-    readTrayProxyState(),
-    readTrayDesktopState(),
-    readTrayAgentInstallState(),
-  ]);
+  const state = await readTrayProxyState();
   const model = buildTrayMenuModel({
     running: state.running,
     port: state.port,
     external: state.external,
     managed: state.managed,
     error: state.error,
-    profiles: desktop.profiles,
-    active: desktop.active,
-    agents: agentsState.agents,
   });
   tray.setToolTip(trayTooltip(trayStatusSummary(state)));
   const template = [
@@ -302,38 +239,6 @@ async function updateTrayMenu() {
       label: model.statusLabel,
       enabled: false,
     },
-    ...(model.hasBindings
-      ? model.bindings.map((binding) => ({
-          label: binding.summaryLabel,
-          submenu: binding.modelOptions.length
-            ? [
-                { label: binding.detailLabel, enabled: false },
-                { type: "separator" },
-                ...binding.modelOptions.map((option) => ({
-                  label: option.label,
-                  type: "checkbox",
-                  checked: option.checked,
-                  click: () => {
-                    void switchTrayAgentModel(binding.cliKind, option.providerId, option.modelId);
-                  },
-                })),
-                { type: "separator" },
-                {
-                  label: "Open Provider",
-                  click: () => showMainWindow({ vendorName: binding.vendorName }),
-                },
-              ]
-            : [
-                { label: binding.detailLabel, enabled: false },
-                { label: "No compatible models", enabled: false },
-                { type: "separator" },
-                {
-                  label: "Open Provider",
-                  click: () => showMainWindow({ vendorName: binding.vendorName }),
-                },
-              ],
-        }))
-      : [{ label: model.noAgentsLabel, enabled: false }]),
     ...(model.canStartProxy
       ? [
           {
@@ -471,7 +376,6 @@ async function listProxyLogs(payload = {}) {
     return {
       ok: true,
       requests: page.entries,
-      sessions: page.sessions,
       system,
       callLogPage: {
         limit: page.limit,
@@ -484,7 +388,6 @@ async function listProxyLogs(payload = {}) {
       ok: false,
       error: error instanceof Error ? error.message : "Failed to read proxy logs",
       requests: [],
-      sessions: [],
       system: [],
       callLogPage,
     };
@@ -498,24 +401,9 @@ async function clearProxyLogs(scope = "all") {
   return listProxyLogs({ offset: 0, limit: callLogsStore.DEFAULT_CALL_LOG_PAGE_SIZE });
 }
 
-async function deleteProxyLogSession(session) {
-  const key = String(session || "").trim();
-  if (!key) {
-    return { ok: false, error: "session is required" };
-  }
-  try {
-    const proxy = await proxyManager.loadProxyConfig();
-    await callLogsStore.deleteCallLogSessionViaHTTP(key, { proxy });
-    return listProxyLogs({
-      offset: 0,
-      limit: callLogsStore.DEFAULT_CALL_LOG_PAGE_SIZE,
-    });
-  } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to delete session",
-    };
-  }
+async function readCoreProfiles() {
+  const proxy = await proxyManager.loadProxyConfig();
+  return callLogsStore.readProfilesViaHTTP({ proxy });
 }
 
 function scheduleCoreProxyRestart() {
@@ -764,7 +652,11 @@ ipcMain.handle("cli:update", async (_event, payload) => {
 
 ipcMain.handle("cli:profiles-load", async () => {
   try {
-    return await clovapiDesktop.loadProfiles();
+    try {
+      return await readCoreProfiles();
+    } catch {
+      return await clovapiDesktop.loadProfiles();
+    }
   } catch (error) {
     return {
       ok: false,
@@ -777,7 +669,11 @@ ipcMain.handle("cli:profiles-save", async (_event, payload) => {
   try {
     const result = await clovapiDesktop.saveProfiles(payload);
     await updateTrayMenu();
-    return result;
+    try {
+      return await readCoreProfiles();
+    } catch {
+      return result;
+    }
   } catch (error) {
     return {
       ok: false,
@@ -797,6 +693,17 @@ ipcMain.handle("cli:profiles-list-models", async (_event, payload) => {
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Failed to list vendor models",
+    };
+  }
+});
+
+ipcMain.handle("cli:profiles-models", async () => {
+  try {
+    return await clovapiDesktop.listModels();
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to list models",
     };
   }
 });
@@ -836,7 +743,6 @@ ipcMain.handle("cli:profiles-test", async (_event, payload) => {
       provider_id: payload?.provider_id,
       model: payload?.model,
       model_id: payload?.model_id,
-      cli: payload?.cli,
       proxy: {
         port: requestedPort || 27483,
       },
@@ -851,41 +757,6 @@ ipcMain.handle("cli:profiles-test", async (_event, payload) => {
       error: message,
       summary: "测试失败",
       text: ["=== 测试过程异常 ===", "", message, stack ? `\n${stack}` : ""].join("\n"),
-    };
-  }
-});
-
-ipcMain.handle("cli:switch", async (_event, payload) => {
-  try {
-    const cliKind = String(payload?.cli || payload?.cliKind || "").trim();
-    const providerId = String(payload?.provider || payload?.providerId || "").trim();
-    const modelId = String(payload?.model || payload?.modelId || "").trim();
-    const reset = Boolean(payload?.reset);
-    if (reset) {
-      const { runClovapiArgsAsync } = require("./clovapi-exec");
-      const result = await runClovapiArgsAsync(["switch", "--cli", cliKind, "--reset", "--json"], {
-        timeout: 45000,
-      });
-      if (!result.ok) {
-        return {
-          ok: false,
-          error: String(result.stderr || result.stdout || "clovapi switch failed").trim(),
-        };
-      }
-      try {
-        return JSON.parse(String(result.stdout || "").trim() || "{}");
-      } catch {
-        return { ok: false, error: "invalid JSON from clovapi switch" };
-      }
-    }
-    if (!cliKind || !providerId || !modelId) {
-      return { ok: false, error: "cli, provider, and model are required" };
-    }
-    return await clovapiDesktop.switchProviderModel(cliKind, providerId, modelId);
-  } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "clovapi switch failed",
     };
   }
 });
@@ -906,18 +777,6 @@ ipcMain.handle("cli:which", async (_event, payload) => {
   const command = String(payload?.command || "").trim();
   if (!command) return { ok: false, exists: false, path: "" };
   return clovapiDesktop.whichCommand(command);
-});
-
-ipcMain.handle("cli:agent-status", async () => {
-  return clovapiDesktop.agentStatus();
-});
-
-ipcMain.handle("cli:agent-install", async (_event, payload) => {
-  return clovapiDesktop.agentInstall(String(payload?.kind || ""));
-});
-
-ipcMain.handle("cli:agent-uninstall", async (_event, payload) => {
-  return clovapiDesktop.agentUninstall(String(payload?.kind || ""));
 });
 
 ipcMain.handle("cli:auth-status", async () => {
@@ -981,7 +840,8 @@ ipcMain.handle("cli:proxy-health", async () => {
 ipcMain.handle("cli:proxy-start", async (_event, payload) => {
   try {
     const port = Number(payload?.port) || undefined;
-    const result = await proxyManager.start({ port });
+    const host = String(payload?.host || "").trim() || undefined;
+    const result = await proxyManager.start({ port, host });
     dispatchRendererEvent({ type: "proxy-status-changed" });
     await updateTrayMenu();
     return result;
@@ -989,6 +849,20 @@ ipcMain.handle("cli:proxy-start", async (_event, payload) => {
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Failed to start proxy",
+    };
+  }
+});
+
+ipcMain.handle("cli:proxy-config-save", async (_event, payload) => {
+  try {
+    const result = await proxyManager.saveProxyConfig(payload || {});
+    dispatchRendererEvent({ type: "proxy-status-changed" });
+    await updateTrayMenu();
+    return { ok: true, proxy: result };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to save proxy config",
     };
   }
 });
@@ -1014,10 +888,6 @@ ipcMain.handle("cli:proxy-logs-clear", async (_event, payload) =>
   clearProxyLogs(String(payload?.scope || "all")),
 );
 
-ipcMain.handle("cli:proxy-logs-delete-session", async (_event, payload) =>
-  deleteProxyLogSession(String(payload?.session || "")),
-);
-
 ipcMain.handle("cli:tool-status", async () => {
   const executable = await resolveClovapiExecutablePath();
   if (executable) {
@@ -1035,9 +905,7 @@ if (gotSingleInstanceLock) {
   app.whenReady().then(async () => {
     nativeTheme.themeSource = "light";
     createWindow();
-    if (!isElectronDev) {
-      createTray();
-    }
+    createTray();
     watchCoreDevBinary();
     try {
       if (!isElectronDev && fs.existsSync(cliBinPath())) {

@@ -1,8 +1,10 @@
 package desktop
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/clovapi/switcher/internal/apistyle"
@@ -11,7 +13,128 @@ import (
 	"github.com/clovapi/switcher/internal/provider"
 )
 
-func TestAuthStatusCodexLoggedInWithoutCLIInstalled(t *testing.T) {
+func TestListModelsUsesPublicModelIDsOnly(t *testing.T) {
+	root := t.TempDir()
+	config.SetDirOverride(filepath.Join(root, "clovapi"))
+	t.Cleanup(func() { config.SetDirOverride("") })
+
+	if err := profile.Save(&profile.Store{
+		Version: profile.StoreVersion,
+		Proxy:   profile.ProxyConfig{Enabled: true, Host: "127.0.0.1", Port: 28888},
+		List: []profile.Profile{
+			{
+				Name:         profile.CustomAPIProfileName,
+				Kind:         "api",
+				ModelAdapter: "manual",
+				Models: []profile.Model{{
+					ID:       "public-gpt",
+					Label:    "Public GPT",
+					Model:    "upstream-secret-model",
+					APIStyle: apistyle.OpenAIResponses,
+					BaseURL:  "https://upstream.example/v1",
+					APIKey:   "secret-key",
+				}},
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	result := ListModels()
+	if !result.OK {
+		t.Fatalf("ListModels failed: %s", result.Error)
+	}
+	if len(result.Models) != 1 {
+		t.Fatalf("expected 1 model, got %d", len(result.Models))
+	}
+	item := result.Models[0]
+	if item.ProviderID != provider.CustomAPIProviderID || item.ModelID != "public-gpt" {
+		t.Fatalf("unexpected model item: %+v", item)
+	}
+	if item.ProxyBaseURL != "http://127.0.0.1:28888/custom-api/v1" {
+		t.Fatalf("proxy base URL = %q", item.ProxyBaseURL)
+	}
+	body, err := json.Marshal(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, forbidden := range []string{"upstream-secret-model", "upstream.example", "secret-key"} {
+		if strings.Contains(text, forbidden) {
+			t.Fatalf("ListModels leaked %q in %s", forbidden, text)
+		}
+	}
+}
+
+func TestListModelsHidesUnavailableOllamaAndSubscriptions(t *testing.T) {
+	root := t.TempDir()
+	configDir := filepath.Join(root, "clovapi")
+	config.SetDirOverride(configDir)
+	t.Cleanup(func() { config.SetDirOverride("") })
+	t.Setenv("PATH", root)
+	t.Setenv("HOME", root)
+	t.Setenv("USERPROFILE", root)
+	t.Setenv("LOCALAPPDATA", filepath.Join(root, "LocalAppData"))
+	t.Setenv("APPDATA", filepath.Join(root, "AppData"))
+	t.Setenv("ProgramFiles", filepath.Join(root, "ProgramFiles"))
+
+	if err := profile.Save(&profile.Store{
+		Version: profile.StoreVersion,
+		Proxy:   profile.ProxyConfig{Enabled: true, Host: "0.0.0.0", Port: 27483},
+		List: []profile.Profile{
+			{
+				Name:          provider.OllamaVendorName,
+				Kind:          "local",
+				LocalProvider: "ollama",
+				ModelAdapter:  "ollama",
+				Models: []profile.Model{{
+					ID:       "llama3.2",
+					Label:    "llama3.2",
+					Model:    "llama3.2",
+					APIStyle: apistyle.OpenAIChat,
+				}},
+			},
+			{
+				Name:                   provider.CodexVendorName,
+				Kind:                   "subscription",
+				SubscriptionProviderID: provider.CodexProviderID,
+				ModelAdapter:           "subscription",
+				Models: []profile.Model{{
+					ID:       "gpt-5",
+					Label:    "GPT-5",
+					Model:    "gpt-5",
+					APIStyle: apistyle.OpenAIResponses,
+				}},
+			},
+			{
+				Name:         profile.CustomAPIProfileName,
+				Kind:         "api",
+				ModelAdapter: "manual",
+				Models: []profile.Model{{
+					ID:       "public-gpt",
+					Label:    "Public GPT",
+					Model:    "upstream-secret-model",
+					APIStyle: apistyle.OpenAIResponses,
+				}},
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	result := ListModels()
+	if !result.OK {
+		t.Fatalf("ListModels failed: %s", result.Error)
+	}
+	if len(result.Models) != 1 {
+		t.Fatalf("expected only custom API model, got %+v", result.Models)
+	}
+	if result.Models[0].ProviderID != provider.CustomAPIProviderID {
+		t.Fatalf("unexpected model item: %+v", result.Models[0])
+	}
+}
+
+func TestAuthStatusCodexLoggedIn(t *testing.T) {
 	root := t.TempDir()
 	configDir := filepath.Join(root, "clovapi")
 	config.SetDirOverride(configDir)
@@ -50,11 +173,8 @@ func TestAuthStatusCodexLoggedInWithoutCLIInstalled(t *testing.T) {
 	if codexItem == nil {
 		t.Fatal("codex auth status item not found")
 	}
-	if codexItem.Installed {
-		t.Fatal("expected codex to be reported as not installed in isolated env")
-	}
 	if !codexItem.LoggedIn {
-		t.Fatalf("expected logged in from clovapi OAuth store without codex CLI; summary=%q", codexItem.Summary)
+		t.Fatalf("expected logged in from clovapi OAuth store; summary=%q", codexItem.Summary)
 	}
 	if !codexItem.Active {
 		t.Fatal("expected active codex subscription when logged in")

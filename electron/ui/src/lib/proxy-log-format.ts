@@ -71,16 +71,10 @@ export function proxyLogUpstreamRequestLine(entry: ProxyLogEntry): string {
 
 export function proxyLogOverviewText(entry: ProxyLogEntry): string {
   const status = entry.upstream?.status ? String(entry.upstream.status) : "(pending)";
-  const session = String(entry.session || entry.sessionId || "").trim() || t("common.none");
   const usage = proxyLogTokenUsageText(entry);
   const rows = [
     `${t("callLogs.overviewResult")}: ${proxyLogResultText(entry)}`,
-    `${t("callLogs.overviewSession")}: ${session}`,
   ];
-  const agent = String(entry.agentKind || "").trim();
-  if (agent) {
-    rows.push(`Agent: ${agent}`);
-  }
   rows.push(
     `${t("callLogs.overviewTokens")}: ${usage}`,
     `${t("callLogs.overviewTime")}: ${proxyLogTimeRangeText(entry)}`,

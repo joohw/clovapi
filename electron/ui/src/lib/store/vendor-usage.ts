@@ -1,4 +1,4 @@
-import type { SubscriptionItem, Vendor, VendorUsageData, VendorUsageResult } from "../../global";
+import type { SubscriptionItem, Vendor, VendorUsageCacheItem, VendorUsageData, VendorUsageResult } from "../../global";
 import { getSubscriptionVendors, shouldShowVendorUsage } from "../helpers";
 import { t } from "../i18n";
 import { toast } from "../toast";
@@ -9,7 +9,8 @@ export function vendorUsageSummary(vendorName: string): string {
 }
 
 export function vendorUsageSummaryForVendor(vendor: Vendor, subscriptions: SubscriptionItem[]): string {
-  if (!shouldShowVendorUsage(vendor, subscriptions)) return "";
+  void subscriptions;
+  if (vendor.kind === "local") return "";
   return vendorUsageSummary(vendor.name);
 }
 
@@ -21,8 +22,10 @@ export function clearVendorUsage(vendorName: string): void {
 }
 
 export function pruneVendorUsageForSubscriptions(subscriptions: SubscriptionItem[]): void {
+  const byId = new Map(subscriptions.map((item) => [item.id, item]));
   for (const vendor of getSubscriptionVendors(store.profiles)) {
-    if (!shouldShowVendorUsage(vendor, subscriptions)) {
+    const status = byId.get(vendor.subscriptionProviderId);
+    if (status && !status.loggedIn) {
       clearVendorUsage(vendor.name);
     }
   }
@@ -84,6 +87,52 @@ function rowsFromTiers(result: NonNullable<VendorUsageResult["usage"]>): VendorU
       isValid: true,
     };
   });
+}
+
+function usageSummaryFromResult(result: {
+  text?: string;
+  usage?: VendorUsageResult["usage"];
+}): { summary: string; rows: VendorUsageData[] } | null {
+  if (!result.usage?.success) return null;
+  const rows = Array.isArray(result.usage.data) && result.usage.data.length > 0
+    ? result.usage.data
+    : rowsFromTiers(result.usage);
+  const text = String(result.text || "").trim();
+  const summary = text || (rows.length > 0
+    ? rows.map(formatUsageRow).join(" 路 ")
+    : t("vendorDetail.usageEmpty"));
+  return { summary, rows };
+}
+
+export function applyVendorUsageCache(usages: VendorUsageCacheItem[] = []): void {
+  const seen = new Set<string>();
+  for (const item of usages) {
+    const name = String(item?.vendor || "").trim();
+    if (!name) continue;
+    seen.add(name.toLowerCase());
+    delete store.vendorUsageLoading[name];
+    const summary = item?.ok ? usageSummaryFromResult(item) : null;
+    if (!summary) {
+      clearVendorUsage(name);
+      continue;
+    }
+    store.vendorUsage[name] = { summary: summary.summary, rows: summary.rows, error: "" };
+  }
+  for (const vendor of getSubscriptionVendors(store.profiles)) {
+    if (!seen.has(vendor.name.toLowerCase())) {
+      clearVendorUsage(vendor.name);
+    }
+  }
+}
+
+export function applyVendorUsageFromProfiles(profiles: Vendor[] = []): void {
+  const usages = profiles.map((vendor) => vendor.usage).filter(Boolean) as VendorUsageCacheItem[];
+  for (const vendor of profiles) {
+    if (vendor.kind !== "local" && !vendor.usage) {
+      clearVendorUsage(vendor.name);
+    }
+  }
+  applyVendorUsageCache(usages);
 }
 
 function vendorHasUsageCredentials(vendor: Vendor): boolean {

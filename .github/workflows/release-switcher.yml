@@ -16,6 +16,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-switcher-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   R2_PUBLIC_BASE_URL: https://downloads.clovapi.com
 

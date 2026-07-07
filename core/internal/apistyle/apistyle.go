@@ -9,27 +9,31 @@ import (
 type Style string
 
 const (
-	Claude          Style = "claude"
-	OpenAIChat      Style = "openai-chat"      // POST …/v1/chat/completions
-	OpenAIResponses Style = "openai-responses" // POST …/v1/responses (Codex wire_api)
+	Claude          Style = "message"   // POST .../v1/messages (Anthropic Messages)
+	OpenAIChat      Style = "chat"      // POST .../v1/chat/completions
+	OpenAIResponses Style = "responses" // POST .../v1/responses (Codex wire_api)
 	Gemini          Style = "gemini"
 )
 
-// Parse accepts claude, openai-chat, openai-responses, gemini, and legacy alias openai → openai-responses.
+// Parse accepts canonical styles (message, chat, responses, gemini) plus legacy aliases.
 func Parse(s string) (Style, error) {
 	switch strings.ToLower(strings.TrimSpace(s)) {
 	case string(Claude):
 		return Claude, nil
+	case "claude", "anthropic", "messages":
+		return Claude, nil
 	case string(OpenAIChat):
+		return OpenAIChat, nil
+	case "openai-chat":
 		return OpenAIChat, nil
 	case string(OpenAIResponses):
 		return OpenAIResponses, nil
-	case "openai":
+	case "openai", "openai-responses":
 		return OpenAIResponses, nil
 	case string(Gemini):
 		return Gemini, nil
 	default:
-		return "", fmt.Errorf("unknown api style %q (want claude|openai-chat|openai-responses|gemini; alias openai→openai-responses)", s)
+		return "", fmt.Errorf("unknown api style %q (want chat|responses|message|gemini; legacy aliases: openai-chat|openai-responses|claude|openai)", s)
 	}
 }
 
@@ -37,5 +41,5 @@ func (s Style) String() string { return string(s) }
 
 // All lists styles shown in help / matrices (stable order).
 func All() []Style {
-	return []Style{Claude, OpenAIChat, OpenAIResponses, Gemini}
+	return []Style{OpenAIChat, OpenAIResponses, Claude, Gemini}
 }

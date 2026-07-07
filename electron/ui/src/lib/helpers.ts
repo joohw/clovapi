@@ -5,7 +5,6 @@ import {
   t,
 } from "./i18n";
 import {
-  API_STYLES,
   INTERNAL_PROFILE_PREFIX,
   MODEL_ADAPTER_IDS,
   CUSTOM_API_PROFILE_NAME,
@@ -320,6 +319,17 @@ export function customApiModelLine(model: VendorModel): string {
   return `${model.model} · ${model.apiStyle} · ${url}`;
 }
 
+export function normalizeApiStyle(raw: unknown): string {
+  const style = String(raw || "").trim().toLowerCase();
+  if (style === "message" || style === "claude" || style === "anthropic" || style === "messages") {
+    return "message";
+  }
+  if (style === "chat" || style === "openai-chat") return "chat";
+  if (style === "responses" || style === "openai-responses" || style === "openai") return "responses";
+  if (style === "gemini") return "gemini";
+  return "chat";
+}
+
 export function normalizeVendorModel(input: Partial<VendorModel>): VendorModel {
   const model = String(input?.model || "").trim();
   const id = String(input?.id || "").trim() || "default";
@@ -327,9 +337,7 @@ export function normalizeVendorModel(input: Partial<VendorModel>): VendorModel {
     id,
     label: String(input?.label || "").trim() || model || id,
     model: model || id,
-    apiStyle: API_STYLES.includes(input?.apiStyle as (typeof API_STYLES)[number])
-      ? (input.apiStyle as string)
-      : "openai-chat",
+    apiStyle: normalizeApiStyle(input?.apiStyle),
     baseUrl: String(input?.baseUrl || "").trim(),
     apiKey: String(input?.apiKey || "").trim(),
   };
@@ -362,18 +370,12 @@ export function normalizeVendor(input: Partial<Vendor>): Vendor {
 }
 
 export function normalizePreset(input: Partial<Preset>): Preset {
-  const rawStyle = String(input?.apiStyle || "").trim().toLowerCase();
-  let apiStyle = "openai-responses";
-  if (rawStyle === "anthropic") apiStyle = "claude";
-  else if (rawStyle === "openai") apiStyle = "openai-responses";
-  else if (API_STYLES.includes(rawStyle as (typeof API_STYLES)[number])) apiStyle = rawStyle;
-
   const id = String(input?.id || "").trim();
   return {
     id: id || `preset-${Date.now()}`,
     apiName: String(input?.apiName || "").trim(),
     baseUrl: String(input?.baseUrl || "").trim(),
-    apiStyle,
+    apiStyle: normalizeApiStyle(input?.apiStyle || "responses"),
     defaultModel: String(input?.defaultModel || "").trim(),
     modelAdapter: normalizeModelAdapter(input?.modelAdapter),
   };

@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/clovapi/switcher/internal/apistyle"
 )
 
 const (
@@ -130,6 +132,10 @@ func parseLegacyProxyIngressParts(parts []string) (Ingress, bool) {
 	if err != nil {
 		return Ingress{}, false
 	}
+	normalizedAPIStyle, err := apistyle.Parse(apiStyle)
+	if err != nil {
+		return Ingress{}, false
+	}
 	pathSuffix := "/"
 	if len(parts) > 4 {
 		pathSuffix = "/" + strings.Join(parts[4:], "/")
@@ -137,7 +143,7 @@ func parseLegacyProxyIngressParts(parts []string) (Ingress, bool) {
 	if !IsFixedProviderID(providerID) || strings.TrimSpace(modelID) == "" || strings.TrimSpace(apiStyle) == "" {
 		return Ingress{}, false
 	}
-	return Ingress{ProviderID: providerID, ModelID: modelID, APIStyle: strings.ToLower(apiStyle), PathSuffix: pathSuffix}, true
+	return Ingress{ProviderID: providerID, ModelID: modelID, APIStyle: normalizedAPIStyle.String(), PathSuffix: pathSuffix}, true
 }
 
 // normalizeProxyIngressPath collapses /v1/v1/ from Anthropic clients whose base URL already ends with /v1.
@@ -158,15 +164,15 @@ func apiStyleFromPathSuffix(pathSuffix string) string {
 	}
 	switch {
 	case p == "/messages" || strings.HasPrefix(p, "/messages/"):
-		return "claude"
+		return apistyle.Claude.String()
 	case p == "/responses" || strings.HasPrefix(p, "/responses/"):
-		return "openai-responses"
+		return apistyle.OpenAIResponses.String()
 	case p == "/chat/completions" || strings.HasPrefix(p, "/chat/completions/"):
-		return "openai-chat"
+		return apistyle.OpenAIChat.String()
 	case strings.HasPrefix(p, "/models/") && (strings.Contains(p, ":generatecontent") || strings.Contains(p, ":streamgeneratecontent")):
-		return "gemini"
+		return apistyle.Gemini.String()
 	case p == "/models" || strings.HasPrefix(p, "/models/"):
-		return "openai-responses"
+		return apistyle.OpenAIResponses.String()
 	default:
 		return ""
 	}

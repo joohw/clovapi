@@ -24,6 +24,8 @@ type TestResult struct {
 	Error   string `json:"error,omitempty"`
 }
 
+const defaultModelTestAPIKey = "clovapi-test"
+
 func proxyConfigForTest(s *profile.Store, portOverride int) profile.ProxyConfig {
 	cfg := profile.ProxyConfig{Enabled: true, Host: profile.DefaultProxyHost, Port: profile.DefaultProxyPort}
 	if s != nil {
@@ -149,7 +151,7 @@ func TestProviderModel(providerID, modelID string, portOverride int) TestResult 
 	responsesBaseURL := provider.BuildProxyIngressBaseURL(proxyCfg.Port, providerID)
 	claudeBaseURL := provider.BuildProxyIngressBaseURL(proxyCfg.Port, providerID)
 
-	if err := testclient.ProbeToolRoundTrip(responsesBaseURL, claudeBaseURL, "clovapi-local", modelWire); err != nil {
+	if err := testclient.ProbeToolRoundTrip(responsesBaseURL, claudeBaseURL, defaultModelTestAPIKey, modelWire); err != nil {
 		return TestResult{
 			OK: true, Passed: false, Summary: "Test failed",
 			Text:  fmt.Sprintf("connectivity probe failed: %v", err),
@@ -158,6 +160,6 @@ func TestProviderModel(providerID, modelID string, portOverride int) TestResult 
 	}
 	return TestResult{
 		OK: true, Passed: true, Summary: "Test passed",
-		Text: fmt.Sprintf("Local proxy probe passed for %s/%s (%s): openai-responses + anthropic messages.", providerID, pathModelID, modelWire),
+		Text: fmt.Sprintf("Local proxy probe passed for %s/%s (%s): responses + message.", providerID, pathModelID, modelWire),
 	}
 }

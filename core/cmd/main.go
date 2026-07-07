@@ -180,7 +180,7 @@ func cmdSet() *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&name, "name", "", "Profile name (required)")
-	c.Flags().StringVar(&styleStr, "api-style", "", "API style: claude|openai-chat|openai-responses|gemini (alias openai鈫抩penai-responses)")
+	c.Flags().StringVar(&styleStr, "api-style", "", "API style: chat|responses|message|gemini (legacy aliases: openai-chat|openai-responses|claude|openai)")
 	c.Flags().StringVar(&baseURL, "base-url", "", "Upstream base URL")
 	c.Flags().StringVar(&apiKey, "api-key", "", "API key (or prompt)")
 	c.Flags().StringVar(&model, "model", "", "Default model id (required; used for connectivity test)")

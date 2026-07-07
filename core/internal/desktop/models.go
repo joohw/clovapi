@@ -828,19 +828,19 @@ func ListVendorModels(vendorName string) ListModelsResult {
 	if adapterID == "" {
 		adapterID = "openai-compatible"
 	}
-	defaultStyle := "openai-chat"
+	defaultStyle := "chat"
 	switch adapterID {
 	case "manual":
 		return ListModelsResult{OK: false, Error: "手动维护供应商不支持自动拉取模型"}
 	case "openai-compatible":
-		defaultStyle = "openai-chat"
+		defaultStyle = "chat"
 	case "ollama":
-		defaultStyle = "openai-chat"
+		defaultStyle = "chat"
 	case "subscription":
 		if strings.TrimSpace(vendor.SubscriptionProviderID) == provider.CodexProviderID {
-			defaultStyle = "openai-responses"
+			defaultStyle = "responses"
 		} else {
-			defaultStyle = "claude"
+			defaultStyle = "message"
 		}
 	}
 

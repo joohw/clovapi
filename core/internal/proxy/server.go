@@ -211,16 +211,19 @@ func (s *Server) handleDebugCallLog(w http.ResponseWriter, r *http.Request) {
 		if offset < 0 {
 			offset = 0
 		}
-		entries := s.CallLogs.ListRecentPage(limit+1, offset)
+		filter := callLogFilterFromQuery(r)
+		entries := s.CallLogs.ListRecentPageFiltered(limit+1, offset, filter)
 		hasMore := len(entries) > limit
 		if hasMore {
 			entries = entries[:limit]
 		}
+		apiKeyAggregates := s.CallLogs.APIKeyAggregates()
 		writeJSON(w, http.StatusOK, map[string]any{
-			"entries": entries,
-			"limit":   limit,
-			"offset":  offset,
-			"hasMore": hasMore,
+			"entries":          entries,
+			"apiKeyAggregates": apiKeyAggregates,
+			"limit":            limit,
+			"offset":           offset,
+			"hasMore":          hasMore,
 		})
 	case http.MethodDelete:
 		if r.URL.Query().Has("session") {
@@ -231,6 +234,19 @@ func (s *Server) handleDebugCallLog(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"ok": "cleared"})
 	default:
 		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "GET or DELETE only"})
+	}
+}
+
+func callLogFilterFromQuery(r *http.Request) CallLogFilter {
+	if r == nil {
+		return CallLogFilter{}
+	}
+	q := r.URL.Query()
+	return CallLogFilter{
+		APIKey:            strings.TrimSpace(q.Get("api_key")),
+		APIKeyFingerprint: strings.TrimSpace(q.Get("api_key_fingerprint")),
+		APIKeyUnidentified: q.Get("api_key_unidentified") == "1" ||
+			strings.EqualFold(q.Get("api_key_unidentified"), "true"),
 	}
 }
 

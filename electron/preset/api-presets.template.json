@@ -1,13 +1,13 @@
 {
   "version": 1,
   "description": "Preset definitions for Add API dialog",
-  "apiStyles": ["claude", "openai-chat", "openai-responses", "gemini"],
+  "apiStyles": ["chat", "responses", "message", "gemini"],
   "presets": [
     {
       "id": "custom",
       "apiName": "Custom",
       "baseUrl": "",
-      "apiStyle": "openai-responses",
+      "apiStyle": "responses",
       "defaultModel": "",
       "modelAdapter": "openai-compatible",
       "notes": "User-defined preset. Fields can be left empty."
@@ -16,7 +16,7 @@
       "id": "deepseek-v4-pro",
       "apiName": "DeepSeek",
       "baseUrl": "https://api.deepseek.com/v1",
-      "apiStyle": "openai-responses",
+      "apiStyle": "responses",
       "defaultModel": "deepseek-v4-pro",
       "modelAdapter": "openai-compatible",
       "notes": "OpenAI-compatible endpoint."
@@ -25,7 +25,7 @@
       "id": "openai-default",
       "apiName": "OpenAI",
       "baseUrl": "https://api.openai.com/v1",
-      "apiStyle": "openai-responses",
+      "apiStyle": "responses",
       "defaultModel": "gpt-4.1",
       "modelAdapter": "openai-compatible",
       "notes": "Official OpenAI API."
@@ -34,7 +34,7 @@
       "id": "anthropic-default",
       "apiName": "Anthropic",
       "baseUrl": "https://api.anthropic.com",
-      "apiStyle": "claude",
+      "apiStyle": "message",
       "defaultModel": "claude-sonnet-4-0",
       "modelAdapter": "manual",
       "notes": "Anthropic native style."

@@ -1,13 +1,10 @@
-import { resolveVendorByName } from "../helpers";
 import { detectOllamaInstalled } from "./local-runtime";
 import { refreshModelList } from "./model-list";
 import { loadProfilesFromDisk } from "./profiles";
 import { refreshProxyLogs, refreshProxyStatus } from "./proxy";
 import { refreshAppVersion } from "./app-version";
 import { refreshSubscriptions } from "./subscriptions";
-import { t } from "../i18n";
 import { store, type TabId } from "./state.svelte";
-import { toast } from "../toast";
 
 function isLogTab(tab: TabId): boolean {
   return tab === "call-logs" || tab === "system-logs";
@@ -15,9 +12,6 @@ function isLogTab(tab: TabId): boolean {
 
 export function setActiveTab(tab: TabId) {
   if (store.activeTab === tab) return;
-  if (store.activeTab === "profiles" && tab !== "profiles") {
-    store.profilesSelectedVendor = null;
-  }
   if (isLogTab(store.activeTab) && !isLogTab(tab)) {
     store.proxyLogSelectedId = null;
     store.proxySystemLogSelectedId = null;
@@ -52,22 +46,6 @@ export function setActiveTab(tab: TabId) {
   if (isLogTab(tab)) {
     void refreshProxyLogs();
   }
-}
-
-export function openProfilesVendor(vendorName: string) {
-  const name = String(vendorName || "").trim();
-  if (!name) return;
-  const vendor = resolveVendorByName(store.profiles, name);
-  if (!vendor) {
-    toast.error(t("toast.vendorNotFound"));
-    store.profilesSelectedVendor = null;
-    return;
-  }
-  store.profilesSelectedVendor = name;
-}
-
-export function closeProfilesVendor() {
-  store.profilesSelectedVendor = null;
 }
 
 export function openProxyLog(id: string) {

@@ -36,7 +36,7 @@ func TestProxyIngressURLAndParser(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected valid ingress")
 	}
-	if ingress.ProviderID != "claude-code" || ingress.ModelID != "" || ingress.APIStyle != "claude" || ingress.PathSuffix != "/messages" {
+	if ingress.ProviderID != "claude-code" || ingress.ModelID != "" || ingress.APIStyle != "message" || ingress.PathSuffix != "/messages" {
 		t.Fatalf("unexpected ingress: %+v", ingress)
 	}
 
@@ -44,7 +44,7 @@ func TestProxyIngressURLAndParser(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected valid legacy ingress")
 	}
-	if legacy.ProviderID != "claude-code" || legacy.ModelID != "claude opus/4" || legacy.APIStyle != "claude" || legacy.PathSuffix != "/messages" {
+	if legacy.ProviderID != "claude-code" || legacy.ModelID != "claude opus/4" || legacy.APIStyle != "message" || legacy.PathSuffix != "/messages" {
 		t.Fatalf("unexpected legacy ingress: %+v", legacy)
 	}
 

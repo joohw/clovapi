@@ -1,5 +1,5 @@
 import { FIXED_PROVIDER_IDS } from "../constants";
-import type { ModelAdapterDef, ModelListItem, ModelTestEntry, ProxyLogEntry, ProxySystemLogEntry, ProviderDef, SubscriptionItem, Vendor } from "../../global";
+import type { ModelAdapterDef, ModelListItem, ModelTestEntry, ProxyLogAPIKeyAggregate, ProxyLogEntry, ProxySystemLogEntry, ProviderDef, SubscriptionItem, Vendor } from "../../global";
 
 export type TabId = "profiles" | "models" | "call-logs" | "system-logs" | "settings";
 
@@ -29,7 +29,7 @@ export const store = $state({
   formModelName: "",
   formModelBaseUrl: "",
   formModelApiKey: "",
-  formModelApiStyle: "openai-responses",
+  formModelApiStyle: "responses",
   proxyRunning: false,
   proxyHost: "0.0.0.0",
   proxyPort: 27483,
@@ -50,17 +50,20 @@ export const store = $state({
   coreUpdating: false,
   coreUpdateCheck: null as import("../../global").ModelTestEntry | null,
   proxyLogs: [] as ProxyLogEntry[],
+  proxyLogApiKeyAggregates: [] as ProxyLogAPIKeyAggregate[],
   proxySystemLogs: [] as ProxySystemLogEntry[],
   proxyLogsLoading: false,
   proxyLogsPageSize: 20,
   proxyLogsOffset: 0,
   proxyLogsHasMore: false,
+  proxyLogSelectedApiKeyFingerprint: null as string | null,
+  proxyLogSelectedApiKeyUnidentified: false,
+  proxyLogSelectedApiKeyLabel: "",
   proxyLogSelectedId: null as string | null,
   proxySystemLogSelectedId: null as string | null,
   vendorFetching: {} as Record<string, boolean>,
   vendorUsage: {} as Record<string, { summary: string; rows: import("../../global").VendorUsageData[]; error: string }>,
   vendorUsageLoading: {} as Record<string, boolean>,
-  profilesSelectedVendor: null as string | null,
   modelAdapters: [] as ModelAdapterDef[],
   providers: [] as ProviderDef[],
   fixedProviderIds: [...FIXED_PROVIDER_IDS] as string[],

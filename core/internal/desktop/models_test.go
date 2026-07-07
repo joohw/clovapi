@@ -256,7 +256,7 @@ func TestParseCodexSubscriptionModelsSupportsCurrentShapes(t *testing.T) {
 		t.Fatalf("expected displayName label, got %q", models[0].Label)
 	}
 	if models[0].APIStyle != apistyle.OpenAIResponses {
-		t.Fatalf("expected openai-responses api style, got %q", models[0].APIStyle)
+		t.Fatalf("expected responses api style, got %q", models[0].APIStyle)
 	}
 }
 

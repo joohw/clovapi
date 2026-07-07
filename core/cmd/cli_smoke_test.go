@@ -164,7 +164,7 @@ func TestCLISmokeProfilesLoadSaveRoundtrip(t *testing.T) {
 						"id":       "smoke-model",
 						"label":    "Smoke Model",
 						"model":    "smoke-model",
-						"apiStyle": "openai-chat",
+						"apiStyle": "chat",
 					},
 				},
 			},

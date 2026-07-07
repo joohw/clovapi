@@ -187,6 +187,38 @@ func TestDebugCallLogPaginatesDefaultLimit(t *testing.T) {
 	}
 }
 
+func TestDebugCallLogFiltersByAPIKeyQuery(t *testing.T) {
+	s := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	s.CallLogs = openTestCallLogStore(t)
+	s.CallLogs.Push(CallLogEntry{
+		StartedAt: "2026-01-01T00:00:01Z",
+		APIKey:    &CallLogAPIKey{Label: "Bearer clovapi-test", Fingerprint: apiKeyFingerprint("clovapi-test")},
+		Request:   CallLogRequest{Method: "POST", URL: "/matching"},
+	})
+	s.CallLogs.Push(CallLogEntry{
+		StartedAt: "2026-01-01T00:00:02Z",
+		APIKey:    &CallLogAPIKey{Label: "Bearer other", Fingerprint: apiKeyFingerprint("other")},
+		Request:   CallLogRequest{Method: "POST", URL: "/other"},
+	})
+	ts := httptest.NewServer(s.Server.Handler)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/__debug/call-log?api_key=clovapi-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var body struct {
+		Entries []CallLogEntry `json:"entries"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.Entries) != 1 || body.Entries[0].Request.URL != "/matching" {
+		t.Fatalf("filtered entries = %+v", body.Entries)
+	}
+}
+
 func TestDebugSystemLogPaginatesDefaultLimit(t *testing.T) {
 	dir := t.TempDir()
 	config.SetDirOverride(dir)

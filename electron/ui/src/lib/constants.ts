@@ -9,22 +9,22 @@ export const DEFAULT_PRESETS = [
     id: CUSTOM_PRESET_ID,
     apiName: "custom",
     baseUrl: "",
-    apiStyle: "openai-responses",
+    apiStyle: "responses",
     defaultModel: "",
   },
 ];
 
-export const API_STYLES = ["claude", "openai-chat", "openai-responses", "gemini"] as const;
+export const API_STYLES = ["chat", "responses", "message", "gemini"] as const;
 export const SUBSCRIPTION_VENDOR_DEFS = [
   {
     subscriptionProviderId: "claude-code",
     name: "Claude Subscription",
-    modelApiStyle: "claude" as const,
+    modelApiStyle: "message" as const,
   },
   {
     subscriptionProviderId: "codex",
     name: "Codex Subscription",
-    modelApiStyle: "openai-responses" as const,
+    modelApiStyle: "responses" as const,
   },
 ] as const;
 
@@ -44,7 +44,7 @@ export type FixedProviderId = (typeof FIXED_PROVIDER_IDS)[number];
 
 export const OLLAMA_DEFAULTS = {
   baseUrl: "http://127.0.0.1:11434/v1",
-  apiStyle: "openai-chat",
+  apiStyle: "chat",
   apiKey: "ollama",
 } as const;
 

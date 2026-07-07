@@ -9,9 +9,9 @@
   import Select from "./Select.svelte";
 
   const apiStyleOptions = [
-    { value: "claude", label: "claude (Anthropic)" },
-    { value: "openai-chat", label: "openai-chat" },
-    { value: "openai-responses", label: "openai-responses (Codex)" },
+    { value: "chat", label: "chat" },
+    { value: "responses", label: "responses" },
+    { value: "message", label: "message (Anthropic)" },
     { value: "gemini", label: "gemini" },
   ];
 

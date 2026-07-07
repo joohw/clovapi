@@ -31,5 +31,5 @@ export function applyPresetToModelForm(presetId: string) {
   store.formModelName = preset.defaultModel || "";
   store.formModelLabel = preset.defaultModel || "";
   store.formModelBaseUrl = preset.baseUrl || "";
-  store.formModelApiStyle = preset.apiStyle || "openai-responses";
+  store.formModelApiStyle = preset.apiStyle || "responses";
 }

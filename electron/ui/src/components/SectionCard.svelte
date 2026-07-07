@@ -14,7 +14,7 @@
     headerMeta?: Snippet;
     leading?: Snippet;
     actions?: Snippet;
-    children: Snippet;
+    children?: Snippet;
   } = $props();
 </script>
 
@@ -46,5 +46,7 @@
       {/if}
     </div>
   </header>
-  <div>{@render children()}</div>
+  {#if children}
+    <div>{@render children()}</div>
+  {/if}
 </section>

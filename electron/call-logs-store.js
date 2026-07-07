@@ -89,10 +89,17 @@ async function fetchProxyDebugJSON(pathname, query = {}, options = {}) {
 
 async function readCallLogsViaHTTP(options = {}) {
   const { limit, offset } = normalizePage(options);
-  const parsed = await fetchProxyDebugJSON("/__debug/call-log", { limit, offset }, { proxy: options.proxy });
+  const parsed = await fetchProxyDebugJSON("/__debug/call-log", {
+    limit,
+    offset,
+    api_key: options.apiKey,
+    api_key_unidentified: options.apiKeyUnidentified ? "1" : "",
+  }, { proxy: options.proxy });
   const entries = Array.isArray(parsed?.entries) ? parsed.entries : [];
+  const apiKeyAggregates = Array.isArray(parsed?.apiKeyAggregates) ? parsed.apiKeyAggregates : [];
   return {
     entries,
+    apiKeyAggregates,
     limit: Number(parsed?.limit) || limit,
     offset: Number(parsed?.offset) || offset,
     hasMore: Boolean(parsed?.hasMore),

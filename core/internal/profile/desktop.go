@@ -25,23 +25,9 @@ var subscriptionVendorDefs = []struct {
 	{SubscriptionProviderID: provider.CodexProviderID, Name: provider.CodexVendorName},
 }
 
-var allowedAPIStyles = map[string]apistyle.Style{
-	"claude":           apistyle.Claude,
-	"openai-chat":      apistyle.OpenAIChat,
-	"openai-responses": apistyle.OpenAIResponses,
-	"gemini":           apistyle.Gemini,
-}
-
 // NormalizeAPIStyle maps legacy/desktop style strings to canonical apistyle values.
 func NormalizeAPIStyle(raw string) apistyle.Style {
-	s := strings.ToLower(strings.TrimSpace(raw))
-	if s == "openai" {
-		return apistyle.OpenAIResponses
-	}
-	if s == "anthropic" {
-		return apistyle.Claude
-	}
-	if st, ok := allowedAPIStyles[s]; ok {
+	if st, err := apistyle.Parse(raw); err == nil {
 		return st
 	}
 	return apistyle.OpenAIResponses

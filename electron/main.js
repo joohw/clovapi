@@ -370,13 +370,19 @@ async function listProxyLogs(payload = {}) {
   try {
     const proxy = await proxyManager.loadProxyConfig();
     const [page, system] = await Promise.all([
-      callLogsStore.readCallLogsViaHTTP({ ...callLogPage, proxy }),
+      callLogsStore.readCallLogsViaHTTP({
+        ...callLogPage,
+        apiKey: String(payload?.apiKey || "").trim(),
+        apiKeyUnidentified: Boolean(payload?.apiKeyUnidentified),
+        proxy,
+      }),
       callLogsStore.readSystemLogsViaHTTP(20, { proxy }),
     ]);
     return {
       ok: true,
       requests: page.entries,
       system,
+      apiKeyAggregates: page.apiKeyAggregates || [],
       callLogPage: {
         limit: page.limit,
         offset: page.offset,
@@ -389,6 +395,7 @@ async function listProxyLogs(payload = {}) {
       error: error instanceof Error ? error.message : "Failed to read proxy logs",
       requests: [],
       system: [],
+      apiKeyAggregates: [],
       callLogPage,
     };
   }

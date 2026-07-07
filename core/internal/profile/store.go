@@ -10,7 +10,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/clovapi/switcher/internal/apistyle"
 	cfgpkg "github.com/clovapi/switcher/internal/config"
 	"github.com/clovapi/switcher/internal/syslog"
 )
@@ -113,11 +112,12 @@ func migrateLegacyCurrentIntoProfiles(raw []byte, s *Store) {
 	s.List = append(s.List, cur)
 }
 
-// migrateLegacyAPIStyles maps pre-split JSON api_style "openai" to openai-responses (Codex wire_api).
+// migrateLegacyAPIStyles maps older JSON api_style names to canonical styles.
 func migrateLegacyAPIStyles(s *Store) {
 	for i := range s.List {
-		if string(s.List[i].APIStyle) == "openai" {
-			s.List[i].APIStyle = apistyle.OpenAIResponses
+		s.List[i].APIStyle = NormalizeAPIStyle(string(s.List[i].APIStyle))
+		for j := range s.List[i].Models {
+			s.List[i].Models[j].APIStyle = NormalizeAPIStyle(string(s.List[i].Models[j].APIStyle))
 		}
 	}
 }

@@ -35,7 +35,12 @@ type CliBridge = {
   proxyStart(port?: number, host?: string): Promise<ProxyStatusResult>;
   proxyConfigSave(payload: ProxyConfig): Promise<{ ok?: boolean; proxy?: ProxyConfig; error?: string }>;
   proxyStop(options?: { suppressAutostart?: boolean }): Promise<{ ok?: boolean; error?: string }>;
-  proxyLogsList(payload?: { limit?: number; offset?: number }): Promise<ProxyLogsResult>;
+  proxyLogsList(payload?: {
+    limit?: number;
+    offset?: number;
+    apiKey?: string;
+    apiKeyUnidentified?: boolean;
+  }): Promise<ProxyLogsResult>;
   proxyLogsClear(scope?: "calls" | "system" | "all"): Promise<ProxyLogsResult>;
   profilesLoad(): Promise<ProfilesLoadResult>;
   profilesSave(payload: {
@@ -119,6 +124,7 @@ export type ProxyLogEntry = {
   startedAt: string;
   completedAt: string;
   durationMs: number;
+  apiKey?: ProxyLogAPIKeySummary;
   request: {
     method: string;
     url: string;
@@ -146,6 +152,23 @@ export type ProxyLogEntry = {
   error?: string;
 };
 
+export type ProxyLogAPIKeySummary = {
+  label?: string;
+  fingerprint?: string;
+};
+
+export type ProxyLogAPIKeyAggregate = {
+  apiKey?: ProxyLogAPIKeySummary;
+  count: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  toolCallCount?: number;
+  errorCount?: number;
+  lastStartedAt?: string;
+  unidentified?: boolean;
+};
+
 export type ProxySystemLogEntry = {
   id: string;
   at: string;
@@ -158,6 +181,7 @@ type ProxyLogsResult = {
   error?: string;
   requests?: ProxyLogEntry[];
   system?: ProxySystemLogEntry[];
+  apiKeyAggregates?: ProxyLogAPIKeyAggregate[];
   callLogPage?: {
     limit?: number;
     offset?: number;

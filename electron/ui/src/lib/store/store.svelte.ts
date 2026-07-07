@@ -49,8 +49,6 @@ export {
 export { checkAppUpdate, installAppUpdate, startAppUpdatePolling } from "./desktop-update";
 export {
   setActiveTab,
-  openProfilesVendor,
-  closeProfilesVendor,
   openProxyLog,
   closeProxyLog,
   openProxySystemLog,

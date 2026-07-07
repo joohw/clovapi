@@ -2,7 +2,9 @@ package proxy
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -44,11 +46,17 @@ type CallLogTokenUsage struct {
 	ReasoningTokens     int `json:"reasoningTokens,omitempty"`
 }
 
+type CallLogAPIKey struct {
+	Label       string `json:"label,omitempty"`
+	Fingerprint string `json:"fingerprint,omitempty"`
+}
+
 type CallLogEntry struct {
 	ID            string             `json:"id"`
 	StartedAt     string             `json:"startedAt"`
 	CompletedAt   string             `json:"completedAt"`
 	DurationMs    int64              `json:"durationMs"`
+	APIKey        *CallLogAPIKey     `json:"apiKey,omitempty"`
 	Request       CallLogRequest     `json:"request"`
 	Upstream      CallLogUpstream    `json:"upstream"`
 	TokenUsage    *CallLogTokenUsage `json:"tokenUsage,omitempty"`
@@ -60,6 +68,12 @@ type CallLogStore struct {
 	mu     sync.Mutex
 	dbPath string
 	db     *sql.DB
+}
+
+type CallLogFilter struct {
+	APIKey             string
+	APIKeyFingerprint  string
+	APIKeyUnidentified bool
 }
 
 func NewCallLogStore() *CallLogStore {
@@ -141,16 +155,33 @@ func (s *CallLogStore) ListRecent(limit int) []CallLogEntry {
 }
 
 func (s *CallLogStore) ListRecentPage(limit int, offset int) []CallLogEntry {
+	return s.ListRecentPageFiltered(limit, offset, CallLogFilter{})
+}
+
+func (s *CallLogStore) ListRecentPageFiltered(limit int, offset int, filter CallLogFilter) []CallLogEntry {
 	if s == nil || s.db == nil {
 		return nil
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	entries, err := listCallLogEntries(s.db, limit, offset)
+	entries, err := listCallLogEntries(s.db, limit, offset, filter)
 	if err != nil {
 		return nil
 	}
 	return entries
+}
+
+func (s *CallLogStore) APIKeyAggregates() []CallLogAPIKeyAggregate {
+	if s == nil || s.db == nil {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	aggregates, err := listCallLogAPIKeyAggregates(s.db)
+	if err != nil {
+		return nil
+	}
+	return aggregates
 }
 
 func (s *CallLogStore) Find(id string) (CallLogEntry, error) {
@@ -262,6 +293,7 @@ func startRequestTrace(store *CallLogStore, r *http.Request) *requestTrace {
 		start: time.Now().UTC(),
 		entry: CallLogEntry{
 			StartedAt: time.Now().UTC().Format(time.RFC3339Nano),
+			APIKey:    inboundAPIKeySummary(r.Header),
 			Request: CallLogRequest{
 				Method:  r.Method,
 				URL:     inboundRequestURL(r),
@@ -442,6 +474,77 @@ func cloneOutboundRequestHeaders(r *http.Request) map[string]string {
 		delete(out, "Content-Length")
 	}
 	return out
+}
+
+func inboundAPIKeySummary(headers http.Header) *CallLogAPIKey {
+	if len(headers) == 0 {
+		return nil
+	}
+	type candidate struct {
+		name   string
+		value  string
+		scheme string
+	}
+	candidates := []candidate{
+		{name: "authorization", value: headers.Get("Authorization")},
+		{name: "x-api-key", value: headers.Get("X-API-Key")},
+		{name: "api-key", value: headers.Get("API-Key")},
+		{name: "x-goog-api-key", value: headers.Get("X-Goog-API-Key")},
+	}
+	for _, item := range candidates {
+		raw := strings.TrimSpace(item.value)
+		if raw == "" {
+			continue
+		}
+		secret := raw
+		labelPrefix := ""
+		if item.name == "authorization" {
+			parts := strings.Fields(raw)
+			if len(parts) >= 2 {
+				item.scheme = parts[0]
+				secret = strings.TrimSpace(strings.TrimPrefix(raw, parts[0]))
+				if strings.EqualFold(item.scheme, "bearer") {
+					labelPrefix = "Bearer "
+				}
+			}
+		}
+		secret = strings.TrimSpace(secret)
+		if secret == "" {
+			continue
+		}
+		return &CallLogAPIKey{
+			Label:       labelPrefix + redactAPIKeyLabel(secret),
+			Fingerprint: apiKeyFingerprint(secret),
+		}
+	}
+	return nil
+}
+
+func apiKeyFingerprint(secret string) string {
+	key := strings.TrimSpace(secret)
+	if key == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(sum[:])[:12]
+}
+
+func redactAPIKeyLabel(secret string) string {
+	key := strings.TrimSpace(secret)
+	if key == "" {
+		return ""
+	}
+	if key == "clovapi-test" {
+		return key
+	}
+	if len(key) <= 8 {
+		return "[redacted]"
+	}
+	prefixLen := 6
+	if len(key) < prefixLen {
+		prefixLen = len(key)
+	}
+	return key[:prefixLen] + "..." + key[len(key)-4:]
 }
 
 // bodySecretKeys are JSON object keys whose values are scrubbed from logged

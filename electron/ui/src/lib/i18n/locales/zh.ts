@@ -9,7 +9,7 @@ const zh = {
     clickToCopyProxyBaseUrl: "点击复制 base URL",
   },
   tabs: {
-    profiles: "API 管理",
+    profiles: "供应商管理",
     models: "模型列表",
     callLogs: "调用日志",
     systemLogs: "系统日志",
@@ -73,7 +73,7 @@ const zh = {
   modelList: {
     title: "模型列表",
     description: "共 {count} 个已配置模型，按供应商汇总展示。",
-    empty: "暂无模型。请先在 API 管理中添加或拉取模型。",
+    empty: "暂无模型。请先在供应商管理中添加或拉取模型。",
     provider: "Provider",
     modelId: "模型 ID",
     apiStyle: "API 风格",
@@ -157,6 +157,12 @@ const zh = {
     title: "调用日志",
     description: "记录本地代理收到的请求，以及发往上游后的原始响应片段。",
     empty: "暂无调用日志。",
+    apiKeyAggregation: "按 API Key 聚合",
+    apiKeyAggregationDesc: "基于全部已持久化调用日志聚合；不会存储完整 Key。",
+    apiKeyUnknown: "无 API Key",
+    apiKeyCalls: "{count} 次调用",
+    apiKeyErrors: "{count} 次错误",
+    apiKeyLastSeen: "最近 {time}",
     logIds: "日志 ID",
     overview: "请求概览",
     overviewDesc: "只显示摘要：整体结果、token 消耗和请求地址。",
@@ -224,7 +230,7 @@ const zh = {
   },
   binding: {
     loginRequired: "{vendor}（需先登录）",
-    loginHint: "请先在 API 管理完成{vendor}登录",
+    loginHint: "请先在供应商管理完成{vendor}登录",
   },
   modelTest: {
     success: "测试成功",
@@ -297,7 +303,7 @@ const zh = {
     selectBinding: "请先选择模型方案。",
     resetting: "\u6b63\u5728\u91cd\u7f6e {name}...",
     applying: "正在应用 {name}…",
-    loginInProfiles: "请先在 API 管理 → {vendor} 中完成登录。",
+    loginInProfiles: "请先在供应商管理 → {vendor} 中完成登录。",
     bindingStale: "当前选择已失效，请重新在下拉框选择模型方案后再点「应用」。",
     bindingInvalid: "无效或已删除的方案「{binding}」，请重新选择。",
     bindingInvalidGeneric: "所选模型无效或已失效，请重新选择后再应用。",

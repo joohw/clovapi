@@ -1,7 +1,7 @@
 import { detectOllamaInstalled, setRunning } from "./local-runtime";
 import { loadVendorCatalog } from "./catalog";
 import { loadModelTests } from "./model-tests";
-import { openProfilesVendor, setActiveTab } from "./navigation";
+import { setActiveTab } from "./navigation";
 import { refreshModelList } from "./model-list";
 import { loadProfilesFromDisk } from "./profiles";
 import { refreshProxyLogs, refreshProxyStatus, autoUpdateCoreOnStartup } from "./proxy";
@@ -54,7 +54,6 @@ export async function initApp() {
         void (async () => {
           await loadProfilesFromDisk();
           setActiveTab("profiles");
-          openProfilesVendor(payload.vendorName);
         })();
         return;
       }

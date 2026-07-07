@@ -96,7 +96,7 @@ export function openModelDialog(mode: "create" | "edit", vendorName: string, mod
   store.formModelName = model?.model || "";
   store.formModelBaseUrl = model?.baseUrl || "";
   store.formModelApiKey = model?.apiKey || "";
-  store.formModelApiStyle = model?.apiStyle || "openai-responses";
+  store.formModelApiStyle = model?.apiStyle || "responses";
   store.modelDialogOpen = true;
 }
 
@@ -233,9 +233,6 @@ export async function removeProfile(profileName: string) {
     return;
   }
   store.profiles = store.profiles.filter((item) => item.name.toLowerCase() !== key.toLowerCase());
-  if (store.profilesSelectedVendor?.toLowerCase() === key.toLowerCase()) {
-    store.profilesSelectedVendor = null;
-  }
   const saved = await persistProfiles();
   if (!saved?.ok) {
     toast.error(saved?.error || t("toast.profilesSaveFailed"));

@@ -407,6 +407,159 @@ func TestRequestTraceRedactsAuthorization(t *testing.T) {
 	}
 }
 
+func TestRequestTraceCapturesAPIKeyFingerprint(t *testing.T) {
+	req, err := http.NewRequest(http.MethodPost, "http://127.0.0.1:1/p/a", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer sk-test-client-secret")
+	trace := startRequestTrace(openTestCallLogStore(t), req)
+	if trace == nil {
+		t.Fatal("expected trace")
+	}
+	if trace.entry.APIKey == nil {
+		t.Fatal("expected api key summary")
+	}
+	if strings.Contains(trace.entry.APIKey.Label, "client-secret") {
+		t.Fatalf("api key label leaked secret: %q", trace.entry.APIKey.Label)
+	}
+	if !strings.HasPrefix(trace.entry.APIKey.Label, "Bearer sk-tes...") {
+		t.Fatalf("api key label = %q", trace.entry.APIKey.Label)
+	}
+	if len(trace.entry.APIKey.Fingerprint) != 12 {
+		t.Fatalf("fingerprint = %q", trace.entry.APIKey.Fingerprint)
+	}
+}
+
+func TestRequestTraceKeepsModelTestAPIKeyLabel(t *testing.T) {
+	req, err := http.NewRequest(http.MethodPost, "http://127.0.0.1:1/p/a", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer clovapi-test")
+	trace := startRequestTrace(openTestCallLogStore(t), req)
+	if trace == nil || trace.entry.APIKey == nil {
+		t.Fatal("expected api key summary")
+	}
+	if trace.entry.APIKey.Label != "Bearer clovapi-test" {
+		t.Fatalf("api key label = %q", trace.entry.APIKey.Label)
+	}
+}
+
+func TestCallLogAPIKeyAggregates(t *testing.T) {
+	store := openTestCallLogStore(t)
+	store.Push(CallLogEntry{
+		StartedAt:  "2026-01-01T00:00:01Z",
+		APIKey:     &CallLogAPIKey{Label: "Bearer sk-one...1111", Fingerprint: "fingerprint1"},
+		Request:    CallLogRequest{Method: "POST", URL: "/a"},
+		TokenUsage: &CallLogTokenUsage{InputTokens: 2, OutputTokens: 3, TotalTokens: 5},
+	})
+	store.Push(CallLogEntry{
+		StartedAt:     "2026-01-01T00:00:02Z",
+		APIKey:        &CallLogAPIKey{Label: "Bearer sk-one...1111", Fingerprint: "fingerprint1"},
+		Request:       CallLogRequest{Method: "POST", URL: "/b"},
+		ToolCallCount: 2,
+		Error:         "boom",
+	})
+	store.Push(CallLogEntry{
+		StartedAt: "2026-01-01T00:00:03Z",
+		Request:   CallLogRequest{Method: "POST", URL: "/c"},
+	})
+
+	aggregates := store.APIKeyAggregates()
+	if len(aggregates) != 2 {
+		t.Fatalf("aggregates len = %d, want 2: %+v", len(aggregates), aggregates)
+	}
+	first := aggregates[0]
+	if first.APIKey == nil || first.APIKey.Fingerprint != "fingerprint1" || first.Count != 2 ||
+		first.InputTokens != 2 || first.OutputTokens != 3 || first.TotalTokens != 5 ||
+		first.ToolCallCount != 2 || first.ErrorCount != 1 {
+		t.Fatalf("first aggregate = %+v", first)
+	}
+	if !aggregates[1].Unidentified || aggregates[1].Count != 1 {
+		t.Fatalf("unidentified aggregate = %+v", aggregates[1])
+	}
+}
+
+func TestCallLogAPIKeyAggregatesSameFingerprint(t *testing.T) {
+	store := openTestCallLogStore(t)
+	store.Push(CallLogEntry{
+		StartedAt:     "2026-01-01T00:00:01Z",
+		APIKey:        &CallLogAPIKey{Label: "Bearer clovapi-test", Fingerprint: "samefingerpr"},
+		Request:       CallLogRequest{Method: "POST", URL: "/responses"},
+		ToolCallCount: 1,
+	})
+	store.Push(CallLogEntry{
+		StartedAt: "2026-01-01T00:00:02Z",
+		APIKey:    &CallLogAPIKey{Label: "clovapi-test", Fingerprint: "samefingerpr"},
+		Request:   CallLogRequest{Method: "POST", URL: "/messages"},
+	})
+
+	aggregates := store.APIKeyAggregates()
+	if len(aggregates) != 1 {
+		t.Fatalf("aggregates len = %d, want 1: %+v", len(aggregates), aggregates)
+	}
+	if aggregates[0].Count != 2 || aggregates[0].ToolCallCount != 1 ||
+		aggregates[0].APIKey == nil || aggregates[0].APIKey.Fingerprint != "samefingerpr" {
+		t.Fatalf("aggregate = %+v", aggregates[0])
+	}
+}
+
+func TestCallLogListFiltersByAPIKey(t *testing.T) {
+	store := openTestCallLogStore(t)
+	oneFingerprint := "111111111111"
+	twoFingerprint := "222222222222"
+	store.Push(CallLogEntry{
+		StartedAt: "2026-01-01T00:00:01Z",
+		APIKey:    &CallLogAPIKey{Label: "Bearer sk-one...1111", Fingerprint: oneFingerprint},
+		Request:   CallLogRequest{Method: "POST", URL: "/one"},
+	})
+	store.Push(CallLogEntry{
+		StartedAt: "2026-01-01T00:00:02Z",
+		APIKey:    &CallLogAPIKey{Label: "Bearer sk-two...2222", Fingerprint: twoFingerprint},
+		Request:   CallLogRequest{Method: "POST", URL: "/two"},
+	})
+	store.Push(CallLogEntry{
+		StartedAt: "2026-01-01T00:00:03Z",
+		Request:   CallLogRequest{Method: "POST", URL: "/none"},
+	})
+
+	filtered := store.ListRecentPageFiltered(0, 0, CallLogFilter{APIKeyFingerprint: oneFingerprint})
+	if len(filtered) != 1 || filtered[0].Request.URL != "/one" {
+		t.Fatalf("fingerprint filtered entries = %+v", filtered)
+	}
+	rawKey := store.ListRecentPageFiltered(0, 0, CallLogFilter{APIKey: "clovapi-test"})
+	if len(rawKey) != 0 {
+		t.Fatalf("unexpected raw key entries for nonmatching key = %+v", rawKey)
+	}
+	unidentified := store.ListRecentPageFiltered(0, 0, CallLogFilter{APIKeyUnidentified: true})
+	if len(unidentified) != 1 || unidentified[0].Request.URL != "/none" {
+		t.Fatalf("unidentified entries = %+v", unidentified)
+	}
+}
+
+func TestCallLogListFiltersByRawAPIKey(t *testing.T) {
+	store := openTestCallLogStore(t)
+	fingerprint := apiKeyFingerprint("clovapi-test")
+	store.Push(CallLogEntry{
+		StartedAt: "2026-01-01T00:00:01Z",
+		APIKey:    &CallLogAPIKey{Label: "Bearer clovapi-test", Fingerprint: fingerprint},
+		Request:   CallLogRequest{Method: "POST", URL: "/responses"},
+	})
+	store.Push(CallLogEntry{
+		StartedAt: "2026-01-01T00:00:02Z",
+		APIKey:    &CallLogAPIKey{Label: "Bearer other", Fingerprint: apiKeyFingerprint("other")},
+		Request:   CallLogRequest{Method: "POST", URL: "/other"},
+	})
+
+	for _, apiKey := range []string{"clovapi-test", "Bearer clovapi-test", "#" + fingerprint, fingerprint} {
+		filtered := store.ListRecentPageFiltered(0, 0, CallLogFilter{APIKey: apiKey})
+		if len(filtered) != 1 || filtered[0].Request.URL != "/responses" {
+			t.Fatalf("api key %q filtered entries = %+v", apiKey, filtered)
+		}
+	}
+}
+
 func TestRequestTraceBackfillsUpstreamBodyFromError(t *testing.T) {
 	trace := startRequestTrace(openTestCallLogStore(t), mustHTTPRequest(t))
 	if trace == nil {

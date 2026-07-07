@@ -2,6 +2,7 @@ import { isElectronDev } from "../constants";
 import { t } from "../i18n";
 import { store } from "./state.svelte";
 import { toast } from "../toast";
+import type { ProxyLogAPIKeyAggregate, ProxyLogEntry } from "../../global";
 
 type UpdateDetail = {
   current_version?: string;
@@ -85,6 +86,39 @@ function parseVersionFromHealthBody(body: unknown): string {
   return typeof version === "string" ? version.trim() : "";
 }
 
+function fallbackAPIKeyAggregatesFromRequests(requests: ProxyLogEntry[]): ProxyLogAPIKeyAggregate[] {
+  const rows = new Map<string, ProxyLogAPIKeyAggregate>();
+  for (const entry of requests) {
+    const fingerprint = String(entry.apiKey?.fingerprint || "").trim();
+    const key = fingerprint || "__unidentified__";
+    let row = rows.get(key);
+    if (!row) {
+      row = {
+        apiKey: fingerprint ? entry.apiKey : undefined,
+        count: 0,
+        unidentified: !fingerprint,
+        lastStartedAt: entry.startedAt || "",
+      };
+      rows.set(key, row);
+    }
+    row.count += 1;
+    row.inputTokens = (row.inputTokens || 0) + (entry.tokenUsage?.inputTokens || 0);
+    row.outputTokens = (row.outputTokens || 0) + (entry.tokenUsage?.outputTokens || 0);
+    row.totalTokens = (row.totalTokens || 0) + (entry.tokenUsage?.totalTokens || 0);
+    row.toolCallCount = (row.toolCallCount || 0) + (entry.toolCallCount || 0);
+    if (entry.error || (entry.upstream?.status || 0) >= 400) {
+      row.errorCount = (row.errorCount || 0) + 1;
+    }
+    if (entry.startedAt && (!row.lastStartedAt || entry.startedAt > row.lastStartedAt)) {
+      row.lastStartedAt = entry.startedAt;
+    }
+  }
+  return [...rows.values()].sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return String(b.lastStartedAt || "").localeCompare(String(a.lastStartedAt || ""));
+  });
+}
+
 async function resolveCoreVersionFromCli(): Promise<string> {
   const bridge = window.clovapiCli;
   if (!bridge?.runClovapi) return "";
@@ -145,10 +179,21 @@ export async function refreshProxyLogs(offset = store.proxyLogsOffset) {
   try {
     const pageSize = Number(store.proxyLogsPageSize) || 20;
     const nextOffset = Math.max(0, Number(offset) || 0);
-    const result = await bridge.proxyLogsList({ limit: pageSize, offset: nextOffset });
+    const result = await bridge.proxyLogsList({
+      limit: pageSize,
+      offset: nextOffset,
+      apiKey: store.proxyLogSelectedApiKeyFingerprint || undefined,
+      apiKeyUnidentified: store.proxyLogSelectedApiKeyUnidentified || undefined,
+    });
     if (result?.ok) {
+      const requests = Array.isArray(result.requests) ? result.requests : [];
       if (Array.isArray(result.requests)) {
-        store.proxyLogs = result.requests;
+        store.proxyLogs = requests;
+      }
+      if (Array.isArray(result.apiKeyAggregates) && result.apiKeyAggregates.length) {
+        store.proxyLogApiKeyAggregates = result.apiKeyAggregates;
+      } else if (!store.proxyLogSelectedApiKeyFingerprint && !store.proxyLogSelectedApiKeyUnidentified) {
+        store.proxyLogApiKeyAggregates = fallbackAPIKeyAggregatesFromRequests(requests);
       }
       store.proxyLogsOffset = Number(result.callLogPage?.offset) || nextOffset;
       store.proxyLogsPageSize = Number(result.callLogPage?.limit) || pageSize;
@@ -181,8 +226,12 @@ export async function clearCallLogs() {
     return;
   }
   store.proxyLogs = [];
+  store.proxyLogApiKeyAggregates = [];
   store.proxyLogsOffset = 0;
   store.proxyLogsHasMore = false;
+  store.proxyLogSelectedApiKeyFingerprint = null;
+  store.proxyLogSelectedApiKeyUnidentified = false;
+  store.proxyLogSelectedApiKeyLabel = "";
   store.proxyLogSelectedId = null;
 }
 

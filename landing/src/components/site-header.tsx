@@ -33,7 +33,11 @@ export function SiteHeader() {
   }, []);
 
   const headerLinks = useMemo<HeaderLink[]>(() => {
-    return [{ text: t("header.home"), to: "/" }];
+    return [
+      { text: t("header.home"), to: "/" },
+      { text: t("header.skill"), to: "/skill" },
+      { text: t("header.blog"), to: "/blog" },
+    ];
   }, [t]);
 
   const githubUrl = GITHUB_REPO_URL;

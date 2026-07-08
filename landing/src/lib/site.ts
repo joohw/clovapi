@@ -1,5 +1,5 @@
 export const SITE_NAME = "clovapi";
-export const SITE_TAGLINE = "Local API proxy for model providers";
+export const SITE_TAGLINE = "Local proxy and subscription conversion";
 export const PUBLIC_SITE_URL = "https://clovapi.com";
 export const GITHUB_REPO_URL = "https://github.com/joohw/clovapi";
 
@@ -34,6 +34,6 @@ export function getPublicSiteUrlFromRequest(host?: string): string {
   return PUBLIC_SITE_URL;
 }
 
-export const HOME_TITLE = "Local API proxy for model providers · clovapi";
+export const HOME_TITLE = "Local proxy and subscription conversion · clovapi";
 export const DEFAULT_DESCRIPTION =
-  "clovapi stores provider profiles, runs a local HTTP proxy, routes requests by provider, and transcodes OpenAI, Anthropic, and Gemini-compatible API formats.";
+  "clovapi runs a local HTTP proxy and converts official subscriptions or custom upstreams into OpenAI, Anthropic, and Gemini-compatible APIs.";

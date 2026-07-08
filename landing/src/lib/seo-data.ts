@@ -1,7 +1,7 @@
 import type { AppLanguage } from "@/i18n/config";
 import { normalizePath, SITE_NAME } from "@/lib/site";
 
-export type SeoPageKey = "home";
+export type SeoPageKey = "home" | "skill" | "blog";
 export type FaqItem = { question: string; answer: string };
 
 type SeoCopy = {
@@ -13,17 +13,37 @@ type SeoCopy = {
 export const SEO_COPY: Record<AppLanguage, Record<SeoPageKey, SeoCopy>> = {
   "zh-CN": {
     home: {
-      title: "模型供应商的本地 API 代理 · clovapi",
+      title: "本地模型 API 代理 · clovapi",
       description:
-        "clovapi 保存 provider profile，启动本地 HTTP 代理，按 provider 路由，并在 OpenAI、Anthropic、Gemini 兼容请求之间转换协议。",
+        "clovapi 接入官方订阅和自定义上游，在本机提供统一的 OpenAI、Anthropic、Gemini 兼容模型 API。",
+      ogImage: "/use-case-zh.png",
+    },
+    skill: {
+      title: "Skill · clovapi",
+      description: "给 AI 助手使用的 clovapi skill，说明本地代理、订阅接入和协议转换能力。",
+      ogImage: "/use-case-zh.png",
+    },
+    blog: {
+      title: "文章 · clovapi",
+      description: "教程和博客文章，涵盖本地模型 API、订阅接入、协议转换和调用调试。",
       ogImage: "/use-case-zh.png",
     },
   },
   en: {
     home: {
-      title: "Local API proxy for model providers · clovapi",
+      title: "Local proxy and subscription conversion · clovapi",
       description:
-        "clovapi stores provider profiles, runs a local HTTP proxy, routes requests by provider, and transcodes OpenAI, Anthropic, and Gemini-compatible API formats.",
+        "clovapi runs a local HTTP proxy and converts official subscriptions or custom upstreams into OpenAI, Anthropic, and Gemini-compatible APIs.",
+      ogImage: "/use-case-en.png",
+    },
+    skill: {
+      title: "Skill · clovapi",
+      description: "A clovapi skill for AI assistants covering local proxying, subscription access, and protocol conversion.",
+      ogImage: "/use-case-en.png",
+    },
+    blog: {
+      title: "Articles · clovapi",
+      description: "Tutorials and posts on local model APIs, subscription access, protocol conversion, and call debugging.",
       ogImage: "/use-case-en.png",
     },
   },
@@ -33,7 +53,7 @@ export const FAQ_ITEMS: Record<AppLanguage, FaqItem[]> = {
   "zh-CN": [
     {
       question: "clovapi 是什么？",
-      answer: "clovapi 是运行在本机的 API 代理，用来保存 provider profile、路由请求并转换常见模型 API 协议。",
+      answer: "clovapi 是运行在本机的模型 API 代理，用来接入官方订阅和自定义上游，并转换常见 API 协议。",
     },
     {
       question: "默认监听在哪里？",
@@ -47,7 +67,7 @@ export const FAQ_ITEMS: Record<AppLanguage, FaqItem[]> = {
   en: [
     {
       question: "What is clovapi?",
-      answer: "clovapi is a local API proxy that stores provider profiles, routes requests, and converts common model API protocols.",
+      answer: "clovapi is a local model API proxy for connecting official subscriptions and custom upstreams while converting common API protocols.",
     },
     {
       question: "Where does it listen?",
@@ -70,8 +90,9 @@ export function resolvePageCopy(page: SeoPageKey, language: AppLanguage): SeoCop
   return SEO_COPY[language][page];
 }
 
-export function pathnameForPage(_page: SeoPageKey): string {
-  return "/";
+export function pathnameForPage(page: SeoPageKey): string {
+  if (page === "home") return "/";
+  return `/${page}`;
 }
 
 export function buildBaseJsonLdGraph(options: {

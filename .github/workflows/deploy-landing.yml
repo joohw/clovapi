@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - "landing/**"
+      - ".github/workflows/deploy-landing.yml"
   workflow_dispatch:
     inputs:
       tag:
@@ -28,7 +29,7 @@ jobs:
       - name: Decide landing deploy
         id: deploy_gate
         run: |
-          if [ -n "${{ secrets.DOCKER_USERNAME }}" ] && [ -n "${{ secrets.DOCKER_PASSWORD }}" ] && [ -n "${{ secrets.SSH_HOST }}" ] && [ -n "${{ secrets.SSH_USERNAME }}" ] && [ -n "${{ secrets.SSH_PASSWORD }}" ]; then
+          if [ -n "${{ secrets.DOCKER_USERNAME }}" ] && [ -n "${{ secrets.DOCKER_PASSWORD }}" ] && [ -n "${{ secrets.SSH_USERNAME }}" ] && [ -n "${{ secrets.SSH_PASSWORD }}" ]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           else
             echo "deploy=false" >> "$GITHUB_OUTPUT"
@@ -65,7 +66,7 @@ jobs:
           DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_HOST: 47.74.32.108
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}

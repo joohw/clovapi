@@ -172,6 +172,9 @@ function buildSshConnectOptions({ sshHost, sshPort, sshUser, sshPassword }) {
     host: sshHost,
     port: sshPort,
     username: sshUser,
+    readyTimeout: Number(process.env.SSH_READY_TIMEOUT_MS || "120000"),
+    keepaliveInterval: Number(process.env.SSH_KEEPALIVE_INTERVAL_MS || "10000"),
+    keepaliveCountMax: Number(process.env.SSH_KEEPALIVE_COUNT_MAX || "12"),
   };
   if (sshPassword) {
     connectOptions.password = sshPassword;

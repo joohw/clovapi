@@ -19,7 +19,6 @@ import (
 	"github.com/clovapi/switcher/internal/config"
 	"github.com/clovapi/switcher/internal/profile"
 	coreproxy "github.com/clovapi/switcher/internal/proxy"
-	"github.com/clovapi/switcher/internal/syslog"
 )
 
 func resolveProxyConfig(hostFlag string, portFlag int) (profile.ProxyConfig, error) {
@@ -152,7 +151,6 @@ func runProxyForeground(cfg profile.ProxyConfig) error {
 	defer removeProxyPIDFileIfPID(pid)
 
 	server := coreproxy.NewServer(cfg)
-	syslog.LogProxyStarted(server.Config.Host, server.Config.Port)
 	fmt.Printf("clovapi core proxy listening on %s\n", proxyBaseURL(server.Config))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -165,7 +163,6 @@ func runProxyForeground(cfg profile.ProxyConfig) error {
 
 	select {
 	case <-ctx.Done():
-		syslog.LogProxyStopped("signal")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = server.Shutdown(shutdownCtx)

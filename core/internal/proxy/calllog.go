@@ -16,6 +16,7 @@ import (
 
 	"github.com/clovapi/switcher/internal/protocol"
 	"github.com/clovapi/switcher/internal/provider"
+	"github.com/clovapi/switcher/internal/proxyresolve"
 	"github.com/clovapi/switcher/internal/syslog"
 	"github.com/google/uuid"
 )
@@ -51,12 +52,25 @@ type CallLogAPIKey struct {
 	Fingerprint string `json:"fingerprint,omitempty"`
 }
 
+type CallLogRoute struct {
+	BackendID       string   `json:"backendId,omitempty"`
+	SourceType      string   `json:"sourceType,omitempty"`
+	SourceID        string   `json:"sourceId,omitempty"`
+	SourceLabel     string   `json:"sourceLabel,omitempty"`
+	ProviderID      string   `json:"providerId,omitempty"`
+	RequestedModel  string   `json:"requestedModel,omitempty"`
+	UpstreamModel   string   `json:"upstreamModel,omitempty"`
+	AttemptCount    int      `json:"attemptCount,omitempty"`
+	AttemptBackends []string `json:"attemptBackends,omitempty"`
+}
+
 type CallLogEntry struct {
 	ID            string             `json:"id"`
 	StartedAt     string             `json:"startedAt"`
 	CompletedAt   string             `json:"completedAt"`
 	DurationMs    int64              `json:"durationMs"`
 	APIKey        *CallLogAPIKey     `json:"apiKey,omitempty"`
+	Route         *CallLogRoute      `json:"route,omitempty"`
 	Request       CallLogRequest     `json:"request"`
 	Upstream      CallLogUpstream    `json:"upstream"`
 	TokenUsage    *CallLogTokenUsage `json:"tokenUsage,omitempty"`
@@ -381,6 +395,31 @@ func (t *requestTrace) setUpstreamRequest(method, url string) {
 	t.entry.Upstream.URL = strings.TrimSpace(url)
 }
 
+func (t *requestTrace) addRouteAttempt(route proxyresolve.ForwardRoute) {
+	if t == nil {
+		return
+	}
+	if t.entry.Route == nil {
+		t.entry.Route = &CallLogRoute{
+			ProviderID:     route.ProviderID,
+			RequestedModel: route.ModelID,
+		}
+	}
+	backendID := strings.TrimSpace(route.BackendID)
+	if backendID == "" {
+		backendID = route.Source + "/" + route.EffectiveModel
+	}
+	t.entry.Route.AttemptBackends = append(t.entry.Route.AttemptBackends, backendID)
+	t.entry.Route.AttemptCount = len(t.entry.Route.AttemptBackends)
+	t.entry.Route.BackendID = backendID
+	t.entry.Route.SourceType = strings.TrimSpace(route.SourceType)
+	t.entry.Route.SourceID = strings.TrimSpace(route.SourceID)
+	t.entry.Route.SourceLabel = strings.TrimSpace(route.SourceLabel)
+	t.entry.Route.ProviderID = strings.TrimSpace(route.ProviderID)
+	t.entry.Route.RequestedModel = strings.TrimSpace(route.ModelID)
+	t.entry.Route.UpstreamModel = strings.TrimSpace(route.EffectiveModel)
+}
+
 func (t *requestTrace) setUpstreamRequestHeaders(r *http.Request) {
 	if t == nil || r == nil {
 		return
@@ -481,9 +520,8 @@ func inboundAPIKeySummary(headers http.Header) *CallLogAPIKey {
 		return nil
 	}
 	type candidate struct {
-		name   string
-		value  string
-		scheme string
+		name  string
+		value string
 	}
 	candidates := []candidate{
 		{name: "authorization", value: headers.Get("Authorization")},
@@ -497,15 +535,10 @@ func inboundAPIKeySummary(headers http.Header) *CallLogAPIKey {
 			continue
 		}
 		secret := raw
-		labelPrefix := ""
 		if item.name == "authorization" {
 			parts := strings.Fields(raw)
 			if len(parts) >= 2 {
-				item.scheme = parts[0]
 				secret = strings.TrimSpace(strings.TrimPrefix(raw, parts[0]))
-				if strings.EqualFold(item.scheme, "bearer") {
-					labelPrefix = "Bearer "
-				}
 			}
 		}
 		secret = strings.TrimSpace(secret)
@@ -513,11 +546,20 @@ func inboundAPIKeySummary(headers http.Header) *CallLogAPIKey {
 			continue
 		}
 		return &CallLogAPIKey{
-			Label:       labelPrefix + redactAPIKeyLabel(secret),
+			Label:       redactAPIKeyLabel(secret),
 			Fingerprint: apiKeyFingerprint(secret),
 		}
 	}
 	return nil
+}
+
+func apiKeyDisplayLabel(value string) string {
+	label := strings.TrimSpace(value)
+	parts := strings.Fields(label)
+	if len(parts) >= 2 && strings.EqualFold(parts[0], "bearer") {
+		return strings.TrimSpace(strings.TrimPrefix(label, parts[0]))
+	}
+	return label
 }
 
 func apiKeyFingerprint(secret string) string {

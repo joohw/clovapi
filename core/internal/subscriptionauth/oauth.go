@@ -70,11 +70,14 @@ type tokenCredentials struct {
 }
 
 func Login(ctx context.Context, providerID string, openBrowser bool) LoginResult {
+	return LoginToPath(ctx, providerID, openBrowser, "")
+}
+
+func LoginToPath(ctx context.Context, providerID string, openBrowser bool, credentialPath string) LoginResult {
 	ctx, cancel := context.WithTimeout(ctx, loginTimeout)
 	defer cancel()
 
 	providerID = strings.TrimSpace(providerID)
-	logAuthEvent(providerID, "login started (openBrowser=%t)", openBrowser)
 
 	var (
 		authorizeURL string
@@ -82,9 +85,9 @@ func Login(ctx context.Context, providerID string, openBrowser bool) LoginResult
 	)
 	switch providerID {
 	case ProviderClaudeCode:
-		authorizeURL, err = loginClaude(ctx, openBrowser)
+		authorizeURL, err = loginClaude(ctx, openBrowser, credentialPath)
 	case ProviderCodex:
-		authorizeURL, err = loginCodex(ctx, openBrowser)
+		authorizeURL, err = loginCodex(ctx, openBrowser, credentialPath)
 	default:
 		err = fmt.Errorf("unknown provider: %s", providerID)
 	}
@@ -96,13 +99,12 @@ func Login(ctx context.Context, providerID string, openBrowser bool) LoginResult
 	return LoginResult{OK: true, LoggedIn: true, Refreshed: true, AuthorizeURL: authorizeURL}
 }
 
-func loginClaude(ctx context.Context, openBrowser bool) (string, error) {
+func loginClaude(ctx context.Context, openBrowser bool, credentialPath string) (string, error) {
 	pkce, err := generatePKCE()
 	if err != nil {
 		return "", err
 	}
 	redirectURI := fmt.Sprintf("http://localhost:%d%s", claudeCallbackPort, claudeCallbackPath)
-	logAuthEvent(ProviderClaudeCode, "listening on %s", callbackListenAddr(ProviderClaudeCode, claudeCallbackPort, claudeCallbackPath))
 	server, err := startCallbackServer(ctx, callbackOptions{
 		Provider: ProviderClaudeCode,
 		Port:     claudeCallbackPort,
@@ -130,16 +132,13 @@ func loginClaude(ctx context.Context, openBrowser bool) (string, error) {
 	authURL := buildClaudeAuthorizeURL(pkce, redirectURI)
 	if openBrowser {
 		if err := openBrowserURL(authURL); err != nil {
-			logAuthFailure(ProviderClaudeCode, "open browser", err)
 			return authURL, err
 		}
-		logAuthSuccess(ProviderClaudeCode, "open browser", "authorize URL launched")
 	}
 	cb, err := server.Wait(ctx)
 	if err != nil {
 		return authURL, err
 	}
-	logAuthSuccess(ProviderClaudeCode, "callback", "code received")
 	exchangeCtx, exchangeCancel := context.WithTimeout(ctx, tokenExchangeTimeout)
 	defer exchangeCancel()
 	creds, err := exchangeClaudeCode(exchangeCtx, cb.Code, cb.State, pkce.Verifier, redirectURI)
@@ -147,13 +146,16 @@ func loginClaude(ctx context.Context, openBrowser bool) (string, error) {
 		return authURL, err
 	}
 	_ = enrichClaudeProfile(ctx, &creds)
-	if err := writeClaudeOAuthCredentials(claudeAuthPath(), creds); err != nil {
+	if credentialPath = strings.TrimSpace(credentialPath); credentialPath == "" {
+		credentialPath = claudeAuthPath()
+	}
+	if err := writeClaudeOAuthCredentials(credentialPath, creds); err != nil {
 		return authURL, err
 	}
 	return authURL, nil
 }
 
-func loginCodex(ctx context.Context, openBrowser bool) (string, error) {
+func loginCodex(ctx context.Context, openBrowser bool, credentialPath string) (string, error) {
 	pkce, err := generatePKCE()
 	if err != nil {
 		return "", err
@@ -163,7 +165,6 @@ func loginCodex(ctx context.Context, openBrowser bool) (string, error) {
 		return "", err
 	}
 	redirectURI := codexRedirectURI()
-	logAuthEvent(ProviderCodex, "listening on %s", callbackListenAddr(ProviderCodex, codexCallbackPort, codexCallbackPath))
 	server, err := startCallbackServer(ctx, callbackOptions{
 		Provider: ProviderCodex,
 		Port:     codexCallbackPort,
@@ -190,23 +191,23 @@ func loginCodex(ctx context.Context, openBrowser bool) (string, error) {
 	authURL := buildCodexAuthorizeURL(pkce, state, redirectURI)
 	if openBrowser {
 		if err := openBrowserURL(authURL); err != nil {
-			logAuthFailure(ProviderCodex, "open browser", err)
 			return authURL, err
 		}
-		logAuthSuccess(ProviderCodex, "open browser", "authorize URL launched")
 	}
 	cb, err := server.Wait(ctx)
 	if err != nil {
 		return authURL, err
 	}
-	logAuthSuccess(ProviderCodex, "callback", "code received")
 	exchangeCtx, exchangeCancel := context.WithTimeout(ctx, tokenExchangeTimeout)
 	defer exchangeCancel()
 	creds, err := exchangeCodexCode(exchangeCtx, cb.Code, pkce.Verifier, redirectURI)
 	if err != nil {
 		return authURL, err
 	}
-	if err := writeCodexOAuthCredentials(codexAuthPath(), creds); err != nil {
+	if credentialPath = strings.TrimSpace(credentialPath); credentialPath == "" {
+		credentialPath = codexAuthPath()
+	}
+	if err := writeCodexOAuthCredentials(credentialPath, creds); err != nil {
 		return authURL, err
 	}
 	return authURL, nil
@@ -388,7 +389,6 @@ func exchangeCodexCode(ctx context.Context, code, verifier, redirectURI string) 
 	if err := postForm(ctx, codexTokenURL, form, &out); err != nil {
 		return tokenCredentials{}, err
 	}
-	logAuthSuccess(ProviderCodex, "token exchange", "tokens received")
 	if strings.TrimSpace(out.AccessToken) == "" || strings.TrimSpace(out.RefreshToken) == "" || out.ExpiresIn <= 0 {
 		return tokenCredentials{}, fmt.Errorf("Codex token response is missing required fields")
 	}

@@ -423,7 +423,7 @@ func TestRequestTraceCapturesAPIKeyFingerprint(t *testing.T) {
 	if strings.Contains(trace.entry.APIKey.Label, "client-secret") {
 		t.Fatalf("api key label leaked secret: %q", trace.entry.APIKey.Label)
 	}
-	if !strings.HasPrefix(trace.entry.APIKey.Label, "Bearer sk-tes...") {
+	if !strings.HasPrefix(trace.entry.APIKey.Label, "sk-tes...") {
 		t.Fatalf("api key label = %q", trace.entry.APIKey.Label)
 	}
 	if len(trace.entry.APIKey.Fingerprint) != 12 {
@@ -441,7 +441,7 @@ func TestRequestTraceKeepsModelTestAPIKeyLabel(t *testing.T) {
 	if trace == nil || trace.entry.APIKey == nil {
 		t.Fatal("expected api key summary")
 	}
-	if trace.entry.APIKey.Label != "Bearer clovapi-test" {
+	if trace.entry.APIKey.Label != "clovapi-test" {
 		t.Fatalf("api key label = %q", trace.entry.APIKey.Label)
 	}
 }
@@ -472,6 +472,7 @@ func TestCallLogAPIKeyAggregates(t *testing.T) {
 	}
 	first := aggregates[0]
 	if first.APIKey == nil || first.APIKey.Fingerprint != "fingerprint1" || first.Count != 2 ||
+		first.APIKey.Label != "sk-one...1111" ||
 		first.InputTokens != 2 || first.OutputTokens != 3 || first.TotalTokens != 5 ||
 		first.ToolCallCount != 2 || first.ErrorCount != 1 {
 		t.Fatalf("first aggregate = %+v", first)

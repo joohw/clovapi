@@ -10,7 +10,7 @@ import { persistProfiles } from "./profile-persist";
 import { clearVendorModelTests } from "./model-tests";
 import { store } from "./state.svelte";
 import { toast } from "../toast";
-import type { Vendor } from "../../global";
+import type { Vendor, VendorModel } from "../../global";
 
 export function canFetchVendorModels(vendor: Vendor): boolean {
   return normalizeModelAdapter(vendor.modelAdapter, vendor.kind, vendor.localProvider) !== "manual";
@@ -20,7 +20,10 @@ export function isVendorFetching(vendorName: string): boolean {
   return Boolean(store.vendorFetching[vendorName]);
 }
 
-export async function fetchVendorModels(vendorName: string, options: { silent?: boolean } = {}) {
+export async function fetchVendorModels(
+  vendorName: string,
+  options: { silent?: boolean; credentialRef?: string } = {},
+): Promise<VendorModel[] | undefined> {
   const name = String(vendorName || "").trim();
   if (!name || store.vendorFetching[name]) return;
 
@@ -64,7 +67,7 @@ export async function fetchVendorModels(vendorName: string, options: { silent?: 
 
   store.vendorFetching[name] = true;
   try {
-    const result = await bridge.profilesListModels(name);
+    const result = await bridge.profilesListModels(name, options.credentialRef);
     if (!result?.ok) {
       if (!options.silent) toast.error(result?.error || t("toast.fetchFailed"));
       return;
@@ -91,6 +94,9 @@ export async function fetchVendorModels(vendorName: string, options: { silent?: 
 
     const count = (result.models || []).length;
     if (!options.silent) toast.success(t("toast.fetchSuccess", { count }));
+    const fetchedModels = (result.models || []).map(normalizeVendorModel);
+    const refreshed = resolveVendorByName(store.profiles, name);
+    return fetchedModels.length ? fetchedModels : refreshed?.models;
   } finally {
     delete store.vendorFetching[name];
   }

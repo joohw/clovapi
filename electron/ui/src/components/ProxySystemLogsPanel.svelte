@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
@@ -9,7 +8,7 @@
     clearSystemLogs,
     closeProxyLog,
     openProxySystemLog,
-    refreshProxyLogs,
+    refreshSystemLogs,
     store,
   } from "../lib/store.svelte";
   import {
@@ -58,13 +57,10 @@
     }
   });
 
-  onMount(() => {
-    void refreshProxyLogs();
-  });
 </script>
 
 {#if inLogDetail && selectedLog}
-  <div class="flex flex-col gap-4">
+  <div class="flex h-full min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain">
     <Button size="sm" variant="outline" class="w-fit" type="button" onclick={() => closeProxyLog()}>
       <ArrowLeftIcon class="size-4" />
       {copy.back}
@@ -72,16 +68,16 @@
     <ProxySystemLogDetailPanel entry={selectedLog} />
   </div>
 {:else}
-  <div class="flex flex-col gap-4">
-    <SectionCard title={copy.title} description={copy.description}>
+  <div class="h-full min-h-0">
+    <SectionCard title={copy.title} description={copy.description} fill>
       {#snippet actions()}
         <Button
           size="sm"
           variant="outline"
-          disabled={store.proxyLogsLoading}
-          onclick={() => void refreshProxyLogs()}
+          disabled={store.proxySystemLogsLoading}
+          onclick={() => void refreshSystemLogs()}
         >
-          {store.proxyLogsLoading ? copy.refreshing : copy.refresh}
+          {store.proxySystemLogsLoading ? copy.refreshing : copy.refresh}
         </Button>
         <Button size="sm" variant="outline" onclick={() => (clearConfirmOpen = true)}>
           {copy.clear}

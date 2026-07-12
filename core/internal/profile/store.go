@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -66,8 +67,9 @@ func loadNoLock() (*Store, error) {
 	}
 	migrateLegacyCurrentIntoProfiles(data, &s)
 	migrateLegacyAPIStyles(&s)
+	EnsureDefaultSubscriptionAccounts(&s)
 	oldVersion := s.Version
-	if s.Version == 0 {
+	if s.Version < StoreVersion {
 		s.Version = StoreVersion
 	}
 	ensureProxyDefaults(&s, oldVersion)
@@ -123,7 +125,7 @@ func migrateLegacyAPIStyles(s *Store) {
 }
 
 func saveNoLock(s *Store) error {
-	if s.Version == 0 {
+	if s.Version < StoreVersion {
 		s.Version = StoreVersion
 	}
 	ensureProxyDefaults(s, s.Version)
@@ -138,6 +140,9 @@ func saveNoLock(s *Store) error {
 	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		return err
+	}
+	if existing, readErr := os.ReadFile(p); readErr == nil && bytes.Equal(existing, data) {
+		return nil
 	}
 	tmp := p + ".tmp"
 	if err := os.WriteFile(tmp, data, 0o600); err != nil {

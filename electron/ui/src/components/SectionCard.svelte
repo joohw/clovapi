@@ -1,9 +1,12 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { cn } from "$lib/utils.js";
 
   let {
     title,
     description = "",
+    fill = false,
+    embedded = false,
     headerMeta,
     leading,
     actions,
@@ -11,6 +14,8 @@
   }: {
     title: string;
     description?: string;
+    fill?: boolean;
+    embedded?: boolean;
     headerMeta?: Snippet;
     leading?: Snippet;
     actions?: Snippet;
@@ -18,8 +23,14 @@
   } = $props();
 </script>
 
-<section class="overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-none">
-  <header class="border-b border-border p-4">
+<section
+  class={cn(
+    "overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-none",
+    fill && "flex h-full min-h-0 flex-col",
+    embedded && "rounded-none border-0 border-b bg-transparent last:border-b-0",
+  )}
+>
+  <header class={cn("shrink-0 p-4", children && "border-b border-border")}>
     <div class="flex items-start justify-between gap-3">
       <div class="flex min-w-0 items-stretch gap-3">
         {#if leading}
@@ -47,6 +58,8 @@
     </div>
   </header>
   {#if children}
-    <div>{@render children()}</div>
+    <div class={cn(fill && "min-h-0 flex-1 overflow-y-auto overscroll-contain")}>
+      {@render children()}
+    </div>
   {/if}
 </section>

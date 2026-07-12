@@ -14,6 +14,10 @@ var ErrBindingResolutionLost = errors.New("model binding vanished after resolvin
 type ForwardRoute struct {
 	ProviderID     string
 	ModelID        string
+	BackendID      string
+	SourceType     string
+	SourceID       string
+	SourceLabel    string
 	IngressStyle   apistyle.Style
 	EgressStyle    apistyle.Style
 	EffectiveModel string
@@ -27,24 +31,59 @@ type ForwardRoute struct {
 
 // ResolveForwardRoute reuses IngressContext routing and attaches credentials needed for outbound HTTP calls.
 func ResolveForwardRoute(store *profile.Store, providerID, modelID, ingressAPIStr string) (ForwardRoute, error) {
-	ctx, err := ResolveIngressContext(store, providerID, modelID, ingressAPIStr)
+	routes, err := ResolveForwardRoutes(store, providerID, modelID, ingressAPIStr)
 	if err != nil {
 		return ForwardRoute{}, err
 	}
-	flat, ok := store.FlatProfileForProviderModel(ctx.ProviderID, ctx.ModelID)
-	if !ok {
+	if len(routes) == 0 {
 		return ForwardRoute{}, ErrBindingResolutionLost
+	}
+	return routes[0], nil
+}
+
+// ResolveForwardRoutes returns all matching route candidates ordered by store
+// backend preference. The first route preserves ResolveForwardRoute behavior.
+func ResolveForwardRoutes(store *profile.Store, providerID, modelID, ingressAPIStr string) ([]ForwardRoute, error) {
+	ctx, err := ResolveIngressContext(store, providerID, modelID, ingressAPIStr)
+	if err != nil {
+		return nil, err
+	}
+	flats := store.FlatProfilesForProviderModel(ctx.ProviderID, ctx.ModelID)
+	if len(flats) == 0 {
+		return nil, ErrBindingResolutionLost
+	}
+	routes := make([]ForwardRoute, 0, len(flats))
+	for _, flat := range flats {
+		route, ok := forwardRouteFromFlat(ctx, flat)
+		if ok {
+			routes = append(routes, route)
+		}
+	}
+	if len(routes) == 0 {
+		return nil, ErrBindingResolutionLost
+	}
+	return routes, nil
+}
+
+func forwardRouteFromFlat(ctx IngressContext, flat profile.Profile) (ForwardRoute, bool) {
+	effModel := strings.TrimSpace(flat.Model)
+	if effModel == "" {
+		return ForwardRoute{}, false
 	}
 	return ForwardRoute{
 		ProviderID:     ctx.ProviderID,
 		ModelID:        ctx.ModelID,
+		BackendID:      strings.TrimSpace(flat.RouteBackendID),
+		SourceType:     strings.TrimSpace(flat.RouteSourceType),
+		SourceID:       strings.TrimSpace(flat.RouteSourceID),
+		SourceLabel:    strings.TrimSpace(flat.RouteSourceLabel),
 		IngressStyle:   ctx.IngressStyle,
 		EgressStyle:    ctx.EgressStyle,
-		EffectiveModel: ctx.EffectiveUpstreamModel,
-		Source:         ctx.Source,
+		EffectiveModel: effModel,
+		Source:         sourceFromProfile(&flat),
 		APIKey:         strings.TrimSpace(flat.APIKey),
 		AccountID:      strings.TrimSpace(flat.AccountID),
 		BaseNormalized: NormalizeBaseURL(flat.BaseURL),
-		UpstreamURL:    ctx.BaseURLJoined,
-	}, nil
+		UpstreamURL:    JoinURL(NormalizeBaseURL(flat.BaseURL), UpstreamPathSuffix(flat.APIStyle, sourceFromProfile(&flat))),
+	}, true
 }

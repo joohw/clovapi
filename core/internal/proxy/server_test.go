@@ -144,6 +144,55 @@ func TestDebugUsageReturnsCoreCacheEnvelope(t *testing.T) {
 	}
 }
 
+func TestDebugRoutesReturnsDerivedBackends(t *testing.T) {
+	store := &profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:         profile.CustomAPIProfileName,
+			Kind:         "api",
+			ModelAdapter: "manual",
+			Models: []profile.Model{{
+				ID:       "gpt-5.5",
+				Model:    "gpt-5.5",
+				APIStyle: apistyle.OpenAIResponses,
+			}},
+		}},
+	}
+	s := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	s.ProfileLoader = func() (*profile.Store, error) { return store, nil }
+	ts := httptest.NewServer(s.Server.Handler)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/__debug/routes?provider_id=custom&model_id=gpt-5.5")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("routes status = %d", resp.StatusCode)
+	}
+	var body struct {
+		OK       bool `json:"ok"`
+		Backends []struct {
+			ID         string `json:"id"`
+			ProviderID string `json:"provider_id"`
+			ModelID    string `json:"model_id"`
+			SourceType string `json:"source_type"`
+		} `json:"backends"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if !body.OK || len(body.Backends) != 1 {
+		t.Fatalf("routes body = %+v", body)
+	}
+	if body.Backends[0].ProviderID != provider.CustomAPIProviderID ||
+		body.Backends[0].ModelID != "gpt-5.5" ||
+		body.Backends[0].SourceType != "api" {
+		t.Fatalf("backend = %+v", body.Backends[0])
+	}
+}
+
 func TestShouldRecordStreamErrorIgnoresContextCanceled(t *testing.T) {
 	if shouldRecordStreamError(context.Canceled) {
 		t.Fatal("context.Canceled should be treated as downstream cancellation")
@@ -363,7 +412,7 @@ func TestDebugEndpointsWithoutSecrets(t *testing.T) {
 	ts := httptest.NewServer(srv.Server.Handler)
 	defer ts.Close()
 
-	resolveURL := ts.URL + "/__debug/resolve-route?provider_id=custom-api&model_id=gpt-demo&ingress_style=openai-chat"
+	resolveURL := ts.URL + "/__debug/resolve-route?provider_id=custom&model_id=gpt-demo&ingress_style=openai-chat"
 	resp, err := http.Get(resolveURL)
 	if err != nil {
 		t.Fatal(err)
@@ -457,7 +506,7 @@ func TestPassthroughForwardingSameIngressEgressOpenAIChat(t *testing.T) {
 	defer ts.Close()
 
 	payload := `{"model":"gpt-4o-wire","messages":[{"role":"user","content":"ping"}],"stream":false}`
-	resp, err := http.Post(ts.URL+"/custom-api/v1/chat/completions", "application/json", strings.NewReader(payload))
+	resp, err := http.Post(ts.URL+"/custom/v1/chat/completions", "application/json", strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -553,7 +602,7 @@ func TestSameProtocolOpenAIResponsesSSEPassthroughPreservesLifecycle(t *testing.
 	defer ts.Close()
 
 	payload := `{"model":"cross-model-id","input":"ping","stream":true}`
-	resp, err := http.Post(ts.URL+"/custom-api/cross-model-id/openai-responses/v1/responses", "application/json", strings.NewReader(payload))
+	resp, err := http.Post(ts.URL+"/custom/cross-model-id/openai-responses/v1/responses", "application/json", strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -606,7 +655,7 @@ func TestCrossProtocolOpenAIIngressWithClaudeUpstreamTranscodesJSON(t *testing.T
 	defer ts.Close()
 
 	payload := `{"model":"cross-model-id","messages":[{"role":"user","content":"ping"}],"stream":false}`
-	resp, err := http.Post(ts.URL+"/custom-api/cross-model-id/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
+	resp, err := http.Post(ts.URL+"/custom/cross-model-id/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -626,6 +675,94 @@ func TestCrossProtocolOpenAIIngressWithClaudeUpstreamTranscodesJSON(t *testing.T
 	}
 	if upstreamHits != 1 {
 		t.Fatalf("upstreamHits=%d", upstreamHits)
+	}
+}
+
+func TestProxyRouteFailoverRetriesNextBackendOn429(t *testing.T) {
+	var firstHits int
+	first := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		firstHits++
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{"error":"rate limited"}`))
+	}))
+	defer first.Close()
+
+	var secondHits int
+	second := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		secondHits++
+		if r.URL.Path != "/v1/responses" {
+			t.Errorf("upstream path=%q", r.URL.Path)
+		}
+		body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+		if !strings.Contains(string(body), `"model":"gpt-wire-backup"`) {
+			t.Fatalf("backup upstream model not applied: %s", body)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id":"resp_ok","object":"response","model":"gpt-wire-backup","output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"backup ok"}]}]}`))
+	}))
+	defer second.Close()
+
+	store := &profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:         profile.CustomAPIProfileName,
+			Kind:         "api",
+			ModelAdapter: "manual",
+			Models: []profile.Model{
+				{
+					ID:       "gpt-shared",
+					Model:    "gpt-wire-primary",
+					APIStyle: apistyle.OpenAIResponses,
+					BaseURL:  first.URL + "/v1",
+					APIKey:   "sk-primary",
+				},
+				{
+					ID:       "gpt-shared",
+					Model:    "gpt-wire-backup",
+					APIStyle: apistyle.OpenAIResponses,
+					BaseURL:  second.URL + "/v1",
+					APIKey:   "sk-backup",
+				},
+			},
+		}},
+	}
+
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core.CallLogs = openTestCallLogStore(t)
+	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
+	ts := httptest.NewServer(core.Server.Handler)
+	defer ts.Close()
+
+	payload := `{"model":"gpt-shared","input":"ping","stream":false}`
+	resp, err := http.Post(ts.URL+"/custom/gpt-shared/openai-responses/v1/responses", "application/json", strings.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status=%d body=%s", resp.StatusCode, raw)
+	}
+	if firstHits != 1 || secondHits != 1 {
+		t.Fatalf("hits first=%d second=%d", firstHits, secondHits)
+	}
+	if !strings.Contains(string(raw), "backup ok") {
+		t.Fatalf("expected backup response, got %s", raw)
+	}
+	entries := core.CallLogs.ListRecent(1)
+	if len(entries) != 1 || entries[0].Route == nil {
+		t.Fatalf("missing route log: %+v", entries)
+	}
+	if entries[0].Route.AttemptCount != 2 || len(entries[0].Route.AttemptBackends) != 2 {
+		t.Fatalf("route attempts = %+v", entries[0].Route)
+	}
+	if entries[0].Route.UpstreamModel != "gpt-wire-backup" {
+		t.Fatalf("route upstream model = %q", entries[0].Route.UpstreamModel)
 	}
 }
 
@@ -665,7 +802,7 @@ func TestCrossProtocolIngressDecompressesGzipUpstream(t *testing.T) {
 	defer ts.Close()
 
 	payload := `{"model":"cross-model-id","messages":[{"role":"user","content":"ping"}],"stream":false}`
-	req, err := http.NewRequest(http.MethodPost, ts.URL+"/custom-api/cross-model-id/openai-chat/v1/chat/completions", strings.NewReader(payload))
+	req, err := http.NewRequest(http.MethodPost, ts.URL+"/custom/cross-model-id/openai-chat/v1/chat/completions", strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -716,7 +853,7 @@ func TestCrossProtocolSSEUpstreamTranscodedForOpenAIChatIngress(t *testing.T) {
 	defer ts.Close()
 
 	payload := `{"model":"cross-model-id","messages":[{"role":"user","content":"title this chat"}],"stream":false}`
-	resp, err := http.Post(ts.URL+"/custom-api/cross-model-id/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
+	resp, err := http.Post(ts.URL+"/custom/cross-model-id/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -757,7 +894,7 @@ func TestIngressStreamWithDefaultsHitsUpstreamConnRefused(t *testing.T) {
 	defer ts.Close()
 
 	payload := `{"model":"noop","messages":[{"role":"user","content":"ping"}]}`
-	resp, err := http.Post(ts.URL+"/custom-api/noop/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
+	resp, err := http.Post(ts.URL+"/custom/noop/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -804,7 +941,7 @@ func TestStreamOpenAIChatIngressViaClaudeUpstreamSSE(t *testing.T) {
 	defer ts.Close()
 
 	payload := `{"model":"cross-model-id","messages":[{"role":"user","content":"ping"}],"stream":true}`
-	resp, err := http.Post(ts.URL+"/custom-api/cross-model-id/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
+	resp, err := http.Post(ts.URL+"/custom/cross-model-id/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -876,7 +1013,7 @@ func TestStreamClaudeIngressViaOpenAIResponsesUpstreamSSE(t *testing.T) {
 	defer ts.Close()
 
 	payload := `{"model":"responses-edge","max_tokens":512,"messages":[{"role":"user","content":"浣犲ソ"}],"stream":true}`
-	resp, err := http.Post(ts.URL+"/custom-api/responses-edge/claude/v1/messages", "application/json", strings.NewReader(payload))
+	resp, err := http.Post(ts.URL+"/custom/responses-edge/claude/v1/messages", "application/json", strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1021,7 +1158,7 @@ func TestStreamOpenAIChatIngressViaClaudeUpstreamGzipSSE(t *testing.T) {
 	defer ts.Close()
 
 	payload := `{"model":"cross-model-id","messages":[{"role":"user","content":"ping"}],"stream":true}`
-	resp, err := http.Post(ts.URL+"/custom-api/cross-model-id/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
+	resp, err := http.Post(ts.URL+"/custom/cross-model-id/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1098,7 +1235,7 @@ func TestStreamSameOpenAIChatIngressUpstreamSSENormalized(t *testing.T) {
 	defer ts.Close()
 
 	payload := `{"model":"same-chat-model-id","messages":[{"role":"user","content":"ping"}],"stream":true}`
-	resp, err := http.Post(ts.URL+"/custom-api/same-chat-model-id/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
+	resp, err := http.Post(ts.URL+"/custom/same-chat-model-id/openai-chat/v1/chat/completions", "application/json", strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}

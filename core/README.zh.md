@@ -16,7 +16,7 @@ clovapi proxy start
 clovapi proxy status
 clovapi profiles load --json
 clovapi profiles save --json
-clovapi profiles test --provider custom-api --model my-model --json
+clovapi profiles test --provider custom --model my-model --json
 ```
 
 ## 代理入口

@@ -112,12 +112,13 @@ func cmdProfilesTest() *cobra.Command {
 
 func cmdProfilesListModels() *cobra.Command {
 	var vendorName string
+	var credentialRef string
 	var jsonFlag bool
 	c := &cobra.Command{
 		Use:   "list-models",
 		Short: "Fetch and merge models for one vendor",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			result := desktop.ListVendorModels(vendorName)
+			result := desktop.ListVendorModelsWithCredential(vendorName, credentialRef)
 			if jsonFlag {
 				return writeDesktopJSON(result)
 			}
@@ -125,6 +126,7 @@ func cmdProfilesListModels() *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&vendorName, "vendor", "", "Vendor display name")
+	c.Flags().StringVar(&credentialRef, "credential-ref", "", "Subscription credential file path or config-relative ref")
 	c.Flags().BoolVar(&jsonFlag, "json", false, "Return JSON")
 	return c
 }
@@ -157,12 +159,13 @@ func cmdProfilesModels() *cobra.Command {
 
 func cmdProfilesUsage() *cobra.Command {
 	var vendorName string
+	var credentialRef string
 	var jsonFlag bool
 	c := &cobra.Command{
 		Use:   "usage",
 		Short: "Query upstream quota/balance for one API vendor",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			result := desktop.QueryVendorUsage(vendorName)
+			result := desktop.QueryVendorUsageWithCredential(vendorName, credentialRef)
 			if jsonFlag {
 				return writeDesktopJSON(result)
 			}
@@ -177,6 +180,7 @@ func cmdProfilesUsage() *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&vendorName, "vendor", "", "Vendor display name")
+	c.Flags().StringVar(&credentialRef, "credential-ref", "", "Subscription credential file path or config-relative ref")
 	c.Flags().BoolVar(&jsonFlag, "json", false, "Return JSON")
 	return c
 }

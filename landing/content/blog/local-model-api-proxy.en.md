@@ -19,7 +19,7 @@ Different upstreams are scoped by provider id:
 ```text
 /codex/v1/responses
 /claude-code/v1/messages
-/custom-api/v1/chat/completions
+/custom/v1/chat/completions
 ```
 
 Clients can keep a stable localhost URL.

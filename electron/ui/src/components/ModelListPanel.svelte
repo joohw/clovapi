@@ -113,37 +113,12 @@
     void runModelTest(binding);
   }
 
-  const MODEL_COPY_DELAY_MS = 400;
-  let modelCopyTimer: ReturnType<typeof setTimeout> | undefined;
-  let modelCopyGeneration = 0;
-
-  function cancelModelCopy() {
-    clearTimeout(modelCopyTimer);
-    modelCopyTimer = undefined;
-    modelCopyGeneration += 1;
-  }
-
-  function onModelRowClick(row: ModelListItem, event: MouseEvent) {
-    if (event.detail > 1) {
-      cancelModelCopy();
-      return;
-    }
-    cancelModelCopy();
-    const generation = modelCopyGeneration;
-    modelCopyTimer = setTimeout(() => {
-      if (generation !== modelCopyGeneration) return;
-      modelCopyTimer = undefined;
-      void copyModel(row);
-    }, MODEL_COPY_DELAY_MS);
-  }
-
   function onModelRowDoubleClick(row: ModelListItem, binding: string, testing: boolean) {
-    cancelModelCopy();
     runModelTestFromRow(row, binding, testing);
   }
 </script>
 
-<SectionCard title={copy.title} description={copy.description}>
+<SectionCard title={copy.title} description={copy.description} fill>
   {#if !rows.length}
     <button
       type="button"
@@ -202,7 +177,6 @@
               testSummary={test.summary}
               rowTitle={copy.modelRowHint}
               class={index === 0 ? "border-t-0 py-2.5" : "py-2.5"}
-              onClick={(event) => onModelRowClick(row, event)}
               onDoubleClick={() => onModelRowDoubleClick(row, binding, testing)}
             >
               {#snippet leading()}

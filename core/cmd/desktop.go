@@ -135,14 +135,16 @@ func cmdDesktopVendor() *cobra.Command {
 
 func cmdDesktopVendorUsage() *cobra.Command {
 	var vendorName string
+	var credentialRef string
 	c := &cobra.Command{
 		Use:   "usage",
 		Short: "Query upstream quota/balance for one API vendor",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return writeDesktopJSON(desktop.QueryVendorUsage(vendorName))
+			return writeDesktopJSON(desktop.QueryVendorUsageWithCredential(vendorName, credentialRef))
 		},
 	}
 	c.Flags().StringVar(&vendorName, "vendor", "", "Vendor display name")
+	c.Flags().StringVar(&credentialRef, "credential-ref", "", "Subscription credential file path or config-relative ref")
 	return c
 }
 
@@ -158,14 +160,16 @@ func cmdDesktopVendorCatalog() *cobra.Command {
 
 func cmdDesktopVendorListModels() *cobra.Command {
 	var vendorName string
+	var credentialRef string
 	c := &cobra.Command{
 		Use:   "list-models",
 		Short: "Fetch and merge models for one vendor",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return writeDesktopJSON(desktop.ListVendorModels(vendorName))
+			return writeDesktopJSON(desktop.ListVendorModelsWithCredential(vendorName, credentialRef))
 		},
 	}
 	c.Flags().StringVar(&vendorName, "vendor", "", "Vendor display name")
+	c.Flags().StringVar(&credentialRef, "credential-ref", "", "Subscription credential file path or config-relative ref")
 	return c
 }
 
@@ -204,16 +208,18 @@ func cmdDesktopAuthStatus() *cobra.Command {
 
 func cmdDesktopAuthLogin() *cobra.Command {
 	var providerID string
+	var credentialRef string
 	var jsonFlag bool
 	c := &cobra.Command{
 		Use:   "login",
 		Short: "Run subscription OAuth login",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_ = jsonFlag // desktop commands always return JSON.
-			return writeDesktopJSON(desktop.AuthLogin(cmd.Context(), providerID))
+			return writeDesktopJSON(desktop.AuthLoginToCredential(cmd.Context(), providerID, credentialRef))
 		},
 	}
 	c.Flags().StringVar(&providerID, "provider", "", "Provider id: claude-code|codex")
+	c.Flags().StringVar(&credentialRef, "credential-ref", "", "Credential file path or config-relative ref")
 	c.Flags().BoolVar(&jsonFlag, "json", false, "Return JSON (always enabled for desktop commands)")
 	return c
 }

@@ -150,9 +150,14 @@ export async function refreshCoreVersion() {
   store.coreVersion = await resolveCoreVersionFromCli();
 }
 
-export async function refreshProxyStatus() {
+const PROXY_STATUS_POLL_INTERVAL_MS = 10_000;
+let proxyStatusPollTimer: ReturnType<typeof setInterval> | null = null;
+let proxyStatusRefreshing = false;
+
+export async function refreshProxyStatus(options: { refreshVersion?: boolean } = {}) {
   const bridge = window.clovapiCli;
-  if (!bridge?.proxyStatus) return;
+  if (!bridge?.proxyStatus || proxyStatusRefreshing || store.proxyStatusTesting) return;
+  proxyStatusRefreshing = true;
   try {
     const result = await bridge.proxyStatus();
     if (result?.ok) {
@@ -165,11 +170,38 @@ export async function refreshProxyStatus() {
         store.proxyBaseUrl = result.baseUrl;
         store.proxyAddressDraft = result.baseUrl;
       }
+    } else {
+      store.proxyRunning = false;
     }
   } catch {
     store.proxyRunning = false;
+  } finally {
+    proxyStatusRefreshing = false;
   }
-  await refreshCoreVersion();
+  if (options.refreshVersion !== false) await refreshCoreVersion();
+}
+
+export function startProxyStatusPolling() {
+  if (proxyStatusPollTimer) clearInterval(proxyStatusPollTimer);
+  proxyStatusPollTimer = setInterval(() => {
+    void refreshProxyStatus({ refreshVersion: false });
+  }, PROXY_STATUS_POLL_INTERVAL_MS);
+}
+
+export async function testProxyHealth() {
+  const bridge = window.clovapiCli;
+  if (!bridge?.proxyHealth || store.proxyStatusTesting) return;
+  store.proxyStatusTesting = true;
+  try {
+    const result = await bridge.proxyHealth();
+    store.proxyRunning = Boolean(result?.ok && result.passed);
+    const version = parseVersionFromHealthBody(result?.body);
+    if (version) store.coreVersion = version;
+  } catch {
+    store.proxyRunning = false;
+  } finally {
+    store.proxyStatusTesting = false;
+  }
 }
 
 export async function refreshProxyLogs(offset = store.proxyLogsOffset) {
@@ -180,6 +212,7 @@ export async function refreshProxyLogs(offset = store.proxyLogsOffset) {
     const pageSize = Number(store.proxyLogsPageSize) || 20;
     const nextOffset = Math.max(0, Number(offset) || 0);
     const result = await bridge.proxyLogsList({
+      scope: "calls",
       limit: pageSize,
       offset: nextOffset,
       apiKey: store.proxyLogSelectedApiKeyFingerprint || undefined,
@@ -198,12 +231,23 @@ export async function refreshProxyLogs(offset = store.proxyLogsOffset) {
       store.proxyLogsOffset = Number(result.callLogPage?.offset) || nextOffset;
       store.proxyLogsPageSize = Number(result.callLogPage?.limit) || pageSize;
       store.proxyLogsHasMore = Boolean(result.callLogPage?.hasMore);
-      if (Array.isArray(result.system)) {
-        store.proxySystemLogs = result.system;
-      }
     }
   } finally {
     store.proxyLogsLoading = false;
+  }
+}
+
+export async function refreshSystemLogs() {
+  const bridge = window.clovapiCli;
+  if (!bridge?.proxyLogsList || store.proxySystemLogsLoading) return;
+  store.proxySystemLogsLoading = true;
+  try {
+    const result = await bridge.proxyLogsList({ scope: "system" });
+    if (result?.ok && Array.isArray(result.system)) {
+      store.proxySystemLogs = result.system;
+    }
+  } finally {
+    store.proxySystemLogsLoading = false;
   }
 }
 
@@ -245,54 +289,6 @@ export async function clearSystemLogs() {
   }
   store.proxySystemLogs = [];
   store.proxySystemLogSelectedId = null;
-}
-
-export async function runProxyHealthTest() {
-  if (store.proxyHealthTest?.status === "testing") return;
-
-  const bridge = window.clovapiCli;
-  if (!bridge?.proxyHealth) {
-    toast.error(t("toast.proxyHealthUnsupported"));
-    return;
-  }
-
-  store.proxyHealthTest = {
-    status: "testing",
-    summary: t("common.testing"),
-    detail: "",
-  };
-
-  try {
-    const result = await bridge.proxyHealth();
-    await refreshProxyStatus();
-
-    const version = parseVersionFromHealthBody(result?.body);
-    if (version) store.coreVersion = version;
-
-    if (result?.ok && result.passed) {
-      const latency = result.latencyMs != null ? `${result.latencyMs}ms` : "";
-      store.proxyHealthTest = {
-        status: "pass",
-        summary: latency ? `Health OK · ${latency}` : "Health OK",
-        detail: "",
-      };
-      return;
-    }
-
-    const reason = result?.error || t("toast.proxyNotRunning");
-    store.proxyHealthTest = {
-      status: "fail",
-      summary: `Health failed · ${reason}`,
-      detail: "",
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : t("toast.proxyHealthFailed");
-    store.proxyHealthTest = {
-      status: "fail",
-      summary: `${t("modelTest.failed")} · ${message}`,
-      detail: "",
-    };
-  }
 }
 
 export async function checkCoreUpdate(options: CoreUpdateOptions = {}) {

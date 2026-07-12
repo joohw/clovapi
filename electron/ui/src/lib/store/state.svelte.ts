@@ -1,11 +1,13 @@
 import { FIXED_PROVIDER_IDS } from "../constants";
-import type { ModelAdapterDef, ModelListItem, ModelTestEntry, ProxyLogAPIKeyAggregate, ProxyLogEntry, ProxySystemLogEntry, ProviderDef, SubscriptionItem, Vendor } from "../../global";
+import type { ModelAdapterDef, ModelListItem, ModelTestEntry, ProxyLogAPIKeyAggregate, ProxyLogEntry, ProxySystemLogEntry, ProviderDef, RouteBackend, SubscriptionAccount, SubscriptionItem, Vendor } from "../../global";
 
 export type TabId = "profiles" | "models" | "call-logs" | "system-logs" | "settings";
 
 export const store = $state({
   activeTab: "models" as TabId,
   profiles: [] as Vendor[],
+  subscriptionAccounts: [] as SubscriptionAccount[],
+  routeBackends: [] as RouteBackend[],
   profilesPath: "",
   running: false,
   ollamaInstalled: false,
@@ -31,11 +33,11 @@ export const store = $state({
   formModelApiKey: "",
   formModelApiStyle: "responses",
   proxyRunning: false,
+  proxyStatusTesting: false,
   proxyHost: "0.0.0.0",
   proxyPort: 27483,
   proxyBaseUrl: "http://127.0.0.1:27483",
   proxyAddressDraft: "http://127.0.0.1:27483",
-  proxyHealthTest: null as import("../../global").ModelTestEntry | null,
   appVersion: "",
   appUpdateAvailable: false,
   appLatestVersion: "",
@@ -53,6 +55,7 @@ export const store = $state({
   proxyLogApiKeyAggregates: [] as ProxyLogAPIKeyAggregate[],
   proxySystemLogs: [] as ProxySystemLogEntry[],
   proxyLogsLoading: false,
+  proxySystemLogsLoading: false,
   proxyLogsPageSize: 20,
   proxyLogsOffset: 0,
   proxyLogsHasMore: false,

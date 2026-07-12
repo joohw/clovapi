@@ -24,7 +24,7 @@ Common commands:
 
 ```bash
 clovapi profiles load --json
-clovapi profiles test --provider custom-api --model my-model --json
+clovapi profiles test --provider custom --model my-model --json
 clovapi proxy status
 clovapi proxy logs list
 ```

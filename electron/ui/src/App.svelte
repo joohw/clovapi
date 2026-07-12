@@ -63,98 +63,100 @@
   });
 </script>
 
-{#if !inElectron}
-  <div class="border-b border-red-300 bg-red-50 px-4 py-2 text-sm text-red-800">
-    {copy.browserBanner}
-  </div>
-{/if}
-
-{#if inElectron}
-  <div class="electron-titlebar-drag-region" aria-hidden="true"></div>
-{/if}
-
-<main
-  class="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-5 py-5 pb-14 {inElectron ? 'electron-window-chrome' : ''}"
->
-  <header class="mb-5 shrink-0 select-none {inElectron ? 'pt-8' : ''}">
-    <div class="flex items-center justify-between gap-3">
-      <div class="min-w-0 flex-1 {inElectron ? 'electron-titlebar-drag' : ''}">
-        <h1 class="text-lg font-semibold tracking-tight">{copy.title}</h1>
-        <p class="mt-1 text-xs text-muted-foreground">{copy.subtitle}</p>
-      </div>
-      {#if showAppUpdateBadge}
-        <div class="electron-no-drag shrink-0">
-          <Button
-            variant="default"
-            size="icon-sm"
-            class="rounded-full"
-            aria-label={appUpdateButtonTitle}
-            title={appUpdateButtonTitle}
-            disabled={store.appUpdating}
-            onclick={() => void installAppUpdate()}
-          >
-            {#if store.appUpdating}
-              <span class="grid size-5 place-items-center" aria-hidden="true">
-                <svg class="size-5 -rotate-90" viewBox="0 0 36 36">
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.5"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="4"
-                    opacity="0.25"
-                  />
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.5"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="4"
-                    stroke-linecap="round"
-                    pathLength="100"
-                    stroke-dasharray={`${appUpdateProgress} 100`}
-                  />
-                </svg>
-              </span>
-            {:else}
-              <ArrowUpIcon />
-            {/if}
-          </Button>
-        </div>
-      {/if}
+<div class="flex h-svh flex-col overflow-hidden">
+  {#if !inElectron}
+    <div class="shrink-0 border-b border-red-300 bg-red-50 px-4 py-2 text-sm text-red-800">
+      {copy.browserBanner}
     </div>
-  </header>
+  {/if}
 
-  <Tabs.Root value={store.activeTab} onValueChange={onTabChange} class="flex min-h-0 flex-1 flex-col gap-4">
-    <Tabs.List>
-      <Tabs.Trigger value="models">{copy.tabs.models}</Tabs.Trigger>
-      <Tabs.Trigger value="profiles">{copy.tabs.profiles}</Tabs.Trigger>
-      <Tabs.Trigger value="call-logs">{copy.tabs.callLogs}</Tabs.Trigger>
-      <Tabs.Trigger value="system-logs">{copy.tabs.systemLogs}</Tabs.Trigger>
-      <Tabs.Trigger value="settings">{copy.tabs.settings}</Tabs.Trigger>
-    </Tabs.List>
+  {#if inElectron}
+    <div class="electron-titlebar-drag-region" aria-hidden="true"></div>
+  {/if}
 
-    <Tabs.Content value="models" class="min-h-0 outline-none">
-      <ModelListPanel />
-    </Tabs.Content>
-    <Tabs.Content value="profiles" class="min-h-0 outline-none">
-      <ProfilesPanel />
-    </Tabs.Content>
-    <Tabs.Content value="call-logs" class="min-h-0 outline-none">
-      <ProxyCallLogsPanel />
-    </Tabs.Content>
-    <Tabs.Content value="system-logs" class="min-h-0 outline-none">
-      <ProxySystemLogsPanel />
-    </Tabs.Content>
-    <Tabs.Content value="settings" class="min-h-0 outline-none">
-      <SettingsPanel />
-    </Tabs.Content>
-  </Tabs.Root>
+  <main
+    class="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-hidden px-5 py-5 pb-14 {inElectron ? 'electron-window-chrome' : ''}"
+  >
+    <header class="mb-5 shrink-0 select-none {inElectron ? 'pt-8' : ''}">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0 flex-1 {inElectron ? 'electron-titlebar-drag' : ''}">
+          <h1 class="text-lg font-semibold tracking-tight">{copy.title}</h1>
+          <p class="mt-1 text-xs text-muted-foreground">{copy.subtitle}</p>
+        </div>
+        {#if showAppUpdateBadge}
+          <div class="electron-no-drag shrink-0">
+            <Button
+              variant="default"
+              size="icon-sm"
+              class="rounded-full"
+              aria-label={appUpdateButtonTitle}
+              title={appUpdateButtonTitle}
+              disabled={store.appUpdating}
+              onclick={() => void installAppUpdate()}
+            >
+              {#if store.appUpdating}
+                <span class="grid size-5 place-items-center" aria-hidden="true">
+                  <svg class="size-5 -rotate-90" viewBox="0 0 36 36">
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="4"
+                      opacity="0.25"
+                    />
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="4"
+                      stroke-linecap="round"
+                      pathLength="100"
+                      stroke-dasharray={`${appUpdateProgress} 100`}
+                    />
+                  </svg>
+                </span>
+              {:else}
+                <ArrowUpIcon />
+              {/if}
+            </Button>
+          </div>
+        {/if}
+      </div>
+    </header>
 
-  <ProxyBaseUrlFooter />
-</main>
+    <Tabs.Root value={store.activeTab} onValueChange={onTabChange} class="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+      <Tabs.List class="shrink-0">
+        <Tabs.Trigger value="models">{copy.tabs.models}</Tabs.Trigger>
+        <Tabs.Trigger value="profiles">{copy.tabs.profiles}</Tabs.Trigger>
+        <Tabs.Trigger value="call-logs">{copy.tabs.callLogs}</Tabs.Trigger>
+        <Tabs.Trigger value="system-logs">{copy.tabs.systemLogs}</Tabs.Trigger>
+        <Tabs.Trigger value="settings">{copy.tabs.settings}</Tabs.Trigger>
+      </Tabs.List>
+
+      <Tabs.Content value="models" class="min-h-0 overflow-hidden outline-none">
+        <ModelListPanel />
+      </Tabs.Content>
+      <Tabs.Content value="profiles" class="min-h-0 overflow-hidden outline-none">
+        <ProfilesPanel />
+      </Tabs.Content>
+      <Tabs.Content value="call-logs" class="min-h-0 overflow-hidden outline-none">
+        <ProxyCallLogsPanel />
+      </Tabs.Content>
+      <Tabs.Content value="system-logs" class="min-h-0 overflow-hidden outline-none">
+        <ProxySystemLogsPanel />
+      </Tabs.Content>
+      <Tabs.Content value="settings" class="min-h-0 overflow-hidden outline-none">
+        <SettingsPanel />
+      </Tabs.Content>
+    </Tabs.Root>
+
+    <ProxyBaseUrlFooter />
+  </main>
+</div>
 
 <ProfileDialog />
 <ModelDialog />

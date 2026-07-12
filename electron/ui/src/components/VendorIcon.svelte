@@ -6,12 +6,12 @@
     "claude-code": "./apiicons/anthropic.svg",
     codex: "./apiicons/chatgpt.svg",
     ollama: "./apiicons/ollama.png",
-    "custom-api": "./apiicons/custom-api.svg",
+    custom: "./apiicons/custom-api.svg",
   };
 
   let { providerId, class: className = "" }: { providerId: string; class?: string } = $props();
 
-  const src = $derived(ICONS[providerId] || ICONS["custom-api"]);
+  const src = $derived(ICONS[providerId] || ICONS.custom);
 </script>
 
 <img

@@ -4,7 +4,7 @@ import "testing"
 
 func TestRegistryMatchesDesktopFixedProviders(t *testing.T) {
 	ids := FixedProviderIDs()
-	want := []string{"claude-code", "codex", "ollama", "custom-api"}
+	want := []string{"claude-code", "codex", "ollama", "custom"}
 	if len(ids) != len(want) {
 		t.Fatalf("provider count = %d, want %d (%v)", len(ids), len(want), ids)
 	}
@@ -17,7 +17,7 @@ func TestRegistryMatchesDesktopFixedProviders(t *testing.T) {
 	if got := VendorNameFromProviderID("claude-code"); got != ClaudeCodeVendorName {
 		t.Fatalf("claude vendor = %q", got)
 	}
-	if got := ProviderIDFromVendorName(CustomAPIVendorName); got != "custom-api" {
+	if got := ProviderIDFromVendorName(CustomAPIVendorName); got != "custom" {
 		t.Fatalf("custom provider id = %q", got)
 	}
 	if !IsFixedProviderID("ollama") || IsFixedProviderID("unknown") {

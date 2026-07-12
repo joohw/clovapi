@@ -5,11 +5,15 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/clovapi/switcher/internal/buildinfo"
 	"github.com/clovapi/switcher/internal/config"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
@@ -48,7 +52,8 @@ var authProviders = []struct {
 	{ID: provider.CodexProviderID, Label: provider.CodexVendorName},
 }
 
-const codexClientVersion = "0.133.0"
+const codexModelsEndpoint = "https://chatgpt.com/backend-api/codex/models"
+const codexModelsMinimumClientVersion = "1.0.0"
 
 // claudeAuthPath returns clovapi's own Claude OAuth store (independent from
 // Claude's CLI credentials). Auth status and logout operate on this file only.
@@ -711,27 +716,58 @@ func readAuthJSONOrClaudeFallback() (map[string]any, bool) {
 }
 
 func codexModelsListURL() string {
-	return "https://chatgpt.com/backend-api/codex/models?client_version=" + codexClientVersion
+	clientVersion := codexModelsClientVersion()
+	query := url.Values{"client_version": []string{clientVersion}}
+	return codexModelsEndpoint + "?" + query.Encode()
 }
 
-func codexModelsListFromPayload(payload any) []any {
+func codexModelsClientVersion() string {
+	version := strings.TrimPrefix(buildinfo.VersionString(), "dev")
+	majorText, _, _ := strings.Cut(version, ".")
+	major, err := strconv.Atoi(majorText)
+	if err != nil || major < 1 {
+		// The endpoint treats client_version as a model capability gate. Codex
+		// OAuth returns an empty/partial catalog to 0.x clients.
+		return codexModelsMinimumClientVersion
+	}
+	return version
+}
+
+type codexModelPayloadEntry struct {
+	value      any
+	fallbackID string
+}
+
+func codexModelsListFromPayload(payload any) []codexModelPayloadEntry {
 	switch body := payload.(type) {
 	case []any:
-		return body
-	case map[string]any:
-		if list, _ := body["models"].([]any); len(list) > 0 {
-			return list
+		out := make([]codexModelPayloadEntry, 0, len(body))
+		for _, item := range body {
+			out = append(out, codexModelPayloadEntry{value: item})
 		}
-		if list, _ := body["data"].([]any); len(list) > 0 {
-			return list
+		return out
+	case map[string]any:
+		for _, key := range []string{"data", "models", "items"} {
+			if list, _ := body[key].([]any); len(list) > 0 {
+				return codexModelsListFromPayload(list)
+			}
 		}
 		if result, _ := body["result"].(map[string]any); result != nil {
-			if list, _ := result["data"].([]any); len(list) > 0 {
+			if list := codexModelsListFromPayload(result); len(list) > 0 {
 				return list
 			}
-			if list, _ := result["models"].([]any); len(list) > 0 {
-				return list
+		}
+		if modelMap, _ := body["models"].(map[string]any); len(modelMap) > 0 {
+			keys := make([]string, 0, len(modelMap))
+			for key := range modelMap {
+				keys = append(keys, key)
 			}
+			sort.Strings(keys)
+			out := make([]codexModelPayloadEntry, 0, len(keys))
+			for _, key := range keys {
+				out = append(out, codexModelPayloadEntry{value: modelMap[key], fallbackID: key})
+			}
+			return out
 		}
 	}
 	return nil
@@ -746,9 +782,28 @@ func parseCodexSubscriptionModels(body []byte, defaultStyle string) ([]profile.M
 	out := make([]profile.Model, 0, len(list))
 	seen := map[string]struct{}{}
 	for _, item := range list {
-		row, _ := item.(map[string]any)
-		if row == nil {
+		if rawID, ok := item.value.(string); ok {
+			modelID := strings.TrimSpace(rawID)
+			if modelID == "" {
+				continue
+			}
+			key := strings.ToLower(modelID)
+			if _, exists := seen[key]; exists {
+				continue
+			}
+			seen[key] = struct{}{}
+			out = append(out, profile.NormalizeModelEntry(profile.Model{
+				ID: modelID, Label: modelID, Model: modelID,
+				APIStyle: profile.NormalizeAPIStyle(defaultStyle),
+			}, len(out)))
 			continue
+		}
+		row, _ := item.value.(map[string]any)
+		if row == nil {
+			if strings.TrimSpace(item.fallbackID) == "" {
+				continue
+			}
+			row = map[string]any{}
 		}
 		if hidden, ok := modelRowBool(row, "hidden"); ok && hidden {
 			continue
@@ -760,7 +815,10 @@ func parseCodexSubscriptionModels(body []byte, defaultStyle string) ([]profile.M
 		if supported, ok := modelRowBool(row, "supported_in_api", "supportedInAPI"); ok && !supported {
 			continue
 		}
-		modelID := modelRowString(row, "slug", "id", "model")
+		modelID := modelRowString(row, "slug", "id", "model", "name")
+		if modelID == "" {
+			modelID = strings.TrimSpace(item.fallbackID)
+		}
 		if modelID == "" {
 			continue
 		}
@@ -811,6 +869,12 @@ func fetchCodexSubscriptionModels(vendor profile.Profile, defaultStyle string) (
 
 // ListVendorModels fetches models for one vendor and persists merged results.
 func ListVendorModels(vendorName string) ListModelsResult {
+	return ListVendorModelsWithCredential(vendorName, "")
+}
+
+// ListVendorModelsWithCredential fetches subscription models with a specific
+// account credential while preserving the legacy default-credential behavior.
+func ListVendorModelsWithCredential(vendorName, credentialRef string) ListModelsResult {
 	name := strings.TrimSpace(vendorName)
 	if name == "" {
 		return ListModelsResult{OK: false, Error: "vendorName is required"}
@@ -822,6 +886,12 @@ func ListVendorModels(vendorName string) ListModelsResult {
 	vendor, ok := profile.FindStoreVendorProfile(s, name)
 	if !ok {
 		return ListModelsResult{OK: false, Error: fmt.Sprintf("未找到供应商: %s", name)}
+	}
+	if ref := strings.TrimSpace(credentialRef); ref != "" && strings.TrimSpace(vendor.SubscriptionProviderID) != "" {
+		profile.HydrateSubscriptionAccountCredentials(&vendor, profile.SubscriptionAccount{
+			ProviderID:    vendor.SubscriptionProviderID,
+			CredentialRef: ref,
+		})
 	}
 
 	adapterID := strings.TrimSpace(vendor.ModelAdapter)
@@ -890,9 +960,8 @@ func ListVendorModels(vendorName string) ListModelsResult {
 		return ListModelsResult{OK: false, Error: err.Error()}
 	}
 
-	saved, _ := profile.FindStoreVendorProfile(s, name)
-	models := make([]UIModel, 0, len(saved.Models))
-	for _, m := range saved.Models {
+	models := make([]UIModel, 0, len(fetched))
+	for _, m := range fetched {
 		models = append(models, UIModel{
 			ID: m.ID, Label: m.Label, Model: m.Model, APIStyle: string(m.APIStyle),
 			BaseURL: m.BaseURL, APIKey: m.APIKey,

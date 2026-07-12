@@ -50,7 +50,7 @@ func startCallbackServer(ctx context.Context, opts callbackOptions) (*callbackSe
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != opts.Path {
-			logAuthEvent(opts.Provider, "callback path mismatch: got %s want %s", r.URL.Path, opts.Path)
+			logAuthError(opts.Provider, "callback path mismatch: got %s want %s", r.URL.Path, opts.Path)
 			writeOAuthHTML(w, http.StatusNotFound, "error", "The callback path is incorrect.", "")
 			return
 		}
@@ -60,18 +60,16 @@ func startCallbackServer(ctx context.Context, opts callbackOptions) (*callbackSe
 			if status == 0 {
 				status = http.StatusBadRequest
 			}
-			logAuthEvent(opts.Provider, "callback rejected (%d): %s", status, firstNonEmpty(validation.Details, validation.Message))
+			logAuthError(opts.Provider, "callback rejected (%d): %s", status, firstNonEmpty(validation.Details, validation.Message))
 			writeOAuthHTML(w, status, "error", validation.Message, validation.Details)
 			return
 		}
-		logAuthEvent(opts.Provider, "callback received on %s", opts.Path)
 		writeOAuthHTML(w, http.StatusOK, "success", "Authorization complete. You can return to ClovAPI.", "")
 		cs.complete(callbackResult{data: data})
 	})
 	cs.server = &http.Server{Handler: mux}
 
 	if err := prepareCallbackPort(opts.Port); err != nil {
-		logAuthFailure(opts.Provider, "callback port", err)
 		return nil, err
 	}
 	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", opts.Port))

@@ -24,7 +24,7 @@ go build ./cmd/clovapi
 
 ```bash
 clovapi profiles load --json
-clovapi profiles test --provider custom-api --model my-model --json
+clovapi profiles test --provider custom --model my-model --json
 clovapi proxy status
 clovapi proxy logs list
 ```
@@ -37,6 +37,11 @@ clovapi proxy logs list
 | `npm/` | npm launcher package (`@clovapi/cli`) |
 | `electron/` | Electron + Svelte 桌面端 |
 | `landing/` | clovapi.com 站点 |
+
+## 文档
+
+- [日志实现](docs/logs.md)：系统日志和调用日志的触发条件、存储、脱敏与管理方式。
+- [智能路由设计](docs/smart-routing-design.md)
 
 ## 开发
 

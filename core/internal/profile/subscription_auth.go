@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -98,8 +99,26 @@ func claudeSubscriptionCredentialsValid(oauth *claudeOAuthBlob) bool {
 }
 
 func loadClaudeSubscriptionCredentials() (subscriptionCredentials, bool) {
-	raw, ok := loadClaudeCredentialsDocument()
-	if !ok {
+	path, err := claudeCredentialsPath()
+	if err != nil {
+		return subscriptionCredentials{}, false
+	}
+	return loadClaudeSubscriptionCredentialsFromPath(path)
+}
+
+func loadClaudeSubscriptionCredentialsFromPath(path string) (subscriptionCredentials, bool) {
+	var raw claudeCredentialsFile
+	if !readJSONFile(path, &raw) || raw.ClaudeAiOauth == nil {
+		return subscriptionCredentials{}, false
+	}
+	if !claudeSubscriptionCredentialsValid(raw.ClaudeAiOauth) {
+		fresh, ok := refreshClaudeCredentials(path, raw.ClaudeAiOauth.RefreshToken)
+		if !ok {
+			return subscriptionCredentials{}, false
+		}
+		raw = fresh
+	}
+	if raw.ClaudeAiOauth == nil {
 		return subscriptionCredentials{}, false
 	}
 	return subscriptionCredentials{
@@ -190,6 +209,10 @@ func loadCodexSubscriptionCredentials() (subscriptionCredentials, bool) {
 	if err != nil {
 		return subscriptionCredentials{}, false
 	}
+	return loadCodexSubscriptionCredentialsFromPath(path)
+}
+
+func loadCodexSubscriptionCredentialsFromPath(path string) (subscriptionCredentials, bool) {
 	var raw codexAuthFile
 	if !readJSONFile(path, &raw) || !codexSubscriptionCredentialsValid(raw.Tokens) {
 		return subscriptionCredentials{}, false
@@ -235,6 +258,54 @@ func HydrateSubscriptionCredentials(p *Profile) {
 	if strings.TrimSpace(p.AccountID) == "" && strings.TrimSpace(creds.AccountID) != "" {
 		p.AccountID = creds.AccountID
 	}
+}
+
+func subscriptionCredentialPathFromRef(ref string, providerID string) (string, error) {
+	value := strings.TrimSpace(ref)
+	if value == "" {
+		switch strings.TrimSpace(providerID) {
+		case "claude-code":
+			return claudeCredentialsPath()
+		case "codex":
+			return codexAuthPath()
+		}
+	}
+	if filepath.IsAbs(value) {
+		return value, nil
+	}
+	dir, err := config.Dir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, value), nil
+}
+
+// HydrateSubscriptionAccountCredentials hydrates a subscription flat profile
+// from a specific account credential reference.
+func HydrateSubscriptionAccountCredentials(p *Profile, account SubscriptionAccount) {
+	if p == nil || strings.ToLower(strings.TrimSpace(p.Kind)) != "subscription" {
+		return
+	}
+	path, err := subscriptionCredentialPathFromRef(account.CredentialRef, account.ProviderID)
+	if err != nil {
+		return
+	}
+	var creds subscriptionCredentials
+	var ok bool
+	switch strings.TrimSpace(account.ProviderID) {
+	case "claude-code":
+		creds, ok = loadClaudeSubscriptionCredentialsFromPath(path)
+	case "codex":
+		creds, ok = loadCodexSubscriptionCredentialsFromPath(path)
+	default:
+		return
+	}
+	if !ok {
+		return
+	}
+	p.BaseURL = creds.BaseURL
+	p.APIKey = creds.APIKey
+	p.AccountID = creds.AccountID
 }
 
 const codexJWTAuthClaim = "https://api.openai.com/auth"

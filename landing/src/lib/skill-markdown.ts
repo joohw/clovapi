@@ -13,7 +13,7 @@ clovapi runs a local HTTP proxy and exposes provider-scoped model API routes suc
 
 - \`http://127.0.0.1:27483/codex/v1/responses\`
 - \`http://127.0.0.1:27483/claude-code/v1/messages\`
-- \`http://127.0.0.1:27483/custom-api/v1/chat/completions\`
+- \`http://127.0.0.1:27483/custom/v1/chat/completions\`
 
 It supports official subscription sessions and custom API upstreams, then adapts common API styles: \`chat\`, \`responses\`, \`message\`, and \`gemini\`.
 
@@ -23,8 +23,8 @@ It supports official subscription sessions and custom API upstreams, then adapts
 npm i -g @clovapi/cli
 clovapi proxy start
 clovapi auth login --provider codex
-clovapi profiles add --provider custom-api --api-style responses --model my-model
-clovapi profiles test --provider custom-api --model my-model --json
+clovapi profiles add --provider custom --api-style responses --model my-model
+clovapi profiles test --provider custom --model my-model --json
 \`\`\`
 
 ## Agent guidance

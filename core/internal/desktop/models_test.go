@@ -2,12 +2,14 @@ package desktop
 
 import (
 	"encoding/json"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/clovapi/switcher/internal/apistyle"
+	"github.com/clovapi/switcher/internal/buildinfo"
 	"github.com/clovapi/switcher/internal/config"
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
@@ -51,7 +53,7 @@ func TestListModelsUsesPublicModelIDsOnly(t *testing.T) {
 	if item.ProviderID != provider.CustomAPIProviderID || item.ModelID != "public-gpt" {
 		t.Fatalf("unexpected model item: %+v", item)
 	}
-	if item.ProxyBaseURL != "http://127.0.0.1:28888/custom-api/v1" {
+	if item.ProxyBaseURL != "http://127.0.0.1:28888/custom/v1" {
 		t.Fatalf("proxy base URL = %q", item.ProxyBaseURL)
 	}
 	body, err := json.Marshal(result)
@@ -257,6 +259,68 @@ func TestParseCodexSubscriptionModelsSupportsCurrentShapes(t *testing.T) {
 	}
 	if models[0].APIStyle != apistyle.OpenAIResponses {
 		t.Fatalf("expected responses api style, got %q", models[0].APIStyle)
+	}
+}
+
+func TestCodexModelsListURLUsesBuildVersion(t *testing.T) {
+	previous := buildinfo.Version
+	t.Cleanup(func() { buildinfo.Version = previous })
+
+	buildinfo.Version = "dev0.8.7"
+	parsed, err := url.Parse(codexModelsListURL())
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpoint := parsed.Scheme + "://" + parsed.Host + parsed.Path
+	if endpoint != codexModelsEndpoint {
+		t.Fatalf("endpoint = %q, want %q", endpoint, codexModelsEndpoint)
+	}
+	if got := parsed.Query().Get("client_version"); got != codexModelsMinimumClientVersion {
+		t.Fatalf("client_version = %q, want %s", got, codexModelsMinimumClientVersion)
+	}
+
+	buildinfo.Version = "v2.3.4"
+	parsed, err = url.Parse(codexModelsListURL())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := parsed.Query().Get("client_version"); got != "2.3.4" {
+		t.Fatalf("client_version = %q, want 2.3.4", got)
+	}
+}
+
+func TestParseCodexSubscriptionModelsSupportsCCSwitchShapes(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		want []string
+	}{
+		{
+			name: "items and strings",
+			body: `{"items":["gpt-5.5",{"name":"gpt-5.4"}]}`,
+			want: []string{"gpt-5.5", "gpt-5.4"},
+		},
+		{
+			name: "model map fallback ids",
+			body: `{"models":{"gpt-5.4":{"display_name":"GPT-5.4"},"gpt-5.5":{"slug":"gpt-5.5"}}}`,
+			want: []string{"gpt-5.4", "gpt-5.5"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			models, err := parseCodexSubscriptionModels([]byte(tt.body), string(apistyle.OpenAIResponses))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(models) != len(tt.want) {
+				t.Fatalf("models len = %d, want %d: %+v", len(models), len(tt.want), models)
+			}
+			for i, want := range tt.want {
+				if models[i].ID != want {
+					t.Fatalf("model %d id = %q, want %q", i, models[i].ID, want)
+				}
+			}
+		})
 	}
 }
 

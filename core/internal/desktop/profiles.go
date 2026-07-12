@@ -3,6 +3,7 @@ package desktop
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	cfgpkg "github.com/clovapi/switcher/internal/config"
@@ -35,6 +36,30 @@ type UIVendor struct {
 	Models                 []UIModel     `json:"models"`
 }
 
+type UISubscriptionAccount struct {
+	ID            string    `json:"id"`
+	ProviderID    string    `json:"providerId"`
+	Label         string    `json:"label"`
+	CredentialRef string    `json:"credentialRef"`
+	Status        string    `json:"status,omitempty"`
+	Plan          string    `json:"plan,omitempty"`
+	Models        []UIModel `json:"models,omitempty"`
+}
+
+type UIRouteBackend struct {
+	ID            string `json:"id"`
+	SourceType    string `json:"sourceType"`
+	SourceID      string `json:"sourceId,omitempty"`
+	SourceLabel   string `json:"sourceLabel,omitempty"`
+	ProviderID    string `json:"providerId"`
+	ModelID       string `json:"modelId"`
+	UpstreamModel string `json:"upstreamModel"`
+	APIStyle      string `json:"apiStyle"`
+	Enabled       bool   `json:"enabled"`
+	Priority      int    `json:"priority"`
+	Weight        int    `json:"weight"`
+}
+
 type UIProxyConfig struct {
 	Enabled        bool   `json:"enabled"`
 	Host           string `json:"host"`
@@ -43,26 +68,32 @@ type UIProxyConfig struct {
 }
 
 type LoadResult struct {
-	OK       bool          `json:"ok"`
-	Path     string        `json:"path,omitempty"`
-	Version  int           `json:"version,omitempty"`
-	Proxy    UIProxyConfig `json:"proxy,omitempty"`
-	Profiles []UIVendor    `json:"profiles,omitempty"`
-	Error    string        `json:"error,omitempty"`
+	OK                   bool                    `json:"ok"`
+	Path                 string                  `json:"path,omitempty"`
+	Version              int                     `json:"version,omitempty"`
+	Proxy                UIProxyConfig           `json:"proxy,omitempty"`
+	Profiles             []UIVendor              `json:"profiles,omitempty"`
+	SubscriptionAccounts []UISubscriptionAccount `json:"subscriptionAccounts,omitempty"`
+	RouteBackends        []UIRouteBackend        `json:"routeBackends,omitempty"`
+	Error                string                  `json:"error,omitempty"`
 }
 
 type SaveInput struct {
-	Profiles []UIVendor     `json:"profiles"`
-	Proxy    *UIProxyConfig `json:"proxy"`
+	Profiles             []UIVendor              `json:"profiles"`
+	Proxy                *UIProxyConfig          `json:"proxy"`
+	SubscriptionAccounts []UISubscriptionAccount `json:"subscriptionAccounts,omitempty"`
+	RouteBackends        []UIRouteBackend        `json:"routeBackends,omitempty"`
 }
 
 type SaveResult struct {
-	OK       bool          `json:"ok"`
-	Path     string        `json:"path,omitempty"`
-	Version  int           `json:"version,omitempty"`
-	Proxy    UIProxyConfig `json:"proxy,omitempty"`
-	Profiles []UIVendor    `json:"profiles,omitempty"`
-	Error    string        `json:"error,omitempty"`
+	OK                   bool                    `json:"ok"`
+	Path                 string                  `json:"path,omitempty"`
+	Version              int                     `json:"version,omitempty"`
+	Proxy                UIProxyConfig           `json:"proxy,omitempty"`
+	Profiles             []UIVendor              `json:"profiles,omitempty"`
+	SubscriptionAccounts []UISubscriptionAccount `json:"subscriptionAccounts,omitempty"`
+	RouteBackends        []UIRouteBackend        `json:"routeBackends,omitempty"`
+	Error                string                  `json:"error,omitempty"`
 }
 
 func vendorToUI(p profile.Profile) UIVendor {
@@ -119,6 +150,97 @@ func vendorFromUI(v UIVendor) profile.Profile {
 	}, 0)
 }
 
+func subscriptionAccountToUI(account profile.SubscriptionAccount) UISubscriptionAccount {
+	models := make([]UIModel, 0, len(account.Models))
+	for _, m := range account.Models {
+		models = append(models, UIModel{
+			ID:       m.ID,
+			Label:    m.Label,
+			Model:    m.Model,
+			APIStyle: string(m.APIStyle),
+			BaseURL:  m.BaseURL,
+			APIKey:   m.APIKey,
+		})
+	}
+	return UISubscriptionAccount{
+		ID:            account.ID,
+		ProviderID:    account.ProviderID,
+		Label:         account.Label,
+		CredentialRef: account.CredentialRef,
+		Status:        account.Status,
+		Plan:          account.Plan,
+		Models:        models,
+	}
+}
+
+func subscriptionAccountFromUI(input UISubscriptionAccount) profile.SubscriptionAccount {
+	models := make([]profile.Model, 0, len(input.Models))
+	for _, m := range input.Models {
+		models = append(models, profile.Model{
+			ID:       m.ID,
+			Label:    m.Label,
+			Model:    m.Model,
+			APIStyle: profile.NormalizeAPIStyle(m.APIStyle),
+			BaseURL:  m.BaseURL,
+			APIKey:   m.APIKey,
+		})
+	}
+	return profile.SubscriptionAccount{
+		ID:            strings.TrimSpace(input.ID),
+		ProviderID:    strings.TrimSpace(input.ProviderID),
+		Label:         strings.TrimSpace(input.Label),
+		CredentialRef: strings.TrimSpace(input.CredentialRef),
+		Status:        strings.TrimSpace(input.Status),
+		Plan:          strings.TrimSpace(input.Plan),
+		Models:        models,
+	}
+}
+
+func removedSubscriptionAccounts(before []profile.SubscriptionAccount, after []profile.SubscriptionAccount) []profile.SubscriptionAccount {
+	remaining := map[string]struct{}{}
+	for _, raw := range after {
+		account := subscriptionAccountFromUI(subscriptionAccountToUI(raw))
+		if account.ID != "" {
+			remaining[strings.ToLower(account.ID)] = struct{}{}
+		}
+	}
+	var removed []profile.SubscriptionAccount
+	for _, raw := range before {
+		account := subscriptionAccountFromUI(subscriptionAccountToUI(raw))
+		if account.ID == "" {
+			continue
+		}
+		if _, ok := remaining[strings.ToLower(account.ID)]; !ok {
+			removed = append(removed, account)
+		}
+	}
+	return removed
+}
+
+func removeSubscriptionCredential(account profile.SubscriptionAccount) {
+	path, err := resolveAuthCredentialRef(account.CredentialRef)
+	if err != nil || strings.TrimSpace(path) == "" {
+		return
+	}
+	_ = os.Remove(path)
+}
+
+func routeBackendToUI(backend profile.DerivedRouteBackend) UIRouteBackend {
+	return UIRouteBackend{
+		ID:            backend.ID,
+		SourceType:    backend.SourceType,
+		SourceID:      backend.SourceID,
+		SourceLabel:   backend.SourceLabel,
+		ProviderID:    backend.ProviderID,
+		ModelID:       backend.ModelID,
+		UpstreamModel: backend.UpstreamModel,
+		APIStyle:      string(backend.APIStyle),
+		Enabled:       backend.Enabled,
+		Priority:      backend.Priority,
+		Weight:        backend.Weight,
+	}
+}
+
 func storeToUI(s *profile.Store) LoadResult {
 	path, _ := cfgpkg.ProfilesPath()
 	profiles := make([]UIVendor, 0, len(s.List))
@@ -127,6 +249,14 @@ func storeToUI(s *profile.Store) LoadResult {
 			continue
 		}
 		profiles = append(profiles, vendorToUI(p))
+	}
+	accounts := make([]UISubscriptionAccount, 0, len(s.Subscriptions))
+	for _, account := range s.Subscriptions {
+		accounts = append(accounts, subscriptionAccountToUI(account))
+	}
+	backends := make([]UIRouteBackend, 0)
+	for _, backend := range s.DerivedRouteBackends() {
+		backends = append(backends, routeBackendToUI(backend))
 	}
 	return LoadResult{
 		OK:      true,
@@ -138,7 +268,9 @@ func storeToUI(s *profile.Store) LoadResult {
 			Port:           s.Proxy.Port,
 			DebugLocalOnly: boolPtr(s.Proxy.DebugLocalOnly),
 		},
-		Profiles: profiles,
+		Profiles:             profiles,
+		SubscriptionAccounts: accounts,
+		RouteBackends:        backends,
 	}
 }
 
@@ -167,6 +299,10 @@ func SaveProfiles(input SaveInput) SaveResult {
 	}
 
 	current, err := profile.WithLockedDesktopStore(func(current *profile.Store) (bool, error) {
+		before, err := json.Marshal(current)
+		if err != nil {
+			return false, err
+		}
 		preserved := make([]profile.Profile, 0)
 		for _, p := range current.List {
 			name := strings.TrimSpace(p.Name)
@@ -189,18 +325,55 @@ func SaveProfiles(input SaveInput) SaveResult {
 				current.Proxy.DebugLocalOnly = *input.Proxy.DebugLocalOnly
 			}
 		}
-		return true, nil
+		if input.SubscriptionAccounts != nil {
+			beforeAccounts := append([]profile.SubscriptionAccount(nil), current.Subscriptions...)
+			current.Subscriptions = current.Subscriptions[:0]
+			for _, item := range input.SubscriptionAccounts {
+				account := subscriptionAccountFromUI(item)
+				if account.ID == "" || account.ProviderID == "" {
+					continue
+				}
+				current.Subscriptions = append(current.Subscriptions, account)
+			}
+			for _, account := range removedSubscriptionAccounts(beforeAccounts, current.Subscriptions) {
+				removeSubscriptionCredential(account)
+			}
+		}
+		if input.RouteBackends != nil {
+			current.RouteBackends = current.RouteBackends[:0]
+			for _, item := range input.RouteBackends {
+				id := strings.TrimSpace(item.ID)
+				if id == "" {
+					continue
+				}
+				enabled := item.Enabled
+				current.RouteBackends = append(current.RouteBackends, profile.RouteBackend{
+					ID:       id,
+					Enabled:  &enabled,
+					Priority: item.Priority,
+					Weight:   item.Weight,
+				})
+			}
+		}
+		profile.NormalizeDesktopStore(current)
+		after, err := json.Marshal(current)
+		if err != nil {
+			return false, err
+		}
+		return string(before) != string(after), nil
 	})
 	if err != nil {
 		return SaveResult{OK: false, Error: err.Error()}
 	}
 	out := storeToUI(current)
 	return SaveResult{
-		OK:       true,
-		Path:     out.Path,
-		Version:  out.Version,
-		Proxy:    out.Proxy,
-		Profiles: out.Profiles,
+		OK:                   true,
+		Path:                 out.Path,
+		Version:              out.Version,
+		Proxy:                out.Proxy,
+		Profiles:             out.Profiles,
+		SubscriptionAccounts: out.SubscriptionAccounts,
+		RouteBackends:        out.RouteBackends,
 	}
 }
 
@@ -253,15 +426,9 @@ func SaveProxyConfig(input UIProxyConfig) ProxyConfigResult {
 
 // ParseSaveInput decodes stdin JSON for profiles save.
 func ParseSaveInput(data []byte) (SaveInput, error) {
-	var raw struct {
-		Profiles []UIVendor     `json:"profiles"`
-		Proxy    *UIProxyConfig `json:"proxy"`
-	}
-	if err := json.Unmarshal(data, &raw); err != nil {
+	var input SaveInput
+	if err := json.Unmarshal(data, &input); err != nil {
 		return SaveInput{}, fmt.Errorf("parse save payload: %w", err)
 	}
-	return SaveInput{
-		Profiles: raw.Profiles,
-		Proxy:    raw.Proxy,
-	}, nil
+	return input, nil
 }

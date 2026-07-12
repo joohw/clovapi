@@ -19,7 +19,7 @@ http://127.0.0.1:27483
 ```text
 /codex/v1/responses
 /claude-code/v1/messages
-/custom-api/v1/chat/completions
+/custom/v1/chat/completions
 ```
 
 客户端只需要配置稳定的本地 URL。

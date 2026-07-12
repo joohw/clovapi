@@ -79,7 +79,7 @@
     if (vendor === "codex") return "codex";
     if (vendor === "claude" || vendor === "claude-code") return "claude-code";
     if (vendor === "ollama") return "ollama";
-    return "custom-api";
+    return "custom";
   }
 
   function apiKeyAggregateTitle(aggregate: ProxyLogAPIKeyAggregate): string {
@@ -139,7 +139,7 @@
 </script>
 
 {#if inLogDetail && selectedLog}
-  <div class="flex flex-col gap-4">
+  <div class="flex h-full min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain">
     <Button size="sm" variant="outline" class="w-fit" type="button" onclick={() => closeProxyLog()}>
       <ArrowLeftIcon class="size-4" />
       {copy.back}
@@ -147,19 +147,19 @@
     <ProxyLogDetailPanel entry={selectedLog} />
   </div>
 {:else}
-  <div class="flex flex-col gap-4">
-    {#if inApiKeyDetail}
-      <Button size="sm" variant="outline" class="w-fit" type="button" onclick={() => closeApiKeyAggregate()}>
-        <ArrowLeftIcon class="size-4" />
-        {copy.back}
-      </Button>
-    {/if}
-
+  <div class="h-full min-h-0">
     <SectionCard
       title={inApiKeyDetail ? store.proxyLogSelectedApiKeyLabel || copy.apiKeyUnknown : copy.title}
       description={inApiKeyDetail ? "" : copy.description}
+      fill
     >
       {#snippet actions()}
+        {#if inApiKeyDetail}
+          <Button size="sm" variant="outline" type="button" onclick={() => closeApiKeyAggregate()}>
+            <ArrowLeftIcon class="size-4" />
+            {copy.back}
+          </Button>
+        {/if}
         <Button
           size="sm"
           variant="outline"

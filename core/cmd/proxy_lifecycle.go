@@ -16,7 +16,6 @@ import (
 
 	"github.com/clovapi/switcher/internal/config"
 	"github.com/clovapi/switcher/internal/profile"
-	"github.com/clovapi/switcher/internal/syslog"
 )
 
 type proxyPIDRecord struct {
@@ -256,7 +255,6 @@ func runProxyStop(cfg profile.ProxyConfig, verbose bool) error {
 		}
 	}
 
-	syslog.LogProxyStopped("cli-stop")
 	if verbose {
 		fmt.Printf("clovapi proxy stopped (%s)\n", proxyBaseURL(cfg))
 	}

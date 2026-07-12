@@ -21,18 +21,15 @@
   }
 </script>
 
-<SectionCard title={copy.title} description={copy.description}>
-  <form class="px-4 py-3" onsubmit={onSubmit}>
-    <div class="grid gap-2">
-      <Label for="proxy-local-address">{copy.title}</Label>
-      <div class="flex gap-2">
-        <Input
-          id="proxy-local-address"
-          bind:value={store.proxyAddressDraft}
-          placeholder="http://127.0.0.1:27483"
-        />
-        <Button type="submit" size="sm" disabled={store.running}>{copy.saveAddress}</Button>
-      </div>
-    </div>
+<SectionCard title={copy.title} description={copy.description} embedded>
+  <form class="flex items-center gap-2 px-4 py-3" onsubmit={onSubmit}>
+    <Label for="proxy-local-address" class="sr-only">{copy.title}</Label>
+    <Input
+      id="proxy-local-address"
+      class="flex-1"
+      bind:value={store.proxyAddressDraft}
+      placeholder="http://127.0.0.1:27483"
+    />
+    <Button type="submit" size="sm" disabled={store.running}>{copy.saveAddress}</Button>
   </form>
 </SectionCard>

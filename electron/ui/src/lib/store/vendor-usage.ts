@@ -1,4 +1,4 @@
-import type { SubscriptionItem, Vendor, VendorUsageCacheItem, VendorUsageData, VendorUsageResult } from "../../global";
+import type { SubscriptionAccount, SubscriptionItem, Vendor, VendorUsageCacheItem, VendorUsageData, VendorUsageResult } from "../../global";
 import { getSubscriptionVendors, shouldShowVendorUsage } from "../helpers";
 import { t } from "../i18n";
 import { toast } from "../toast";
@@ -6,6 +6,27 @@ import { store } from "./state.svelte";
 
 export function vendorUsageSummary(vendorName: string): string {
   return store.vendorUsage[vendorName]?.summary || "";
+}
+
+function subscriptionAccountUsageKey(accountId: string): string {
+  return `subscription:${String(accountId || "").trim()}`;
+}
+
+export function subscriptionAccountUsageSummary(accountId: string): string {
+  const cached = store.vendorUsage[subscriptionAccountUsageKey(accountId)];
+  if (!cached) return "";
+  const unavailable = cached.rows.some(
+    (row) => row.isValid === false || (row.remaining != null && row.remaining <= 0),
+  );
+  return unavailable ? t("vendorDetail.usageUnavailable") : cached.summary;
+}
+
+export function isSubscriptionAccountUsageLoading(accountId: string): boolean {
+  return isVendorUsageLoading(subscriptionAccountUsageKey(accountId));
+}
+
+export function clearSubscriptionAccountUsage(accountId: string): void {
+  clearVendorUsage(subscriptionAccountUsageKey(accountId));
 }
 
 export function vendorUsageSummaryForVendor(vendor: Vendor, subscriptions: SubscriptionItem[]): string {
@@ -40,7 +61,11 @@ function formatUsageRow(row: VendorUsageData): string {
   const unit = String(row.unit || "").trim();
   if (row.used != null && row.total != null) {
     if (unit === "%") {
-      const percent = row.total > 0 ? (row.used / row.total) * 100 : row.used;
+      const percent = row.remaining != null
+        ? row.remaining
+        : row.total > 0
+          ? Math.max(0, 100 - (row.used / row.total) * 100)
+          : Math.max(0, 100 - row.used);
       return name ? `${name} ${formatUsageNumber(percent)}%` : `${formatUsageNumber(percent)}%`;
     }
     if (row.remaining != null) {
@@ -107,7 +132,7 @@ function usageSummaryFromResult(result: {
 export function applyVendorUsageCache(usages: VendorUsageCacheItem[] = []): void {
   const seen = new Set<string>();
   for (const item of usages) {
-    const name = String(item?.vendor || "").trim();
+    const name = String(item?.cacheKey || item?.vendor || "").trim();
     if (!name) continue;
     seen.add(name.toLowerCase());
     delete store.vendorUsageLoading[name];
@@ -140,12 +165,20 @@ function vendorHasUsageCredentials(vendor: Vendor): boolean {
   return Boolean(vendor.models?.some((model) => model.baseUrl && model.apiKey));
 }
 
-export async function queryVendorUsage(vendor: Vendor, options: { silent?: boolean } = {}) {
+export async function queryVendorUsage(
+  vendor: Vendor,
+  options: { silent?: boolean; credentialRef?: string; cacheKey?: string } = {},
+) {
   const name = String(vendor?.name || "").trim();
+  const cacheKey = String(options.cacheKey || name).trim();
   if (!name) return;
   if (vendor.kind === "local") return;
-  if (vendor.kind === "subscription" && !shouldShowVendorUsage(vendor, store.subscriptions)) {
-    clearVendorUsage(name);
+  if (
+    vendor.kind === "subscription" &&
+    !options.credentialRef &&
+    !shouldShowVendorUsage(vendor, store.subscriptions)
+  ) {
+    clearVendorUsage(cacheKey);
     return;
   }
   if (vendor.kind === "api" && !vendorHasUsageCredentials(vendor)) return;
@@ -154,20 +187,20 @@ export async function queryVendorUsage(vendor: Vendor, options: { silent?: boole
     if (!options.silent) toast.error(t("toast.vendorUsageUnsupported"));
     return;
   }
-  if (isVendorUsageLoading(name)) return;
+  if (isVendorUsageLoading(cacheKey)) return;
 
-  store.vendorUsageLoading[name] = true;
+  store.vendorUsageLoading[cacheKey] = true;
   try {
-    const result = await bridge.profilesUsage(name);
+    const result = await bridge.profilesUsage(name, options.credentialRef);
     if (!result?.ok || !result.usage?.success) {
       const message = result?.error || result?.usage?.error || t("toast.vendorUsageFailed");
       if (vendor.kind === "subscription") {
-        clearVendorUsage(name);
+        clearVendorUsage(cacheKey);
         if (options.silent) return;
       } else if (options.silent) {
         return;
       }
-      store.vendorUsage[name] = { summary: message, rows: [], error: message };
+      store.vendorUsage[cacheKey] = { summary: message, rows: [], error: message };
       if (!options.silent) toast.error(message);
       return;
     }
@@ -175,16 +208,29 @@ export async function queryVendorUsage(vendor: Vendor, options: { silent?: boole
       ? result.usage.data
       : rowsFromTiers(result.usage);
     const text = String(result.text || "").trim();
-    const summary = text || (rows.length > 0
-      ? rows.map(formatUsageRow).join(" · ")
-      : t("vendorDetail.usageEmpty"));
-    store.vendorUsage[name] = { summary, rows, error: "" };
+    const rowSummary = rows.length > 0 ? rows.map(formatUsageRow).join(" · ") : "";
+    const summary = vendor.kind === "subscription"
+      ? rowSummary || text || t("vendorDetail.usageEmpty")
+      : text || rowSummary || t("vendorDetail.usageEmpty");
+    store.vendorUsage[cacheKey] = { summary, rows, error: "" };
   } catch (error) {
     const message = error instanceof Error ? error.message : t("toast.vendorUsageFailed");
     if (options.silent) return;
-    store.vendorUsage[name] = { summary: message, rows: [], error: message };
+    store.vendorUsage[cacheKey] = { summary: message, rows: [], error: message };
     if (!options.silent) toast.error(message);
   } finally {
-    delete store.vendorUsageLoading[name];
+    delete store.vendorUsageLoading[cacheKey];
   }
+}
+
+export async function querySubscriptionAccountUsage(
+  vendor: Vendor,
+  account: SubscriptionAccount,
+  options: { silent?: boolean } = {},
+) {
+  return queryVendorUsage(vendor, {
+    ...options,
+    credentialRef: account.credentialRef,
+    cacheKey: subscriptionAccountUsageKey(account.id),
+  });
 }

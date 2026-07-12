@@ -89,8 +89,10 @@ function saveProfiles(payload) {
   });
 }
 
-function listVendorModels(vendorName) {
-  return runProfilesAsync(["list-models", "--vendor", String(vendorName || "")], {
+function listVendorModels(vendorName, credentialRef = "") {
+  const args = ["list-models", "--vendor", String(vendorName || "")];
+  if (String(credentialRef || "").trim()) args.push("--credential-ref", String(credentialRef).trim());
+  return runProfilesAsync(args, {
     timeout: 45000,
   });
 }
@@ -180,12 +182,15 @@ function authStatus() {
   return runAuthAsync(["status"]);
 }
 
-async function authLogin(provider) {
-  const providerId = String(provider || "").trim();
+async function authLogin(payload) {
+  const providerId = String(typeof payload === "string" ? payload : payload?.provider || "").trim();
+  const credentialRef = String(typeof payload === "string" ? "" : payload?.credentialRef || "").trim();
   if (!AUTH_PROVIDERS.has(providerId)) {
     return { ok: false, error: `未知订阅类型: ${providerId}` };
   }
-  const result = await runClovapiLongAsync(["auth", "login", "--provider", providerId, "--json"], {
+  const args = ["auth", "login", "--provider", providerId, "--json"];
+  if (credentialRef) args.push("--credential-ref", credentialRef);
+  const result = await runClovapiLongAsync(args, {
     cancelKey: providerId,
     onOutput: outputHandler,
     timeout: AUTH_LOGIN_TIMEOUT,
@@ -214,8 +219,10 @@ function authLogout(provider) {
   return runAuthAsync(["logout", "--provider", String(provider || "")], { timeout: 15000 });
 }
 
-function queryVendorUsage(vendorName) {
-  return runProfilesAsync(["usage", "--vendor", String(vendorName || "")], {
+function queryVendorUsage(vendorName, credentialRef = "") {
+  const args = ["usage", "--vendor", String(vendorName || "")];
+  if (String(credentialRef || "").trim()) args.push("--credential-ref", String(credentialRef).trim());
+  return runProfilesAsync(args, {
     timeout: 20000,
   });
 }

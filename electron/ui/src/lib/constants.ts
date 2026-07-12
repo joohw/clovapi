@@ -39,7 +39,7 @@ export const CUSTOM_API_PROFILE_NAME = "Custom API";
 export const OLLAMA_PROFILE_NAME = "Ollama";
 
 /** 固定四种供应商 ID（与代理路径 /{providerId}/… 一致），禁止动态注册。 */
-export const FIXED_PROVIDER_IDS = ["claude-code", "codex", "ollama", "custom-api"] as const;
+export const FIXED_PROVIDER_IDS = ["claude-code", "codex", "ollama", "custom"] as const;
 export type FixedProviderId = (typeof FIXED_PROVIDER_IDS)[number];
 
 export const OLLAMA_DEFAULTS = {

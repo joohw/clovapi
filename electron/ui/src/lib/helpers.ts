@@ -18,6 +18,8 @@ import type {
   ActiveSelection,
   ModelAdapterId,
   Preset,
+  RouteBackend,
+  SubscriptionAccount,
   SubscriptionItem,
   Vendor,
   VendorKind,
@@ -152,7 +154,7 @@ export function providerIdForVendor(vendor: Vendor): FixedProviderId | "" {
     if (subId === "claude-code" || subId === "codex") return subId;
   }
   if (vendor.kind === "local" && isDefaultOllamaProfile(vendor.name)) return "ollama";
-  if (vendor.kind === "api" && isDefaultCustomApiProfile(vendor.name)) return "custom-api";
+  if (vendor.kind === "api" && isDefaultCustomApiProfile(vendor.name)) return "custom";
   return "";
 }
 
@@ -366,6 +368,34 @@ export function normalizeVendor(input: Partial<Vendor>): Vendor {
         : undefined,
     usage: input?.usage,
     models,
+  };
+}
+
+export function normalizeSubscriptionAccount(input: Partial<SubscriptionAccount>): SubscriptionAccount {
+  return {
+    id: String(input?.id || "").trim(),
+    providerId: String(input?.providerId || "").trim(),
+    label: String(input?.label || "").trim(),
+    credentialRef: String(input?.credentialRef || "").trim(),
+    status: String(input?.status || "").trim(),
+    plan: String(input?.plan || "").trim(),
+    models: Array.isArray(input?.models) ? input.models.map(normalizeVendorModel) : [],
+  };
+}
+
+export function normalizeRouteBackend(input: Partial<RouteBackend>): RouteBackend {
+  return {
+    id: String(input?.id || "").trim(),
+    sourceType: String(input?.sourceType || "").trim(),
+    sourceId: String(input?.sourceId || "").trim(),
+    sourceLabel: String(input?.sourceLabel || "").trim(),
+    providerId: String(input?.providerId || "").trim(),
+    modelId: String(input?.modelId || "").trim(),
+    upstreamModel: String(input?.upstreamModel || "").trim(),
+    apiStyle: normalizeApiStyle(input?.apiStyle),
+    enabled: input?.enabled !== false,
+    priority: Number(input?.priority || 0) || 0,
+    weight: Number(input?.weight || 0) || 0,
   };
 }
 

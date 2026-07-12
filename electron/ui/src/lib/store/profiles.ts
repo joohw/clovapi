@@ -7,6 +7,8 @@ import {
   isOllamaVendor,
   normalizeVendor,
   normalizeVendorModel,
+  normalizeRouteBackend,
+  normalizeSubscriptionAccount,
   resolveVendorByName,
 } from "../helpers";
 import { OLLAMA_DEFAULTS, OLLAMA_PROFILE_NAME } from "../constants";
@@ -15,7 +17,7 @@ import { t } from "../i18n";
 import { toast } from "../toast";
 import { store } from "./state.svelte";
 import { persistProfiles } from "./profile-persist";
-import { applyVendorUsageFromProfiles } from "./vendor-usage";
+import { applyVendorUsageCache, applyVendorUsageFromProfiles } from "./vendor-usage";
 
 export { persistProfiles };
 
@@ -33,7 +35,10 @@ export async function loadProfilesFromDisk() {
   }
 
   store.profiles = (result.profiles || []).map(normalizeVendor);
+  store.subscriptionAccounts = (result.subscriptionAccounts || []).map(normalizeSubscriptionAccount);
+  store.routeBackends = (result.routeBackends || []).map(normalizeRouteBackend);
   applyVendorUsageFromProfiles(store.profiles);
+  applyVendorUsageCache(result.usageCache?.usages || []);
   if (result.proxy) {
     store.proxyHost = String(result.proxy.host || store.proxyHost || "127.0.0.1");
     store.proxyPort = Number(result.proxy.port) || 27483;

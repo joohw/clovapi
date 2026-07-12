@@ -45,8 +45,11 @@ try {
     authStatus() {
       return ipcRenderer.invoke("cli:auth-status");
     },
-    authLogin(provider) {
-      return ipcRenderer.invoke("cli:auth-login", { provider });
+    authLogin(payload) {
+      return ipcRenderer.invoke(
+        "cli:auth-login",
+        typeof payload === "string" ? { provider: payload } : cloneForIpc(payload || {}),
+      );
     },
     cancelAuthLogin(provider) {
       return ipcRenderer.invoke("cli:auth-login-cancel", { provider });
@@ -96,14 +99,14 @@ try {
             };
       return ipcRenderer.invoke("cli:profiles-test", cloneForIpc(body));
     },
-    profilesListModels(vendorName) {
-      return ipcRenderer.invoke("cli:profiles-list-models", { vendorName });
+    profilesListModels(vendorName, credentialRef = "") {
+      return ipcRenderer.invoke("cli:profiles-list-models", { vendorName, credentialRef });
     },
     profilesModels() {
       return ipcRenderer.invoke("cli:profiles-models");
     },
-    profilesUsage(vendorName) {
-      return ipcRenderer.invoke("cli:profiles-usage", { vendorName });
+    profilesUsage(vendorName, credentialRef = "") {
+      return ipcRenderer.invoke("cli:profiles-usage", { vendorName, credentialRef });
     },
     profilesCatalog() {
       return ipcRenderer.invoke("cli:profiles-catalog");

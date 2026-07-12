@@ -33,7 +33,7 @@ const en = {
       },
       switch: {
         title: "Stable local endpoints",
-        description: "Call paths like /codex/v1/responses or /custom-api/v1/chat/completions for different upstreams.",
+        description: "Call paths like /codex/v1/responses or /custom/v1/chat/completions for different upstreams.",
       },
       subscription: {
         title: "Subscriptions to API",

@@ -12,7 +12,7 @@ const (
 	ClaudeCodeProviderID = "claude-code"
 	CodexProviderID      = "codex"
 	OllamaProviderID     = "ollama"
-	CustomAPIProviderID  = "custom-api"
+	CustomAPIProviderID  = "custom"
 
 	ClaudeCodeVendorName = "Claude Subscription"
 	CodexVendorName      = "Codex Subscription"

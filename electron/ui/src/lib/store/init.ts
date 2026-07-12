@@ -4,7 +4,7 @@ import { loadModelTests } from "./model-tests";
 import { setActiveTab } from "./navigation";
 import { refreshModelList } from "./model-list";
 import { loadProfilesFromDisk } from "./profiles";
-import { refreshProxyLogs, refreshProxyStatus, autoUpdateCoreOnStartup } from "./proxy";
+import { refreshProxyLogs, refreshProxyStatus, refreshSystemLogs, startProxyStatusPolling, autoUpdateCoreOnStartup } from "./proxy";
 import { refreshSubscriptions } from "./subscriptions";
 import { refreshAppVersion, waitForDesktopBridge, waitForCliBridge } from "./app-version";
 import { startAppUpdatePolling } from "./desktop-update";
@@ -40,7 +40,12 @@ export async function initApp() {
     await refreshModelList({ silent: true });
   }
   await refreshProxyStatus();
-  await refreshProxyLogs();
+  startProxyStatusPolling();
+  if (store.activeTab === "call-logs") {
+    await refreshProxyLogs();
+  } else if (store.activeTab === "system-logs") {
+    await refreshSystemLogs();
+  }
 
   const desktopBridge = window.clovapiDesktop;
   if (desktopBridge?.onAppEvent) {
@@ -59,7 +64,8 @@ export async function initApp() {
       }
       if (payload.type === "proxy-status-changed") {
         void refreshProxyStatus();
-        void refreshProxyLogs();
+        if (store.activeTab === "call-logs") void refreshProxyLogs();
+        if (store.activeTab === "system-logs") void refreshSystemLogs();
         return;
       }
       if (payload.type === "desktop-update-progress") {

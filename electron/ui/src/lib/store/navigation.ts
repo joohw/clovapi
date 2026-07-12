@@ -1,7 +1,7 @@
 import { detectOllamaInstalled } from "./local-runtime";
 import { refreshModelList } from "./model-list";
 import { loadProfilesFromDisk } from "./profiles";
-import { refreshProxyLogs, refreshProxyStatus } from "./proxy";
+import { refreshProxyLogs, refreshProxyStatus, refreshSystemLogs } from "./proxy";
 import { refreshAppVersion } from "./app-version";
 import { refreshSubscriptions } from "./subscriptions";
 import { store, type TabId } from "./state.svelte";
@@ -25,7 +25,6 @@ export function setActiveTab(tab: TabId) {
   if (store.activeTab === "settings" && tab !== "settings") {
     store.coreUpdateCheck = null;
     store.appUpdateCheck = null;
-    store.proxyHealthTest = null;
   }
   store.activeTab = tab;
   if (tab === "profiles") {
@@ -43,8 +42,10 @@ export function setActiveTab(tab: TabId) {
     void refreshAppVersion();
     void refreshProxyStatus();
   }
-  if (isLogTab(tab)) {
+  if (tab === "call-logs") {
     void refreshProxyLogs();
+  } else if (tab === "system-logs") {
+    void refreshSystemLogs();
   }
 }
 

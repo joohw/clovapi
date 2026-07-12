@@ -1,7 +1,7 @@
-import { normalizeVendor } from "../helpers";
+import { normalizeRouteBackend, normalizeSubscriptionAccount, normalizeVendor } from "../helpers";
 import { refreshProxyLogs } from "./proxy";
 import { store } from "./state.svelte";
-import { applyVendorUsageFromProfiles } from "./vendor-usage";
+import { applyVendorUsageCache, applyVendorUsageFromProfiles } from "./vendor-usage";
 
 type PersistResult = Awaited<ReturnType<NonNullable<typeof window.clovapiCli>["profilesSave"]>>;
 
@@ -17,6 +17,8 @@ export async function persistProfiles() {
     if (!bridge?.profilesSave) return { ok: false, error: "Profile bridge unavailable" };
     const payload = cloneForIpc({
       profiles: store.profiles,
+      subscriptionAccounts: store.subscriptionAccounts,
+      routeBackends: store.routeBackends,
       proxy: {
         enabled: true,
         host: store.proxyHost || "127.0.0.1",
@@ -26,7 +28,10 @@ export async function persistProfiles() {
     const result = await bridge.profilesSave(payload);
     if (result?.ok) {
       store.profiles = (result.profiles || []).map(normalizeVendor);
+      store.subscriptionAccounts = (result.subscriptionAccounts || []).map(normalizeSubscriptionAccount);
+      store.routeBackends = (result.routeBackends || []).map(normalizeRouteBackend);
       applyVendorUsageFromProfiles(store.profiles);
+      applyVendorUsageCache(result.usageCache?.usages || []);
       if (result.proxy) {
         store.proxyHost = String(result.proxy.host || store.proxyHost || "127.0.0.1");
         store.proxyPort = Number(result.proxy.port) || 27483;

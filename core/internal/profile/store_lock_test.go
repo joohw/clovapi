@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/clovapi/switcher/internal/config"
+	"github.com/clovapi/switcher/internal/syslog"
 )
 
 func TestWithLockedStoreAppliesSequentialUpdatesToLatestStore(t *testing.T) {
@@ -35,6 +36,30 @@ func TestWithLockedStoreAppliesSequentialUpdatesToLatestStore(t *testing.T) {
 	}
 	if _, ok := got.Get("Ollama"); !ok {
 		t.Fatal("Ollama profile was not persisted")
+	}
+}
+
+func TestSaveSkipsUnchangedStoreAndSystemLog(t *testing.T) {
+	config.SetDirOverride(t.TempDir())
+	t.Cleanup(func() { config.SetDirOverride("") })
+
+	store := emptyStore()
+	if err := Save(store); err != nil {
+		t.Fatal(err)
+	}
+	before, err := syslog.List(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Save(store); err != nil {
+		t.Fatal(err)
+	}
+	after, err := syslog.List(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(after) != len(before) {
+		t.Fatalf("unchanged save added system logs: before=%d after=%d", len(before), len(after))
 	}
 }
 

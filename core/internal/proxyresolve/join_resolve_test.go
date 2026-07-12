@@ -105,11 +105,11 @@ func TestResolveIngressContextCustomAPIVendor(t *testing.T) {
 			}},
 		}},
 	}
-	ctx, err := proxyresolve.ResolveIngressContext(s, "custom-api", "gpt-5.5", "openai-chat")
+	ctx, err := proxyresolve.ResolveIngressContext(s, "custom", "gpt-5.5", "openai-chat")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ctx.ProviderID != "custom-api" || ctx.ModelID != "gpt-5.5" {
+	if ctx.ProviderID != "custom" || ctx.ModelID != "gpt-5.5" {
 		t.Fatalf("provider/model = %s/%s", ctx.ProviderID, ctx.ModelID)
 	}
 	if ctx.IngressStyle != apistyle.OpenAIChat || ctx.EgressStyle != apistyle.OpenAIResponses {

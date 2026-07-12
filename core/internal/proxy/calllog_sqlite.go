@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS call_logs (
 	completed_at TEXT NOT NULL DEFAULT '',
 	duration_ms INTEGER NOT NULL DEFAULT 0,
 	api_key_json TEXT NOT NULL DEFAULT '',
+	route_json TEXT NOT NULL DEFAULT '',
 	request_json TEXT NOT NULL,
 	upstream_json TEXT NOT NULL,
 	input_tokens INTEGER NOT NULL DEFAULT 0,
@@ -77,6 +78,7 @@ func openCallLogDB(dbPath string) (*sql.DB, error) {
 func ensureCallLogColumns(db *sql.DB) error {
 	columns := map[string]string{
 		"api_key_json":          "TEXT NOT NULL DEFAULT ''",
+		"route_json":            "TEXT NOT NULL DEFAULT ''",
 		"input_tokens":          "INTEGER NOT NULL DEFAULT 0",
 		"output_tokens":         "INTEGER NOT NULL DEFAULT 0",
 		"total_tokens":          "INTEGER NOT NULL DEFAULT 0",
@@ -115,6 +117,14 @@ func insertCallLogEntry(db *sql.DB, entry CallLogEntry) error {
 		}
 		apiKeyJSON = string(apiKeyBytes)
 	}
+	routeJSON := ""
+	if entry.Route != nil {
+		routeBytes, err := json.Marshal(entry.Route)
+		if err != nil {
+			return err
+		}
+		routeJSON = string(routeBytes)
+	}
 	usage := entry.TokenUsage
 	if usage == nil {
 		usage = ExtractCallLogTokenUsage(entry.Upstream.Body)
@@ -126,16 +136,17 @@ func insertCallLogEntry(db *sql.DB, entry CallLogEntry) error {
 	_, err = db.Exec(
 		`INSERT OR REPLACE INTO call_logs (
 			id, started_at, completed_at, duration_ms,
-			api_key_json, request_json, upstream_json,
+			api_key_json, route_json, request_json, upstream_json,
 			input_tokens, output_tokens, total_tokens, cache_read_tokens, cache_creation_tokens, reasoning_tokens,
 			tool_call_count,
 			error
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		entry.ID,
 		entry.StartedAt,
 		entry.CompletedAt,
 		entry.DurationMs,
 		apiKeyJSON,
+		routeJSON,
 		string(reqJSON),
 		string(upJSON),
 		callLogUsageValue(usage, "input"),
@@ -173,14 +184,14 @@ func callLogUsageValue(usage *CallLogTokenUsage, key string) int {
 }
 
 const callLogEntrySelectColumns = `id, started_at, completed_at, duration_ms,
-	api_key_json, request_json, upstream_json,
+	api_key_json, route_json, request_json, upstream_json,
 	input_tokens, output_tokens, total_tokens, cache_read_tokens, cache_creation_tokens, reasoning_tokens,
 	tool_call_count,
 	error`
 
 func scanCallLogEntry(rows *sql.Rows) (CallLogEntry, error) {
 	var entry CallLogEntry
-	var apiKeyJSON, reqJSON, upJSON string
+	var apiKeyJSON, routeJSON, reqJSON, upJSON string
 	usage := CallLogTokenUsage{}
 	if err := rows.Scan(
 		&entry.ID,
@@ -188,6 +199,7 @@ func scanCallLogEntry(rows *sql.Rows) (CallLogEntry, error) {
 		&entry.CompletedAt,
 		&entry.DurationMs,
 		&apiKeyJSON,
+		&routeJSON,
 		&reqJSON,
 		&upJSON,
 		&usage.InputTokens,
@@ -212,8 +224,18 @@ func scanCallLogEntry(rows *sql.Rows) (CallLogEntry, error) {
 		if err := json.Unmarshal([]byte(apiKeyJSON), &apiKey); err != nil {
 			return CallLogEntry{}, err
 		}
+		apiKey.Label = apiKeyDisplayLabel(apiKey.Label)
 		if strings.TrimSpace(apiKey.Label) != "" || strings.TrimSpace(apiKey.Fingerprint) != "" {
 			entry.APIKey = &apiKey
+		}
+	}
+	if strings.TrimSpace(routeJSON) != "" {
+		route := CallLogRoute{}
+		if err := json.Unmarshal([]byte(routeJSON), &route); err != nil {
+			return CallLogEntry{}, err
+		}
+		if strings.TrimSpace(route.BackendID) != "" || route.AttemptCount > 0 {
+			entry.Route = &route
 		}
 	}
 	if !isZeroCallLogTokenUsage(&usage) {
@@ -280,6 +302,7 @@ func listCallLogAPIKeyAggregates(db *sql.DB) ([]CallLogAPIKeyAggregate, error) {
 			if err := json.Unmarshal([]byte(apiKeyJSON), &parsed); err != nil {
 				return nil, err
 			}
+			parsed.Label = apiKeyDisplayLabel(parsed.Label)
 			apiKey = &parsed
 			if fingerprint := strings.TrimSpace(parsed.Fingerprint); fingerprint != "" {
 				key = fingerprint
@@ -430,7 +453,7 @@ func findCallLogEntryInDB(db *sql.DB, id string) (CallLogEntry, error) {
 		target,
 	)
 	var entry CallLogEntry
-	var apiKeyJSON, reqJSON, upJSON string
+	var apiKeyJSON, routeJSON, reqJSON, upJSON string
 	usage := CallLogTokenUsage{}
 	err := row.Scan(
 		&entry.ID,
@@ -438,6 +461,7 @@ func findCallLogEntryInDB(db *sql.DB, id string) (CallLogEntry, error) {
 		&entry.CompletedAt,
 		&entry.DurationMs,
 		&apiKeyJSON,
+		&routeJSON,
 		&reqJSON,
 		&upJSON,
 		&usage.InputTokens,
@@ -466,8 +490,18 @@ func findCallLogEntryInDB(db *sql.DB, id string) (CallLogEntry, error) {
 		if err := json.Unmarshal([]byte(apiKeyJSON), &apiKey); err != nil {
 			return CallLogEntry{}, err
 		}
+		apiKey.Label = apiKeyDisplayLabel(apiKey.Label)
 		if strings.TrimSpace(apiKey.Label) != "" || strings.TrimSpace(apiKey.Fingerprint) != "" {
 			entry.APIKey = &apiKey
+		}
+	}
+	if strings.TrimSpace(routeJSON) != "" {
+		route := CallLogRoute{}
+		if err := json.Unmarshal([]byte(routeJSON), &route); err != nil {
+			return CallLogEntry{}, err
+		}
+		if strings.TrimSpace(route.BackendID) != "" || route.AttemptCount > 0 {
+			entry.Route = &route
 		}
 	}
 	if !isZeroCallLogTokenUsage(&usage) {

@@ -362,6 +362,9 @@ async function resolveClovapiExecutablePath() {
 const proxyManager = createClovapiProxy();
 
 async function listProxyLogs(payload = {}) {
+  const scope = ["calls", "system", "all"].includes(String(payload?.scope || "").toLowerCase())
+    ? String(payload.scope).toLowerCase()
+    : "all";
   const callLogPage = {
     limit: Math.max(1, Number(payload?.limit) || callLogsStore.DEFAULT_CALL_LOG_PAGE_SIZE || 20),
     offset: Math.max(0, Number(payload?.offset) || 0),
@@ -369,14 +372,23 @@ async function listProxyLogs(payload = {}) {
   };
   try {
     const proxy = await proxyManager.loadProxyConfig();
+    const emptyPage = {
+      entries: [],
+      apiKeyAggregates: [],
+      ...callLogPage,
+    };
     const [page, system] = await Promise.all([
-      callLogsStore.readCallLogsViaHTTP({
-        ...callLogPage,
-        apiKey: String(payload?.apiKey || "").trim(),
-        apiKeyUnidentified: Boolean(payload?.apiKeyUnidentified),
-        proxy,
-      }),
-      callLogsStore.readSystemLogsViaHTTP(20, { proxy }),
+      scope === "system"
+        ? Promise.resolve(emptyPage)
+        : callLogsStore.readCallLogsViaHTTP({
+            ...callLogPage,
+            apiKey: String(payload?.apiKey || "").trim(),
+            apiKeyUnidentified: Boolean(payload?.apiKeyUnidentified),
+            proxy,
+          }),
+      scope === "calls"
+        ? Promise.resolve([])
+        : callLogsStore.readSystemLogsViaHTTP(20, { proxy }),
     ]);
     return {
       ok: true,
@@ -405,12 +417,20 @@ async function clearProxyLogs(scope = "all") {
   const normalized = String(scope || "all").trim().toLowerCase();
   const proxy = await proxyManager.loadProxyConfig();
   await callLogsStore.clearProxyDebugLogs(normalized, { proxy });
-  return listProxyLogs({ offset: 0, limit: callLogsStore.DEFAULT_CALL_LOG_PAGE_SIZE });
+  return listProxyLogs({
+    scope: normalized,
+    offset: 0,
+    limit: callLogsStore.DEFAULT_CALL_LOG_PAGE_SIZE,
+  });
 }
 
 async function readCoreProfiles() {
   const proxy = await proxyManager.loadProxyConfig();
-  return callLogsStore.readProfilesViaHTTP({ proxy });
+  const [profiles, usageCache] = await Promise.all([
+    callLogsStore.readProfilesViaHTTP({ proxy }),
+    callLogsStore.readUsageViaHTTP({ proxy }).catch(() => ({ ok: false, usages: [] })),
+  ]);
+  return { ...profiles, usageCache };
 }
 
 function scheduleCoreProxyRestart() {
@@ -692,10 +712,11 @@ ipcMain.handle("cli:profiles-save", async (_event, payload) => {
 ipcMain.handle("cli:profiles-list-models", async (_event, payload) => {
   try {
     const vendorName = String(payload?.vendorName || "").trim();
+    const credentialRef = String(payload?.credentialRef || "").trim();
     if (!vendorName) {
       return { ok: false, error: "vendorName is required" };
     }
-    return await clovapiDesktop.listVendorModels(vendorName);
+    return await clovapiDesktop.listVendorModels(vendorName, credentialRef);
   } catch (error) {
     return {
       ok: false,
@@ -718,10 +739,11 @@ ipcMain.handle("cli:profiles-models", async () => {
 ipcMain.handle("cli:profiles-usage", async (_event, payload) => {
   try {
     const vendorName = String(payload?.vendorName || "").trim();
+    const credentialRef = String(payload?.credentialRef || "").trim();
     if (!vendorName) {
       return { ok: false, error: "vendorName is required" };
     }
-    return await clovapiDesktop.queryVendorUsage(vendorName);
+    return await clovapiDesktop.queryVendorUsage(vendorName, credentialRef);
   } catch (error) {
     return {
       ok: false,
@@ -799,7 +821,8 @@ ipcMain.handle("cli:auth-status", async () => {
 
 ipcMain.handle("cli:auth-login", async (_event, payload) => {
   const provider = String(payload?.provider || "").trim();
-  return clovapiDesktop.authLogin(provider);
+  const credentialRef = String(payload?.credentialRef || "").trim();
+  return clovapiDesktop.authLogin({ provider, credentialRef });
 });
 
 ipcMain.handle("cli:auth-login-cancel", async (_event, payload) => {

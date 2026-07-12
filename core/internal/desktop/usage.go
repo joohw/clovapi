@@ -78,8 +78,19 @@ func resolveVendorCredentials(vendor profile.Profile) (baseURL, apiKey, template
 }
 
 func querySubscriptionVendorUsage(vendor profile.Profile) usage.Result {
+	return querySubscriptionVendorUsageWithCredential(vendor, "")
+}
+
+func querySubscriptionVendorUsageWithCredential(vendor profile.Profile, credentialRef string) usage.Result {
 	flat := vendor
-	profile.HydrateSubscriptionCredentials(&flat)
+	if strings.TrimSpace(credentialRef) != "" {
+		profile.HydrateSubscriptionAccountCredentials(&flat, profile.SubscriptionAccount{
+			ProviderID:    vendor.SubscriptionProviderID,
+			CredentialRef: credentialRef,
+		})
+	} else {
+		profile.HydrateSubscriptionCredentials(&flat)
+	}
 	if strings.TrimSpace(flat.APIKey) == "" {
 		return usage.Result{Success: false, Kind: "subscription", Error: "subscription not logged in"}
 	}
@@ -88,6 +99,12 @@ func querySubscriptionVendorUsage(vendor profile.Profile) usage.Result {
 
 // QueryVendorUsage queries upstream quota/balance for one persisted API or subscription vendor.
 func QueryVendorUsage(vendorName string) VendorUsageResult {
+	return QueryVendorUsageWithCredential(vendorName, "")
+}
+
+// QueryVendorUsageWithCredential queries one vendor, using an explicit
+// subscription account credential when provided.
+func QueryVendorUsageWithCredential(vendorName, credentialRef string) VendorUsageResult {
 	name := strings.TrimSpace(vendorName)
 	if name == "" {
 		return VendorUsageResult{OK: false, Error: "vendorName is required"}
@@ -101,7 +118,7 @@ func QueryVendorUsage(vendorName string) VendorUsageResult {
 		return VendorUsageResult{OK: false, Error: fmt.Sprintf("vendor not found: %s", name)}
 	}
 	if strings.EqualFold(strings.TrimSpace(vendor.Kind), "subscription") || strings.TrimSpace(vendor.SubscriptionProviderID) != "" {
-		result := querySubscriptionVendorUsage(vendor)
+		result := querySubscriptionVendorUsageWithCredential(vendor, credentialRef)
 		return VendorUsageResult{
 			OK:       result.Success,
 			Vendor:   name,

@@ -1,126 +1,95 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button/index.js";
-  import {
-    buildProxyIngressBaseURL,
-    canManuallyManageVendorModels,
-    isOllamaVendor,
-    providerIdForVendor,
-    subscriptionIsUsable,
-  } from "../lib/helpers";
-  import { copyTextWithToast } from "../lib/clipboard";
-  import { OLLAMA_PROFILE_NAME } from "../lib/constants";
   import { displayVendorName, i18n, t } from "../lib/i18n";
   import type { Vendor } from "../global";
   import {
-    cancelSubscriptionLogin,
-    isSubscriptionLogging,
-    openModelDialog,
-    openProfileDialog,
-    runSubscriptionLogin,
-    runSubscriptionLogout,
-    store,
-    subscriptionStatusForProvider,
+    removeSubscriptionAccount,
+    reorderSubscriptionAccount,
+    isSubscriptionAccountUsageLoading,
+    querySubscriptionAccountUsage,
+    subscriptionAccountUsageSummary,
+    subscriptionAccountsForProvider,
   } from "../lib/store.svelte";
 
   let { vendor }: { vendor: Vendor } = $props();
 
-  const subscription = $derived(
-    vendor.kind === "subscription"
-      ? subscriptionStatusForProvider(vendor.subscriptionProviderId)
-      : undefined,
+  const subscriptionAccounts = $derived(
+    vendor.kind === "subscription" ? subscriptionAccountsForProvider(vendor.subscriptionProviderId) : [],
   );
-  const logging = $derived(
-    vendor.kind === "subscription" ? isSubscriptionLogging(vendor.subscriptionProviderId) : false,
-  );
-  const subscriptionUsable = $derived(
-    vendor.kind !== "subscription" || subscriptionIsUsable(subscription),
-  );
-  const localRuntimeUsable = $derived(!isOllamaVendor(vendor) || store.ollamaInstalled);
-  const vendorUsable = $derived(subscriptionUsable && localRuntimeUsable);
-
   const copy = $derived.by(() => {
     void i18n.locale;
     return {
       cancel: t("common.cancel"),
-      login: t("common.login"),
-      logout: t("common.logout"),
-      editConnection: t("vendorDetail.editConnection"),
-      addModel: t("common.addModel"),
-      proxyBaseUrl: t("vendorDetail.proxyBaseUrl"),
-      clickToCopy: t("app.clickToCopyProxyBaseUrl"),
+      noSubscriptions: t("vendorDetail.noSubscriptions"),
+      removeSubscription: t("vendorDetail.removeSubscription"),
+      allowance: t("vendorDetail.allowance"),
+      loading: t("common.loading"),
     };
   });
 
-  const vendorProviderId = $derived(providerIdForVendor(vendor));
-  const vendorProxyBaseUrl = $derived(
-    vendorProviderId && vendorUsable
-      ? buildProxyIngressBaseURL(store.proxyPort, vendorProviderId, store.proxyHost)
-      : "",
-  );
+  let draggingAccountId = "";
+  const queriedUsageAccounts = new Set<string>();
 
-  async function copyVendorProxyBaseUrl() {
-    if (!vendorProxyBaseUrl) return;
-    await copyTextWithToast(vendorProxyBaseUrl);
+  $effect(() => {
+    if (vendor.kind !== "subscription") return;
+    for (const account of subscriptionAccounts) {
+      const queryKey = `${account.id}\u0000${account.credentialRef}`;
+      if (!account.id || !account.credentialRef || queriedUsageAccounts.has(queryKey)) continue;
+      queriedUsageAccounts.add(queryKey);
+      void querySubscriptionAccountUsage(vendor, account, { silent: true });
+    }
+  });
+
+  function accountUsageText(accountId: string): string {
+    return subscriptionAccountUsageSummary(accountId)
+      || (isSubscriptionAccountUsageLoading(accountId) ? copy.loading : t("vendorDetail.usageEmpty"));
+  }
+
+  function onAccountDrop(targetAccountId: string) {
+    const fromIndex = subscriptionAccounts.findIndex((account) => account.id === draggingAccountId);
+    const toIndex = subscriptionAccounts.findIndex((account) => account.id === targetAccountId);
+    draggingAccountId = "";
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+    void reorderSubscriptionAccount(vendor.subscriptionProviderId, fromIndex, toIndex);
   }
 </script>
 
-<div class="ml-[4.25rem] mr-4 px-0 py-3">
-  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div class="min-w-0">
-      {#if vendorProxyBaseUrl}
-        <button
-          type="button"
-          class="flex w-full min-w-0 items-center gap-2 text-left text-xs opacity-80 transition-opacity hover:opacity-100 focus-visible:opacity-100"
-          onclick={() => void copyVendorProxyBaseUrl()}
-          title={copy.clickToCopy}
-          aria-label={`${copy.proxyBaseUrl}: ${vendorProxyBaseUrl}. ${copy.clickToCopy}`}
-        >
-          <span class="shrink-0 text-muted-foreground">{copy.proxyBaseUrl}</span>
-          <span class="min-w-0 truncate font-mono text-foreground">{vendorProxyBaseUrl}</span>
-        </button>
+<div class="ml-[4.25rem] mr-4 px-0">
+  {#if vendor.kind !== "subscription"}
+    <div class="min-h-6"></div>
+  {:else}
+    <div class="w-full divide-y divide-border" role="list">
+      {#if subscriptionAccounts.length === 0}
+        <div class="py-2 text-xs text-muted-foreground">
+          {copy.noSubscriptions}
+        </div>
+      {:else}
+        {#each subscriptionAccounts as account, index (account.id)}
+          <div
+            role="listitem"
+            class="flex items-center gap-3 py-3"
+            draggable="true"
+            ondragstart={() => (draggingAccountId = account.id)}
+            ondragover={(event) => event.preventDefault()}
+            ondrop={() => onAccountDrop(account.id)}
+          >
+            <span class="mt-1 cursor-grab select-none text-muted-foreground" aria-hidden="true">⋮⋮</span>
+            <div class="min-w-0 flex-1">
+              <div class="truncate text-sm font-medium">{account.label || `${displayVendorName(vendor.name)} ${index + 1}`}</div>
+              <div class="mt-1 truncate text-xs text-muted-foreground">
+                {copy.allowance}: {accountUsageText(account.id)}
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onclick={() => void removeSubscriptionAccount(vendor.subscriptionProviderId, account.id)}
+            >
+              {copy.removeSubscription}
+            </Button>
+          </div>
+        {/each}
       {/if}
     </div>
-
-    <div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-      {#if vendor.kind === "subscription" && subscription}
-        {#if logging}
-          <Button size="sm" variant="outline" onclick={() => void cancelSubscriptionLogin(subscription.id)}>
-            {copy.cancel}
-          </Button>
-        {:else}
-          <Button size="sm" onclick={() => void runSubscriptionLogin(subscription.id)}>
-            {copy.login}
-          </Button>
-        {/if}
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={!subscription.loggedIn || logging}
-          onclick={() => void runSubscriptionLogout(subscription.id, displayVendorName(vendor.name))}
-        >
-          {copy.logout}
-        </Button>
-      {/if}
-      {#if vendor.kind === "local"}
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={store.running}
-          onclick={() => openProfileDialog("edit", OLLAMA_PROFILE_NAME)}
-        >
-          {copy.editConnection}
-        </Button>
-      {/if}
-      {#if canManuallyManageVendorModels(vendor)}
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={store.running}
-          onclick={() => openModelDialog("create", vendor.name)}
-        >
-          {copy.addModel}
-        </Button>
-      {/if}
-    </div>
-  </div>
+  {/if}
 </div>

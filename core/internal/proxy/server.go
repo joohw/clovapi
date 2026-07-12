@@ -79,12 +79,47 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 	mux.HandleFunc("/__debug/system-log", s.handleDebugSystemLog)
 	mux.HandleFunc("/__debug/profiles", s.handleDebugProfiles)
 	mux.HandleFunc("/__debug/usage", s.handleDebugUsage)
+	mux.HandleFunc("/__debug/routes", s.handleDebugRoutes)
 	mux.HandleFunc("/__debug/transform-request", s.handleDebugTransform)
 	mux.HandleFunc("/__debug/resolve-route", s.handleDebugResolveRoute)
 	mux.HandleFunc("/__debug/shutdown", s.handleDebugShutdown)
 	mux.HandleFunc("/", s.handleProxy)
 	s.Server = &http.Server{Addr: cfg.Host + ":" + strconv.Itoa(cfg.Port), Handler: mux}
 	return s
+}
+
+func (s *Server) handleDebugRoutes(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "GET only"})
+		return
+	}
+	store, err := s.loadStore()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load profiles.json"})
+		return
+	}
+	backends := store.DerivedRouteBackends()
+	providerID := strings.TrimSpace(r.URL.Query().Get("provider_id"))
+	modelID := strings.TrimSpace(r.URL.Query().Get("model_id"))
+	if providerID != "" || modelID != "" {
+		filtered := backends[:0]
+		for _, backend := range backends {
+			if providerID != "" && !strings.EqualFold(backend.ProviderID, providerID) {
+				continue
+			}
+			if modelID != "" &&
+				!strings.EqualFold(backend.ModelID, modelID) &&
+				!strings.EqualFold(backend.UpstreamModel, modelID) {
+				continue
+			}
+			filtered = append(filtered, backend)
+		}
+		backends = filtered
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":       true,
+		"backends": backends,
+	})
 }
 
 func (s *Server) loadStore() (*profile.Store, error) {
@@ -189,7 +224,6 @@ func (s *Server) handleDebugShutdown(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"ok": "shutting down"})
 	go func() {
-		syslog.LogProxyStopped("debug-shutdown")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = s.Shutdown(ctx)
@@ -576,7 +610,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	route, err := proxyresolve.ResolveForwardRoute(store, ingress.ProviderID, ingress.ModelID, ingress.APIStyle)
+	routes, err := proxyresolve.ResolveForwardRoutes(store, ingress.ProviderID, ingress.ModelID, ingress.APIStyle)
 	if err != nil {
 		if errors.Is(err, proxyresolve.ErrSubscriptionUpstreamNotReady) {
 			trace.setError("subscription upstream requires Desktop auth wiring")
@@ -587,11 +621,14 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
-
-	if route.APIKey == "" {
-		trace.setError("resolved profile has no upstream credentials")
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "resolved profile has no upstream credentials"})
-		return
+	if s.Usage != nil {
+		routes = s.Usage.OrderRoutes(routes)
+		if len(routes) == 0 {
+			msg := "all route backends are unavailable: usage exhausted"
+			trace.setError(msg)
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": msg})
+			return
+		}
 	}
 
 	contentType := strings.ToLower(strings.TrimSpace(r.Header.Get("Content-Type")))
@@ -601,6 +638,38 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var lastErr string
+	for i, route := range routes {
+		if route.APIKey == "" {
+			lastErr = "resolved profile has no upstream credentials"
+			trace.setError(lastErr)
+			if i < len(routes)-1 {
+				continue
+			}
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": lastErr})
+			return
+		}
+		if s.tryProxyRoute(w, r, trace, route, payload, i < len(routes)-1, &lastErr) {
+			return
+		}
+	}
+	if strings.TrimSpace(lastErr) == "" {
+		lastErr = "upstream request failed"
+	}
+	trace.setError(lastErr)
+	writeJSON(w, http.StatusBadGateway, map[string]string{"error": lastErr})
+}
+
+func (s *Server) tryProxyRoute(
+	w http.ResponseWriter,
+	r *http.Request,
+	trace *requestTrace,
+	route proxyresolve.ForwardRoute,
+	payload []byte,
+	canRetry bool,
+	lastErr *string,
+) bool {
+	trace.addRouteAttempt(route)
 	upJSON, ir, err := protocol.PrepareUpstreamRequest(route.IngressStyle, route.EgressStyle, payload, protocol.PrepareOptions{
 		Model:       route.EffectiveModel,
 		ForceStream: true,
@@ -611,13 +680,13 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		trace.setError(err.Error())
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
+		return true
 	}
 	upReq, err := http.NewRequestWithContext(r.Context(), r.Method, route.UpstreamURL, bytes.NewReader(upJSON))
 	if err != nil {
 		trace.setError("invalid upstream URL")
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "invalid upstream URL"})
-		return
+		return true
 	}
 	trace.setUpstreamRequest(upReq.Method, upReq.URL.String())
 
@@ -638,9 +707,21 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 
 	upResp, err := s.upstreamHTTP().Do(upReq)
 	if err != nil {
-		trace.setError(fmt.Sprintf("upstream request failed: %v", err))
+		msg := fmt.Sprintf("upstream request failed: %v", err)
+		*lastErr = msg
+		trace.setError(msg)
+		if canRetry {
+			return false
+		}
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "upstream request failed"})
-		return
+		return true
+	}
+	if canRetry && isRetryableRouteStatus(upResp.StatusCode) {
+		*lastErr = fmt.Sprintf("upstream returned retryable status %d", upResp.StatusCode)
+		trace.setError(*lastErr)
+		_, _ = io.Copy(io.Discard, io.LimitReader(upResp.Body, 1<<20))
+		_ = upResp.Body.Close()
+		return false
 	}
 
 	plain, layered := protocol.WrapStreamingPlaintextReader(upResp.Header.Get("Content-Encoding"), upResp.Body)
@@ -673,19 +754,19 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 			trace.setError(streamErr.Error())
 		}
 		trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, capture.Bytes())
-		return
+		return true
 	}
 
 	upBody, err := io.ReadAll(io.LimitReader(buf, maxUpstreamBufferedBody+1))
 	if err != nil {
 		trace.setError("read upstream response")
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "read upstream response"})
-		return
+		return true
 	}
 	if int64(len(upBody)) > maxUpstreamBufferedBody {
 		trace.setError("upstream response too large")
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "upstream response too large"})
-		return
+		return true
 	}
 	trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, upBody)
 
@@ -708,6 +789,15 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(upStatus)
 	_ = protocol.WriteSSEFromBufferedIR(route.IngressStyle, ir.Model, ev, w)
+	return true
+}
+
+func isRetryableRouteStatus(status int) bool {
+	return status == http.StatusTooManyRequests ||
+		status == http.StatusInternalServerError ||
+		status == http.StatusBadGateway ||
+		status == http.StatusServiceUnavailable ||
+		status == http.StatusGatewayTimeout
 }
 
 func shouldTransformProxyMethod(m string) bool {

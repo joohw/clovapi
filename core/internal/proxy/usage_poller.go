@@ -9,16 +9,21 @@ import (
 
 	"github.com/clovapi/switcher/internal/profile"
 	"github.com/clovapi/switcher/internal/provider"
+	"github.com/clovapi/switcher/internal/proxyresolve"
 	"github.com/clovapi/switcher/internal/usage"
 )
 
-const defaultUsagePollInterval = 5 * time.Minute
+const defaultUsagePollInterval = 2 * time.Minute
+const preferredRouteUsageThreshold = 90.0
 
 type UsageSnapshot struct {
 	OK         bool         `json:"ok"`
 	Vendor     string       `json:"vendor"`
 	VendorKind string       `json:"vendorKind,omitempty"`
 	ProviderID string       `json:"providerId,omitempty"`
+	SourceType string       `json:"sourceType,omitempty"`
+	SourceID   string       `json:"sourceId,omitempty"`
+	CacheKey   string       `json:"cacheKey,omitempty"`
 	Template   string       `json:"templateType,omitempty"`
 	Text       string       `json:"text,omitempty"`
 	Usage      usage.Result `json:"usage,omitempty"`
@@ -139,11 +144,19 @@ func (p *UsagePoller) Refresh(ctx context.Context) error {
 	now := time.Now().UTC()
 
 	p.mu.Lock()
-	p.usages = map[string]UsageSnapshot{}
+	nextUsages := map[string]UsageSnapshot{}
 	for _, snapshot := range snapshots {
 		snapshot.UpdatedAt = now.Format(time.RFC3339)
-		p.usages[strings.ToLower(strings.TrimSpace(snapshot.Vendor))] = snapshot
+		key := usageSnapshotKey(snapshot.SourceType, snapshot.SourceID, snapshot.ProviderID, snapshot.CacheKey)
+		if !snapshot.OK {
+			if previous, ok := p.usages[key]; ok && previous.OK {
+				nextUsages[key] = previous
+				continue
+			}
+		}
+		nextUsages[key] = snapshot
 	}
+	p.usages = nextUsages
 	p.updatedAt = now
 	p.lastError = ""
 	p.mu.Unlock()
@@ -184,6 +197,13 @@ func queryStoreUsage(ctx context.Context, store *profile.Store) []UsageSnapshot 
 		return nil
 	}
 	out := make([]UsageSnapshot, 0)
+	explicitSubscriptionProviders := map[string]bool{}
+	for _, account := range store.Subscriptions {
+		providerID := strings.TrimSpace(account.ProviderID)
+		if providerID != "" {
+			explicitSubscriptionProviders[providerID] = true
+		}
+	}
 	for _, vendor := range store.List {
 		select {
 		case <-ctx.Done():
@@ -193,7 +213,22 @@ func queryStoreUsage(ctx context.Context, store *profile.Store) []UsageSnapshot 
 		if strings.HasPrefix(strings.TrimSpace(vendor.Name), "__") {
 			continue
 		}
+		if strings.EqualFold(strings.TrimSpace(vendor.Kind), "subscription") &&
+			explicitSubscriptionProviders[strings.TrimSpace(vendor.SubscriptionProviderID)] {
+			continue
+		}
 		snapshot, ok := queryProfileUsage(vendor)
+		if ok {
+			out = append(out, snapshot)
+		}
+	}
+	for _, account := range store.Subscriptions {
+		select {
+		case <-ctx.Done():
+			return out
+		default:
+		}
+		snapshot, ok := querySubscriptionAccountUsage(account)
 		if ok {
 			out = append(out, snapshot)
 		}
@@ -207,11 +242,15 @@ func queryProfileUsage(vendor profile.Profile) (UsageSnapshot, bool) {
 	switch {
 	case kind == "subscription" || strings.TrimSpace(vendor.SubscriptionProviderID) != "":
 		result := querySubscriptionUsage(vendor)
+		sourceID := defaultSubscriptionSourceID(vendor.SubscriptionProviderID, vendor.Name)
 		return UsageSnapshot{
 			OK:         result.Success,
 			Vendor:     strings.TrimSpace(vendor.Name),
 			VendorKind: "subscription",
 			ProviderID: providerID,
+			SourceType: "subscription",
+			SourceID:   sourceID,
+			CacheKey:   strings.TrimSpace(vendor.Name),
 			Template:   "subscription",
 			Text:       strings.TrimSpace(result.Text),
 			Usage:      result,
@@ -228,6 +267,9 @@ func queryProfileUsage(vendor profile.Profile) (UsageSnapshot, bool) {
 			Vendor:     strings.TrimSpace(vendor.Name),
 			VendorKind: "api",
 			ProviderID: providerID,
+			SourceType: "api",
+			SourceID:   strings.TrimSpace(vendor.Name),
+			CacheKey:   strings.TrimSpace(vendor.Name),
 			Template:   templateType,
 			Text:       strings.TrimSpace(result.Text),
 			Usage:      result,
@@ -236,6 +278,156 @@ func queryProfileUsage(vendor profile.Profile) (UsageSnapshot, bool) {
 	default:
 		return UsageSnapshot{}, false
 	}
+}
+
+func querySubscriptionAccountUsage(account profile.SubscriptionAccount) (UsageSnapshot, bool) {
+	providerID := strings.TrimSpace(account.ProviderID)
+	sourceID := strings.TrimSpace(account.ID)
+	if providerID == "" || sourceID == "" {
+		return UsageSnapshot{}, false
+	}
+	flat := profile.Profile{
+		Name:                   strings.TrimSpace(account.Label),
+		Kind:                   "subscription",
+		SubscriptionProviderID: providerID,
+	}
+	profile.HydrateSubscriptionAccountCredentials(&flat, account)
+	result := usage.QuerySubscriptionUsage(providerID, flat.APIKey, flat.AccountID)
+	label := strings.TrimSpace(account.Label)
+	if label == "" {
+		label = sourceID
+	}
+	return UsageSnapshot{
+		OK:         result.Success,
+		Vendor:     label,
+		VendorKind: "subscription",
+		ProviderID: providerID,
+		SourceType: "subscription",
+		SourceID:   sourceID,
+		CacheKey:   "subscription:" + sourceID,
+		Template:   "subscription",
+		Text:       strings.TrimSpace(result.Text),
+		Usage:      result,
+		Error:      result.Error,
+	}, true
+}
+
+func defaultSubscriptionSourceID(providerID, fallback string) string {
+	switch strings.TrimSpace(providerID) {
+	case provider.CodexProviderID:
+		return profile.DefaultCodexSubscriptionAccountID
+	case provider.ClaudeCodeProviderID:
+		return profile.DefaultClaudeSubscriptionAccountID
+	default:
+		return strings.TrimSpace(fallback)
+	}
+}
+
+func usageSnapshotKey(sourceType, sourceID, providerID, fallback string) string {
+	parts := []string{
+		strings.ToLower(strings.TrimSpace(sourceType)),
+		strings.ToLower(strings.TrimSpace(sourceID)),
+		strings.ToLower(strings.TrimSpace(providerID)),
+	}
+	if parts[0] != "" && parts[1] != "" {
+		return strings.Join(parts, "\x00")
+	}
+	return strings.ToLower(strings.TrimSpace(fallback))
+}
+
+type routeUsageState struct {
+	known       bool
+	utilization float64
+	exhausted   bool
+}
+
+// OrderRoutes preserves configured order while usage is at or below the
+// threshold. When every usable route is above the threshold, the least-used
+// route is first. Exhausted routes are omitted.
+func (p *UsagePoller) OrderRoutes(routes []proxyresolve.ForwardRoute) []proxyresolve.ForwardRoute {
+	if p == nil || len(routes) == 0 {
+		return routes
+	}
+	p.RefreshIfStaleAsync()
+	p.mu.Lock()
+	snapshots := make(map[string]UsageSnapshot, len(p.usages))
+	for key, snapshot := range p.usages {
+		snapshots[key] = snapshot
+	}
+	p.mu.Unlock()
+	type scoredRoute struct {
+		route proxyresolve.ForwardRoute
+		usage float64
+	}
+	preferred := make([]proxyresolve.ForwardRoute, 0, len(routes))
+	unknown := make([]proxyresolve.ForwardRoute, 0, len(routes))
+	highUsage := make([]scoredRoute, 0, len(routes))
+	for _, route := range routes {
+		key := usageSnapshotKey(route.SourceType, route.SourceID, route.ProviderID, "")
+		state := usageStateFromSnapshot(snapshots[key])
+		if state.exhausted {
+			continue
+		}
+		if !state.known {
+			unknown = append(unknown, route)
+			continue
+		}
+		if state.utilization <= preferredRouteUsageThreshold {
+			preferred = append(preferred, route)
+			continue
+		}
+		highUsage = append(highUsage, scoredRoute{route: route, usage: state.utilization})
+	}
+	sort.SliceStable(highUsage, func(i, j int) bool { return highUsage[i].usage < highUsage[j].usage })
+	out := make([]proxyresolve.ForwardRoute, 0, len(preferred)+len(unknown)+len(highUsage))
+	out = append(out, preferred...)
+	out = append(out, unknown...)
+	for _, candidate := range highUsage {
+		out = append(out, candidate.route)
+	}
+	return out
+}
+
+func usageStateFromSnapshot(snapshot UsageSnapshot) routeUsageState {
+	if !snapshot.OK || !snapshot.Usage.Success {
+		return routeUsageState{}
+	}
+	state := routeUsageState{}
+	for _, tier := range snapshot.Usage.Tiers {
+		state.known = true
+		if tier.Utilization > state.utilization {
+			state.utilization = tier.Utilization
+		}
+	}
+	for _, row := range snapshot.Usage.Data {
+		if row.IsValid != nil && !*row.IsValid {
+			state.known = true
+			state.exhausted = true
+			state.utilization = 100
+			continue
+		}
+		var value float64
+		var ok bool
+		if row.Total != nil && *row.Total > 0 && row.Used != nil {
+			value, ok = (*row.Used / *row.Total)*100, true
+		} else if strings.TrimSpace(row.Unit) == "%" && row.Used != nil {
+			value, ok = *row.Used, true
+		}
+		if ok {
+			state.known = true
+			if value > state.utilization {
+				state.utilization = value
+			}
+		}
+		if row.Remaining != nil && *row.Remaining <= 0 {
+			state.known = true
+			state.exhausted = true
+		}
+	}
+	if state.utilization >= 100 {
+		state.exhausted = true
+	}
+	return state
 }
 
 func querySubscriptionUsage(vendor profile.Profile) usage.Result {

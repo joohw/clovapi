@@ -4,7 +4,7 @@ import "strings"
 
 // Set at link time via -ldflags (see .goreleaser.yaml).
 var (
-	Version = "dev0.2.13"
+	Version = "dev0.2.38"
 	Commit  = "none"
 	Date    = "unknown"
 )

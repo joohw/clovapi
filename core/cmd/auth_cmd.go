@@ -37,12 +37,13 @@ func cmdAuthStatus() *cobra.Command {
 
 func cmdAuthLogin() *cobra.Command {
 	var providerID string
+	var credentialRef string
 	var jsonFlag bool
 	c := &cobra.Command{
 		Use:   "login",
 		Short: "Run subscription OAuth login in the browser",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			result := desktop.AuthLogin(cmd.Context(), providerID)
+			result := desktop.AuthLoginToCredential(cmd.Context(), providerID, credentialRef)
 			if jsonFlag {
 				return writeDesktopJSON(result)
 			}
@@ -50,6 +51,7 @@ func cmdAuthLogin() *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&providerID, "provider", "", "Provider id: claude-code|codex")
+	c.Flags().StringVar(&credentialRef, "credential-ref", "", "Credential file path or config-relative ref")
 	c.Flags().BoolVar(&jsonFlag, "json", false, "Return JSON")
 	return c
 }

@@ -27,7 +27,9 @@ type CliBridge = {
   }>;
   which(command: string): Promise<{ ok?: boolean; exists?: boolean; path?: string; error?: string }>;
   authStatus(): Promise<{ ok?: boolean; items?: SubscriptionItem[]; error?: string }>;
-  authLogin(provider: string): Promise<{ ok?: boolean; cancelled?: boolean; error?: string }>;
+  authLogin(
+    payload: string | { provider: string; credentialRef?: string },
+  ): Promise<{ ok?: boolean; cancelled?: boolean; error?: string }>;
   cancelAuthLogin(provider: string): Promise<{ ok?: boolean; error?: string }>;
   authLogout(provider: string): Promise<ProfilesLoadResult>;
   proxyStatus(): Promise<ProxyStatusResult>;
@@ -36,6 +38,7 @@ type CliBridge = {
   proxyConfigSave(payload: ProxyConfig): Promise<{ ok?: boolean; proxy?: ProxyConfig; error?: string }>;
   proxyStop(options?: { suppressAutostart?: boolean }): Promise<{ ok?: boolean; error?: string }>;
   proxyLogsList(payload?: {
+    scope?: "calls" | "system" | "all";
     limit?: number;
     offset?: number;
     apiKey?: string;
@@ -46,11 +49,13 @@ type CliBridge = {
   profilesSave(payload: {
     profiles: Vendor[];
     proxy?: ProxyConfig;
+    subscriptionAccounts?: SubscriptionAccount[];
+    routeBackends?: RouteBackend[];
   }): Promise<ProfilesSaveResult>;
   profilesTest(payload: string | ProfileTestPayload): Promise<ProfileTestResult>;
-  profilesListModels(vendorName: string): Promise<ListVendorModelsResult>;
+  profilesListModels(vendorName: string, credentialRef?: string): Promise<ListVendorModelsResult>;
   profilesModels(): Promise<ModelListResult>;
-  profilesUsage(vendorName: string): Promise<VendorUsageResult>;
+  profilesUsage(vendorName: string, credentialRef?: string): Promise<VendorUsageResult>;
   profilesCatalog(): Promise<ModelAdaptersResult>;
   onOutput(callback: (payload: unknown) => void): () => void;
   onExit(callback: (payload: { code?: number | null }) => void): () => void;
@@ -125,6 +130,7 @@ export type ProxyLogEntry = {
   completedAt: string;
   durationMs: number;
   apiKey?: ProxyLogAPIKeySummary;
+  route?: ProxyLogRoute;
   request: {
     method: string;
     url: string;
@@ -150,6 +156,18 @@ export type ProxyLogEntry = {
   };
   toolCallCount?: number;
   error?: string;
+};
+
+export type ProxyLogRoute = {
+  backendId?: string;
+  sourceType?: string;
+  sourceId?: string;
+  sourceLabel?: string;
+  providerId?: string;
+  requestedModel?: string;
+  upstreamModel?: string;
+  attemptCount?: number;
+  attemptBackends?: string[];
 };
 
 export type ProxyLogAPIKeySummary = {
@@ -194,6 +212,9 @@ type ProfilesLoadResult = {
   error?: string;
   profiles?: Vendor[];
   proxy?: ProxyConfig;
+  subscriptionAccounts?: SubscriptionAccount[];
+  routeBackends?: RouteBackend[];
+  usageCache?: VendorUsageCacheResult;
   path?: string;
 };
 
@@ -266,6 +287,30 @@ export type SubscriptionItem = {
   summary: string;
 };
 
+export type SubscriptionAccount = {
+  id: string;
+  providerId: string;
+  label: string;
+  credentialRef: string;
+  status?: string;
+  plan?: string;
+  models?: VendorModel[];
+};
+
+export type RouteBackend = {
+  id: string;
+  sourceType: string;
+  sourceId?: string;
+  sourceLabel?: string;
+  providerId: string;
+  modelId: string;
+  upstreamModel: string;
+  apiStyle: string;
+  enabled: boolean;
+  priority: number;
+  weight: number;
+};
+
 export type VendorModel = {
   id: string;
   label: string;
@@ -313,6 +358,9 @@ export type VendorUsageCacheItem = {
   vendor?: string;
   vendorKind?: VendorKind | string;
   providerId?: string;
+  sourceType?: string;
+  sourceId?: string;
+  cacheKey?: string;
   templateType?: string;
   text?: string;
   usage?: VendorUsageResult["usage"];

@@ -7,6 +7,12 @@ clovapi stores provider profiles, runs a local HTTP proxy, routes requests by pr
 Useful paths:
 
 - Home: /
+- Articles and guides: /blog
+- Codex subscription to local API: /blog/codex-subscription-to-local-api
+- Local model API proxy guide: /blog/local-model-api-proxy
+- Debug local model API calls: /blog/debug-local-model-api-calls
+- Agent skill page: /skill
+- Agent-readable skill source: /skill.md
 - GitHub: https://github.com/joohw/clovapi
 - npm: https://www.npmjs.com/package/@clovapi/cli
 
@@ -14,3 +20,10 @@ Default proxy:
 
 - http://127.0.0.1:27483
 - /{providerId}/v1/...
+
+Primary topics:
+
+- local LLM API proxy
+- OpenAI, Anthropic, and Gemini API format conversion
+- Codex and Claude subscription access through localhost
+- local request logs, usage inspection, and provider routing

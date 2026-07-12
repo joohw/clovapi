@@ -41,8 +41,14 @@ export async function buildPageMetadata(page: SeoPageKey): Promise<Metadata> {
 
   const canonical = `${siteUrl}${normalizePath(pathname)}`;
   return {
+    metadataBase: new URL(siteUrl),
     title,
     description,
+    applicationName: SITE_NAME,
+    authors: [{ name: SITE_NAME, url: siteUrl }],
+    creator: SITE_NAME,
+    publisher: SITE_NAME,
+    category: "developer tools",
     icons: {
       icon: [
         { url: "/clover-light.svg", type: "image/svg+xml", media: "(prefers-color-scheme: light)" },

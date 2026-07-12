@@ -3,7 +3,11 @@ import { BlogPostContent } from "@/components/blog/blog-post-content";
 import { ServerScripts } from "@/components/server-scripts";
 import { SUPPORTED_LANGUAGES, type AppLanguage } from "@/i18n/config";
 import { BLOG_POSTS, blogPathname } from "@/lib/blog-data";
-import { buildBlogPostingJsonLd, getBlogPost } from "@/lib/blog-data.server";
+import {
+  buildBlogBreadcrumbJsonLd,
+  buildBlogPostingJsonLd,
+  getBlogPost,
+} from "@/lib/blog-data.server";
 import { renderMarkdown } from "@/lib/markdown";
 import { resolveSeoLanguage, resolveSiteUrl } from "@/lib/seo";
 import { SITE_NAME } from "@/lib/site";
@@ -23,6 +27,7 @@ export async function generateMetadata({ params }: BlogPostPageProps) {
   if (!post) return {};
   const siteUrl = await resolveSiteUrl();
   const canonical = `${siteUrl}${blogPathname(slug)}`;
+  const ogImage = language === "en" ? "/use-case-en.png" : "/use-case-zh.png";
 
   return {
     title: post.title,
@@ -41,6 +46,14 @@ export async function generateMetadata({ params }: BlogPostPageProps) {
       description: post.description,
       url: canonical,
       publishedTime: post.date || undefined,
+      modifiedTime: post.lastModified.toISOString(),
+      images: [{ url: `${siteUrl}${ogImage}`, width: 730, height: 731, alt: post.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.description,
+      images: [`${siteUrl}${ogImage}`],
     },
   };
 }
@@ -57,7 +70,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   };
   const language = await resolveSeoLanguage();
   const siteUrl = await resolveSiteUrl();
-  const jsonLd = buildBlogPostingJsonLd({ siteUrl, language, slug });
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      buildBlogPostingJsonLd({ siteUrl, language, slug }),
+      buildBlogBreadcrumbJsonLd({ siteUrl, language, slug }),
+    ],
+  };
 
   return (
     <>

@@ -26,6 +26,8 @@ RUN npm ci --omit=dev
 
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+# Blog posts are read from disk at request time by blog-data.server.ts.
+COPY --from=builder /app/content ./content
 
 EXPOSE 3000
 

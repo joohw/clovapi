@@ -9,7 +9,6 @@ import {
   type BlogPostMeta,
 } from "@/lib/blog-data";
 import { getGuideContent } from "@/lib/guides-data";
-import { SITE_NAME } from "@/lib/site";
 
 const BLOG_DIR = path.join(process.cwd(), "content/blog");
 
@@ -112,19 +111,48 @@ export function buildBlogPostingJsonLd(options: {
   const pageUrl = `${siteUrl}${blogPathname(slug)}`;
 
   return {
-    "@context": "https://schema.org",
     "@type": "BlogPosting",
     "@id": `${pageUrl}#article`,
     headline: post.title,
     description: post.description || post.title,
     datePublished: post.date || undefined,
-    dateModified: post.date || undefined,
+    dateModified: post.lastModified.toISOString(),
     inLanguage: language,
     url: pageUrl,
     mainEntityOfPage: { "@type": "WebPage", "@id": pageUrl },
-    author: { "@type": "Organization", name: SITE_NAME },
+    author: { "@id": `${siteUrl}/#organization` },
     publisher: { "@id": `${siteUrl}/#organization` },
     isPartOf: { "@id": `${siteUrl}/#website` },
+  };
+}
+
+export function buildBlogBreadcrumbJsonLd(options: {
+  siteUrl: string;
+  language: AppLanguage;
+  slug: string;
+}): Record<string, unknown> {
+  const { siteUrl, language, slug } = options;
+  const post = getBlogPost(slug, language);
+  if (!post) return {};
+  const pageUrl = `${siteUrl}${blogPathname(slug)}`;
+
+  return {
+    "@type": "BreadcrumbList",
+    "@id": `${pageUrl}#breadcrumb`,
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: language === "en" ? "Articles" : "文章",
+        item: `${siteUrl}/blog`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: post.title,
+        item: pageUrl,
+      },
+    ],
   };
 }
 

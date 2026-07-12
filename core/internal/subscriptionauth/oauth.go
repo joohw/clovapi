@@ -13,9 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -25,6 +23,16 @@ import (
 const (
 	ProviderClaudeCode = "claude-code"
 	ProviderCodex      = "codex"
+
+	// callbackHost is the single source of truth for the OAuth loopback host.
+	// The redirect_uri advertised to providers and the local callback listener
+	// must use the same host, otherwise the browser redirect and the listener
+	// can bind different loopback families (127.0.0.1 vs ::1) and never meet.
+	callbackHost = "localhost"
+
+	// AuthorizeURLLinePrefix marks the authorize URL emitted on stderr so the
+	// caller (e.g. the Electron shell) can open the browser instead of the CLI.
+	AuthorizeURLLinePrefix = "clovapi-authorize-url: "
 
 	claudeClientID     = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
 	claudeAuthorizeURL = "https://claude.com/cai/oauth/authorize"
@@ -41,7 +49,7 @@ const (
 	codexScope        = "openid profile email offline_access"
 	codexAuthClaim    = "https://api.openai.com/auth"
 
-	loginTimeout         = 10 * time.Minute
+	loginTimeout         = 20 * time.Second
 	tokenExchangeTimeout = 45 * time.Second
 )
 
@@ -69,11 +77,15 @@ type tokenCredentials struct {
 	DisplayName      string
 }
 
-func Login(ctx context.Context, providerID string, openBrowser bool) LoginResult {
-	return LoginToPath(ctx, providerID, openBrowser, "")
+func Login(ctx context.Context, providerID string, onAuthorizeURL func(string)) LoginResult {
+	return LoginToPath(ctx, providerID, "", onAuthorizeURL)
 }
 
-func LoginToPath(ctx context.Context, providerID string, openBrowser bool, credentialPath string) LoginResult {
+// LoginToPath runs the subscription OAuth flow. Opening the browser is not a
+// core responsibility: once the authorize URL is ready and the local callback
+// listener is up, onAuthorizeURL is invoked so the caller (CLI user or the
+// Electron shell) decides how to open it.
+func LoginToPath(ctx context.Context, providerID, credentialPath string, onAuthorizeURL func(string)) LoginResult {
 	ctx, cancel := context.WithTimeout(ctx, loginTimeout)
 	defer cancel()
 
@@ -85,9 +97,9 @@ func LoginToPath(ctx context.Context, providerID string, openBrowser bool, crede
 	)
 	switch providerID {
 	case ProviderClaudeCode:
-		authorizeURL, err = loginClaude(ctx, openBrowser, credentialPath)
+		authorizeURL, err = loginClaude(ctx, credentialPath, onAuthorizeURL)
 	case ProviderCodex:
-		authorizeURL, err = loginCodex(ctx, openBrowser, credentialPath)
+		authorizeURL, err = loginCodex(ctx, credentialPath, onAuthorizeURL)
 	default:
 		err = fmt.Errorf("unknown provider: %s", providerID)
 	}
@@ -99,12 +111,12 @@ func LoginToPath(ctx context.Context, providerID string, openBrowser bool, crede
 	return LoginResult{OK: true, LoggedIn: true, Refreshed: true, AuthorizeURL: authorizeURL}
 }
 
-func loginClaude(ctx context.Context, openBrowser bool, credentialPath string) (string, error) {
+func loginClaude(ctx context.Context, credentialPath string, onAuthorizeURL func(string)) (string, error) {
 	pkce, err := generatePKCE()
 	if err != nil {
 		return "", err
 	}
-	redirectURI := fmt.Sprintf("http://localhost:%d%s", claudeCallbackPort, claudeCallbackPath)
+	redirectURI := fmt.Sprintf("http://%s:%d%s", callbackHost, claudeCallbackPort, claudeCallbackPath)
 	server, err := startCallbackServer(ctx, callbackOptions{
 		Provider: ProviderClaudeCode,
 		Port:     claudeCallbackPort,
@@ -130,10 +142,8 @@ func loginClaude(ctx context.Context, openBrowser bool, credentialPath string) (
 	defer server.Close()
 
 	authURL := buildClaudeAuthorizeURL(pkce, redirectURI)
-	if openBrowser {
-		if err := openBrowserURL(authURL); err != nil {
-			return authURL, err
-		}
+	if onAuthorizeURL != nil {
+		onAuthorizeURL(authURL)
 	}
 	cb, err := server.Wait(ctx)
 	if err != nil {
@@ -155,7 +165,7 @@ func loginClaude(ctx context.Context, openBrowser bool, credentialPath string) (
 	return authURL, nil
 }
 
-func loginCodex(ctx context.Context, openBrowser bool, credentialPath string) (string, error) {
+func loginCodex(ctx context.Context, credentialPath string, onAuthorizeURL func(string)) (string, error) {
 	pkce, err := generatePKCE()
 	if err != nil {
 		return "", err
@@ -189,10 +199,8 @@ func loginCodex(ctx context.Context, openBrowser bool, credentialPath string) (s
 	defer server.Close()
 
 	authURL := buildCodexAuthorizeURL(pkce, state, redirectURI)
-	if openBrowser {
-		if err := openBrowserURL(authURL); err != nil {
-			return authURL, err
-		}
+	if onAuthorizeURL != nil {
+		onAuthorizeURL(authURL)
 	}
 	cb, err := server.Wait(ctx)
 	if err != nil {
@@ -250,7 +258,7 @@ func buildClaudeAuthorizeURL(pkce pkcePair, redirectURI string) string {
 }
 
 func codexRedirectURI() string {
-	return fmt.Sprintf("http://localhost:%d%s", codexCallbackPort, codexCallbackPath)
+	return fmt.Sprintf("http://%s:%d%s", callbackHost, codexCallbackPort, codexCallbackPath)
 }
 func buildCodexAuthorizeURL(pkce pkcePair, state, redirectURI string) string {
 	q := url.Values{}
@@ -576,21 +584,6 @@ func codexAccountIDFromAccessToken(accessToken string) string {
 	auth, _ := claims[codexAuthClaim].(map[string]any)
 	id, _ := auth["chatgpt_account_id"].(string)
 	return strings.TrimSpace(id)
-}
-
-func openBrowserURL(rawURL string) error {
-	rawURL = strings.TrimSpace(rawURL)
-	if rawURL == "" {
-		return fmt.Errorf("authorize URL is empty")
-	}
-	switch runtime.GOOS {
-	case "darwin":
-		return exec.Command("open", rawURL).Start()
-	case "windows":
-		return openBrowserURLWindows(rawURL)
-	default:
-		return exec.Command("xdg-open", rawURL).Start()
-	}
 }
 
 func parseScopes(values ...any) []string {

@@ -2,7 +2,9 @@ const { runClovapiArgsAsync, runClovapiLongAsync, cancelClovapiLongRun } = requi
 const { spawn } = require("node:child_process");
 
 const AUTH_PROVIDERS = new Set(["claude-code", "codex"]);
-const AUTH_LOGIN_TIMEOUT = 10 * 60 * 1000;
+const AUTH_LOGIN_TIMEOUT = 20 * 1000;
+// Must match subscriptionauth.AuthorizeURLLinePrefix in the Go core.
+const AUTHORIZE_URL_PREFIX = "clovapi-authorize-url: ";
 
 let outputHandler = () => {};
 
@@ -182,6 +184,43 @@ function authStatus() {
   return runAuthAsync(["status"]);
 }
 
+function openAuthorizeURL(rawURL) {
+  const url = String(rawURL || "").trim();
+  if (!url) return;
+  try {
+    const { shell } = require("electron");
+    Promise.resolve(shell.openExternal(url)).catch(() => {});
+  } catch {
+    // electron shell unavailable (e.g. tests) — the URL is still streamed to the UI.
+  }
+}
+
+// authorizeURLOpener watches streamed stderr for the authorize URL line emitted
+// by the core and opens it in the default browser. Opening the browser is the
+// shell's responsibility, not the CLI's.
+function authorizeURLOpener() {
+  let buffer = "";
+  let opened = false;
+  return (kind, chunk) => {
+    outputHandler(kind, chunk);
+    if (opened || kind !== "stderr") return;
+    buffer += String(chunk || "");
+    let idx;
+    while ((idx = buffer.indexOf("\n")) >= 0) {
+      const line = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + 1);
+      const at = line.indexOf(AUTHORIZE_URL_PREFIX);
+      if (at < 0) continue;
+      const url = line.slice(at + AUTHORIZE_URL_PREFIX.length).trim();
+      if (url) {
+        opened = true;
+        openAuthorizeURL(url);
+        return;
+      }
+    }
+  };
+}
+
 async function authLogin(payload) {
   const providerId = String(typeof payload === "string" ? payload : payload?.provider || "").trim();
   const credentialRef = String(typeof payload === "string" ? "" : payload?.credentialRef || "").trim();
@@ -192,7 +231,7 @@ async function authLogin(payload) {
   if (credentialRef) args.push("--credential-ref", credentialRef);
   const result = await runClovapiLongAsync(args, {
     cancelKey: providerId,
-    onOutput: outputHandler,
+    onOutput: authorizeURLOpener(),
     timeout: AUTH_LOGIN_TIMEOUT,
     env: authLoginEnv(),
   });

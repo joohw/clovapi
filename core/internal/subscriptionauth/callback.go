@@ -72,7 +72,7 @@ func startCallbackServer(ctx context.Context, opts callbackOptions) (*callbackSe
 	if err := prepareCallbackPort(opts.Port); err != nil {
 		return nil, err
 	}
-	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", opts.Port))
+	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", callbackHost, opts.Port))
 	if err != nil {
 		return nil, err
 	}

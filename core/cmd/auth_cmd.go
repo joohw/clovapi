@@ -2,12 +2,34 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/clovapi/switcher/internal/desktop"
+	"github.com/clovapi/switcher/internal/subscriptionauth"
 )
+
+// authorizeURLPrinter returns a callback that surfaces the OAuth authorize URL.
+// Opening the browser is the caller's job (Electron shell or the user).
+//
+// --json (desktop): one machine-readable line on stderr for Electron to parse.
+// interactive CLI: one human tip + the URL on stdout (no duplicate machine line).
+func authorizeURLPrinter(jsonFlag bool) func(string) {
+	return func(url string) {
+		url = strings.TrimSpace(url)
+		if url == "" {
+			return
+		}
+		if jsonFlag {
+			fmt.Fprintln(os.Stderr, subscriptionauth.AuthorizeURLLinePrefix+url)
+			return
+		}
+		fmt.Println("Open this URL in your browser to authorize:")
+		fmt.Println(url)
+	}
+}
 
 func cmdAuth() *cobra.Command {
 	c := &cobra.Command{
@@ -43,7 +65,7 @@ func cmdAuthLogin() *cobra.Command {
 		Use:   "login",
 		Short: "Run subscription OAuth login in the browser",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			result := desktop.AuthLoginToCredential(cmd.Context(), providerID, credentialRef)
+			result := desktop.AuthLoginToCredential(cmd.Context(), providerID, credentialRef, authorizeURLPrinter(jsonFlag))
 			if jsonFlag {
 				return writeDesktopJSON(result)
 			}
@@ -100,10 +122,6 @@ func printAuthStatus(result desktop.AuthStatusResult) error {
 func printAuthLoginResult(result desktop.AuthLoginResult) error {
 	if result.OK {
 		fmt.Println("Subscription login succeeded.")
-		if url := strings.TrimSpace(result.AuthorizeURL); url != "" {
-			fmt.Println("If the browser did not open, visit:")
-			fmt.Println(url)
-		}
 		return nil
 	}
 	if msg := strings.TrimSpace(result.Error); msg != "" {

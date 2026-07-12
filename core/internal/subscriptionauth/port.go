@@ -42,7 +42,7 @@ func prepareCallbackPort(port int) error {
 }
 
 func tryListenCallbackPort(port int) error {
-	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", callbackHost, port))
 	if err != nil {
 		return err
 	}

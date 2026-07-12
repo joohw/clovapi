@@ -13,7 +13,7 @@ import (
 )
 
 func TestPrepareCallbackPortAllowsReuseAfterClose(t *testing.T) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := net.Listen("tcp", callbackHost+":0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestPrepareCallbackPortAllowsReuseAfterClose(t *testing.T) {
 }
 
 func TestCallbackServerReleasesPortOnCancel(t *testing.T) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := net.Listen("tcp", callbackHost+":0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestCallbackServerReleasesPortOnCancel(t *testing.T) {
 }
 
 func TestCallbackServerReleasesPortAfterSuccess(t *testing.T) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := net.Listen("tcp", callbackHost+":0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestCallbackServerReleasesPortAfterSuccess(t *testing.T) {
 
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		_, _ = http.Get("http://127.0.0.1:" + strconv.Itoa(port) + "/done")
+		_, _ = http.Get("http://" + callbackHost + ":" + strconv.Itoa(port) + "/done")
 	}()
 	if _, err := server.Wait(ctx); err != nil {
 		t.Fatalf("wait: %v", err)

@@ -13,17 +13,19 @@ import (
 type AuthLoginResult = subscriptionauth.LoginResult
 
 func AuthLogin(ctx context.Context, providerID string) AuthLoginResult {
-	return AuthLoginToCredential(ctx, providerID, "")
+	return AuthLoginToCredential(ctx, providerID, "", nil)
 }
 
-func AuthLoginToCredential(ctx context.Context, providerID, credentialRef string) AuthLoginResult {
+// AuthLoginToCredential runs subscription OAuth. The core never opens a browser;
+// onAuthorizeURL (when set) receives the authorize URL so the caller opens it.
+func AuthLoginToCredential(ctx context.Context, providerID, credentialRef string, onAuthorizeURL func(string)) AuthLoginResult {
 	wasRunning := proxycontrol.PauseIfRunning()
 	defer proxycontrol.ResumeIfWasRunning(wasRunning)
 	path, err := resolveAuthCredentialRef(credentialRef)
 	if err != nil {
 		return AuthLoginResult{OK: false, Error: err.Error()}
 	}
-	return subscriptionauth.LoginToPath(ctx, providerID, true, path)
+	return subscriptionauth.LoginToPath(ctx, providerID, path, onAuthorizeURL)
 }
 
 func resolveAuthCredentialRef(ref string) (string, error) {

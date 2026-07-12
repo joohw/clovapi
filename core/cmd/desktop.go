@@ -215,7 +215,7 @@ func cmdDesktopAuthLogin() *cobra.Command {
 		Short: "Run subscription OAuth login",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_ = jsonFlag // desktop commands always return JSON.
-			return writeDesktopJSON(desktop.AuthLoginToCredential(cmd.Context(), providerID, credentialRef))
+			return writeDesktopJSON(desktop.AuthLoginToCredential(cmd.Context(), providerID, credentialRef, authorizeURLPrinter(true)))
 		},
 	}
 	c.Flags().StringVar(&providerID, "provider", "", "Provider id: claude-code|codex")

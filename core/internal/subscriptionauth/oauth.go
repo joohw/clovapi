@@ -49,7 +49,7 @@ const (
 	codexScope        = "openid profile email offline_access"
 	codexAuthClaim    = "https://api.openai.com/auth"
 
-	loginTimeout         = 20 * time.Second
+	loginTimeout         = 3 * time.Minute
 	tokenExchangeTimeout = 45 * time.Second
 )
 

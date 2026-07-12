@@ -2,7 +2,7 @@ const { runClovapiArgsAsync, runClovapiLongAsync, cancelClovapiLongRun } = requi
 const { spawn } = require("node:child_process");
 
 const AUTH_PROVIDERS = new Set(["claude-code", "codex"]);
-const AUTH_LOGIN_TIMEOUT = 20 * 1000;
+const AUTH_LOGIN_TIMEOUT = 3 * 60 * 1000;
 // Must match subscriptionauth.AuthorizeURLLinePrefix in the Go core.
 const AUTHORIZE_URL_PREFIX = "clovapi-authorize-url: ";
 

@@ -25,6 +25,34 @@ func buildModelsListBody(providerID, modelID string, store *profile.Store) strin
 	for _, id := range ids {
 		rows = append(rows, map[string]string{"id": id, "object": "model", "owned_by": "clovapi"})
 	}
+	return marshalModelsList(rows)
+}
+
+func buildAggregateModelsListBody(store *profile.Store) string {
+	rows := make([]map[string]string, 0)
+	if store != nil {
+		for _, p := range store.List {
+			if strings.HasPrefix(strings.TrimSpace(p.Name), "__") {
+				continue
+			}
+			providerID := strings.TrimSpace(profile.ProviderIDFromStoreProfile(p))
+			if providerID == "" {
+				continue
+			}
+			ids := vendorModelIDs(providerID, "", store)
+			for _, id := range ids {
+				rows = append(rows, map[string]string{
+					"id":       id,
+					"object":   "model",
+					"owned_by": "clovapi:" + providerID,
+				})
+			}
+		}
+	}
+	return marshalModelsList(rows)
+}
+
+func marshalModelsList(rows []map[string]string) string {
 	data, _ := json.Marshal(map[string]any{"object": "list", "data": rows})
 	return string(data)
 }

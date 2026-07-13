@@ -83,9 +83,31 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 	mux.HandleFunc("/__debug/transform-request", s.handleDebugTransform)
 	mux.HandleFunc("/__debug/resolve-route", s.handleDebugResolveRoute)
 	mux.HandleFunc("/__debug/shutdown", s.handleDebugShutdown)
+	mux.HandleFunc("/v1/models", s.handleAggregateModels)
 	mux.HandleFunc("/", s.handleProxy)
 	s.Server = &http.Server{Addr: cfg.Host + ":" + strconv.Itoa(cfg.Port), Handler: mux}
 	return s
+}
+
+// handleAggregateModels exposes the cached model surface for every configured
+// provider. Provider-scoped /{providerId}/v1/models remains available when a
+// client needs models from one provider only.
+func (s *Server) handleAggregateModels(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "GET only"})
+		return
+	}
+	store, err := s.loadStore()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load profiles.json"})
+		return
+	}
+	body := buildAggregateModelsListBody(store)
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if r.Method != http.MethodHead {
+		_, _ = w.Write([]byte(body))
+	}
 }
 
 func (s *Server) handleDebugRoutes(w http.ResponseWriter, r *http.Request) {

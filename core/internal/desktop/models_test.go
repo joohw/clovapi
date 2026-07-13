@@ -166,6 +166,53 @@ func TestListModelsHidesUnavailableOllamaAndSubscriptions(t *testing.T) {
 	}
 }
 
+func TestListModelsIncludesSubscriptionModelsFromAccountCredential(t *testing.T) {
+	configDir := t.TempDir()
+	config.SetDirOverride(configDir)
+	t.Cleanup(func() { config.SetDirOverride("") })
+
+	subDir := filepath.Join(configDir, "subscription")
+	if err := os.MkdirAll(subDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(subDir, "codex-account.json"), []byte(`{
+  "tokens": {"access_token": "account-access-token"}
+}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := profile.Save(&profile.Store{
+		Version: profile.StoreVersion,
+		List: []profile.Profile{{
+			Name:                   provider.CodexVendorName,
+			Kind:                   "subscription",
+			SubscriptionProviderID: provider.CodexProviderID,
+			ModelAdapter:           "subscription",
+			Models: []profile.Model{{
+				ID:       "gpt-5.6",
+				Label:    "GPT-5.6",
+				Model:    "gpt-5.6",
+				APIStyle: apistyle.OpenAIResponses,
+			}},
+		}},
+		Subscriptions: []profile.SubscriptionAccount{{
+			ID:            "codex-account",
+			ProviderID:    provider.CodexProviderID,
+			CredentialRef: "subscription/codex-account.json",
+		}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	result := ListModels()
+	if !result.OK {
+		t.Fatalf("ListModels failed: %s", result.Error)
+	}
+	if len(result.Models) != 1 || result.Models[0].ModelID != "gpt-5.6" {
+		t.Fatalf("models = %+v", result.Models)
+	}
+}
+
 func TestAuthStatusCodexLoggedIn(t *testing.T) {
 	root := t.TempDir()
 	configDir := filepath.Join(root, "clovapi")

@@ -315,7 +315,7 @@ func ListModels() ModelListResult {
 		if strings.HasPrefix(strings.TrimSpace(vendor.Name), "__") {
 			continue
 		}
-		if !profileUsableForModelList(vendor) {
+		if !profileUsableForModelList(s, vendor) {
 			continue
 		}
 		providerID := profile.ProviderIDFromStoreProfile(vendor)
@@ -348,11 +348,11 @@ func ListModels() ModelListResult {
 	return ModelListResult{OK: true, Models: items}
 }
 
-func profileUsableForModelList(vendor profile.Profile) bool {
+func profileUsableForModelList(s *profile.Store, vendor profile.Profile) bool {
 	kind := strings.ToLower(strings.TrimSpace(vendor.Kind))
 	switch kind {
 	case "subscription":
-		return subscriptionUsableForModelList(vendor)
+		return subscriptionUsableForModelList(s, vendor)
 	case "local":
 		if strings.EqualFold(strings.TrimSpace(vendor.LocalProvider), "ollama") ||
 			profile.ProviderIDFromStoreProfile(vendor) == provider.OllamaProviderID {
@@ -364,10 +364,33 @@ func profileUsableForModelList(vendor profile.Profile) bool {
 	}
 }
 
-func subscriptionUsableForModelList(vendor profile.Profile) bool {
+func subscriptionCredentialUsable(providerID, credentialRef string) bool {
+	path, err := resolveAuthCredentialRef(credentialRef)
+	if err != nil || strings.TrimSpace(path) == "" {
+		return false
+	}
+	data, ok := readAuthJSON(path)
+	if !ok {
+		return false
+	}
+	loggedIn := providerLoggedIn(providerID, data)
+	return providerSubscriptionActive(providerID, loggedIn, data)
+}
+
+func subscriptionUsableForModelList(s *profile.Store, vendor profile.Profile) bool {
 	providerID := strings.TrimSpace(vendor.SubscriptionProviderID)
 	if providerID == "" {
 		return false
+	}
+	if s != nil {
+		for _, account := range s.Subscriptions {
+			if strings.TrimSpace(account.ProviderID) != providerID {
+				continue
+			}
+			if subscriptionCredentialUsable(providerID, account.CredentialRef) {
+				return true
+			}
+		}
 	}
 	var data map[string]any
 	var ok bool

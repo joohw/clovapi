@@ -420,6 +420,7 @@ type ListVendorModelsResult = {
   adapterId?: ModelAdapterId;
   models?: VendorModel[];
   profiles?: Vendor[];
+  subscriptionAccounts?: SubscriptionAccount[];
   source?: string;
   message?: string;
 };

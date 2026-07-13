@@ -265,13 +265,14 @@ func AuthLogout(providerID string) AuthLogoutResult {
 }
 
 type ListModelsResult struct {
-	OK        bool       `json:"ok"`
-	AdapterID string     `json:"adapterId,omitempty"`
-	Models    []UIModel  `json:"models,omitempty"`
-	Source    string     `json:"source,omitempty"`
-	Message   string     `json:"message,omitempty"`
-	Profiles  []UIVendor `json:"profiles,omitempty"`
-	Error     string     `json:"error,omitempty"`
+	OK                   bool                    `json:"ok"`
+	AdapterID            string                  `json:"adapterId,omitempty"`
+	Models               []UIModel               `json:"models,omitempty"`
+	Source               string                  `json:"source,omitempty"`
+	Message              string                  `json:"message,omitempty"`
+	Profiles             []UIVendor              `json:"profiles,omitempty"`
+	SubscriptionAccounts []UISubscriptionAccount `json:"subscriptionAccounts,omitempty"`
+	Error                string                  `json:"error,omitempty"`
 }
 
 type ModelListItem struct {
@@ -872,6 +873,22 @@ func ListVendorModels(vendorName string) ListModelsResult {
 	return ListVendorModelsWithCredential(vendorName, "")
 }
 
+func cacheSubscriptionAccountModels(s *profile.Store, providerID, credentialRef string, fetched []profile.Model) bool {
+	if s == nil || strings.TrimSpace(credentialRef) == "" {
+		return false
+	}
+	for i := range s.Subscriptions {
+		account := &s.Subscriptions[i]
+		if strings.TrimSpace(account.ProviderID) != strings.TrimSpace(providerID) ||
+			strings.TrimSpace(account.CredentialRef) != strings.TrimSpace(credentialRef) {
+			continue
+		}
+		account.Models = profile.MergeVendorModels(account.Models, fetched)
+		return true
+	}
+	return false
+}
+
 // ListVendorModelsWithCredential fetches subscription models with a specific
 // account credential while preserving the legacy default-credential behavior.
 func ListVendorModelsWithCredential(vendorName, credentialRef string) ListModelsResult {
@@ -954,6 +971,7 @@ func ListVendorModelsWithCredential(vendorName, credentialRef string) ListModels
 			latestVendor.Models = merged
 			latest.Upsert(latestVendor)
 		}
+		cacheSubscriptionAccountModels(latest, latestVendor.SubscriptionProviderID, credentialRef, fetched)
 		return true, nil
 	})
 	if err != nil {
@@ -969,7 +987,12 @@ func ListVendorModelsWithCredential(vendorName, credentialRef string) ListModels
 	}
 	ui := storeToUI(s)
 	return ListModelsResult{
-		OK: true, AdapterID: adapterID, Models: models, Source: source, Profiles: ui.Profiles,
+		OK:                   true,
+		AdapterID:            adapterID,
+		Models:               models,
+		Source:               source,
+		Profiles:             ui.Profiles,
+		SubscriptionAccounts: ui.SubscriptionAccounts,
 	}
 }
 

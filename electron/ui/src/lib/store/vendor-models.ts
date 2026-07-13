@@ -1,12 +1,11 @@
 import {
-  mergeVendorModels,
   normalizeModelAdapter,
   normalizeVendor,
   normalizeVendorModel,
+  normalizeSubscriptionAccount,
   resolveVendorByName,
 } from "../helpers";
 import { t } from "../i18n";
-import { persistProfiles } from "./profile-persist";
 import { clearVendorModelTests } from "./model-tests";
 import { store } from "./state.svelte";
 import { toast } from "../toast";
@@ -27,33 +26,12 @@ export async function fetchVendorModels(
   const name = String(vendorName || "").trim();
   if (!name || store.vendorFetching[name]) return;
 
-  let vendor = resolveVendorByName(store.profiles, name);
+  const vendor = resolveVendorByName(store.profiles, name);
   if (!vendor) {
     if (!options.silent) toast.error(t("toast.vendorNotFound"));
     return;
   }
 
-  const vendorKey = vendor.name.toLowerCase();
-  const vendorKind = vendor.kind;
-  let vendorIdx = store.profiles.findIndex(
-    (item) => item.name.toLowerCase() === vendorKey && item.kind === vendorKind,
-  );
-  if (vendorIdx < 0) {
-    store.profiles.push(vendor);
-    vendorIdx = store.profiles.length - 1;
-    const saved = await persistProfiles();
-    if (!saved?.ok) {
-      if (!options.silent) toast.error(saved?.error || t("toast.fetchVendorSaveFailed"));
-      store.profiles.splice(vendorIdx, 1);
-      return;
-    }
-    vendor = resolveVendorByName(store.profiles, name) || vendor;
-    const nextVendorKey = vendor.name.toLowerCase();
-    const nextVendorKind = vendor.kind;
-    vendorIdx = store.profiles.findIndex(
-      (item) => item.name.toLowerCase() === nextVendorKey && item.kind === nextVendorKind,
-    );
-  }
   if (!canFetchVendorModels(vendor)) {
     if (!options.silent) toast.warning(t("toast.fetchManualAdapter"));
     return;
@@ -75,28 +53,22 @@ export async function fetchVendorModels(
 
     if (Array.isArray(result.profiles) && result.profiles.length) {
       store.profiles = result.profiles.map(normalizeVendor);
-    } else {
-      const fetched = (result.models || []).map(normalizeVendorModel);
-      if (!fetched.length) {
-        if (!options.silent) toast.warning(result.message || t("toast.fetchEmpty"));
-        return;
-      }
-      const merged = mergeVendorModels(vendor.models || [], fetched);
-      store.profiles[vendorIdx] = { ...vendor, models: merged };
-      const saved = await persistProfiles();
-      if (!saved?.ok) {
-        if (!options.silent) toast.error(saved?.error || t("toast.profilesSaveFailed"));
-        return;
-      }
+    }
+    if (Array.isArray(result.subscriptionAccounts)) {
+      store.subscriptionAccounts = result.subscriptionAccounts.map(normalizeSubscriptionAccount);
+    }
+    const fetched = (result.models || []).map(normalizeVendorModel);
+    if (!fetched.length) {
+      if (!options.silent) toast.warning(result.message || t("toast.fetchEmpty"));
+      return;
     }
 
     clearVendorModelTests(name);
 
-    const count = (result.models || []).length;
+    const count = fetched.length;
     if (!options.silent) toast.success(t("toast.fetchSuccess", { count }));
-    const fetchedModels = (result.models || []).map(normalizeVendorModel);
     const refreshed = resolveVendorByName(store.profiles, name);
-    return fetchedModels.length ? fetchedModels : refreshed?.models;
+    return fetched.length ? fetched : refreshed?.models;
   } finally {
     delete store.vendorFetching[name];
   }

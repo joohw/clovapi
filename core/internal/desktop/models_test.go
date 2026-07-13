@@ -68,6 +68,36 @@ func TestListModelsUsesPublicModelIDsOnly(t *testing.T) {
 	}
 }
 
+func TestCacheSubscriptionAccountModelsUpdatesOnlyMatchingCredential(t *testing.T) {
+	store := &profile.Store{Subscriptions: []profile.SubscriptionAccount{
+		{
+			ID:            "codex-first",
+			ProviderID:    provider.CodexProviderID,
+			CredentialRef: "subscription/codex-first.json",
+		},
+		{
+			ID:            "codex-second",
+			ProviderID:    provider.CodexProviderID,
+			CredentialRef: "subscription/codex-second.json",
+			Models:        []profile.Model{{ID: "existing", Model: "existing"}},
+		},
+	}}
+
+	fetched := []profile.Model{{ID: "gpt-5.4", Label: "GPT-5.4", Model: "gpt-5.4"}}
+	if !cacheSubscriptionAccountModels(store, provider.CodexProviderID, "subscription/codex-first.json", fetched) {
+		t.Fatal("expected matching account cache to change")
+	}
+	if len(store.Subscriptions[0].Models) != 1 || store.Subscriptions[0].Models[0].ID != "gpt-5.4" {
+		t.Fatalf("first account models = %+v", store.Subscriptions[0].Models)
+	}
+	if len(store.Subscriptions[1].Models) != 1 || store.Subscriptions[1].Models[0].ID != "existing" {
+		t.Fatalf("second account models = %+v", store.Subscriptions[1].Models)
+	}
+	if cacheSubscriptionAccountModels(store, provider.CodexProviderID, "subscription/missing.json", fetched) {
+		t.Fatal("unexpected cache update for missing credential")
+	}
+}
+
 func TestListModelsHidesUnavailableOllamaAndSubscriptions(t *testing.T) {
 	root := t.TempDir()
 	configDir := filepath.Join(root, "clovapi")

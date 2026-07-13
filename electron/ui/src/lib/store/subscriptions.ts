@@ -108,17 +108,12 @@ export async function refreshSubscriptionAccountModels(providerId: string, vendo
   const accounts = subscriptionAccountsForProvider(providerId);
   if (!accounts.length) return;
 
-  let changed = false;
   for (const account of accounts) {
-    const models = await fetchVendorModels(vendorName, {
+    await fetchVendorModels(vendorName, {
       silent: true,
       credentialRef: account.credentialRef,
     });
-    if (!models?.length) continue;
-    account.models = models;
-    changed = true;
   }
-  if (changed) await saveSubscriptionAccounts(providerId, accounts);
 }
 
 function nextRouteBackendsForSubscriptionOrder(
@@ -193,21 +188,14 @@ export async function addSubscriptionAccount(providerId: string) {
     return;
   }
 
+  const saved = await saveSubscriptionAccounts(providerId, [...existing, account]);
+  if (!saved) return;
+
   const vendor = getSubscriptionVendors(store.profiles).find(
     (item) => item.subscriptionProviderId === providerId,
   );
-  const fetchedModels = vendor?.name
-    ? await fetchVendorModels(vendor.name, { silent: true, credentialRef })
-    : undefined;
-  const refreshedVendor = getSubscriptionVendors(store.profiles).find(
-    (item) => item.subscriptionProviderId === providerId,
-  );
-  account.models = fetchedModels || refreshedVendor?.models || vendor?.models || [];
-
-  const saved = await saveSubscriptionAccounts(providerId, [...existing, account]);
-  if (saved) {
-    toast.success(t("toast.subscriptionAdded"));
-  }
+  if (vendor?.name) await fetchVendorModels(vendor.name, { silent: true, credentialRef });
+  toast.success(t("toast.subscriptionAdded"));
 }
 
 export async function removeSubscriptionAccount(providerId: string, accountId: string) {

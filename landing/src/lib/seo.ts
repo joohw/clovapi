@@ -1,45 +1,26 @@
 import type { Metadata } from "next";
-import { cookies, headers } from "next/headers";
-import { LANG_STORAGE_KEY, type AppLanguage } from "@/i18n/config";
-import { resolveLanguage } from "@/i18n/resolve-language";
+import type { AppLanguage } from "@/i18n/config";
 import {
   hreflangUrl,
   pathnameForPage,
   resolvePageCopy,
   type SeoPageKey,
 } from "@/lib/seo-data";
-import { getPublicSiteUrlFromRequest, normalizePath, SITE_NAME } from "@/lib/site";
+import { normalizePath, PUBLIC_SITE_URL, SITE_NAME } from "@/lib/site";
 
 export type { FaqItem, SeoPageKey } from "@/lib/seo-data";
 export {
   buildBaseJsonLdGraph,
   buildFaqJsonLd,
   FAQ_ITEMS,
-  getHomeTitle,
 } from "@/lib/seo-data";
 
-export async function resolveSeoLanguage(): Promise<AppLanguage> {
-  const cookieStore = await cookies();
-  const headerStore = await headers();
-  return resolveLanguage({
-    cookie: cookieStore.get(LANG_STORAGE_KEY)?.value,
-    acceptLanguage: headerStore.get("accept-language"),
-  });
-}
-
-export async function resolveSiteUrl(): Promise<string> {
-  const headerStore = await headers();
-  const host = headerStore.get("x-forwarded-host") || headerStore.get("host") || undefined;
-  return getPublicSiteUrlFromRequest(host);
-}
-
-export async function buildPageMetadata(page: SeoPageKey): Promise<Metadata> {
-  const language = await resolveSeoLanguage();
-  const siteUrl = await resolveSiteUrl();
+export function buildPageMetadata(page: SeoPageKey, language: AppLanguage): Metadata {
+  const siteUrl = PUBLIC_SITE_URL;
   const pathname = pathnameForPage(page);
   const { title, description, ogImage } = resolvePageCopy(page, language);
 
-  const canonical = `${siteUrl}${normalizePath(pathname)}`;
+  const canonical = hreflangUrl(siteUrl, normalizePath(pathname), language);
   return {
     metadataBase: new URL(siteUrl),
     title,
@@ -72,10 +53,10 @@ export async function buildPageMetadata(page: SeoPageKey): Promise<Metadata> {
       url: canonical,
       locale: language === "zh-CN" ? "zh_CN" : "en_US",
       alternateLocale: language === "zh-CN" ? ["en_US"] : ["zh_CN"],
-      images: [{ url: `${siteUrl}${ogImage}`, width: 730, height: 731, alt: title }],
+      images: [{ url: `${siteUrl}${ogImage}`, width: 720, height: 760, alt: title }],
     },
     twitter: {
-      card: "summary_large_image",
+      card: "summary",
       title,
       description,
       images: [`${siteUrl}${ogImage}`],

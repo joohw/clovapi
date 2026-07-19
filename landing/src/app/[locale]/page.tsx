@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { HomeApiStyles } from "@/components/home/api-styles";
 import { HomeCta } from "@/components/home/cta";
 import { HomeFaq } from "@/components/home/faq";
@@ -6,12 +7,25 @@ import { HomeFooter } from "@/components/home/footer";
 import { HomeHero } from "@/components/home/hero";
 import { LandingBackdrop } from "@/components/home/landing-backdrop";
 import { StructuredData } from "@/components/structured-data";
-import { buildFaqJsonLd, resolveSeoLanguage, resolveSiteUrl } from "@/lib/seo";
-import styles from "./page.module.css";
+import { isAppLanguage } from "@/i18n/config";
+import { buildFaqJsonLd, buildPageMetadata } from "@/lib/seo";
+import { PUBLIC_SITE_URL } from "@/lib/site";
+import styles from "@/app/page.module.css";
 
-export default async function HomePage() {
-  const [siteUrl, language] = await Promise.all([resolveSiteUrl(), resolveSeoLanguage()]);
-  const faqLd = buildFaqJsonLd({ siteUrl, language });
+type HomePageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: HomePageProps) {
+  const { locale } = await params;
+  if (!isAppLanguage(locale)) return {};
+  return buildPageMetadata("home", locale);
+}
+
+export default async function HomePage({ params }: HomePageProps) {
+  const { locale } = await params;
+  if (!isAppLanguage(locale)) notFound();
+  const faqLd = buildFaqJsonLd({ siteUrl: PUBLIC_SITE_URL, language: locale });
 
   return (
     <>

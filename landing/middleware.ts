@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { LANG_STORAGE_KEY } from "@/i18n/config";
 import { normalizeLanguage } from "@/i18n/resolve-language";
+import { localizedPath } from "@/lib/seo-data";
 
 export function middleware(request: NextRequest) {
   if (
@@ -13,15 +13,14 @@ export function middleware(request: NextRequest) {
   }
 
   const lang = normalizeLanguage(request.nextUrl.searchParams.get("lang"));
-  const response = NextResponse.next();
   if (lang) {
-    response.cookies.set(LANG_STORAGE_KEY, lang, {
-      path: "/",
-      maxAge: 31536000,
-      sameSite: "lax",
-    });
+    const url = request.nextUrl.clone();
+    const pathWithoutLocale = url.pathname.replace(/^\/(?:zh-CN|en)(?=\/|$)/, "") || "/";
+    url.pathname = localizedPath(pathWithoutLocale, lang);
+    url.searchParams.delete("lang");
+    return NextResponse.redirect(url, 308);
   }
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

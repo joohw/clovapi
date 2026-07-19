@@ -1,22 +1,10 @@
 import type { MetadataRoute } from "next";
-import { headers } from "next/headers";
-import { getPublicSiteUrlFromRequest } from "@/lib/site";
+import { PUBLIC_SITE_URL } from "@/lib/site";
 
-export default async function robots(): Promise<MetadataRoute.Robots> {
-  const headerStore = await headers();
-  const host =
-    headerStore.get("x-forwarded-host") || headerStore.get("host") || undefined;
-  const siteUrl = getPublicSiteUrlFromRequest(host);
+export default function robots(): MetadataRoute.Robots {
+  const siteUrl = PUBLIC_SITE_URL;
   return {
-    rules: [
-      { userAgent: "*", allow: "/", disallow: ["/api/"] },
-      { userAgent: "GPTBot", allow: "/" },
-      { userAgent: "ChatGPT-User", allow: "/" },
-      { userAgent: "Google-Extended", allow: "/" },
-      { userAgent: "ClaudeBot", allow: "/" },
-      { userAgent: "anthropic-ai", allow: "/" },
-      { userAgent: "PerplexityBot", allow: "/" },
-    ],
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/api/"] }],
     sitemap: `${siteUrl}/sitemap.xml`,
     host: siteUrl,
   };

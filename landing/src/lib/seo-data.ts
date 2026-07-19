@@ -1,7 +1,7 @@
 import type { AppLanguage } from "@/i18n/config";
 import { normalizePath, SITE_NAME } from "@/lib/site";
 
-export type SeoPageKey = "home" | "skill" | "blog";
+export type SeoPageKey = "home" | "skill" | "blog" | "about" | "privacy";
 export type FaqItem = { question: string; answer: string };
 
 type SeoCopy = {
@@ -28,6 +28,16 @@ export const SEO_COPY: Record<AppLanguage, Record<SeoPageKey, SeoCopy>> = {
       description: "教程和博客文章，涵盖本地模型 API、订阅接入、协议转换和调用调试。",
       ogImage: "/use-case-zh.png",
     },
+    about: {
+      title: "关于 clovapi",
+      description: "了解 clovapi 开源本地模型 API 代理的定位、维护方式与隐私边界。",
+      ogImage: "/use-case-zh.png",
+    },
+    privacy: {
+      title: "隐私说明 · clovapi",
+      description: "clovapi 本地代理、桌面端和网站的数据处理与隐私说明。",
+      ogImage: "/use-case-zh.png",
+    },
   },
   en: {
     home: {
@@ -44,6 +54,16 @@ export const SEO_COPY: Record<AppLanguage, Record<SeoPageKey, SeoCopy>> = {
     blog: {
       title: "Articles · clovapi",
       description: "Tutorials and posts on local model APIs, subscription access, protocol conversion, and call debugging.",
+      ogImage: "/use-case-en.png",
+    },
+    about: {
+      title: "About clovapi",
+      description: "Learn about the goals, maintainers, and privacy boundaries of the open-source clovapi local model API proxy.",
+      ogImage: "/use-case-en.png",
+    },
+    privacy: {
+      title: "Privacy · clovapi",
+      description: "How the clovapi local proxy, desktop app, and website handle data and protect user privacy.",
       ogImage: "/use-case-en.png",
     },
   },
@@ -80,10 +100,13 @@ export const FAQ_ITEMS: Record<AppLanguage, FaqItem[]> = {
   ],
 };
 
-export function hreflangUrl(siteUrl: string, pathname: string, language: AppLanguage): string {
+export function localizedPath(pathname: string, language: AppLanguage): string {
   const path = normalizePath(pathname);
-  const separator = path.includes("?") ? "&" : "?";
-  return `${siteUrl}${path}${separator}lang=${encodeURIComponent(language)}`;
+  return `/${language}${path === "/" ? "" : path}`;
+}
+
+export function hreflangUrl(siteUrl: string, pathname: string, language: AppLanguage): string {
+  return `${siteUrl}${localizedPath(pathname, language)}`;
 }
 
 export function resolvePageCopy(page: SeoPageKey, language: AppLanguage): SeoCopy {
@@ -110,6 +133,10 @@ export function buildBaseJsonLdGraph(options: {
         url: siteUrl,
         description: SEO_COPY[language].home.description,
         logo: `${siteUrl}/clover-light.svg`,
+        sameAs: [
+          "https://github.com/joohw/clovapi",
+          "https://www.npmjs.com/package/@clovapi/cli",
+        ],
       },
       {
         "@type": "WebSite",
@@ -151,8 +178,4 @@ export function buildFaqJsonLd(options: {
       acceptedAnswer: { "@type": "Answer", text: item.answer },
     })),
   };
-}
-
-export function getHomeTitle(language: AppLanguage): string {
-  return SEO_COPY[language].home.title;
 }

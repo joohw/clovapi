@@ -9,6 +9,7 @@ import {
   type BlogPostMeta,
 } from "@/lib/blog-data";
 import { getGuideContent } from "@/lib/guides-data";
+import { localizedPath } from "@/lib/seo-data";
 
 const BLOG_DIR = path.join(process.cwd(), "content/blog");
 
@@ -108,7 +109,7 @@ export function buildBlogPostingJsonLd(options: {
   const { siteUrl, language, slug } = options;
   const post = getBlogPost(slug, language);
   if (!post) return {};
-  const pageUrl = `${siteUrl}${blogPathname(slug)}`;
+  const pageUrl = `${siteUrl}${localizedPath(blogPathname(slug), language)}`;
 
   return {
     "@type": "BlogPosting",
@@ -123,6 +124,7 @@ export function buildBlogPostingJsonLd(options: {
     author: { "@id": `${siteUrl}/#organization` },
     publisher: { "@id": `${siteUrl}/#organization` },
     isPartOf: { "@id": `${siteUrl}/#website` },
+    image: `${siteUrl}${language === "en" ? "/use-case-en.png" : "/use-case-zh.png"}`,
   };
 }
 
@@ -134,7 +136,7 @@ export function buildBlogBreadcrumbJsonLd(options: {
   const { siteUrl, language, slug } = options;
   const post = getBlogPost(slug, language);
   if (!post) return {};
-  const pageUrl = `${siteUrl}${blogPathname(slug)}`;
+  const pageUrl = `${siteUrl}${localizedPath(blogPathname(slug), language)}`;
 
   return {
     "@type": "BreadcrumbList",
@@ -144,7 +146,7 @@ export function buildBlogBreadcrumbJsonLd(options: {
         "@type": "ListItem",
         position: 1,
         name: language === "en" ? "Articles" : "文章",
-        item: `${siteUrl}/blog`,
+        item: `${siteUrl}${localizedPath("/blog", language)}`,
       },
       {
         "@type": "ListItem",

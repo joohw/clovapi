@@ -45,10 +45,6 @@ export function SiteHeader() {
   }, [language, t]);
 
   const githubUrl = GITHUB_REPO_URL;
-  const isEnglish = language === "en";
-  const alternateLanguage: AppLanguage = isEnglish ? "zh-CN" : "en";
-  const pathWithoutLocale = pathname.replace(/^\/(?:zh-CN|en)(?=\/|$)/, "") || "/";
-  const alternateLanguagePath = localizedPath(pathWithoutLocale, alternateLanguage);
 
   function toggleTheme() {
     const nextTheme: ThemeMode = theme === "dark" ? "light" : "dark";
@@ -74,8 +70,8 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="site-header fixed top-0 left-0 right-0 z-40">
-      <div className="flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-6">
+    <header className="site-header fixed top-0 right-0 left-0 z-40 border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65">
+      <div className="mx-auto flex w-full max-w-[90rem] items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-5 sm:gap-6">
           <Link
             href={localizedPath("/", language)}
@@ -93,31 +89,22 @@ export function SiteHeader() {
             ))}
           </nav>
         </div>
-        <div className="relative inline-flex items-center gap-2">
+        <div className="relative inline-flex items-center gap-1">
           <a
             href={githubUrl}
             target="_blank"
             rel="noopener noreferrer"
             aria-label={t("header.github")}
             title={t("header.github")}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm text-muted-foreground transition-[color,background-color,transform] hover:bg-muted/70 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           >
             <svg viewBox="0 0 24 24" aria-hidden className="h-4 w-4 fill-current">
               <path d="M12 1.5a10.5 10.5 0 0 0-3.32 20.46c.52.1.71-.22.71-.5v-1.78c-2.9.63-3.51-1.23-3.51-1.23-.47-1.2-1.16-1.52-1.16-1.52-.95-.64.07-.63.07-.63 1.06.08 1.61 1.09 1.61 1.09.93 1.6 2.44 1.14 3.03.87.1-.68.36-1.14.65-1.4-2.32-.26-4.75-1.16-4.75-5.17 0-1.14.4-2.08 1.09-2.82-.11-.27-.47-1.35.1-2.81 0 0 .88-.28 2.9 1.08a9.99 9.99 0 0 1 5.29 0c2.02-1.36 2.9-1.08 2.9-1.08.57 1.46.21 2.54.1 2.81.68.74 1.09 1.68 1.09 2.82 0 4.02-2.44 4.9-4.77 5.16.37.32.7.93.7 1.88v2.8c0 .28.18.61.72.5A10.5 10.5 0 0 0 12 1.5Z" />
             </svg>
           </a>
-          <Link
-            href={alternateLanguagePath}
-            hrefLang={alternateLanguage}
-            className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-card px-2 text-[0.75rem] font-medium leading-none tracking-[-0.01em] transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-            aria-label={t("header.language")}
-            title={isEnglish ? t("header.switchToZh") : t("header.switchToEn")}
-          >
-            {isEnglish ? "中" : "EN"}
-          </Link>
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm text-muted-foreground transition-[color,background-color,transform] hover:bg-muted/70 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             onClick={toggleTheme}
             aria-label={theme === "dark" ? t("header.switchToLight") : t("header.switchToDark")}
             title={theme === "dark" ? t("header.switchToLight") : t("header.switchToDark")}

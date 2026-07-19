@@ -33,11 +33,11 @@ export function HomeHero() {
       <div className="mx-auto max-w-6xl">
         <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-14">
           <div className="min-w-0 max-w-xl lg:max-w-none">
-            <h1 className="text-balance text-4xl font-bold leading-[1.35] tracking-tight text-foreground sm:text-5xl sm:leading-[1.4]">
+            <h1 className="text-balance text-[0.9375rem] font-semibold leading-relaxed tracking-[-0.01em] text-foreground">
               {t("home.title")}
             </h1>
 
-            <p className="mt-4 text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
+            <p className="mt-2 text-pretty text-[0.9375rem] leading-relaxed text-muted-foreground">
               {t("home.subtitle")}
             </p>
 

@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - "landing/**"
+      - "scripts/deploy.mjs"
       - ".github/workflows/deploy-landing.yml"
   workflow_dispatch:
     inputs:

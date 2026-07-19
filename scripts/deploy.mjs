@@ -301,6 +301,7 @@ async function main() {
   const remoteImagePrepare = skipImageUpdate
     ? "echo 'skip image update: use existing remote image'"
     : [
+        "docker image prune -af >/dev/null",
         `REG_PASS="$(printf %s ${shEscape(dockerPasswordB64)} | base64 -d)"`,
         `printf '%s' "$REG_PASS" | docker login ${shEscape(registryLoginHost)} -u ${shEscape(dockerUsername)} --password-stdin`,
         "unset REG_PASS",
@@ -314,6 +315,7 @@ async function main() {
     remoteImagePrepare,
     `(docker rm -f ${shEscape(containerName)} >/dev/null 2>&1 || true)`,
     dockerRunCommand,
+    "(docker image prune -af >/dev/null 2>&1 || true)",
   ].join(" && ");
 
   console.log("Deploy plan:");

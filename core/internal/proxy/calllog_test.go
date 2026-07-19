@@ -39,6 +39,25 @@ func TestCallLogStorePushAndList(t *testing.T) {
 	}
 }
 
+func TestCallLogStorePersistsProxyResultMetadata(t *testing.T) {
+	store := openTestCallLogStore(t)
+	store.Push(CallLogEntry{
+		ID:        "result-metadata",
+		Status:    http.StatusGatewayTimeout,
+		ErrorKind: proxyErrorKindUpstreamTimeout,
+		Error:     "upstream request failed: timeout",
+		Request:   CallLogRequest{Method: http.MethodPost, URL: "/custom/v1/responses"},
+	})
+
+	entry, err := store.Find("result-metadata")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry.Status != http.StatusGatewayTimeout || entry.ErrorKind != proxyErrorKindUpstreamTimeout {
+		t.Fatalf("result metadata = status %d kind %q", entry.Status, entry.ErrorKind)
+	}
+}
+
 func TestCallLogStoreListRecentPage(t *testing.T) {
 	store := openTestCallLogStore(t)
 	store.Push(CallLogEntry{StartedAt: "2026-01-01T00:00:01Z", Request: CallLogRequest{Method: "POST", URL: "/a"}})
@@ -561,7 +580,7 @@ func TestCallLogListFiltersByRawAPIKey(t *testing.T) {
 	}
 }
 
-func TestRequestTraceBackfillsUpstreamBodyFromError(t *testing.T) {
+func TestRequestTraceDoesNotAttributeProxyErrorToUpstream(t *testing.T) {
 	trace := startRequestTrace(openTestCallLogStore(t), mustHTTPRequest(t))
 	if trace == nil {
 		t.Fatal("expected trace")
@@ -575,11 +594,14 @@ func TestRequestTraceBackfillsUpstreamBodyFromError(t *testing.T) {
 		t.Fatalf("expected 1 entry, got %d", len(entries))
 	}
 	entry := entries[0]
-	if entry.Upstream.Status != http.StatusBadGateway {
-		t.Fatalf("upstream status = %d, want 502", entry.Upstream.Status)
+	if entry.Upstream.Status != 0 {
+		t.Fatalf("upstream status = %d, want no response status", entry.Upstream.Status)
 	}
-	if !strings.Contains(entry.Upstream.Body, "EOF") {
-		t.Fatalf("upstream body = %q", entry.Upstream.Body)
+	if entry.Upstream.Body != "" {
+		t.Fatalf("upstream body = %q, want empty", entry.Upstream.Body)
+	}
+	if !strings.Contains(entry.Error, "EOF") {
+		t.Fatalf("proxy error = %q", entry.Error)
 	}
 }
 

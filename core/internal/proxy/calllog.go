@@ -69,12 +69,14 @@ type CallLogEntry struct {
 	StartedAt     string             `json:"startedAt"`
 	CompletedAt   string             `json:"completedAt"`
 	DurationMs    int64              `json:"durationMs"`
+	Status        int                `json:"status,omitempty"`
 	APIKey        *CallLogAPIKey     `json:"apiKey,omitempty"`
 	Route         *CallLogRoute      `json:"route,omitempty"`
 	Request       CallLogRequest     `json:"request"`
 	Upstream      CallLogUpstream    `json:"upstream"`
 	TokenUsage    *CallLogTokenUsage `json:"tokenUsage,omitempty"`
 	ToolCallCount int                `json:"toolCallCount,omitempty"`
+	ErrorKind     string             `json:"errorKind,omitempty"`
 	Error         string             `json:"error,omitempty"`
 }
 
@@ -446,6 +448,28 @@ func (t *requestTrace) setError(msg string) {
 	t.entry.Error = strings.TrimSpace(msg)
 }
 
+func (t *requestTrace) setErrorKind(kind string) {
+	if t == nil {
+		return
+	}
+	t.entry.ErrorKind = strings.TrimSpace(kind)
+}
+
+func (t *requestTrace) clearError() {
+	if t == nil {
+		return
+	}
+	t.entry.Error = ""
+	t.entry.ErrorKind = ""
+}
+
+func (t *requestTrace) setStatus(status int) {
+	if t == nil || status <= 0 || t.entry.Status != 0 {
+		return
+	}
+	t.entry.Status = status
+}
+
 func (t *requestTrace) finish() {
 	if t == nil || t.store == nil {
 		return
@@ -459,25 +483,7 @@ func (t *requestTrace) finish() {
 	if t.entry.ToolCallCount == 0 {
 		t.entry.ToolCallCount = ExtractCallLogToolCallCount(t.entry.Upstream.Body)
 	}
-	backfillUpstreamBodyFromError(&t.entry)
 	t.store.Push(t.entry)
-}
-
-func backfillUpstreamBodyFromError(entry *CallLogEntry) {
-	if entry == nil {
-		return
-	}
-	if strings.TrimSpace(entry.Upstream.Body) != "" {
-		return
-	}
-	errMsg := strings.TrimSpace(entry.Error)
-	if errMsg == "" {
-		return
-	}
-	entry.Upstream.Body = errMsg
-	if entry.Upstream.Status == 0 {
-		entry.Upstream.Status = http.StatusBadGateway
-	}
 }
 
 func cloneRedactedHeaders(headers http.Header) map[string]string {

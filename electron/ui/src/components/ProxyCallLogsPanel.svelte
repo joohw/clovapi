@@ -17,6 +17,7 @@
   import {
     formatProxyLogTime,
     proxyLogCardTitle,
+    proxyLogResultStatus,
     proxyLogStatusClass,
     proxyLogSummary,
     proxyLogVendorName,
@@ -184,7 +185,7 @@
               centerContent
               onOpen={() => openProxyLog(entry.id)}
               stopActionsPropagation={false}
-              titleClass={proxyLogStatusClass(entry.upstream.status)}
+              titleClass={proxyLogStatusClass(proxyLogResultStatus(entry))}
             >
               {#snippet leading()}
                 <VendorIcon providerId={providerIdForLog(entry)} class="size-7 rounded-md p-1" />

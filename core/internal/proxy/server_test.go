@@ -217,6 +217,31 @@ func TestShouldRecordStreamErrorIgnoresContextCanceled(t *testing.T) {
 	}
 }
 
+func TestClassifyUpstreamRequestFailure(t *testing.T) {
+	t.Run("downstream canceled", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		failure := classifyUpstreamRequestFailure(ctx, context.Canceled)
+		if failure.Status != 0 || failure.Kind != proxyErrorKindDownstreamCanceled {
+			t.Fatalf("failure = %+v", failure)
+		}
+	})
+
+	t.Run("upstream timeout", func(t *testing.T) {
+		failure := classifyUpstreamRequestFailure(context.Background(), context.DeadlineExceeded)
+		if failure.Status != http.StatusGatewayTimeout || failure.Kind != proxyErrorKindUpstreamTimeout {
+			t.Fatalf("failure = %+v", failure)
+		}
+	})
+
+	t.Run("upstream transport", func(t *testing.T) {
+		failure := classifyUpstreamRequestFailure(context.Background(), io.ErrUnexpectedEOF)
+		if failure.Status != http.StatusBadGateway || failure.Kind != proxyErrorKindUpstreamTransport {
+			t.Fatalf("failure = %+v", failure)
+		}
+	})
+}
+
 func TestDebugCallLogPaginatesDefaultLimit(t *testing.T) {
 	s := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
 	s.CallLogs = openTestCallLogStore(t)
@@ -905,6 +930,7 @@ func TestIngressStreamWithDefaultsHitsUpstreamConnRefused(t *testing.T) {
 
 	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
 	core.ProfileLoader = func() (*profile.Store, error) { return store, nil }
+	core.CallLogs = openTestCallLogStore(t)
 	ts := httptest.NewServer(core.Server.Handler)
 	defer ts.Close()
 
@@ -921,8 +947,115 @@ func TestIngressStreamWithDefaultsHitsUpstreamConnRefused(t *testing.T) {
 	if resp.StatusCode != http.StatusBadGateway {
 		t.Fatalf("expected upstream failure BadGateway, status=%d body=%s", resp.StatusCode, body)
 	}
-	if !strings.Contains(string(body), "upstream request failed") {
+	if !strings.Contains(string(body), "upstream connection failed") || !strings.Contains(string(body), proxyErrorKindUpstreamTransport) {
 		t.Fatalf("unexpected body=%s", body)
+	}
+	entries := core.CallLogs.ListRecent(1)
+	if len(entries) != 1 {
+		t.Fatalf("call logs = %d, want 1", len(entries))
+	}
+	entry := entries[0]
+	if entry.Status != http.StatusBadGateway || entry.Upstream.Status != 0 || entry.ErrorKind != proxyErrorKindUpstreamTransport {
+		t.Fatalf("call log result = status %d upstream %d kind %q", entry.Status, entry.Upstream.Status, entry.ErrorKind)
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
+}
+
+type statusResponseWriter struct {
+	header http.Header
+	status int
+	body   bytes.Buffer
+}
+
+func (w *statusResponseWriter) Header() http.Header {
+	if w.header == nil {
+		w.header = make(http.Header)
+	}
+	return w.header
+}
+
+func (w *statusResponseWriter) WriteHeader(status int) {
+	if w.status == 0 {
+		w.status = status
+	}
+}
+
+func (w *statusResponseWriter) Write(p []byte) (int, error) {
+	if w.status == 0 {
+		w.status = http.StatusOK
+	}
+	return w.body.Write(p)
+}
+
+func TestDownstreamCancellationIsNotReportedAsUpstream502(t *testing.T) {
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core.ProfileLoader = func() (*profile.Store, error) {
+		return wireResponsesUpstreamStore("http://upstream.invalid/v1"), nil
+	}
+	core.CallLogs = openTestCallLogStore(t)
+	started := make(chan struct{})
+	core.HTTPClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		close(started)
+		<-r.Context().Done()
+		return nil, r.Context().Err()
+	})}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	req := httptest.NewRequest(http.MethodPost, "/custom/v1/responses", strings.NewReader(`{"model":"cross-model-id","input":"ping"}`)).WithContext(ctx)
+	req.Header.Set("Content-Type", "application/json")
+	w := &statusResponseWriter{}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		core.Server.Handler.ServeHTTP(w, req)
+	}()
+	<-started
+	cancel()
+	<-done
+
+	if w.status != 0 || w.body.Len() != 0 {
+		t.Fatalf("canceled response = status %d body %q, want no response", w.status, w.body.String())
+	}
+	entries := core.CallLogs.ListRecent(1)
+	if len(entries) != 1 {
+		t.Fatalf("call logs = %d, want 1", len(entries))
+	}
+	entry := entries[0]
+	if entry.Status != 0 || entry.Upstream.Status != 0 || entry.ErrorKind != proxyErrorKindDownstreamCanceled {
+		t.Fatalf("call log result = status %d upstream %d kind %q", entry.Status, entry.Upstream.Status, entry.ErrorKind)
+	}
+}
+
+func TestUpstreamTimeoutReturns504WithoutInventingUpstreamStatus(t *testing.T) {
+	core := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 0})
+	core.ProfileLoader = func() (*profile.Store, error) {
+		return wireResponsesUpstreamStore("http://upstream.invalid/v1"), nil
+	}
+	core.CallLogs = openTestCallLogStore(t)
+	core.HTTPClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return nil, context.DeadlineExceeded
+	})}
+
+	req := httptest.NewRequest(http.MethodPost, "/custom/v1/responses", strings.NewReader(`{"model":"cross-model-id","input":"ping"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	core.Server.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusGatewayTimeout || !strings.Contains(w.Body.String(), proxyErrorKindUpstreamTimeout) {
+		t.Fatalf("timeout response = status %d body %q", w.Code, w.Body.String())
+	}
+	entries := core.CallLogs.ListRecent(1)
+	if len(entries) != 1 {
+		t.Fatalf("call logs = %d, want 1", len(entries))
+	}
+	entry := entries[0]
+	if entry.Status != http.StatusGatewayTimeout || entry.Upstream.Status != 0 || entry.ErrorKind != proxyErrorKindUpstreamTimeout {
+		t.Fatalf("call log result = status %d upstream %d kind %q", entry.Status, entry.Upstream.Status, entry.ErrorKind)
 	}
 }
 

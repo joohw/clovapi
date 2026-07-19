@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS call_logs (
 	started_at TEXT NOT NULL,
 	completed_at TEXT NOT NULL DEFAULT '',
 	duration_ms INTEGER NOT NULL DEFAULT 0,
+	status INTEGER NOT NULL DEFAULT 0,
 	api_key_json TEXT NOT NULL DEFAULT '',
 	route_json TEXT NOT NULL DEFAULT '',
 	request_json TEXT NOT NULL,
@@ -36,6 +37,7 @@ CREATE TABLE IF NOT EXISTS call_logs (
 	cache_creation_tokens INTEGER NOT NULL DEFAULT 0,
 	reasoning_tokens INTEGER NOT NULL DEFAULT 0,
 	tool_call_count INTEGER NOT NULL DEFAULT 0,
+	error_kind TEXT NOT NULL DEFAULT '',
 	error TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_call_logs_started_at ON call_logs(started_at DESC, id DESC);
@@ -77,6 +79,7 @@ func openCallLogDB(dbPath string) (*sql.DB, error) {
 
 func ensureCallLogColumns(db *sql.DB) error {
 	columns := map[string]string{
+		"status":                "INTEGER NOT NULL DEFAULT 0",
 		"api_key_json":          "TEXT NOT NULL DEFAULT ''",
 		"route_json":            "TEXT NOT NULL DEFAULT ''",
 		"input_tokens":          "INTEGER NOT NULL DEFAULT 0",
@@ -86,6 +89,7 @@ func ensureCallLogColumns(db *sql.DB) error {
 		"cache_creation_tokens": "INTEGER NOT NULL DEFAULT 0",
 		"reasoning_tokens":      "INTEGER NOT NULL DEFAULT 0",
 		"tool_call_count":       "INTEGER NOT NULL DEFAULT 0",
+		"error_kind":            "TEXT NOT NULL DEFAULT ''",
 	}
 	for name, spec := range columns {
 		if _, err := db.Exec(fmt.Sprintf("ALTER TABLE call_logs ADD COLUMN %s %s", name, spec)); err != nil {
@@ -135,16 +139,17 @@ func insertCallLogEntry(db *sql.DB, entry CallLogEntry) error {
 	}
 	_, err = db.Exec(
 		`INSERT OR REPLACE INTO call_logs (
-			id, started_at, completed_at, duration_ms,
+			id, started_at, completed_at, duration_ms, status,
 			api_key_json, route_json, request_json, upstream_json,
 			input_tokens, output_tokens, total_tokens, cache_read_tokens, cache_creation_tokens, reasoning_tokens,
 			tool_call_count,
-			error
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			error_kind, error
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		entry.ID,
 		entry.StartedAt,
 		entry.CompletedAt,
 		entry.DurationMs,
+		entry.Status,
 		apiKeyJSON,
 		routeJSON,
 		string(reqJSON),
@@ -156,6 +161,7 @@ func insertCallLogEntry(db *sql.DB, entry CallLogEntry) error {
 		callLogUsageValue(usage, "cache_creation"),
 		callLogUsageValue(usage, "reasoning"),
 		toolCallCount,
+		entry.ErrorKind,
 		entry.Error,
 	)
 	return err
@@ -183,11 +189,11 @@ func callLogUsageValue(usage *CallLogTokenUsage, key string) int {
 	}
 }
 
-const callLogEntrySelectColumns = `id, started_at, completed_at, duration_ms,
+const callLogEntrySelectColumns = `id, started_at, completed_at, duration_ms, status,
 	api_key_json, route_json, request_json, upstream_json,
 	input_tokens, output_tokens, total_tokens, cache_read_tokens, cache_creation_tokens, reasoning_tokens,
 	tool_call_count,
-	error`
+	error_kind, error`
 
 func scanCallLogEntry(rows *sql.Rows) (CallLogEntry, error) {
 	var entry CallLogEntry
@@ -198,6 +204,7 @@ func scanCallLogEntry(rows *sql.Rows) (CallLogEntry, error) {
 		&entry.StartedAt,
 		&entry.CompletedAt,
 		&entry.DurationMs,
+		&entry.Status,
 		&apiKeyJSON,
 		&routeJSON,
 		&reqJSON,
@@ -209,6 +216,7 @@ func scanCallLogEntry(rows *sql.Rows) (CallLogEntry, error) {
 		&usage.CacheCreationTokens,
 		&usage.ReasoningTokens,
 		&entry.ToolCallCount,
+		&entry.ErrorKind,
 		&entry.Error,
 	); err != nil {
 		return CallLogEntry{}, err
@@ -460,6 +468,7 @@ func findCallLogEntryInDB(db *sql.DB, id string) (CallLogEntry, error) {
 		&entry.StartedAt,
 		&entry.CompletedAt,
 		&entry.DurationMs,
+		&entry.Status,
 		&apiKeyJSON,
 		&routeJSON,
 		&reqJSON,
@@ -471,6 +480,7 @@ func findCallLogEntryInDB(db *sql.DB, id string) (CallLogEntry, error) {
 		&usage.CacheCreationTokens,
 		&usage.ReasoningTokens,
 		&entry.ToolCallCount,
+		&entry.ErrorKind,
 		&entry.Error,
 	)
 	if errors.Is(err, sql.ErrNoRows) {

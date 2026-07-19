@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -470,6 +471,51 @@ const maxUpstreamBufferedBody int64 = 1 << 26
 // without a cap the capture buffer grows for the lifetime of the request.
 const maxCallLogBodyBytes int64 = 1 << 23
 
+const (
+	proxyErrorKindDownstreamCanceled = "downstream_canceled"
+	proxyErrorKindDownstreamTimeout  = "downstream_timeout"
+	proxyErrorKindUpstreamTimeout    = "upstream_timeout"
+	proxyErrorKindUpstreamTransport  = "upstream_transport_error"
+	proxyErrorKindUpstreamHTTP       = "upstream_http_error"
+)
+
+type upstreamRequestFailure struct {
+	Status        int
+	Kind          string
+	PublicMessage string
+	Detail        string
+}
+
+func classifyUpstreamRequestFailure(ctx context.Context, err error) upstreamRequestFailure {
+	detail := fmt.Sprintf("upstream request failed: %v", err)
+	if ctx != nil {
+		switch ctx.Err() {
+		case context.Canceled:
+			return upstreamRequestFailure{Kind: proxyErrorKindDownstreamCanceled, PublicMessage: "request canceled by client", Detail: detail}
+		case context.DeadlineExceeded:
+			return upstreamRequestFailure{Kind: proxyErrorKindDownstreamTimeout, PublicMessage: "client request deadline exceeded", Detail: detail}
+		}
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return upstreamRequestFailure{Status: http.StatusGatewayTimeout, Kind: proxyErrorKindUpstreamTimeout, PublicMessage: "upstream request timed out", Detail: detail}
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return upstreamRequestFailure{Status: http.StatusGatewayTimeout, Kind: proxyErrorKindUpstreamTimeout, PublicMessage: "upstream request timed out", Detail: detail}
+	}
+	return upstreamRequestFailure{Status: http.StatusBadGateway, Kind: proxyErrorKindUpstreamTransport, PublicMessage: "upstream connection failed", Detail: detail}
+}
+
+func writeUpstreamRequestFailure(w http.ResponseWriter, failure upstreamRequestFailure) {
+	if failure.Status == 0 {
+		return
+	}
+	writeJSON(w, failure.Status, map[string]string{
+		"error":      failure.PublicMessage,
+		"error_type": failure.Kind,
+	})
+}
+
 // cappedBuffer is an io.Writer that retains at most limit bytes. Writes beyond
 // the limit are discarded (the underlying read still proceeds), so it can back
 // an io.TeeReader without unbounded memory growth.
@@ -574,6 +620,9 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	ingress, pathOK := provider.ParseProxyIngressPath(path)
 	trace := startRequestTraceIfNeeded(s.CallLogs, r, ingress, pathOK)
+	if trace != nil {
+		w = &callLogResponseWriter{ResponseWriter: w, trace: trace}
+	}
 	defer func() {
 		if trace != nil {
 			trace.finish()
@@ -733,22 +782,29 @@ func (s *Server) tryProxyRoute(
 
 	upResp, err := s.upstreamHTTP().Do(upReq)
 	if err != nil {
-		msg := fmt.Sprintf("upstream request failed: %v", err)
-		*lastErr = msg
-		trace.setError(msg)
+		failure := classifyUpstreamRequestFailure(r.Context(), err)
+		*lastErr = failure.Detail
+		trace.setError(failure.Detail)
+		trace.setErrorKind(failure.Kind)
+		if failure.Status == 0 {
+			return true
+		}
 		if canRetry {
 			return false
 		}
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "upstream request failed"})
+		writeUpstreamRequestFailure(w, failure)
 		return true
 	}
+	trace.clearError()
 	if canRetry && isRetryableRouteStatus(upResp.StatusCode) {
 		*lastErr = fmt.Sprintf("upstream returned retryable status %d", upResp.StatusCode)
 		trace.setError(*lastErr)
+		trace.setErrorKind(proxyErrorKindUpstreamHTTP)
 		_, _ = io.Copy(io.Discard, io.LimitReader(upResp.Body, 1<<20))
 		_ = upResp.Body.Close()
 		return false
 	}
+	trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, nil)
 
 	plain, layered := protocol.WrapStreamingPlaintextReader(upResp.Header.Get("Content-Encoding"), upResp.Body)
 	defer layered()
@@ -778,15 +834,22 @@ func (s *Server) tryProxyRoute(
 		}
 		if shouldRecordStreamError(streamErr) {
 			trace.setError(streamErr.Error())
+			trace.setErrorKind(proxyErrorKindUpstreamTransport)
 		}
 		trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, capture.Bytes())
+		if upResp.StatusCode >= 400 {
+			trace.setError(fmt.Sprintf("upstream returned HTTP %d", upResp.StatusCode))
+			trace.setErrorKind(proxyErrorKindUpstreamHTTP)
+		}
 		return true
 	}
 
 	upBody, err := io.ReadAll(io.LimitReader(buf, maxUpstreamBufferedBody+1))
 	if err != nil {
-		trace.setError("read upstream response")
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "read upstream response"})
+		failure := classifyUpstreamRequestFailure(r.Context(), fmt.Errorf("read upstream response: %w", err))
+		trace.setError(failure.Detail)
+		trace.setErrorKind(failure.Kind)
+		writeUpstreamRequestFailure(w, failure)
 		return true
 	}
 	if int64(len(upBody)) > maxUpstreamBufferedBody {
@@ -795,6 +858,10 @@ func (s *Server) tryProxyRoute(
 		return true
 	}
 	trace.setUpstreamResponse(upResp.StatusCode, upResp.Header, upBody)
+	if upResp.StatusCode >= 400 {
+		trace.setError(fmt.Sprintf("upstream returned HTTP %d", upResp.StatusCode))
+		trace.setErrorKind(proxyErrorKindUpstreamHTTP)
+	}
 
 	upStatus := upResp.StatusCode
 	ev := protocol.MaterializePlainUpstreamEvents(route.EgressStyle, upStatus, upBody)
@@ -875,4 +942,39 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+type callLogResponseWriter struct {
+	http.ResponseWriter
+	trace       *requestTrace
+	wroteHeader bool
+}
+
+func (w *callLogResponseWriter) WriteHeader(status int) {
+	if w.wroteHeader {
+		return
+	}
+	w.wroteHeader = true
+	w.trace.setStatus(status)
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *callLogResponseWriter) Write(p []byte) (int, error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+	return w.ResponseWriter.Write(p)
+}
+
+func (w *callLogResponseWriter) Flush() {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
+func (w *callLogResponseWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
 }

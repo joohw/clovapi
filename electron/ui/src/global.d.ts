@@ -129,6 +129,7 @@ export type ProxyLogEntry = {
   startedAt: string;
   completedAt: string;
   durationMs: number;
+  status?: number;
   apiKey?: ProxyLogAPIKeySummary;
   route?: ProxyLogRoute;
   request: {
@@ -155,6 +156,7 @@ export type ProxyLogEntry = {
     reasoningTokens?: number;
   };
   toolCallCount?: number;
+  errorKind?: string;
   error?: string;
 };
 

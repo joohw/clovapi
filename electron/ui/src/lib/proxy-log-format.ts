@@ -70,7 +70,11 @@ export function proxyLogUpstreamRequestLine(entry: ProxyLogEntry): string {
 }
 
 export function proxyLogOverviewText(entry: ProxyLogEntry): string {
-  const status = entry.upstream?.status ? String(entry.upstream.status) : "(pending)";
+  const upstreamStatus = entry.upstream?.status
+    ? `HTTP ${entry.upstream.status}`
+    : entry.completedAt
+      ? t("callLogs.notReceived")
+      : t("callLogs.inProgress");
   const usage = proxyLogTokenUsageText(entry);
   const rows = [
     `${t("callLogs.overviewResult")}: ${proxyLogResultText(entry)}`,
@@ -81,8 +85,11 @@ export function proxyLogOverviewText(entry: ProxyLogEntry): string {
     `${t("callLogs.toolCalls")}: ${entry.toolCallCount || 0}`,
     `${t("callLogs.overviewInbound")}: ${proxyLogInboundRequestLine(entry)}`,
     `${t("callLogs.overviewUpstream")}: ${proxyLogUpstreamRequestLine(entry) || t("common.none")}`,
-    `${t("callLogs.overviewStatus")}: HTTP ${status}`,
+    `${t("callLogs.overviewStatus")}: ${upstreamStatus}`,
   );
+  if (entry.errorKind) {
+    rows.push(`${t("callLogs.errorKind")}: ${entry.errorKind}`);
+  }
   if (entry.error) {
     rows.push(`${t("callLogs.proxyError")}: ${entry.error}`);
   }
@@ -97,8 +104,14 @@ export function proxyLogInboundRequestText(entry: ProxyLogEntry): string {
 
 export function proxyLogCardTitle(entry: ProxyLogEntry): string {
   const path = proxyLogIngressPath(entry.request?.url || "");
-  const status = entry.upstream?.status || 0;
-  return status ? `${path} (${status})` : path;
+  const result = proxyLogResultText(entry);
+  return entry.completedAt ? `${path} (${result})` : path;
+}
+
+export function proxyLogResultStatus(entry: ProxyLogEntry): number {
+  // Fall back to upstream.status for call logs written before proxy result status
+  // was recorded independently.
+  return entry.status || entry.upstream?.status || 0;
 }
 
 export function proxyLogStatusClass(status: number): string {
@@ -227,8 +240,6 @@ function assignNumber(target: TokenUsage, key: keyof TokenUsage, value: unknown)
 export function proxyLogUpstreamBodyText(entry: ProxyLogEntry): string {
   const body = String(entry.upstream?.body || "").trim();
   if (body) return body;
-  const err = String(entry.error || "").trim();
-  if (err) return err;
   return t("common.empty");
 }
 
@@ -253,9 +264,12 @@ export function tokenUsageSummaryText(usage: TokenUsage | null | undefined): str
 }
 
 function proxyLogResultText(entry: ProxyLogEntry): string {
-  const status = entry.upstream.status ? String(entry.upstream.status) : "pending";
-  if (!entry.completedAt) return `${status} · ${t("callLogs.inProgress")}`;
-  return status;
+  const status = proxyLogResultStatus(entry);
+  if (!entry.completedAt) return status ? `${status} · ${t("callLogs.inProgress")}` : t("callLogs.inProgress");
+  if (status) return String(status);
+  if (entry.errorKind === "downstream_canceled") return t("callLogs.canceled");
+  if (entry.errorKind === "downstream_timeout") return t("callLogs.timedOut");
+  return t("callLogs.noResponse");
 }
 
 export function proxySystemLogStreamClass(stream: string): string {

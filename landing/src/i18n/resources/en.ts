@@ -2,7 +2,7 @@ const en = {
   header: {
     home: "Home",
     skill: "Skill",
-    blog: "Articles",
+    blog: "Blog",
     backHome: "Back to home",
     github: "GitHub",
     switchToLight: "Switch to light mode",

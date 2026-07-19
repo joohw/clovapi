@@ -13,6 +13,7 @@ import {
 import { buildBaseJsonLdGraph } from "@/lib/seo";
 import { PUBLIC_SITE_URL } from "@/lib/site";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
+import "@fontsource-variable/outfit";
 import "@/app/globals.css";
 
 type LocaleLayoutProps = {

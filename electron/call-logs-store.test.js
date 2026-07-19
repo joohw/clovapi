@@ -21,7 +21,7 @@ test("debug log readers use proxy HTTP endpoints from supplied CLI proxy config"
       res.end(JSON.stringify({ entries: [{ id: "sys-1" }], limit: 20 }));
       return;
     }
-    if (req.url.startsWith("/__debug/usage")) {
+    if (req.url.startsWith("/usage")) {
       res.end(JSON.stringify({
         ok: true,
         usages: [{ vendor: "Codex Subscription", ok: true }],
@@ -63,7 +63,7 @@ test("debug log readers use proxy HTTP endpoints from supplied CLI proxy config"
     "/__debug/call-log?limit=20&offset=0",
     "/__debug/call-log?limit=20&offset=0&api_key=clovapi-test",
     "/__debug/system-log?limit=20",
-    "/__debug/usage?refresh=1",
+    "/usage?refresh=1",
     "/__debug/profiles",
   ]);
 });

@@ -145,7 +145,7 @@ export function buildBlogBreadcrumbJsonLd(options: {
       {
         "@type": "ListItem",
         position: 1,
-        name: language === "en" ? "Articles" : "文章",
+        name: language === "en" ? "Articles" : "博客",
         item: `${siteUrl}${localizedPath("/blog", language)}`,
       },
       {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { AppLanguage } from "@/i18n/config";
+import { SUPPORTED_LANGUAGES, type AppLanguage } from "@/i18n/config";
 import { GITHUB_REPO_URL } from "@/lib/site";
 import { localizedPath } from "@/lib/seo-data";
 import { applyThemeMode, initThemeMode, persistThemeMode, type ThemeMode } from "@/lib/theme";
@@ -21,7 +21,8 @@ function normalizePath(path: string) {
 function isNavActive(currentPath: string, href: string): boolean {
   const p = normalizePath(currentPath);
   const t = normalizePath(href);
-  if (t === "/") return p === "/";
+  const isHome = t === "/" || SUPPORTED_LANGUAGES.some((language) => t === `/${language}`);
+  if (isHome) return p === t;
   return p === t || p.startsWith(`${t}/`);
 }
 
@@ -55,7 +56,7 @@ export function SiteHeader() {
 
   function navLinkClass(active: boolean) {
     return cn(
-      "relative rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium leading-none tracking-[-0.01em]",
+      "relative inline-flex h-8 items-center justify-center rounded-md px-2.5 text-[0.8125rem] font-medium leading-none tracking-[-0.01em]",
       "motion-safe:transition-[color,opacity] motion-safe:duration-300 motion-safe:ease-out",
       "motion-reduce:transition-none",
       active
@@ -70,18 +71,17 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="site-header fixed top-0 right-0 left-0 z-40 border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65">
-      <div className="mx-auto flex w-full max-w-[90rem] items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <div className="flex min-w-0 flex-1 items-center gap-5 sm:gap-6">
+    <header className="site-header fixed top-0 right-0 left-0 z-40 bg-background px-5 sm:px-6">
+      <div className="mx-auto flex h-[var(--app-header-height)] w-full max-w-6xl items-center justify-between gap-3">
+        <div className="flex h-full min-w-0 flex-1 items-center gap-5 sm:gap-6">
           <Link
             href={localizedPath("/", language)}
-            className="inline-flex items-center rounded-md opacity-[0.72] motion-safe:transition-[opacity,transform] motion-safe:duration-300 motion-safe:ease-out hover:opacity-100 hover:scale-[1.06] active:scale-[1.02] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="inline-flex h-8 items-center rounded-md motion-safe:transition-[opacity,transform] motion-safe:duration-300 motion-safe:ease-out hover:opacity-70 active:scale-[0.98] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label={t("header.backHome")}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={theme === "dark" ? "/clover.svg" : "/clover-light.svg"} alt="" className="h-[1.35rem] w-[1.35rem]" />
+            <span className="leading-none text-[0.8125rem] font-semibold tracking-[0.12em]">CLOVAPI</span>
           </Link>
-          <nav className="flex min-w-0 flex-1 items-center justify-start gap-1 overflow-x-auto whitespace-nowrap">
+          <nav className="flex h-full min-w-0 flex-1 items-center justify-start gap-1 overflow-x-auto whitespace-nowrap">
             {headerLinks.map((link) => (
               <Link key={link.to} href={link.to} className={navLinkClass(isNavActive(pathname, link.to))}>
                 {link.text}
@@ -89,7 +89,7 @@ export function SiteHeader() {
             ))}
           </nav>
         </div>
-        <div className="relative inline-flex items-center gap-1">
+        <div className="relative inline-flex h-full items-center gap-1">
           <a
             href={githubUrl}
             target="_blank"

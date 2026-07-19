@@ -24,7 +24,7 @@ export const SEO_COPY: Record<AppLanguage, Record<SeoPageKey, SeoCopy>> = {
       ogImage: "/use-case-zh.png",
     },
     blog: {
-      title: "文章 · clovapi",
+      title: "博客 · clovapi",
       description: "教程和博客文章，涵盖本地模型 API、订阅接入、协议转换和调用调试。",
       ogImage: "/use-case-zh.png",
     },

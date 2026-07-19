@@ -113,7 +113,7 @@ func TestServerHealthAndModelsList(t *testing.T) {
 	}
 }
 
-func TestDebugUsageReturnsCoreCacheEnvelope(t *testing.T) {
+func TestUsageReturnsCoreCacheEnvelope(t *testing.T) {
 	store := &profile.Store{
 		Version: profile.StoreVersion,
 		List: []profile.Profile{{
@@ -127,7 +127,7 @@ func TestDebugUsageReturnsCoreCacheEnvelope(t *testing.T) {
 	ts := httptest.NewServer(s.Server.Handler)
 	defer ts.Close()
 
-	resp, err := http.Get(ts.URL + "/__debug/usage?refresh=1")
+	resp, err := http.Get(ts.URL + "/usage?refresh=1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,6 +141,21 @@ func TestDebugUsageReturnsCoreCacheEnvelope(t *testing.T) {
 	}
 	if !body.OK || len(body.Usages) != 0 || body.UpdatedAt == "" {
 		t.Fatalf("usage body = %+v", body)
+	}
+}
+
+func TestLegacyDebugUsageEndpointRemainsAvailable(t *testing.T) {
+	s := newTestServer(profile.ProxyConfig{Host: "127.0.0.1", Port: 27483})
+	ts := httptest.NewServer(s.Server.Handler)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/__debug/usage")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("legacy usage status = %d", resp.StatusCode)
 	}
 }
 

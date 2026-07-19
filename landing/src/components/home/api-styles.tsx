@@ -10,7 +10,7 @@ export function HomeApiStyles() {
   return (
     <section id="api-styles" className="relative z-[1] px-5 py-12 sm:px-6 md:py-16">
       <div className="mx-auto max-w-6xl">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">{t("home.apiStyles")}</h2>
+        <h2 className="text-2xl font-medium leading-tight tracking-[-0.02em] text-foreground">{t("home.apiStyles")}</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           {t("home.apiStylesSubtitle")}
         </p>

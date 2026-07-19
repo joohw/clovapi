@@ -75,10 +75,11 @@ func NewServer(cfg profile.ProxyConfig) *Server {
 	s.Usage = NewUsagePoller(s)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
+	mux.HandleFunc("/usage", s.handleUsage)
 	mux.HandleFunc("/__debug/call-log", s.handleDebugCallLog)
 	mux.HandleFunc("/__debug/system-log", s.handleDebugSystemLog)
 	mux.HandleFunc("/__debug/profiles", s.handleDebugProfiles)
-	mux.HandleFunc("/__debug/usage", s.handleDebugUsage)
+	mux.HandleFunc("/__debug/usage", s.handleUsage)
 	mux.HandleFunc("/__debug/routes", s.handleDebugRoutes)
 	mux.HandleFunc("/__debug/transform-request", s.handleDebugTransform)
 	mux.HandleFunc("/__debug/resolve-route", s.handleDebugResolveRoute)
@@ -167,7 +168,10 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return s.Server.Shutdown(ctx)
 }
 
-func (s *Server) handleDebugUsage(w http.ResponseWriter, r *http.Request) {
+// handleUsage returns the latest cached provider usage. Passing refresh=1 (or
+// refresh=true) waits for the server to refresh upstream usage before replying;
+// otherwise a stale cache is refreshed asynchronously.
+func (s *Server) handleUsage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "GET only"})
 		return

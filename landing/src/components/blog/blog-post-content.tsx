@@ -23,7 +23,7 @@ export function BlogPostContent({ post, related, language }: BlogPostContentProp
       <article className="page-content page-content--with-bottom relative z-[1] mx-auto max-w-6xl px-5 sm:px-6">
         <nav className="text-sm text-muted-foreground">
           <Link href={localizedPath("/blog", language)} className="hover:text-foreground">
-            {english ? "Articles" : "文章"}
+            {english ? "Articles" : "博客"}
           </Link>
           <span className="mx-2">/</span>
           <span className="text-foreground">{post.meta.title}</span>
@@ -73,7 +73,7 @@ export function BlogPostContent({ post, related, language }: BlogPostContentProp
 
         <footer className="mt-12 max-w-3xl border-t border-border/60 pt-6">
           <Link href={localizedPath("/blog", language)} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-            {english ? "Back to articles" : "返回文章"}
+            {english ? "Back to articles" : "返回博客"}
           </Link>
           <span className="mx-3 text-muted-foreground">·</span>
           <Link href={localizedPath("/skill", language)} className="text-sm text-muted-foreground transition-colors hover:text-foreground">

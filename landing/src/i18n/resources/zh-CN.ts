@@ -2,7 +2,7 @@ const zhCN = {
   header: {
     home: "首页",
     skill: "Skill",
-    blog: "文章",
+    blog: "博客",
     backHome: "返回首页",
     github: "GitHub",
     switchToLight: "切换到浅色模式",
@@ -89,11 +89,11 @@ const zhCN = {
     copyFailed: "复制失败",
   },
   blog: {
-    indexTitle: "文章",
+    indexTitle: "博客",
     indexSubtitle: "教程和博客都在这里：本地代理、订阅接入、协议转换和调用调试。",
     guideLabel: "教程",
     blogLabel: "博客",
-    backToBlog: "返回文章",
+    backToBlog: "返回博客",
     viewSkill: "查看 Skill",
   },
 } as const;

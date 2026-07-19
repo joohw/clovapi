@@ -1,23 +1,8 @@
 /* 首页专用样式（避免写入 globals.css） */
 
-.useCaseShot {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  background: color-mix(in oklch, var(--card) 88%, var(--muted) 12%);
-}
-
-.useCaseShot img {
-  display: block;
-  width: 100%;
-  height: auto;
-  transform: scale(1.01);
-  transform-origin: center center;
-}
-
 /* 纯灰渐变背景：oklch 第二项为 chroma，全程为 0，避免任何色相 */
 .landingBackdrop {
-  opacity: 0.62;
+  opacity: 0.18;
   background:
     radial-gradient(ellipse 118% 82% at 50% -20%, oklch(0.91 0 0) 0%, transparent 56%),
     radial-gradient(ellipse 92% 58% at 96% 42%, oklch(0.87 0 0) 0%, transparent 53%),

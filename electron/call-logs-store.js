@@ -130,7 +130,7 @@ async function readSystemLogsViaHTTP(limit = 20, options = {}) {
 
 async function readUsageViaHTTP(options = {}) {
   const parsed = await fetchProxyDebugJSON(
-    "/__debug/usage",
+    "/usage",
     { refresh: options.refresh ? "1" : "" },
     { proxy: options.proxy, timeout: options.timeout ?? 30000 },
   );

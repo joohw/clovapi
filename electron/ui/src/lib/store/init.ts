@@ -10,6 +10,7 @@ import { refreshAppVersion, waitForDesktopBridge, waitForCliBridge } from "./app
 import { startAppUpdatePolling } from "./desktop-update";
 import { isElectronDev, isElectronRenderer } from "../constants";
 import { store } from "./state.svelte";
+import { startModelRefreshPolling } from "./model-refresh";
 
 function updateAppDownloadProgress(payload: { percent?: unknown; received_bytes?: unknown; total_bytes?: unknown }) {
   const percent = Number(payload.percent);
@@ -87,6 +88,7 @@ export async function initApp() {
     const tool = await bridge.toolStatus?.().catch(() => null);
     store.clovapiAvailable = Boolean(tool?.available);
     await detectOllamaInstalled();
+    startModelRefreshPolling();
   }
 
   if (isElectronRenderer() && !isElectronDev()) {

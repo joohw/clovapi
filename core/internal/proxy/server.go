@@ -745,9 +745,17 @@ func (s *Server) tryProxyRoute(
 	lastErr *string,
 ) bool {
 	trace.addRouteAttempt(route)
+	ingressIR, err := protocol.DecodeRequestForStyle(route.IngressStyle, payload)
+	if err != nil {
+		trace.setError(err.Error())
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return true
+	}
+	downstreamStream := ingressIR.Stream
+	forceUpstreamStream := route.Source == "subscription:codex"
 	upJSON, ir, err := protocol.PrepareUpstreamRequest(route.IngressStyle, route.EgressStyle, payload, protocol.PrepareOptions{
 		Model:       route.EffectiveModel,
-		ForceStream: true,
+		ForceStream: forceUpstreamStream,
 		Configure: func(ir *protocol.Request) {
 			applyUpstreamRequestPolicy(ir, route.Source)
 		},
@@ -770,7 +778,7 @@ func (s *Server) tryProxyRoute(
 		APIKey:    route.APIKey,
 		Source:    route.Source,
 		AccountID: route.AccountID,
-		Stream:    true,
+		Stream:    ir.Stream,
 	})
 	for k, vv := range authHdr {
 		upReq.Header[k] = vv
@@ -814,7 +822,7 @@ func (s *Server) tryProxyRoute(
 	peek, _ := buf.Peek(512)
 	streamingSSE := protocol.UpstreamResponseLooksLikeSSE(ctypeLower, peek)
 
-	if streamingSSE {
+	if streamingSSE && downstreamStream {
 		baseSan := protocol.SanitizeUpstreamResponseHeaders(upResp.Header.Clone())
 		streamHdr := protocol.MergeSSEProxyDownstreamHeaders(baseSan)
 		for k, vv := range streamHdr {
@@ -864,6 +872,36 @@ func (s *Server) tryProxyRoute(
 	}
 
 	upStatus := upResp.StatusCode
+	if !downstreamStream {
+		// The reader above has already decoded any Content-Encoding layer. Remove
+		// that header before finalization so the non-stream response is not decoded
+		// twice. This path also aggregates an unexpected upstream SSE response into
+		// the JSON shape requested by the ingress client.
+		plainHeaders := upResp.Header.Clone()
+		plainHeaders.Del("Content-Encoding")
+		status, headers, body, finalizeErr := protocol.FinalizeNonStreamProxyDownstream(
+			route.IngressStyle,
+			route.EgressStyle,
+			upStatus,
+			plainHeaders,
+			upBody,
+		)
+		if finalizeErr != nil {
+			trace.setError(finalizeErr.Error())
+			trace.setErrorKind(proxyErrorKindUpstreamTransport)
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": finalizeErr.Error()})
+			return true
+		}
+		for k, vv := range headers {
+			for _, v := range vv {
+				w.Header().Add(strings.TrimSpace(http.CanonicalHeaderKey(k)), v)
+			}
+		}
+		w.WriteHeader(status)
+		_, _ = w.Write(body)
+		return true
+	}
+
 	ev := protocol.MaterializePlainUpstreamEvents(route.EgressStyle, upStatus, upBody)
 	if upStatus >= 400 {
 		for k, vv := range protocol.MergeMinimalSSEStreamingErrorHeaders() {

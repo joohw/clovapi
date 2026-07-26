@@ -70,7 +70,7 @@ func EncodeClaudeOAuthCompatibleRawRequest(body []byte, r Request) ([]byte, erro
 		return nil, fmt.Errorf("decode claude oauth request: %w", err)
 	}
 	payload["model"] = strings.TrimSpace(r.Model)
-	payload["stream"] = true
+	payload["stream"] = r.Stream
 
 	maxTok := 1024
 	if r.MaxTokens != nil {

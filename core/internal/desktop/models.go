@@ -906,7 +906,7 @@ func cacheSubscriptionAccountModels(s *profile.Store, providerID, credentialRef 
 			strings.TrimSpace(account.CredentialRef) != strings.TrimSpace(credentialRef) {
 			continue
 		}
-		account.Models = profile.MergeVendorModels(account.Models, fetched)
+		account.Models = profile.ReplaceVendorModels(fetched)
 		return true
 	}
 	return false
@@ -986,12 +986,12 @@ func ListVendorModelsWithCredential(vendorName, credentialRef string) ListModels
 		if !ok {
 			return false, fmt.Errorf("未找到供应商: %s", name)
 		}
-		merged := profile.MergeVendorModels(latestVendor.Models, fetched)
+		models := profile.ReplaceVendorModels(fetched)
 		idx := latest.Index(latestVendor.Name)
 		if idx >= 0 {
-			latest.List[idx].Models = merged
+			latest.List[idx].Models = models
 		} else {
-			latestVendor.Models = merged
+			latestVendor.Models = models
 			latest.Upsert(latestVendor)
 		}
 		cacheSubscriptionAccountModels(latest, latestVendor.SubscriptionProviderID, credentialRef, fetched)

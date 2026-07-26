@@ -6,20 +6,16 @@
     isOllamaVendor,
     managedVendorList,
     providerIdForVendor,
-    subscriptionIsUsable,
     subscriptionStatusForVendor,
     vendorSummaryLine,
   } from "../lib/helpers";
   import { displayVendorName, i18n, t } from "../lib/i18n";
   import {
-    canFetchVendorModels,
     addSubscriptionAccount,
     cancelSubscriptionLogin,
-    fetchVendorModels,
     isSubscriptionLogging,
     openModelDialog,
     openProfileDialog,
-    refreshSubscriptionAccountModels,
     store,
     vendorUsageSummaryForVendor,
   } from "../lib/store.svelte";
@@ -30,9 +26,6 @@
   import VendorIcon from "./VendorIcon.svelte";
 
   const vendorList = $derived(managedVendorList(store.profiles));
-  let autoRefreshActive = false;
-  let autoRefreshOllamaInstalled = false;
-
   const copy = $derived.by(() => {
     void i18n.locale;
     return {
@@ -44,47 +37,6 @@
       cancel: t("common.cancel"),
     };
   });
-
-  $effect(() => {
-    const ollamaInstalled = store.ollamaInstalled;
-    if (store.activeTab !== "profiles") {
-      autoRefreshActive = false;
-      return;
-    }
-    if (!vendorList.length) return;
-    if (autoRefreshOllamaInstalled !== ollamaInstalled) {
-      autoRefreshActive = false;
-    }
-    if (autoRefreshActive) return;
-    autoRefreshActive = true;
-    autoRefreshOllamaInstalled = ollamaInstalled;
-    const vendors = [...vendorList];
-    window.setTimeout(() => {
-      for (const vendor of vendors) {
-        if (vendor.kind === "subscription") {
-          const hasAccounts = store.subscriptionAccounts.some(
-            (account) => account.providerId === vendor.subscriptionProviderId,
-          );
-          if (hasAccounts) {
-            void refreshSubscriptionAccountModels(vendor.subscriptionProviderId, vendor.name);
-          }
-          continue;
-        }
-        if (canFetchModels(vendor)) void fetchVendorModels(vendor.name, { silent: true });
-      }
-    }, 0);
-  });
-
-  function canFetchModels(vendor: (typeof vendorList)[number]) {
-    if (!canFetchVendorModels(vendor)) return false;
-    if (vendor.kind === "subscription") {
-      return subscriptionIsUsable(subscriptionStatusForVendor(vendor, store.subscriptions));
-    }
-    if (vendor.kind === "local" && vendor.localProvider === "ollama") {
-      return store.ollamaInstalled;
-    }
-    return vendor.kind !== "local";
-  }
 
   function summaryLine(vendor: (typeof vendorList)[number]) {
     const proxyUrl = vendorProxyBaseUrl(vendor);

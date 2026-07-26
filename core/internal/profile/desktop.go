@@ -473,6 +473,12 @@ func MergeVendorModels(existing, fetched []Model) []Model {
 	return out
 }
 
+// ReplaceVendorModels normalizes and sorts a complete fetched model snapshot.
+// Models missing from fetched are intentionally removed.
+func ReplaceVendorModels(fetched []Model) []Model {
+	return MergeVendorModels(nil, fetched)
+}
+
 type modelSortKey struct {
 	Known       bool
 	Version     []int

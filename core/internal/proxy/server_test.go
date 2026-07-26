@@ -558,8 +558,8 @@ func TestPassthroughForwardingSameIngressEgressOpenAIChat(t *testing.T) {
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("status=%d body=%s", resp.StatusCode, body)
 	}
-	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "text/event-stream") {
-		t.Fatalf("expected SSE downstream, ct=%s", resp.Header.Get("Content-Type"))
+	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "application/json") {
+		t.Fatalf("expected JSON downstream, ct=%s", resp.Header.Get("Content-Type"))
 	}
 	if !strings.Contains(string(body), "stub reply") {
 		t.Fatalf("unexpected client body %s", body)
@@ -568,8 +568,8 @@ func TestPassthroughForwardingSameIngressEgressOpenAIChat(t *testing.T) {
 	if err := json.Unmarshal(upstreamBody, &upstreamParsed); err != nil {
 		t.Fatalf("upstream body not JSON: %s", upstreamBody)
 	}
-	if upstreamParsed["stream"] != true {
-		t.Fatalf("upstream stream = %v want true", upstreamParsed["stream"])
+	if upstreamParsed["stream"] != false {
+		t.Fatalf("upstream stream = %v want false", upstreamParsed["stream"])
 	}
 	if !strings.Contains(string(upstreamBody), `"model":"gpt-4o-wire"`) {
 		t.Fatalf("upstream did not receive enriched model payload: %s", upstreamBody)
@@ -707,8 +707,8 @@ func TestCrossProtocolOpenAIIngressWithClaudeUpstreamTranscodesJSON(t *testing.T
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status=%d body=%s", resp.StatusCode, raw)
 	}
-	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "text/event-stream") {
-		t.Fatalf("expected SSE downstream, ct=%s", resp.Header.Get("Content-Type"))
+	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "application/json") {
+		t.Fatalf("expected JSON downstream, ct=%s", resp.Header.Get("Content-Type"))
 	}
 	if !strings.Contains(string(raw), "pong") {
 		t.Fatalf("unexpected body %s", raw)
@@ -860,8 +860,8 @@ func TestCrossProtocolIngressDecompressesGzipUpstream(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status=%d body=%s", resp.StatusCode, body)
 	}
-	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "text/event-stream") {
-		t.Fatalf("expected SSE downstream, ct=%s", resp.Header.Get("Content-Type"))
+	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "application/json") {
+		t.Fatalf("expected JSON downstream, ct=%s", resp.Header.Get("Content-Type"))
 	}
 	if !strings.Contains(string(body), "pong") {
 		t.Fatalf("unexpected assistant body %s", body)
@@ -902,11 +902,11 @@ func TestCrossProtocolSSEUpstreamTranscodedForOpenAIChatIngress(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status=%d body=%s", resp.StatusCode, body)
 	}
-	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "text/event-stream") {
-		t.Fatalf("expected SSE downstream, ct=%s", resp.Header.Get("Content-Type"))
+	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "application/json") {
+		t.Fatalf("expected JSON downstream, ct=%s", resp.Header.Get("Content-Type"))
 	}
 	if !strings.Contains(string(body), "Chat title") {
-		t.Fatalf("unexpected SSE body %s", body)
+		t.Fatalf("unexpected JSON body %s", body)
 	}
 }
 
@@ -1488,7 +1488,7 @@ func TestStreamSameOpenAIResponsesIngressUpstreamSSEExtensionRelay(t *testing.T)
 	}
 }
 
-func TestKimiCodexSubscriptionClaudeIngressDefaultsStreamTrueWhenOmitted(t *testing.T) {
+func TestKimiCodexSubscriptionClaudeIngressDefaultsNonStreamWhenOmitted(t *testing.T) {
 	var upstreamBody []byte
 	sseReply := strings.Join([]string{
 		`event: response.output_text.delta`,
@@ -1508,7 +1508,7 @@ func TestKimiCodexSubscriptionClaudeIngressDefaultsStreamTrueWhenOmitted(t *test
 			t.Fatal(err)
 		}
 		if parsed["stream"] != true {
-			t.Fatalf("upstream stream = %v want true", parsed["stream"])
+			t.Fatalf("Codex subscription upstream stream = %v want true", parsed["stream"])
 		}
 		w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
@@ -1555,7 +1555,9 @@ func TestKimiCodexSubscriptionClaudeIngressDefaultsStreamTrueWhenOmitted(t *test
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status=%d body=%s upstream=%s", resp.StatusCode, raw, upstreamBody)
 	}
-	if !strings.Contains(string(raw), "content_block_delta") {
-		t.Fatalf("expected claude sse downstream:\n%s", raw)
+	if !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "application/json") ||
+		!strings.Contains(string(raw), `"type":"message"`) ||
+		!strings.Contains(string(raw), `"text":"ok"`) {
+		t.Fatalf("expected aggregated claude JSON downstream:\n%s", raw)
 	}
 }

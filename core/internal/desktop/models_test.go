@@ -74,6 +74,7 @@ func TestCacheSubscriptionAccountModelsUpdatesOnlyMatchingCredential(t *testing.
 			ID:            "codex-first",
 			ProviderID:    provider.CodexProviderID,
 			CredentialRef: "subscription/codex-first.json",
+			Models:        []profile.Model{{ID: "stale", Model: "stale"}},
 		},
 		{
 			ID:            "codex-second",

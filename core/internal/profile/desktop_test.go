@@ -31,6 +31,17 @@ func TestMergeVendorModelsRefreshesRawIDLabel(t *testing.T) {
 	}
 }
 
+func TestReplaceVendorModelsDropsMissingModels(t *testing.T) {
+	replaced := ReplaceVendorModels([]Model{{
+		ID:    "current",
+		Label: "Current",
+		Model: "current",
+	}})
+	if len(replaced) != 1 || replaced[0].ID != "current" {
+		t.Fatalf("replaced models = %+v", replaced)
+	}
+}
+
 func TestEnsureDefaultSubscriptionAccountsAddsCompatibilityAccounts(t *testing.T) {
 	store := &Store{
 		Version: StoreVersion,

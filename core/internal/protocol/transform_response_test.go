@@ -57,6 +57,71 @@ func TestResponsesJSONToOpenAIChatPreservesUsageDetails(t *testing.T) {
 	}
 }
 
+func TestEncodeNonStreamJSONResponsePreservesUsageForResponsesAndClaude(t *testing.T) {
+	events := []ResponseEvent{
+		{Type: RespTextDelta, Text: "ok"},
+		{
+			Type:               RespUsage,
+			InputTokens:        12,
+			OutputTokens:       3,
+			CachedTokens:       8,
+			ReasoningTokens:    2,
+			HasCachedTokens:    true,
+			HasReasoningTokens: true,
+		},
+		{Type: RespFinish, Reason: "completed"},
+	}
+	tests := []struct {
+		name   string
+		style  apistyle.Style
+		assert func(*testing.T, map[string]any)
+	}{
+		{
+			name:  "responses",
+			style: apistyle.OpenAIResponses,
+			assert: func(t *testing.T, payload map[string]any) {
+				usage, _ := payload["usage"].(map[string]any)
+				if usage["input_tokens"] != float64(12) ||
+					usage["output_tokens"] != float64(3) ||
+					usage["total_tokens"] != float64(15) {
+					t.Fatalf("usage = %#v", usage)
+				}
+				inDetails, _ := usage["input_tokens_details"].(map[string]any)
+				outDetails, _ := usage["output_tokens_details"].(map[string]any)
+				if inDetails["cached_tokens"] != float64(8) ||
+					outDetails["reasoning_tokens"] != float64(2) {
+					t.Fatalf("usage details = %#v %#v", inDetails, outDetails)
+				}
+			},
+		},
+		{
+			name:  "claude",
+			style: apistyle.Claude,
+			assert: func(t *testing.T, payload map[string]any) {
+				usage, _ := payload["usage"].(map[string]any)
+				if usage["input_tokens"] != float64(12) ||
+					usage["output_tokens"] != float64(3) ||
+					usage["cache_read_input_tokens"] != float64(8) {
+					t.Fatalf("usage = %#v", usage)
+				}
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			body, err := EncodeNonStreamJSONResponseForStyle(tc.style, events)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var payload map[string]any
+			if err := json.Unmarshal(body, &payload); err != nil {
+				t.Fatal(err)
+			}
+			tc.assert(t, payload)
+		})
+	}
+}
+
 func TestMaterializePlainUpstreamEventsHTTPErrorPreservesPlaintextBody(t *testing.T) {
 	body := []byte("upstream connect error or disconnect/reset before headers")
 	ev := MaterializePlainUpstreamEvents(apistyle.OpenAIResponses, 503, body)

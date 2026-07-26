@@ -181,7 +181,7 @@ func encodeResponseOpenAIResponses(events []ResponseEvent) ([]byte, error) {
 	if errEvt, ok := findError(events); ok {
 		return json.Marshal(map[string]any{"error": errorOpenAIEnvelope(errEvt)})
 	}
-	text, _, _, _, _ := foldText(events)
+	text, _, _, usage, _ := foldText(events)
 	output := []map[string]any{
 		{
 			"type": "message",
@@ -199,12 +199,27 @@ func encodeResponseOpenAIResponses(events []ResponseEvent) ([]byte, error) {
 			"arguments": toolCallArgumentsOrEmpty(&tc),
 		})
 	}
-	return json.Marshal(map[string]any{
+	payload := map[string]any{
 		"id":     "resp_proxy",
 		"object": "response",
 		"status": "completed",
 		"output": output,
-	})
+	}
+	if usage != nil {
+		usagePayload := map[string]any{
+			"input_tokens":  usage.InputTokens,
+			"output_tokens": usage.OutputTokens,
+			"total_tokens":  usage.InputTokens + usage.OutputTokens,
+		}
+		if usage.HasCachedTokens {
+			usagePayload["input_tokens_details"] = map[string]any{"cached_tokens": usage.CachedTokens}
+		}
+		if usage.HasReasoningTokens {
+			usagePayload["output_tokens_details"] = map[string]any{"reasoning_tokens": usage.ReasoningTokens}
+		}
+		payload["usage"] = usagePayload
+	}
+	return json.Marshal(payload)
 }
 
 func encodeResponseClaude(events []ResponseEvent) ([]byte, error) {
@@ -221,7 +236,7 @@ func encodeResponseClaude(events []ResponseEvent) ([]byte, error) {
 		})
 	}
 
-	text, finish, model, _, _ := foldText(events)
+	text, finish, model, usage, _ := foldText(events)
 	if strings.TrimSpace(finish) == "" {
 		finish = "end_turn"
 	}
@@ -237,14 +252,25 @@ func encodeResponseClaude(events []ResponseEvent) ([]byte, error) {
 	if len(toolCalls) > 0 {
 		stopReason = "tool_use"
 	}
-	return json.Marshal(map[string]any{
+	payload := map[string]any{
 		"id":          "msg_proxy",
 		"type":        "message",
 		"role":        string(RoleAssistant),
 		"model":       model,
 		"content":     content,
 		"stop_reason": stopReason,
-	})
+	}
+	if usage != nil {
+		usagePayload := map[string]any{
+			"input_tokens":  usage.InputTokens,
+			"output_tokens": usage.OutputTokens,
+		}
+		if usage.HasCachedTokens {
+			usagePayload["cache_read_input_tokens"] = usage.CachedTokens
+		}
+		payload["usage"] = usagePayload
+	}
+	return json.Marshal(payload)
 }
 
 func finishClaudeNormalize(reason string) string {

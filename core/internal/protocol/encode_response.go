@@ -138,11 +138,18 @@ func encodeResponseOpenAIChat(events []ResponseEvent) ([]byte, error) {
 		},
 	}
 	if usage != nil {
-		payload["usage"] = map[string]any{
+		usagePayload := map[string]any{
 			"prompt_tokens":     usage.InputTokens,
 			"completion_tokens": usage.OutputTokens,
 			"total_tokens":      usage.InputTokens + usage.OutputTokens,
 		}
+		if usage.HasCachedTokens {
+			usagePayload["prompt_tokens_details"] = map[string]any{"cached_tokens": usage.CachedTokens}
+		}
+		if usage.HasReasoningTokens {
+			usagePayload["completion_tokens_details"] = map[string]any{"reasoning_tokens": usage.ReasoningTokens}
+		}
+		payload["usage"] = usagePayload
 	}
 	return json.Marshal(payload)
 }
@@ -150,7 +157,7 @@ func encodeResponseOpenAIChat(events []ResponseEvent) ([]byte, error) {
 func finishOpenAINormalize(reason string) string {
 	r := strings.TrimSpace(strings.ToLower(reason))
 	switch r {
-	case "end_turn", "stop_sequence":
+	case "completed", "end_turn", "stop_sequence":
 		return "stop"
 	case "tool_use":
 		return "tool_calls"

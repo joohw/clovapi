@@ -374,9 +374,9 @@ func decodeOpenAIResponsesSSERecord(rec SSERecord, st *SSEUpstreamDecodeState) [
 		ev := wireExtension(ExtOpenAIResponsesSSEEvent, rec)
 		toolEvents := responsesToolEventsFromWire(recordType, payload, st)
 		if recordType == "response.completed" || strings.TrimSpace(fmt.Sprint(payload["status"])) == "completed" {
-			if inTok, outTok, ok := sseUsageTokens(responsesUsageMap(payload)); ok {
+			if usage, ok := responseUsageEvent(responsesUsageMap(payload)); ok {
 				out := append([]ResponseEvent{ev}, toolEvents...)
-				out = append(out, ResponseEvent{Type: RespUsage, InputTokens: inTok, OutputTokens: outTok}, ResponseEvent{Type: RespFinish, Reason: "completed"})
+				out = append(out, usage, ResponseEvent{Type: RespFinish, Reason: "completed"})
 				return out
 			}
 			out := append([]ResponseEvent{ev}, toolEvents...)
@@ -561,21 +561,11 @@ func responsesUsageMap(payload map[string]any) any {
 }
 
 func sseUsageTokens(usageAny any) (inTok, outTok int, ok bool) {
-	um, okMap := usageAny.(map[string]any)
-	if !okMap || um == nil {
+	ev, ok := responseUsageEvent(usageAny)
+	if !ok {
 		return 0, 0, false
 	}
-	if n, okIn := coerceIntPointer(um["input_tokens"]); okIn {
-		inTok = *n
-	} else if n, okIn := coerceIntPointer(um["prompt_tokens"]); okIn {
-		inTok = *n
-	}
-	if n, okOut := coerceIntPointer(um["output_tokens"]); okOut {
-		outTok = *n
-	} else if n, okOut := coerceIntPointer(um["completion_tokens"]); okOut {
-		outTok = *n
-	}
-	return inTok, outTok, inTok != 0 || outTok != 0
+	return ev.InputTokens, ev.OutputTokens, true
 }
 
 func responsesIsFailed(payload map[string]any, recordType string) *ResponseEvent {

@@ -42,6 +42,50 @@ func TestDecodeOpenAIResponsesCompletedNormalizesNullOutput(t *testing.T) {
 	}
 }
 
+func TestResponsesCompletedToOpenAIChatChunkPreservesUsageDetails(t *testing.T) {
+	rec := SSERecord{
+		Event: "response.completed",
+		Data: `{"type":"response.completed","response":{
+			"id":"resp_test",
+			"status":"completed",
+			"output":[],
+			"usage":{
+				"input_tokens":1226,
+				"output_tokens":5,
+				"total_tokens":1231,
+				"input_tokens_details":{"cached_tokens":1024},
+				"output_tokens_details":{"reasoning_tokens":0}
+			}
+		}}`,
+	}
+
+	var dec SSEUpstreamDecodeState
+	enc := NewStreamIngressEncoder(apistyle.OpenAIChat)
+	var raw strings.Builder
+	for _, ev := range DecodeSSEStreamRecord(apistyle.OpenAIResponses, rec, &dec) {
+		chunks, _, err := enc.EncodeEvent(ev)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, chunk := range chunks {
+			raw.Write(chunk)
+		}
+	}
+	got := raw.String()
+	for _, want := range []string{
+		`"prompt_tokens":1226`,
+		`"completion_tokens":5`,
+		`"total_tokens":1231`,
+		`"prompt_tokens_details":{"cached_tokens":1024}`,
+		`"completion_tokens_details":{"reasoning_tokens":0}`,
+		`"finish_reason":"stop"`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("chat completion chunk missing %s in %s", want, got)
+		}
+	}
+}
+
 func TestDecodeOpenAIResponsesCompletedAddsMissingOutput(t *testing.T) {
 	rec := SSERecord{
 		Event: "response.completed",

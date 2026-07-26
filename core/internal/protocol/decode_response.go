@@ -237,5 +237,54 @@ func decodeOpenAIResponsesResponseJSON(raw map[string]any) []ResponseEvent {
 		status = "completed"
 	}
 	events = append(events, ResponseEvent{Type: RespFinish, Reason: status})
+	if usage, ok := responseUsageEvent(raw["usage"]); ok {
+		events = append(events, usage)
+	}
 	return events
+}
+
+func responseUsageEvent(usageAny any) (ResponseEvent, bool) {
+	um, ok := usageAny.(map[string]any)
+	if !ok || um == nil {
+		return ResponseEvent{}, false
+	}
+	ev := ResponseEvent{Type: RespUsage}
+	hasTokens := false
+	if n, ok := coerceIntPointer(um["input_tokens"]); ok {
+		ev.InputTokens = *n
+		hasTokens = true
+	} else if n, ok := coerceIntPointer(um["prompt_tokens"]); ok {
+		ev.InputTokens = *n
+		hasTokens = true
+	}
+	if n, ok := coerceIntPointer(um["output_tokens"]); ok {
+		ev.OutputTokens = *n
+		hasTokens = true
+	} else if n, ok := coerceIntPointer(um["completion_tokens"]); ok {
+		ev.OutputTokens = *n
+		hasTokens = true
+	}
+	if details, ok := um["input_tokens_details"].(map[string]any); ok {
+		if n, ok := coerceIntPointer(details["cached_tokens"]); ok {
+			ev.CachedTokens = *n
+			ev.HasCachedTokens = true
+		}
+	} else if details, ok := um["prompt_tokens_details"].(map[string]any); ok {
+		if n, ok := coerceIntPointer(details["cached_tokens"]); ok {
+			ev.CachedTokens = *n
+			ev.HasCachedTokens = true
+		}
+	}
+	if details, ok := um["output_tokens_details"].(map[string]any); ok {
+		if n, ok := coerceIntPointer(details["reasoning_tokens"]); ok {
+			ev.ReasoningTokens = *n
+			ev.HasReasoningTokens = true
+		}
+	} else if details, ok := um["completion_tokens_details"].(map[string]any); ok {
+		if n, ok := coerceIntPointer(details["reasoning_tokens"]); ok {
+			ev.ReasoningTokens = *n
+			ev.HasReasoningTokens = true
+		}
+	}
+	return ev, hasTokens
 }

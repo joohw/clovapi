@@ -17,6 +17,7 @@ type StreamIngressEncoder struct {
 	openAIRole      bool
 	openAIToolIndex map[string]int // tool call id -> OpenAI choices.delta.tool_calls index
 	openAIToolNext  int
+	openAIUsage     *ResponseEvent
 	responsesDead   bool // responses SSE error short-circuit
 }
 
@@ -173,12 +174,16 @@ func (e *StreamIngressEncoder) encodeOpenAIChat(ev ResponseEvent) ([][]byte, boo
 		return e.encodeOpenAIChatToolDelta(id, ev)
 	case RespToolEnd:
 		return nil, false, nil
+	case RespUsage:
+		usage := ev
+		e.openAIUsage = &usage
+		return nil, false, nil
 	case RespFinish:
 		reason := strings.TrimSpace(ev.Reason)
 		if reason == "" {
 			reason = "stop"
 		}
-		bb, err := formatOpenAISSEDataJSON(map[string]any{
+		payload := map[string]any{
 			"id":     id,
 			"object": "chat.completion.chunk",
 			"choices": []map[string]any{{
@@ -186,7 +191,11 @@ func (e *StreamIngressEncoder) encodeOpenAIChat(ev ResponseEvent) ([][]byte, boo
 				"delta":         map[string]any{},
 				"finish_reason": finishOpenAINormalize(reason),
 			}},
-		})
+		}
+		if e.openAIUsage != nil {
+			payload["usage"] = openAIChatUsagePayload(*e.openAIUsage)
+		}
+		bb, err := formatOpenAISSEDataJSON(payload)
 		if err != nil {
 			return nil, true, err
 		}
@@ -194,6 +203,21 @@ func (e *StreamIngressEncoder) encodeOpenAIChat(ev ResponseEvent) ([][]byte, boo
 	default:
 		return nil, false, nil
 	}
+}
+
+func openAIChatUsagePayload(usage ResponseEvent) map[string]any {
+	payload := map[string]any{
+		"prompt_tokens":     usage.InputTokens,
+		"completion_tokens": usage.OutputTokens,
+		"total_tokens":      usage.InputTokens + usage.OutputTokens,
+	}
+	if usage.HasCachedTokens {
+		payload["prompt_tokens_details"] = map[string]any{"cached_tokens": usage.CachedTokens}
+	}
+	if usage.HasReasoningTokens {
+		payload["completion_tokens_details"] = map[string]any{"reasoning_tokens": usage.ReasoningTokens}
+	}
+	return payload
 }
 
 func (e *StreamIngressEncoder) encodeOpenAIResponses(ev ResponseEvent) ([][]byte, bool, error) {

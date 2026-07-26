@@ -8,17 +8,21 @@ type ResponseEvent struct {
 
 	Extension *ExtensionNode // wire-preservation node when Type == RespWireExtension
 
-	Text         string // text_delta / errors
-	ID           string // reserve for tool calls
-	Name         string
-	ArgsFragment string
-	Role         string // message_start assistant
-	Model        string // message_start
-	Reason       string // finish_reason
-	InputTokens  int    // usage
-	OutputTokens int    // usage
-	Message      string // error.message
-	Code         string // error.code or Claude error.type
+	Text               string // text_delta / errors
+	ID                 string // reserve for tool calls
+	Name               string
+	ArgsFragment       string
+	Role               string // message_start assistant
+	Model              string // message_start
+	Reason             string // finish_reason
+	InputTokens        int    // usage
+	OutputTokens       int    // usage
+	CachedTokens       int    // usage.prompt_tokens_details.cached_tokens
+	ReasoningTokens    int    // usage.completion_tokens_details.reasoning_tokens
+	HasCachedTokens    bool
+	HasReasoningTokens bool
+	Message            string // error.message
+	Code               string // error.code or Claude error.type
 }
 
 // ResponseEventType constants align with Electron IrEvent.type.

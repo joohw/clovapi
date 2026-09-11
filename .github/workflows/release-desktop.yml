@@ -117,6 +117,15 @@ jobs:
           npm ci
           npm run build:mac
 
+      - name: Verify universal macOS app
+        run: |
+          set -euo pipefail
+          app="electron/dist/mac-universal/Clov API代理.app"
+          executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
+          lipo -verify_arch x86_64 arm64 "$app/Contents/MacOS/$executable"
+          codesign --verify --deep --strict "$app"
+          xcrun stapler validate "$app"
+
       - name: Install awscli
         run: pip install --upgrade awscli
 

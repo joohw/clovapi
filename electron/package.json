@@ -1,7 +1,7 @@
 {
   "name": "clovapi-switcher",
   "private": true,
-  "version": "0.2.18",
+  "version": "0.2.19",
   "description": "Clov API proxy desktop app",
   "main": "main.js",
   "type": "commonjs",
@@ -12,7 +12,7 @@
     "build:ui": "vite build --config ui/vite.config.mjs",
     "build:icons": "node scripts/build-icons.mjs",
     "build:mac": "npm run build:ui && npm run build:icons && electron-builder --mac dmg",
-    "build:win": "npm run build:ui && electron-builder --win nsis",
+    "build:win": "npm run build:ui && npm run build:icons && electron-builder --win nsis",
     "test": "node --test clovapi-proxy.test.js clovapi-exec.test.js cli-path-register.test.js tray-menu.test.js desktop-update.test.js call-logs-store.test.js",
     "start": "npm run build:ui && electron ."
   },

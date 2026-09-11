@@ -8,8 +8,8 @@ import toIco from "to-ico";
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const assetsDir = path.join(rootDir, "assets");
 const iconsetDir = path.join(assetsDir, "app-icon.iconset");
-const sourceSvg = path.join(assetsDir, "app-icon.svg");
-const trayTemplateSvg = path.join(assetsDir, "tray-icon-template.svg");
+const backgroundSvg = path.join(assetsDir, "app-icon-background.svg");
+const markPng = path.join(assetsDir, "clover-mark.png");
 const trayTemplatePng = path.join(assetsDir, "tray-iconTemplate@2x.png");
 const basePng = path.join(assetsDir, "app-icon-1024.png");
 const trimmedPng = path.join(assetsDir, "app-icon-trimmed.png");
@@ -31,26 +31,37 @@ const ICONSET_SIZES = [
   { name: "icon_16x16.png", size: 16 },
 ];
 
-async function renderSvgPng(size) {
-  return sharp(sourceSvg).resize(size, size).png().toBuffer();
+async function renderIconPng(size) {
+  const markBuffer = await sharp(markPng).resize(size, size).png().toBuffer();
+  return sharp(backgroundSvg)
+    .resize(size, size)
+    .composite([{ input: markBuffer }])
+    .png()
+    .toBuffer();
 }
 
 async function main() {
   fs.mkdirSync(iconsetDir, { recursive: true });
 
-  const baseBuffer = await renderSvgPng(1024);
+  const baseBuffer = await renderIconPng(1024);
   fs.writeFileSync(basePng, baseBuffer);
   await sharp(baseBuffer).trim().png().toFile(trimmedPng);
-  await sharp(trayTemplateSvg).resize(32, 32).png().toFile(trayTemplatePng);
+  await sharp(markPng)
+    .trim()
+    .resize(32, 32, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    // macOS template icons use the silhouette; retain alpha and discard leaf colors.
+    .linear(0, 0)
+    .png()
+    .toFile(trayTemplatePng);
 
   await Promise.all(
     ICONSET_SIZES.map(async ({ name, size }) => {
-      await sharp(sourceSvg).resize(size, size).png().toFile(path.join(iconsetDir, name));
+      fs.writeFileSync(path.join(iconsetDir, name), await renderIconPng(size));
     }),
   );
 
   const icoSizes = [16, 32, 48, 64, 128, 256];
-  const icoPngs = await Promise.all(icoSizes.map((size) => renderSvgPng(size)));
+  const icoPngs = await Promise.all(icoSizes.map((size) => renderIconPng(size)));
   fs.writeFileSync(icoOut, await toIco(icoPngs));
 
   const icns = png2icons.createICNS(baseBuffer, png2icons.BILINEAR, 0);

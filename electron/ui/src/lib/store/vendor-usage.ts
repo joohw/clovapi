@@ -117,15 +117,17 @@ function rowsFromTiers(result: NonNullable<VendorUsageResult["usage"]>): VendorU
 function usageSummaryFromResult(result: {
   text?: string;
   usage?: VendorUsageResult["usage"];
-}): { summary: string; rows: VendorUsageData[] } | null {
+}, vendorKind?: string): { summary: string; rows: VendorUsageData[] } | null {
   if (!result.usage?.success) return null;
   const rows = Array.isArray(result.usage.data) && result.usage.data.length > 0
     ? result.usage.data
     : rowsFromTiers(result.usage);
   const text = String(result.text || "").trim();
-  const summary = text || (rows.length > 0
-    ? rows.map(formatUsageRow).join(" 路 ")
-    : t("vendorDetail.usageEmpty"));
+  const rowSummary = rows.length > 0 ? rows.map(formatUsageRow).join(" · ") : "";
+  // Subscription adapter text reports usage; the desktop displays remaining quota.
+  const summary = (vendorKind || result.usage.kind) === "subscription"
+    ? rowSummary || text || t("vendorDetail.usageEmpty")
+    : text || rowSummary || t("vendorDetail.usageEmpty");
   return { summary, rows };
 }
 
@@ -136,7 +138,7 @@ export function applyVendorUsageCache(usages: VendorUsageCacheItem[] = []): void
     if (!name) continue;
     seen.add(name.toLowerCase());
     delete store.vendorUsageLoading[name];
-    const summary = item?.ok ? usageSummaryFromResult(item) : null;
+    const summary = item?.ok ? usageSummaryFromResult(item, item.vendorKind) : null;
     if (!summary) {
       clearVendorUsage(name);
       continue;
@@ -204,15 +206,8 @@ export async function queryVendorUsage(
       if (!options.silent) toast.error(message);
       return;
     }
-    const rows = Array.isArray(result.usage.data) && result.usage.data.length > 0
-      ? result.usage.data
-      : rowsFromTiers(result.usage);
-    const text = String(result.text || "").trim();
-    const rowSummary = rows.length > 0 ? rows.map(formatUsageRow).join(" · ") : "";
-    const summary = vendor.kind === "subscription"
-      ? rowSummary || text || t("vendorDetail.usageEmpty")
-      : text || rowSummary || t("vendorDetail.usageEmpty");
-    store.vendorUsage[cacheKey] = { summary, rows, error: "" };
+    const summary = usageSummaryFromResult(result, vendor.kind);
+    if (summary) store.vendorUsage[cacheKey] = { ...summary, error: "" };
   } catch (error) {
     const message = error instanceof Error ? error.message : t("toast.vendorUsageFailed");
     if (options.silent) return;

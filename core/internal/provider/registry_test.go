@@ -26,7 +26,7 @@ func TestRegistryMatchesDesktopFixedProviders(t *testing.T) {
 }
 
 func TestProxyIngressURLAndParser(t *testing.T) {
-	base := BuildProxyIngressBaseURL(27483, "claude-code")
+	base := BuildProxyIngressBaseURL("", 27483, "claude-code")
 	want := "http://127.0.0.1:27483/claude-code/v1"
 	if base != want {
 		t.Fatalf("base url = %q, want %q", base, want)

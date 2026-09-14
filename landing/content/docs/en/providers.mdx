@@ -1,0 +1,50 @@
+---
+title: Provider configuration
+description: Configure an upstream base URL, API key, API style, and model, then verify the profile.
+---
+
+A provider profile describes one callable upstream service:
+
+| Field | Purpose |
+| --- | --- |
+| Provider ID | Stable identifier used in local proxy URLs |
+| Base URL | Upstream API endpoint |
+| API Key | Upstream credential stored only on your computer |
+| API style | Protocol expected by the upstream |
+| Model | Model ID sent to the upstream |
+
+## Configure in the browser
+
+Run `clovapi serve`, open [http://127.0.0.1:27484](http://127.0.0.1:27484), and add and test the provider from the Provider page.
+
+## Configure with the CLI
+
+This example creates a Chat Completions-style provider:
+
+```bash
+clovapi add \
+  --name my-provider \
+  --api-style chat \
+  --base-url https://YOUR-UPSTREAM/v1 \
+  --api-key YOUR_UPSTREAM_KEY \
+  --model YOUR_MODEL_ID
+```
+
+Test the saved profile:
+
+```bash
+clovapi profiles test \
+  --provider my-provider \
+  --model YOUR_MODEL_ID \
+  --json
+```
+
+## Profile locations
+
+| System | Path |
+| --- | --- |
+| Windows | `%APPDATA%\clovapi\profiles.json` |
+| macOS / Linux | `~/.config/clovapi/profiles.json` |
+| With XDG configured | `$XDG_CONFIG_HOME/clovapi/profiles.json` |
+
+Local proxying never uploads the API key to the clovapi platform. When sharing is enabled, the platform receives model IDs but not upstream base URLs or API keys.

@@ -1,0 +1,10 @@
+.git
+.github
+backend
+landing
+node_modules
+npm
+relay
+*.log
+web/node_modules
+web/dist

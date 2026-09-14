@@ -5,35 +5,48 @@ export function buildSkillMarkdown(siteUrl: string): string {
 
   return `# clovapi skill
 
-Use this skill when a user wants to run model API requests through a local proxy, connect official subscriptions, configure custom upstreams, or debug model API traffic with clovapi.
+Use this skill when a user wants to discover or call shared models through clovapi, integrate the platform API, contribute an authorized model resource, or use the advanced local proxy.
 
 ## What clovapi does
 
-clovapi runs a local HTTP proxy and exposes provider-scoped model API routes such as:
+clovapi is a shared model API network. Consumers create one platform API key and call models that are currently online through:
 
-- \`http://127.0.0.1:27483/codex/v1/responses\`
-- \`http://127.0.0.1:27483/claude-code/v1/messages\`
-- \`http://127.0.0.1:27483/custom/v1/chat/completions\`
+- \`GET https://api.clovapi.com/v1/models\`
+- \`POST https://api.clovapi.com/v1/chat/completions\`
+- \`POST https://api.clovapi.com/v1/responses\`
 
-It supports official subscription sessions and custom API upstreams, then adapts common API styles: \`chat\`, \`responses\`, \`message\`, and \`gemini\`.
+Consumers do not need to install the CLI, configure an upstream, or contribute capacity first. The CLI is an optional contribution-node runtime: it keeps upstream credentials local, advertises available model IDs, and adapts common API styles.
 
-## Common commands
+## Consumer workflow
+
+\`\`\`bash
+curl https://api.clovapi.com/v1/models \\
+  -H "Authorization: Bearer YOUR_CONSUMER_API_KEY"
+
+curl https://api.clovapi.com/v1/chat/completions \\
+  -H "Authorization: Bearer YOUR_CONSUMER_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model":"MODEL_FROM_LIST","messages":[{"role":"user","content":"Hello"}]}'
+\`\`\`
+
+Create the Consumer API Key in the clovapi console. Use the complete model ID returned by \`/v1/models\`; never guess or silently substitute a model.
+
+## Contributor workflow
 
 \`\`\`bash
 npm i -g @clovapi/cli
-clovapi proxy start
-clovapi auth login --provider codex
-clovapi profiles add --provider custom --api-style responses --model my-model
-clovapi profiles test --provider custom --model my-model --json
+clovapi share start --key YOUR_CLI_CONNECTION_KEY
 \`\`\`
+
+Configure and test only upstream resources the contributor is authorized to share. The node automatically syncs locally available models. Consumer API keys, CLI connection keys, and node credentials are not interchangeable.
 
 ## Agent guidance
 
-1. Prefer local proxy routes when the user wants one stable API base URL.
-2. Use subscription login for built-in Codex or Claude subscription providers.
-3. Use custom upstream profiles for third-party API keys and base URLs.
-4. Match the client route to the API style: \`/v1/chat/completions\`, \`/v1/responses\`, \`/v1/messages\`, or Gemini-compatible paths.
-5. When debugging, inspect call logs for inbound requests, upstream response chunks, token usage, and errors.
+1. Prefer the platform \`/v1\` API when the user wants to use shared models.
+2. Query \`/v1/models\` before selecting a model because online supply can change.
+3. Do not require CLI installation or contribution for consumer-only use.
+4. Use the CLI sharing flow only when the user wants to contribute an authorized resource.
+5. Treat the local proxy as an advanced node-side capability, not clovapi's primary product identity.
 
 ## References
 

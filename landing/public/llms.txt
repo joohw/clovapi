@@ -1,29 +1,53 @@
 # clovapi
 
-> Local API proxy for model providers.
+> Great models, within reach. A shared model API network with direct consumer access and optional open-source contribution nodes.
 
-clovapi stores provider profiles, runs a local HTTP proxy, routes requests by provider id, and transcodes between OpenAI, Anthropic, and Gemini-compatible API formats.
+clovapi lets consumers discover and call models supplied by online contribution nodes and platform capacity through one authenticated `/v1` API. Consumers do not need to install the CLI, configure an upstream, or contribute capacity first. Contributors can run the open-source CLI to connect resources they are authorized to share while keeping upstream credentials on the node.
+
+Current status:
+
+- The console provides email verification, server-side sessions, account-scoped data, hashed consumer API credentials, online model discovery, and contribution-node controls.
+- Full API credentials are shown once when created; only a hash and display prefix are stored.
+- The model gateway, persistent contribution-node connections, request routing, streaming responses, and request-count limits are active.
+- Credit settlement and free allowance grants are not enabled. Connecting an API or staying online does not currently earn credits.
+- Platform capacity does not guarantee every model, continuous availability, or unlimited usage.
+
+Available software:
+
+The open-source clovapi CLI runs contribution nodes, stores provider profiles and upstream credentials locally, syncs available model IDs, and transcodes OpenAI, Anthropic, and Gemini-compatible API formats. Consumers do not need it. A standalone local proxy remains available as an advanced mode.
 
 Useful paths:
 
-- Home: /
-- Articles and guides: /blog
-- Codex subscription to local API: /blog/codex-subscription-to-local-api
-- Local model API proxy guide: /blog/local-model-api-proxy
-- Debug local model API calls: /blog/debug-local-model-api-calls
-- Agent skill page: /skill
+- Home: /en and /zh-CN
+- Console: /en/console and /zh-CN/console
+- About: /en/about and /zh-CN/about
+- Privacy: /en/privacy and /zh-CN/privacy
+- Documentation: /en/docs and /zh-CN/docs
+- Online model catalog: /en/models and /zh-CN/models
+- Articles and guides: /en/blog and /zh-CN/blog
+- Codex subscription to local API: /en/blog/codex-subscription-to-local-api
+- Local model API proxy guide: /en/blog/local-model-api-proxy
+- Debug local model API calls: /en/blog/debug-local-model-api-calls
+- Agent skill page for shared-model use and contribution: /en/skill and /zh-CN/skill
 - Agent-readable skill source: /skill.md
 - GitHub: https://github.com/joohw/clovapi
 - npm: https://www.npmjs.com/package/@clovapi/cli
 
-Default proxy:
+Shared API:
 
-- http://127.0.0.1:27483
-- /{providerId}/v1/...
+- https://clovapi.com/v1/models
+- https://clovapi.com/v1/chat/completions
+- https://clovapi.com/v1/responses
 
 Primary topics:
 
-- local LLM API proxy
+- shared model API access with one platform credential
+- discovering models currently supplied by online nodes
+- contributing authorized API capacity through an open-source node
+- platform and node request-count limits
+- secure email authentication and API credential management
+- contribution-node credential boundaries and request routing
+- advanced local LLM API proxy
 - OpenAI, Anthropic, and Gemini API format conversion
 - Codex and Claude subscription access through localhost
 - local request logs, usage inspection, and provider routing

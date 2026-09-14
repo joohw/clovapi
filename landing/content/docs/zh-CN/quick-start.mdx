@@ -1,0 +1,39 @@
+---
+title: 快速开始
+description: 创建平台 API Key，查看在线模型，并完成第一次共享模型调用。
+---
+
+## 1. 创建调用凭证
+
+登录 [clovapi 控制台](/zh-CN/console)，创建 Consumer API Key。这个 Key 只用于调用共享模型，不是贡献节点连接密钥。
+
+## 2. 查看可用模型
+
+模型供给会随在线节点变化。使用控制台、[公开模型目录](/zh-CN/models)，或调用：
+
+```bash
+curl https://api.clovapi.com/v1/models \
+  -H "Authorization: Bearer YOUR_CONSUMER_API_KEY"
+```
+
+## 3. 调用共享模型
+
+```bash
+curl https://api.clovapi.com/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_CONSUMER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"MODEL_FROM_LIST","messages":[{"role":"user","content":"你好"}]}'
+```
+
+也支持 `/v1/responses` 及普通或流式响应。请使用模型列表返回的完整模型 ID；没有在线供给时，平台不会静默替换为其他模型。
+
+## 可选：贡献模型
+
+使用共享模型不需要安装 CLI。只有在你希望贡献有权共享的模型资源，或使用高级本地代理时，才需要安装：
+
+```bash
+npm i -g @clovapi/cli
+clovapi share start --key YOUR_CLI_CONNECTION_KEY
+```
+
+继续阅读[共享节点](/zh-CN/docs/sharing)。

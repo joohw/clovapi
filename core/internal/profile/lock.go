@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	cfgpkg "github.com/clovapi/switcher/internal/config"
@@ -24,6 +25,10 @@ func profilesLockPath() (string, error) {
 }
 
 func lockProfiles() (func(), error) {
+	return lockProfilesWithOpen(os.OpenFile)
+}
+
+func lockProfilesWithOpen(openFile func(string, int, os.FileMode) (*os.File, error)) (func(), error) {
 	lockPath, err := profilesLockPath()
 	if err != nil {
 		return nil, err
@@ -33,7 +38,7 @@ func lockProfiles() (func(), error) {
 	}
 	deadline := time.Now().Add(profilesLockWait)
 	for {
-		file, err := os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		file, err := openFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 		if err == nil {
 			_, _ = fmt.Fprintf(file, "pid=%d time=%s\n", os.Getpid(), time.Now().Format(time.RFC3339Nano))
 			return func() {
@@ -41,7 +46,10 @@ func lockProfiles() (func(), error) {
 				_ = os.Remove(lockPath)
 			}, nil
 		}
-		if !os.IsExist(err) {
+		// Windows can report access denied while another holder's lock file is
+		// delete-pending. Treat that brief state as contention under the same
+		// bounded wait; returning immediately makes concurrent profile I/O fail.
+		if !os.IsExist(err) && !(runtime.GOOS == "windows" && os.IsPermission(err)) {
 			return nil, err
 		}
 		if isStaleProfileLock(lockPath) {

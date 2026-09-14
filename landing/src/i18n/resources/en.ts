@@ -12,20 +12,20 @@ const en = {
     switchToEn: "Switch to English",
   },
   home: {
-    title: "Local proxy and subscription conversion",
+    title: "A shared model API network",
     subtitle:
-      "clovapi does two things: it runs a local HTTP proxy and converts official subscriptions or custom upstreams into OpenAI, Anthropic, and Gemini-compatible endpoints.",
+      "Call online shared models with one platform API key, without installing the CLI or contributing a resource first.",
     quickStart: "Quick start",
-    quickStartHint: "Start the proxy, then point tools at http://127.0.0.1:27483/{providerId}/v1/...",
+    quickStartHint: "Create a platform API key, then point tools at https://api.clovapi.com/v1.",
     useCaseAlt: "clovapi desktop showing provider profiles, proxy status, and request logs",
     copy: "Copy",
     copySuccess: "Commands copied to clipboard",
     copyFailed: "Copy failed",
     apiStyles: "API styles it converts",
     apiStylesSubtitle: "Use the request format your client expects while clovapi converts subscription or upstream responses locally.",
-    featuresTitle: "Focused on local proxying and subscription conversion",
+    featuresTitle: "Shared, unified, and ready to call",
     featuresSubtitle:
-      "A small Go proxy core, an npm launcher, and an optional desktop app for subscription login, upstream settings, proxy status, and logs.",
+      "Use online models directly. Run a contribution node only when you want to add authorized supply.",
     features: {
       profiles: {
         title: "Local configuration",
@@ -54,9 +54,9 @@ const en = {
     },
     downloadMac: "Download for macOS",
     downloadWindows: "Download for Windows",
-    ctaTitle: "Route subscriptions and upstreams through localhost",
+    ctaTitle: "Connect to shared models with one API key",
     ctaSubtitle:
-      "Keep one local configuration and give every client a stable local URL instead of handing keys or subscription sessions to a hosted gateway.",
+      "Choose from the online model catalog and connect applications and agents through one compatible API.",
     ctaGithub: "View on GitHub",
     apiStyleItems: {
       chatCompletions: {
@@ -76,12 +76,12 @@ const en = {
         description: "Route Gemini-compatible generateContent requests through the same provider profile model.",
       },
     },
-    footerTagline: "Local proxy and subscription conversion",
+    footerTagline: "Shared model API network",
     footerCopyright: "(c) 2026 clovapi",
   },
   skill: {
     title: "clovapi Skill",
-    subtitle: "A compact instruction page for AI assistants to understand clovapi local proxying, subscription access, and protocol conversion.",
+    subtitle: "A compact guide for AI assistants to discover, call, and contribute models through clovapi.",
     promptLabel: "Prompt",
     prompt: "Read and use this clovapi skill: {{url}}",
     copy: "Copy",
@@ -90,7 +90,7 @@ const en = {
   },
   blog: {
     indexTitle: "Articles",
-    indexSubtitle: "Tutorials and posts on local proxying, subscription access, protocol conversion, and call debugging.",
+    indexSubtitle: "Tutorials and posts on shared-model calls, contribution nodes, protocol conversion, and debugging.",
     guideLabel: "Tutorial",
     blogLabel: "Blog",
     backToBlog: "Back to articles",

@@ -1,20 +1,12 @@
-name: deploy-landing
+name: deploy-stack
 
-# Landing site only — independent from release-switcher (core/CLI releases on v* tags).
-# Pushes that touch only core/, electron/, npm/, etc. do not trigger this workflow.
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "landing/**"
-      - "scripts/deploy.mjs"
-      - ".github/workflows/deploy-landing.yml"
   workflow_dispatch:
     inputs:
       tag:
-        description: "Docker image tag (default: latest)"
+        description: "Docker image tag"
         required: false
+        default: latest
         type: string
 
 permissions:
@@ -27,48 +19,143 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Decide landing deploy
-        id: deploy_gate
-        run: |
-          if [ -n "${{ secrets.DOCKER_USERNAME }}" ] && [ -n "${{ secrets.DOCKER_PASSWORD }}" ] && [ -n "${{ secrets.SSH_USERNAME }}" ] && [ -n "${{ secrets.SSH_PASSWORD }}" ]; then
-            echo "deploy=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "deploy=false" >> "$GITHUB_OUTPUT"
-            echo "Landing deploy secrets incomplete; skipping."
-          fi
-
-      - name: Setup Node
-        if: steps.deploy_gate.outputs.deploy == 'true'
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-
-      - name: Install deploy dependencies
-        if: steps.deploy_gate.outputs.deploy == 'true'
-        run: npm install
-
-      - name: Resolve image tag
-        if: steps.deploy_gate.outputs.deploy == 'true'
-        id: image_tag
+      - name: Validate deployment secrets
         env:
-          INPUT_TAG: ${{ github.event.inputs.tag }}
-        run: |
-          set -euo pipefail
-          if [[ -n "${INPUT_TAG:-}" ]]; then
-            echo "tag=${INPUT_TAG}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=latest" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Deploy landing site
-        if: steps.deploy_gate.outputs.deploy == 'true'
-        env:
-          DEPLOY_FROM_ENV: "1"
           DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-          SSH_HOST: 47.74.32.108
-          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: npm run deploy -- --from-env --tag "${{ steps.image_tag.outputs.tag }}"
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+        run: |
+          set -euo pipefail
+          for name in DOCKER_REGISTRY DOCKER_USERNAME DOCKER_PASSWORD SSH_HOST SSH_USERNAME SSH_PASSWORD AUTH_SECRET; do
+            test -n "${!name:-}" || { echo "Missing secret: $name" >&2; exit 1; }
+          done
+
+      - name: Build and push frontend and backend
+        env:
+          DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          IMAGE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          REGISTRY_HOST="${DOCKER_REGISTRY%%/*}"
+          printf '%s' "$DOCKER_PASSWORD" | docker login "$REGISTRY_HOST" -u "$DOCKER_USERNAME" --password-stdin
+          docker build -f landing/Dockerfile.frontend \
+            --build-arg NEXT_PUBLIC_CLOVAPI_API_URL=https://api.clovapi.com \
+            -t "$DOCKER_REGISTRY/clovapi:$IMAGE_TAG" .
+          docker build -f backend/Dockerfile \
+            -t "$DOCKER_REGISTRY/clovapi-backend:$IMAGE_TAG" .
+          docker push "$DOCKER_REGISTRY/clovapi:$IMAGE_TAG"
+          docker push "$DOCKER_REGISTRY/clovapi-backend:$IMAGE_TAG"
+
+      - name: Install SSH client helper
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+
+      - name: Deploy stack to server
+        env:
+          DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM: ${{ secrets.RESEND_FROM }}
+          IMAGE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          SSH_PORT="${SSH_PORT:-22}"
+          REGISTRY_PASSWORD_B64="$(printf '%s' "$DOCKER_PASSWORD" | base64 -w0)"
+          BACKEND_ENV_B64="$(printf '%s\n' \
+            'CLOVAPI_BACKEND_LISTEN=:3100' \
+            'CLOVAPI_DB_PATH=/data/clovapi.db' \
+            'CLOVAPI_PUBLIC_ORIGIN=https://api.clovapi.com' \
+            'CLOVAPI_ALLOWED_ORIGINS=https://clovapi.com,https://www.clovapi.com' \
+            'CLOVAPI_SECURE_COOKIES=true' \
+            'CLOVAPI_RELAY_TRUST_PROXY=true' \
+            "AUTH_SECRET=$AUTH_SECRET" \
+            "RESEND_API_KEY=$RESEND_API_KEY" \
+            "RESEND_FROM=$RESEND_FROM" | base64 -w0)"
+
+          sshpass -e ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o ConnectTimeout=30 \
+            -p "$SSH_PORT" \
+            "$SSH_USERNAME@$SSH_HOST" \
+            bash -s -- \
+            "$DOCKER_REGISTRY" "$DOCKER_USERNAME" "$REGISTRY_PASSWORD_B64" \
+            "$IMAGE_TAG" "$BACKEND_ENV_B64" <<'REMOTE'
+          set -euo pipefail
+          DOCKER_REGISTRY="$1"
+          DOCKER_USERNAME="$2"
+          REGISTRY_PASSWORD_B64="$3"
+          IMAGE_TAG="$4"
+          BACKEND_ENV_B64="$5"
+
+          if ! command -v docker >/dev/null 2>&1; then
+            if command -v dnf >/dev/null 2>&1; then
+              dnf install -y docker
+            elif command -v yum >/dev/null 2>&1; then
+              yum install -y docker
+            elif command -v apt-get >/dev/null 2>&1; then
+              apt-get update
+              DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io
+            else
+              echo 'No supported package manager found for Docker installation.' >&2
+              exit 1
+            fi
+          fi
+          systemctl enable --now docker
+
+          REGISTRY_HOST="${DOCKER_REGISTRY%%/*}"
+          printf '%s' "$REGISTRY_PASSWORD_B64" | base64 -d | \
+            docker login "$REGISTRY_HOST" -u "$DOCKER_USERNAME" --password-stdin
+
+          WEB_IMAGE="$DOCKER_REGISTRY/clovapi:$IMAGE_TAG"
+          BACKEND_IMAGE="$DOCKER_REGISTRY/clovapi-backend:$IMAGE_TAG"
+          docker pull "$WEB_IMAGE"
+          docker pull "$BACKEND_IMAGE"
+
+          install -d -m 700 /root/.config/clovapi
+          printf '%s' "$BACKEND_ENV_B64" | base64 -d > /root/.config/clovapi/backend.env
+          chmod 600 /root/.config/clovapi/backend.env
+
+          docker network inspect clovapi >/dev/null 2>&1 || docker network create clovapi
+          docker rm -f clovapi clovapi-backend >/dev/null 2>&1 || true
+          docker run -d --name clovapi-backend --restart unless-stopped \
+            --network clovapi -p 3100:3100 \
+            --env-file /root/.config/clovapi/backend.env \
+            -v clovapi-data:/data "$BACKEND_IMAGE"
+          docker run -d --name clovapi --restart unless-stopped \
+            --network clovapi -p 3000:3000 "$WEB_IMAGE"
+
+          for attempt in $(seq 1 30); do
+            if docker exec clovapi-backend wget -q -O - http://127.0.0.1:3100/health >/dev/null 2>&1; then
+              BACKEND_READY=1
+              break
+            fi
+            sleep 2
+          done
+          test "${BACKEND_READY:-}" = 1 || {
+            docker logs --tail 100 clovapi-backend >&2
+            exit 1
+          }
+          docker ps --filter name=clovapi --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+          REMOTE
+
+      - name: Verify public ports
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --retry 10 --retry-delay 3 --max-time 10 "http://$SSH_HOST:3100/health"
+          curl --fail --show-error --retry 10 --retry-delay 3 --max-time 10 "http://$SSH_HOST:3000/" >/dev/null

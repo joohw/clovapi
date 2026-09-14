@@ -1,58 +1,56 @@
-# CLOVAPI Landing
+# CLOVAPI Web App
 
-Next.js App Router marketing site for clovapi (CLI / desktop client).
+Next.js presentation layer for the clovapi shared model API network. Platform
+state and business APIs live in the independent Go
+[Platform Backend](../backend/README.md); this package does not own accounts,
+credentials, admission, node connections, or the `/v1` consumer API.
+
+## Product routes
+
+- `/zh-CN` and `/en`: landing page.
+- `/zh-CN/docs` and `/en/docs`: Fumadocs documentation and local search.
+- `/zh-CN/models` and `/en/models`: model catalog loaded from the Go Backend.
+- `/zh-CN/console` and `/en/console`: browser UI for Backend authentication,
+  API keys, contribution nodes, and credits.
+- `/api/docs-search` and `/api/skill-md`: content-only Next.js routes. They do
+  not read or mutate platform state.
+
+The browser calls `NEXT_PUBLIC_CLOVAPI_API_URL` directly with credentialed CORS.
+Production should use `https://api.clovapi.com`; local development typically
+uses `http://127.0.0.1:3100`.
 
 ## Development
 
+Start the Backend first:
+
 ```bash
-npm install
-npm run dev
+go run ./core/cmd/backend --listen 127.0.0.1:3100 --database ./landing/.data/clovapi.db
 ```
 
-Default dev URL: `http://localhost:3000` (local Go proxy stays on `27483`).
-
-## Environment Variables
-
-All env files for this app live in `landing/`:
-
-| File | Purpose |
-|------|---------|
-| `.env.example` | 可选运行时变量（R2 本地发布等）；站点 URL 等已硬编码 |
-| `.env.deploy.example` | Deploy credentials template — copy to `.env.deploy` |
-
-Local development:
+Then start Next.js:
 
 ```bash
+cd landing
 cp .env.example .env.local
+npm install
+npm run dev -- --port 3101
 ```
 
-Deploy (from repo root; reads `landing/.env.deploy`; optional `landing/.env` for extra runtime vars):
+Set `NEXT_PUBLIC_CLOVAPI_API_URL=http://127.0.0.1:3100` in `.env.local`, and
+allow `http://127.0.0.1:3101` through `CLOVAPI_ALLOWED_ORIGINS` on the Backend.
+Email login credentials (`AUTH_SECRET`, `RESEND_API_KEY`, and `RESEND_FROM`) are
+Backend environment variables, not Next.js variables.
+
+## Container
+
+Build the frontend from the repository root:
 
 ```bash
-cd ..
-npm run deploy
+docker build -f landing/Dockerfile.frontend \
+  --build-arg NEXT_PUBLIC_CLOVAPI_API_URL=https://api.clovapi.com \
+  -t clovapi-web .
 ```
 
-Pushes to `main` that touch **`landing/**` only** trigger automated deploy via `.github/workflows/deploy-landing.yml` when these GitHub secrets are set:
-
-- `DOCKER_REGISTRY`, `DOCKER_USERNAME`, `DOCKER_PASSWORD`
-- `SSH_HOST`, `SSH_USERNAME`, `SSH_PASSWORD` (`SSH_PORT` defaults to `22`)
-
-`core/` / CLI releases use `.github/workflows/release-switcher.yml` on `v*` tags — landing-only commits do not run that workflow.
-
-Desktop shell releases use `.github/workflows/release-desktop.yml` on `electron/**` commits to `main`.
-
-Manual deploy: run the **deploy-landing** workflow (optional `tag` input, default `latest`).
-
-Hardcoded in code (`landing/src/lib/site.ts`, `landing/src/lib/downloads.ts`):
-
-- Site URL: `https://clovapi.com`
-- GitHub: `https://github.com/joohw/clovapi`
-- Desktop downloads: `https://downloads.clovapi.com/desktop/latest/...`
-
-## Build & Run
-
-```bash
-npm run build
-npm run start
-```
+The image contains only Next.js. Deploy it separately from `backend/compose.yaml`.
+The architectural boundary is recorded in
+[ADR-0004](../docs/adr/0004-unified-go-platform-backend.md).

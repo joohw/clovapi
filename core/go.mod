@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	github.com/andybalholm/brotli v1.1.1
 	github.com/google/uuid v1.6.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/pelletier/go-toml/v2 v2.2.3
 	github.com/spf13/cobra v1.9.1
 	github.com/tidwall/jsonc v0.3.3

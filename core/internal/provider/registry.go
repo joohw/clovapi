@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"net"
 	"net/url"
 	"strconv"
 	"strings"
@@ -84,11 +85,15 @@ func ProviderIDFromVendorName(vendorName string) string {
 	return ""
 }
 
-func BuildProxyIngressBaseURL(port int, providerID string) string {
+func BuildProxyIngressBaseURL(host string, port int, providerID string) string {
+	host = strings.TrimSpace(host)
+	if host == "" {
+		host = "127.0.0.1"
+	}
 	if port == 0 {
 		port = 27483
 	}
-	base := "http://127.0.0.1:" + strconv.Itoa(port) + "/" + strings.TrimSpace(providerID)
+	base := "http://" + net.JoinHostPort(host, strconv.Itoa(port)) + "/" + strings.TrimSpace(providerID)
 	return strings.TrimRight(base, "/") + "/v1"
 }
 

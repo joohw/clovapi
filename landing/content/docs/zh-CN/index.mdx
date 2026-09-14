@@ -1,0 +1,25 @@
+---
+title: clovapi 文档
+description: 使用一个平台 API Key 发现并调用在线共享模型，或运行贡献节点增加模型供给。
+---
+
+clovapi 是一个共享模型 API 网络。你可以创建平台 API Key，通过统一的 `/v1` 接口直接使用当前在线的共享模型；不需要安装 CLI、配置上游或先贡献资源。
+
+如果你拥有可共享的模型 API 或算力资源，可以运行 clovapi CLI 作为贡献节点。上游凭据保留在节点本地，平台只接收模型 ID，并通过节点的出站连接交付请求和响应。
+
+## 可以用它做什么
+
+- 在控制台创建和管理平台 API Key。
+- 从 `/v1/models` 发现当前在线的共享模型。
+- 使用 OpenAI 兼容的 Chat Completions 或 Responses 接口调用模型。
+- 无需先贡献资源即可直接使用共享网络。
+- 运行贡献节点，共享你有权提供的模型，并控制节点限额与状态。
+
+## 从这里开始
+
+1. 阅读[快速开始](/zh-CN/docs/quick-start)，创建平台 API Key 并调用第一个共享模型。
+2. 在控制台或[模型目录](/zh-CN/models)查看当前可用模型。
+3. 如果希望贡献模型资源，再阅读[共享节点](/zh-CN/docs/sharing)和 [Provider 配置](/zh-CN/docs/providers)。
+4. 需要在单机内直接路由自己的上游时，再使用[高级本地代理](/zh-CN/docs/local-proxy)。
+
+> clovapi 的产品主体是共享模型 API 网络。本地代理是贡献节点的执行与协议适配能力，也保留为高级本地模式。Agent CLI 配置切换与管理由 [clovagent](https://github.com/joohw/clovagent) 提供。

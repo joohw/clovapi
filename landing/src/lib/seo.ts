@@ -19,6 +19,7 @@ export function buildPageMetadata(page: SeoPageKey, language: AppLanguage): Meta
   const siteUrl = PUBLIC_SITE_URL;
   const pathname = pathnameForPage(page);
   const { title, description, ogImage } = resolvePageCopy(page, language);
+  const hasSharingImage = page === "home" || page === "about" || page === "models";
 
   const canonical = hreflangUrl(siteUrl, normalizePath(pathname), language);
   return {
@@ -30,13 +31,6 @@ export function buildPageMetadata(page: SeoPageKey, language: AppLanguage): Meta
     creator: SITE_NAME,
     publisher: SITE_NAME,
     category: "developer tools",
-    icons: {
-      icon: [
-        { url: "/clover-light.svg", type: "image/svg+xml", media: "(prefers-color-scheme: light)" },
-        { url: "/clover.svg", type: "image/svg+xml", media: "(prefers-color-scheme: dark)" },
-      ],
-      shortcut: "/favicon.ico",
-    },
     alternates: {
       canonical,
       languages: {
@@ -53,10 +47,15 @@ export function buildPageMetadata(page: SeoPageKey, language: AppLanguage): Meta
       url: canonical,
       locale: language === "zh-CN" ? "zh_CN" : "en_US",
       alternateLocale: language === "zh-CN" ? ["en_US"] : ["zh_CN"],
-      images: [{ url: `${siteUrl}${ogImage}`, width: 720, height: 760, alt: title }],
+      images: [{
+        url: `${siteUrl}${ogImage}`,
+        width: hasSharingImage ? 1200 : 720,
+        height: hasSharingImage ? 630 : 760,
+        alt: title,
+      }],
     },
     twitter: {
-      card: "summary",
+      card: hasSharingImage ? "summary_large_image" : "summary",
       title,
       description,
       images: [`${siteUrl}${ogImage}`],

@@ -3,6 +3,10 @@ import { normalizeLanguage } from "@/i18n/resolve-language";
 import { localizedPath } from "@/lib/seo-data";
 
 export function middleware(request: NextRequest) {
+  // API clients must never enter the website's language redirects.
+  if (/^\/(?:api|v1)(?:\/|$)/.test(request.nextUrl.pathname)) {
+    return NextResponse.next();
+  }
   if (
     request.nextUrl.pathname === "/skill" &&
     request.nextUrl.searchParams.get("format") === "md"

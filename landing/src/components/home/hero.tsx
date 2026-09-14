@@ -186,7 +186,7 @@ export function HomeHero() {
           <div className="grid lg:min-h-[40rem] lg:grid-cols-[minmax(0,1fr)_18rem]">
             <div
               className="space-y-2 p-5 font-mono text-[0.8125rem] leading-relaxed sm:p-6 sm:text-sm lg:border-r lg:border-border/80"
-              aria-label={english ? "Animated clovapi command demo" : "clovapi 动态命令演示"}
+              aria-label={english ? "Animated clovapi command interface" : "clovapi 动态命令界面"}
             >
               {renderedLines.map((line, index) => {
                 const sourceLine = WORKFLOW_LINES[line.sourceIndex];

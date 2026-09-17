@@ -53,6 +53,12 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch r.URL.Path {
+	case "/":
+		if !method(w, r, http.MethodGet) {
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = io.WriteString(w, "hello\n")
 	case "/api/auth/code":
 		a.authCode(w, r)
 	case "/api/auth/verify":

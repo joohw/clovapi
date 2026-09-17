@@ -73,3 +73,44 @@ func TestPlatformAPIUsesBackendSessionAndCreatesConsumerKey(t *testing.T) {
 		t.Fatalf("register response=%d %s", response.Code, response.Body.String())
 	}
 }
+
+func TestAPIRootReturnsHello(t *testing.T) {
+	api := NewAPI(nil, http.NotFoundHandler(), APIConfig{})
+	response := httptest.NewRecorder()
+	api.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "https://api.clovapi.com/", nil))
+	if response.Code != http.StatusOK || response.Body.String() != "hello\n" {
+		t.Fatalf("response=%d %q", response.Code, response.Body.String())
+	}
+	if got := response.Header().Get("Content-Type"); got != "text/plain; charset=utf-8" {
+		t.Fatalf("content type=%q", got)
+	}
+
+	response = httptest.NewRecorder()
+	api.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "https://api.clovapi.com/", nil))
+	if response.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("POST response=%d %q", response.Code, response.Body.String())
+	}
+}
+
+func TestAPICORSPreflightAllowsConfiguredLocalDevOrigin(t *testing.T) {
+	api := NewAPI(nil, http.NotFoundHandler(), APIConfig{AllowedOrigins: []string{"https://clovapi.com", "http://localhost:3000", "http://127.0.0.1:3000"}})
+	for _, origin := range []string{"http://localhost:3000", "http://127.0.0.1:3000"} {
+		request := httptest.NewRequest(http.MethodOptions, "https://api.clovapi.com/api/auth/code", nil)
+		request.Header.Set("Origin", origin)
+		request.Header.Set("Access-Control-Request-Method", "POST")
+		request.Header.Set("Access-Control-Request-Headers", "content-type")
+		response := httptest.NewRecorder()
+		api.ServeHTTP(response, request)
+		if response.Code != http.StatusNoContent || response.Header().Get("Access-Control-Allow-Origin") != origin || response.Header().Get("Access-Control-Allow-Credentials") != "true" {
+			t.Fatalf("origin=%q response=%d headers=%v", origin, response.Code, response.Header())
+		}
+	}
+
+	request := httptest.NewRequest(http.MethodOptions, "https://api.clovapi.com/api/auth/code", nil)
+	request.Header.Set("Origin", "https://untrusted.example")
+	response := httptest.NewRecorder()
+	api.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden || response.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Fatalf("unexpected origin response=%d headers=%v", response.Code, response.Header())
+	}
+}

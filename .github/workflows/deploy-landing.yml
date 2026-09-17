@@ -78,7 +78,7 @@ jobs:
             'CLOVAPI_BACKEND_LISTEN=:3100' \
             'CLOVAPI_DB_PATH=/data/clovapi.db' \
             'CLOVAPI_PUBLIC_ORIGIN=https://api.clovapi.com' \
-            'CLOVAPI_ALLOWED_ORIGINS=https://clovapi.com,https://www.clovapi.com' \
+            'CLOVAPI_ALLOWED_ORIGINS=https://clovapi.com,https://www.clovapi.com,http://localhost:3000,http://127.0.0.1:3000' \
             'CLOVAPI_SECURE_COOKIES=true' \
             'CLOVAPI_RELAY_TRUST_PROXY=true' \
             "AUTH_SECRET=$AUTH_SECRET" \

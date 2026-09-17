@@ -13,14 +13,14 @@ export function BlogIndexContent({ posts, language }: BlogIndexContentProps) {
 
   return (
     <div className="page-wrap relative">
-      <div className="page-content page-content--with-bottom relative z-[1] mx-auto max-w-6xl px-5 sm:px-6">
+      <div className="site-container page-content page-content--with-bottom relative z-[1]">
         <h1 className="text-balance text-2xl font-medium leading-relaxed tracking-[-0.015em] text-foreground">
           {english ? "Articles" : "博客"}
         </h1>
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
           {english
-            ? "Tutorials and posts on local proxying, subscription access, protocol conversion, and call debugging."
-            : "教程和博客都在这里：本地代理、订阅接入、协议转换和调用调试。"}
+            ? "Tutorials and posts on shared-model calls, contribution nodes, protocol conversion, and debugging."
+            : "教程和博客都在这里：共享模型调用、贡献节点、协议转换和调用调试。"}
         </p>
 
         <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">

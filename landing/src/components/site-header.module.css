@@ -1,0 +1,24 @@
+.header { position: fixed; top: 0; left: 0; right: 0; z-index: 40; background: #fbfaf9f2; border-bottom: 1px solid #e4e0dc; backdrop-filter: blur(14px); color: #272420; }
+.inner { box-sizing: border-box; width: min(var(--app-layout-max-width), 100%); height: var(--app-header-height); margin-inline: auto; padding-inline: 14px; display: flex; align-items: center; justify-content: space-between; gap: 25px; }
+.brand { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.brand > span { font-size: 13px; font-weight: 600; letter-spacing: .12em; }
+.brand small { font-size: 8px; font-weight: 500; letter-spacing: .12em; color: #817b75; padding-left: 11px; margin-left: 5px; border-left: 1px solid #e4e0dc; }
+.actions { display: flex; align-items: center; gap: 15px; }
+.modelsLink { display: inline-flex; align-items: center; min-height: 40px; font-size: 12px; white-space: nowrap; color: inherit; opacity: .75; }
+.modelsLink:hover, .modelsLink[aria-current="page"] { opacity: 1; }
+.language { font-size: 10px; font-weight: 500; }
+.themeButton { width: 20px; height: 28px; display: grid; place-items: center; cursor: pointer; color: #817b75; }
+.sun { display: none; }
+.consoleLink { display: flex; align-items: center; gap: 12px; border: 1px solid #e4e0dc; padding: 9px 12px; border-radius: 5px; font-size: 11px; white-space: nowrap; transition: background .2s; }
+.consoleLink:hover { background: #f3f1ef; }
+.header a:focus-visible, .header button:focus-visible { outline: 2px solid #8a837c; outline-offset: 4px; border-radius: 4px; }
+:global(.dark) .header { background: #171717f2; border-color: #393633; color: #eeeeee; }
+:global(.dark) .brand img { filter: invert(1); }
+:global(.dark) .themeButton, :global(.dark) .brand small { color: #b0aaa4; }
+:global(.dark) .consoleLink { border-color: #625a51; }
+:global(.dark) .consoleLink:hover { background: #282624; }
+:global(.dark) .sun { display: block; }
+:global(.dark) .moon { display: none; }
+@media (max-width: 1100px) { .inner { padding-inline: 32px; } .brand small { display: none; } }
+@media (max-width: 480px) { .inner { padding-inline: 20px; gap: 12px; } .brand { gap: 5px; } .brand > span { font-size: 12px; } .brand img { width: 24px; height: 24px; } .actions { gap: 11px; } .consoleLink { font-size: 9px; gap: 5px; padding: 8px; } .consoleLink svg { width: 12px; } .themeButton { display: none; } }
+@media (prefers-reduced-motion: reduce) { .header * { transition: none !important; } }

@@ -92,6 +92,13 @@ function loadDeployConfig(configPath) {
       DEPLOY_SKIP_IMAGE_UPDATE: process.env.DEPLOY_SKIP_IMAGE_UPDATE || "",
       DEPLOY_DOCKER_PLATFORM: process.env.DEPLOY_DOCKER_PLATFORM || "",
       DEPLOY_DOCKER_PULL_BASE: process.env.DEPLOY_DOCKER_PULL_BASE || "",
+      DEPLOY_OFFICIAL_NODE_KEY: process.env.DEPLOY_OFFICIAL_NODE_KEY || "",
+      DEPLOY_OFFICIAL_NODE_DAILY_LIMIT: process.env.DEPLOY_OFFICIAL_NODE_DAILY_LIMIT || "",
+      DEPLOY_OFFICIAL_NODE_HOST_PORT: process.env.DEPLOY_OFFICIAL_NODE_HOST_PORT || "",
+      DEPLOY_OFFICIAL_NODE_CONTAINER_NAME:
+        process.env.DEPLOY_OFFICIAL_NODE_CONTAINER_NAME || "",
+      DEPLOY_OFFICIAL_NODE_DATA_VOLUME:
+        process.env.DEPLOY_OFFICIAL_NODE_DATA_VOLUME || "",
     };
   }
   return parseEnvFile(configPath).env;
@@ -108,22 +115,32 @@ function loadRuntimeEnv(envFilePath) {
   return parseEnvFile(envFilePath);
 }
 
+function dockerEnvRaw(values) {
+  return Object.entries(values)
+    .map(([key, value]) => {
+      const text = String(value ?? "");
+      if (/\r|\n/.test(text)) throw new Error(`${key} must be a single line`);
+      return `${key}=${text}`;
+    })
+    .join("\n") + "\n";
+}
+
 function prepareBuildEnv(landingRoot, runtimeEnvRaw) {
   if (!String(runtimeEnvRaw || "").trim()) {
     return { envPath: null, dockerignorePath: null, restoredDockerignore: null };
   }
   const envPath = path.resolve(landingRoot, ".env");
-  const dockerignorePath = path.resolve(landingRoot, ".dockerignore");
+  const dockerignorePath = path.resolve(landingRoot, "Dockerfile.frontend.dockerignore");
   fs.writeFileSync(envPath, runtimeEnvRaw.endsWith("\n") ? runtimeEnvRaw : `${runtimeEnvRaw}\n`);
 
   let restoredDockerignore = null;
   if (fs.existsSync(dockerignorePath)) {
     const content = fs.readFileSync(dockerignorePath, "utf8");
-    if (/\n\.env\*\n/.test(`\n${content}\n`)) {
+    if (/\nlanding\/\.env\*\n/.test(`\n${content}\n`)) {
       restoredDockerignore = content;
       fs.writeFileSync(
         dockerignorePath,
-        content.replace(/^\.env\*$/m, ".env.deploy*"),
+        content.replace(/^landing\/\.env\*$/m, "landing/.env.deploy*"),
       );
     }
   }
@@ -153,6 +170,7 @@ Options:
   --host-port <port>    Remote exposed frontend port (default: 27483)
   --pull-base           Ask docker build to pull newer base images (FROM ...); default is local-only
   --no-image-update     Skip local build/login/push and remote pull
+  --no-official-node    Do not deploy the official contribution node
   --dry-run             Print commands only, do not execute
   --help                Show help
 `);
@@ -246,6 +264,7 @@ async function main() {
 
   const dryRun = hasFlag("--dry-run");
   const noImageUpdate = hasFlag("--no-image-update");
+  const noOfficialNode = hasFlag("--no-official-node");
   const repoRoot = process.cwd();
   const landingRoot = path.resolve(repoRoot, "landing");
   const configPath = getArgValue("--config")
@@ -295,6 +314,40 @@ async function main() {
   const pullBaseImages =
     hasFlag("--pull-base") || isTruthy(deployEnv.DEPLOY_DOCKER_PULL_BASE);
 
+  const officialNodeKey = String(deployEnv.DEPLOY_OFFICIAL_NODE_KEY || "").trim();
+  const officialNodeEnabled = !noOfficialNode && Boolean(officialNodeKey);
+  const officialNodeDailyLimit = String(
+    deployEnv.DEPLOY_OFFICIAL_NODE_DAILY_LIMIT || "100000",
+  ).trim();
+  const officialNodeHostPort = String(
+    deployEnv.DEPLOY_OFFICIAL_NODE_HOST_PORT || "28473",
+  ).trim();
+  const officialNodeContainer = String(
+    deployEnv.DEPLOY_OFFICIAL_NODE_CONTAINER_NAME || `${containerName}-official-node`,
+  ).trim();
+  const officialNodeDataVolume = String(
+    deployEnv.DEPLOY_OFFICIAL_NODE_DATA_VOLUME || "clovapi-official-node-data",
+  ).trim();
+  if (officialNodeEnabled) {
+    if (!/^clv_connect_[A-Za-z0-9_-]+\.([A-Za-z0-9_-]{22}|[A-Za-z0-9_-]{43})$/.test(officialNodeKey)) {
+      throw new Error("DEPLOY_OFFICIAL_NODE_KEY must be a clv_connect_ connection key");
+    }
+    const limit = Number(officialNodeDailyLimit);
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100000) {
+      throw new Error("DEPLOY_OFFICIAL_NODE_DAILY_LIMIT must be between 1 and 100000");
+    }
+    const hostPort = Number(officialNodeHostPort);
+    if (!Number.isSafeInteger(hostPort) || hostPort < 1 || hostPort > 65535) {
+      throw new Error("DEPLOY_OFFICIAL_NODE_HOST_PORT must be between 1 and 65535");
+    }
+  }
+  const officialNodeEnvRaw = officialNodeEnabled
+    ? dockerEnvRaw({
+        CLOVAPI_OFFICIAL_NODE_KEY: officialNodeKey,
+        CLOVAPI_OFFICIAL_NODE_DAILY_LIMIT: officialNodeDailyLimit,
+      })
+    : "";
+
   const imageRef = registry ? `${registry}/${imageName}:${imageTag}` : `${imageName}:${imageTag}`;
   const registryLoginHost = parseRegistryLoginHost(registry);
   const dockerPasswordB64 = Buffer.from(dockerPassword, "utf8").toString("base64");
@@ -308,24 +361,42 @@ async function main() {
         `docker pull ${shEscape(imageRef)}`,
       ].join(" && ");
   const dockerRunCommand = hasRuntimeEnv
-    ? `docker run -d --name ${shEscape(containerName)} --restart unless-stopped -p ${shEscape(`${frontendHostPort}:3000`)} --env-file /dev/stdin ${shEscape(imageRef)}`
+    ? `printf '%s' "$LANDING_ENV_B64" | base64 -d | docker run -d --name ${shEscape(containerName)} --restart unless-stopped -p ${shEscape(`${frontendHostPort}:3000`)} --env-file /dev/stdin ${shEscape(imageRef)}`
     : `docker run -d --name ${shEscape(containerName)} --restart unless-stopped -p ${shEscape(`${frontendHostPort}:3000`)} ${shEscape(imageRef)}`;
+  const officialNodeRunCommand = officialNodeEnabled
+    ? `printf '%s' "$OFFICIAL_NODE_ENV_B64" | base64 -d | docker run -d --name ${shEscape(officialNodeContainer)} --hostname ${shEscape(officialNodeContainer)} --restart unless-stopped -p ${shEscape(`127.0.0.1:${officialNodeHostPort}:28473`)} -v ${shEscape(`${officialNodeDataVolume}:/var/lib/clovapi`)} -e XDG_CONFIG_HOME=/var/lib/clovapi --env-file /dev/stdin ${shEscape(imageRef)} node /app/scripts/official-node-runtime.mjs`
+    : "";
   const remoteCommand = [
     "set -e",
+    'IFS= read -r LANDING_ENV_B64',
+    'IFS= read -r OFFICIAL_NODE_ENV_B64',
     remoteImagePrepare,
     `(docker rm -f ${shEscape(containerName)} >/dev/null 2>&1 || true)`,
+    ...(officialNodeEnabled
+      ? [`(docker rm -f ${shEscape(officialNodeContainer)} >/dev/null 2>&1 || true)`]
+      : []),
     dockerRunCommand,
+    ...(officialNodeEnabled
+      ? [
+          officialNodeRunCommand,
+          `for attempt in $(seq 1 30); do docker logs ${shEscape(officialNodeContainer)} 2>&1 | grep -Fq 'Shared node connected:' && docker exec ${shEscape(officialNodeContainer)} node -e ${shEscape("fetch('http://127.0.0.1:28473/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))")} && NODE_READY=1 && break; sleep 1; done`,
+          `test "\${NODE_READY:-}" = 1 || { docker logs --tail 40 ${shEscape(officialNodeContainer)} >&2; exit 1; }`,
+        ]
+      : []),
     "(docker image prune -af >/dev/null 2>&1 || true)",
   ].join(" && ");
 
   console.log("Deploy plan:");
-  console.log("- mode: frontend-only");
+  console.log("- mode: landing + WebSocket relay");
   console.log(`- dockerfile: ${path.relative(repoRoot, dockerfilePath)}`);
   console.log(`- image: ${imageRef}`);
   console.log(`- remote: ${sshUser}@${sshHost}:${sshPort}`);
   console.log(`- container: ${containerName}`);
   console.log(`- ports: frontend ${frontendHostPort}->3000`);
   console.log(`- runtime env: ${hasRuntimeEnv ? path.relative(repoRoot, envFilePath) : "none"}`);
+  console.log(
+    `- official node: ${officialNodeEnabled ? `${officialNodeContainer} (WebUI 127.0.0.1:${officialNodeHostPort}, waiting for profiles)` : "disabled (DEPLOY_OFFICIAL_NODE_KEY not configured)"}`,
+  );
   console.log(`- docker platform: ${dockerPlatform}`);
   console.log(`- image update: ${skipImageUpdate ? "disabled" : "enabled"}`);
   if (!skipImageUpdate) {
@@ -340,8 +411,8 @@ async function main() {
     // 1. Build local docker image
     console.log("\n[1/6] Building local docker image...");
     const buildArgs = pullBaseImages
-      ? ["build", "--platform", dockerPlatform, "--pull=true", "-f", dockerfilePath, "-t", imageRef, landingRoot]
-      : ["build", "--platform", dockerPlatform, "--pull=false", "-f", dockerfilePath, "-t", imageRef, landingRoot];
+      ? ["build", "--platform", dockerPlatform, "--pull=true", "-f", dockerfilePath, "-t", imageRef, repoRoot]
+      : ["build", "--platform", dockerPlatform, "--pull=false", "-f", dockerfilePath, "-t", imageRef, repoRoot];
     const buildEnvState = prepareBuildEnv(landingRoot, runtimeEnvRaw);
     try {
       await run("docker", buildArgs, { cwd: repoRoot });
@@ -379,11 +450,9 @@ async function main() {
     sshUser,
     sshPassword,
     remoteCommand,
-    stdinContent: hasRuntimeEnv
-      ? runtimeEnvRaw.endsWith("\n")
-        ? runtimeEnvRaw
-        : `${runtimeEnvRaw}\n`
-      : null,
+    stdinContent:
+      `${Buffer.from(runtimeEnvRaw, "utf8").toString("base64")}\n` +
+      `${Buffer.from(officialNodeEnvRaw, "utf8").toString("base64")}\n`,
   });
 
   console.log("\nDeploy completed.");

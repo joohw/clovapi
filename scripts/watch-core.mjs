@@ -10,7 +10,7 @@ const exeName = process.platform === "win32" ? "clovapi.exe" : "clovapi";
 const statePath = path.join(devDir, "current.json");
 const pollMs = 800;
 const buildInfoVersionVar = "github.com/clovapi/switcher/internal/buildinfo.Version";
-const devVersion = resolveDevVersion();
+
 
 let lastFingerprint = "";
 let buildTimer = null;
@@ -110,6 +110,7 @@ function build() {
   building = true;
   pending = false;
   fs.mkdirSync(devDir, { recursive: true });
+  const devVersion = resolveDevVersion();
   const suffix = `${Date.now()}-${process.pid}`;
   const outPath = path.join(devDir, `clovapi-dev-${suffix}${process.platform === "win32" ? ".exe" : ""}`);
   console.log(`[core-watch] building ${outPath} (${devVersion})`);

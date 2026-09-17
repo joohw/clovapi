@@ -1,0 +1,39 @@
+---
+title: Quick start
+description: Create a platform API key, discover online models, and make your first shared-model call.
+---
+
+## 1. Create a calling credential
+
+Sign in to the [clovapi console](/en/console) and create a Consumer API Key. This key calls shared models; it is not a contribution-node connection key.
+
+## 2. Discover available models
+
+Supply changes as nodes come online and offline. Use the console, the [public model catalog](/en/models), or call:
+
+```bash
+curl https://api.clovapi.com/v1/models \
+  -H "Authorization: Bearer YOUR_CONSUMER_API_KEY"
+```
+
+## 3. Call a shared model
+
+```bash
+curl https://api.clovapi.com/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_CONSUMER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"MODEL_FROM_LIST","messages":[{"role":"user","content":"Hello"}]}'
+```
+
+`/v1/responses` and both buffered and streaming responses are also supported. Use the complete model ID returned by the model list. If no matching supply is online, clovapi does not silently substitute another model.
+
+## Optional: contribute a model
+
+Using shared models does not require the CLI. Install it only when you want to contribute an authorized model resource or use the advanced local proxy:
+
+```bash
+npm i -g @clovapi/cli
+clovapi share start --key YOUR_CLI_CONNECTION_KEY
+```
+
+Continue with [Sharing nodes](/en/docs/sharing).

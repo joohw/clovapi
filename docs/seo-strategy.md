@@ -78,6 +78,8 @@ Google 将主要为操纵排名而批量生成低价值页面定义为 scaled co
 
 | 人群 | 典型问题 | 意图 | 目标落地页 |
 | --- | --- | --- | --- |
+| AI 应用与 Agent 开发者 | 如何用一个 API Key 调用当前在线的共享模型 | 立即使用 | 模型目录、快速开始、API 接入 |
+| 模型资源贡献者 | 如何把有权共享的 API 接入网络 | 贡献供给 | 贡献节点与 Provider 配置 |
 | AI 应用开发者 | 如何统一 OpenAI/Anthropic/Gemini API | 方案研究 | 协议转换总览、兼容矩阵 |
 | Codex/Claude 用户 | 订阅如何在 localhost 作为 API 使用 | 操作教程 | 订阅接入指南 |
 | 多供应商用户 | 如何统一管理不同 base URL 和 key | 方案比较 | 本地代理能力页 |
@@ -91,9 +93,10 @@ Google 将主要为操纵排名而批量生成低价值页面定义为 scaled co
 
 ### 5.1 核心产品词
 
-- 中文：本地模型 API 代理、本地 LLM API、模型 API 网关、AI API 代理、统一模型接口、模型协议转换；
-- 英文：local LLM API proxy, local model API gateway, AI API proxy, unified LLM API, model API protocol converter；
-- 品牌：clovapi、clovapi CLI、clovapi desktop。
+- 中文：共享模型 API、共享 API 网络、统一模型 API、在线模型 API、模型 API 网络；
+- 英文：shared model API, shared API network, unified model API, community model API network；
+- 品牌：clovapi、clovapi API、clovapi CLI。
+- “本地模型 API 代理”和协议转换属于贡献节点与高级本地模式的次级主题，不再承担首页产品定位。
 
 ### 5.2 协议转换集群
 
@@ -235,11 +238,11 @@ Core Web Vitals 目标：LCP ≤ 2.5s、INP ≤ 200ms、CLS ≤ 0.1（以第 75 
 ### 8.1 首页
 
 - Title：核心品类 + 关键差异 + 品牌，避免泛化口号；
-- H1：一句话说明“本地 API 代理 + 订阅/自定义上游 + 协议转换”；
+- H1：一句话说明“共享模型 API 网络 + 一个平台 Key 直接使用在线模型”；
 - 首屏正文回答是什么、为谁、解决什么问题；
-- 可见区加入支持协议、操作系统和本地数据边界；
-- 主要 CTA：安装/下载；次要 CTA：查看文档/GitHub；
-- 内链到协议、订阅、调试和安全四个 hub。
+- 可见区加入在线模型发现、统一 API、无需先贡献，以及贡献节点的数据边界；
+- 主要 CTA：进入控制台/创建调用凭证；次要 CTA：查看模型/贡献节点；
+- 内链到模型目录、快速开始、贡献节点、协议与安全 hub。
 
 ### 8.2 教程页
 
@@ -396,7 +399,7 @@ reviewStatus
 
 ## 13. 内链策略
 
-- 首页链接到四个核心 hub：本地代理、协议转换、订阅接入、调试；
+- 首页链接到核心 hub：模型目录、快速开始、贡献节点、协议适配和安全；
 - hub 链接到所有子页，子页用面包屑回到 hub；
 - 教程中的链接锚文本描述目标任务，不使用大量完全匹配关键词；
 - 每篇文章至少有 2 个上下文相关内链和 1 个下一步 CTA；
@@ -417,7 +420,7 @@ reviewStatus
 
 ## 15. GEO / AI 搜索可引用性
 
-- 保持实体表述一致：clovapi 是开源、本地运行的模型 API 代理；
+- 保持实体表述一致：clovapi 是共享模型 API 网络；CLI 是可选的开源贡献节点与本地协议适配工具；
 - 每个关键页前 1–2 段直接回答“是什么、解决什么、限制是什么”；
 - 用清晰标题、表格、步骤、定义和可引用事实，而不是营销口号；
 - 对版本、支持状态和更新时间进行明确标注；

@@ -1,0 +1,95 @@
+@import './shadcn.css';
+@import './base.css' layer(base);
+@import './typography.css';
+
+/* All interface icons come from Lucide, with a shared stroke weight. */
+.lucide{stroke-width:1.75}
+.nav-item>.lucide{width:20px;height:20px}
+[data-slot="button"]>.lucide{width:16px;height:16px}
+.provider-icon{color:var(--muted-foreground);background:var(--secondary)}
+.provider-icon.small{width:20px;height:20px;border:0;background:transparent}
+
+/* Keep the workspace focused on navigation and data. */
+.brand,.page-heading h1{font-size:var(--type-title);line-height:1.5;font-weight:700;letter-spacing:-.5px}
+.brand{padding-bottom:32px}
+.brand-short{display:none}
+.collapsed .brand-full{display:none}
+.collapsed .brand-short{display:inline}
+.main-content{display:flex;flex-direction:column;height:100dvh;min-height:0}
+.sidebar,.main-content{padding-top:30px}
+.page-heading p{display:none}
+.page-heading{align-items:flex-start;margin-bottom:22px}
+.model-cell{gap:8px;min-width:0}
+.model-cell strong{min-width:0;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.model-table{min-width:680px}
+.model-table td{padding-top:10px;padding-bottom:10px}
+.call-logs-panel .panel-toolbar{padding:10px 14px;align-items:center}
+.call-logs-panel .log-key-select{width:240px;max-width:100%;height:32px;padding:5px 9px;font-size:var(--type-caption);box-shadow:none}
+.log-key-select [data-slot="select-value"]{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log-key-options{width:320px;max-width:calc(100vw - 32px)}
+.log-key-options [data-slot="select-item"]{font-size:var(--type-caption);overflow-wrap:anywhere}
+.log-table{table-layout:fixed;min-width:800px}
+.log-table th{padding:8px 14px;line-height:16px;white-space:nowrap}
+.log-table td{padding:6px 14px;line-height:20px;white-space:nowrap}
+.log-table .log-time{width:190px}
+.log-table .log-status{width:76px}
+.log-table .log-duration{width:104px}
+.log-table .log-tokens{width:88px}
+.log-table .log-actions{width:88px}
+.log-table .log-cell-text{display:block;max-width:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log-table strong.log-cell-text{font-weight:600}
+.log-table [data-slot="button"]{height:28px;padding:4px 6px;gap:4px;font-size:var(--type-caption)}
+.log-table .protocol-tag{padding:2px 6px}
+.call-logs-panel .panel-footer{padding:8px 14px}
+.call-logs-panel .panel-footer [data-slot="button"]{height:30px;padding:4px 8px}
+.panel-footer .muted{display:none}
+.mobile-topbar{display:none}
+.mobile-close{display:none}
+.search [data-slot="input"]{border:0;box-shadow:none;background:transparent}
+@media(max-width:760px){.mobile-close{display:inline-flex}.collapse-button{display:none}}
+.dialog{margin:auto}
+.nav-item.active{background:color-mix(in oklch,var(--primary) 9%,var(--background));color:var(--primary)}
+
+.filter-tabs button.selected{background:var(--secondary);color:var(--foreground)}
+.main-content>.page-heading,.main-content>.error-banner{flex-shrink:0}
+.page-panel{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0}
+.page-panel>.panel-toolbar,.page-panel>.panel-footer{flex-shrink:0}
+.page-panel>.table-scroll,.page-panel>.system-log,.settings-content{flex:1;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
+.page-panel>.table-scroll th{position:sticky;top:0;z-index:1}
+.page-panel [role="region"]:focus-visible{outline:2px solid var(--ring);outline-offset:-2px}
+.page-panel>.empty{display:flex;flex-direction:column;align-items:center;justify-content:safe center;flex:1;min-height:0;overflow:auto}
+.page-panel>.empty>*{flex-shrink:0}
+.settings-content .settings-panel{max-width:none;margin:0;border-bottom:1px solid var(--border)}
+.settings-content .settings-panel:last-child{border-bottom:0}
+.settings-content .setting-row>div{min-width:0}
+.settings-content .mono{overflow-wrap:anywhere}
+.settings-content .setting-row-compact{padding:0}
+.proxy-settings-heading,.proxy-settings-title{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.proxy-settings-heading{justify-content:space-between}
+.proxy-settings-status{display:inline-flex;align-items:center;gap:7px;color:var(--muted-foreground);font-size:var(--type-caption)}
+.proxy-address-summary{display:flex;align-items:center;gap:12px;margin-top:14px}
+.proxy-address-summary code{min-width:0;overflow-wrap:anywhere}
+.proxy-address-summary .actions{gap:2px;flex-shrink:0}
+.proxy-address-editor{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+.proxy-address-editor>label,.proxy-address-editor>p{font-size:var(--type-caption)}
+.proxy-address-input{display:flex;align-items:center;gap:8px;max-width:640px}
+.proxy-address-input>input{flex:1;min-width:0}
+@media(max-width:480px){.proxy-settings-heading>.actions{margin-left:auto}.proxy-address-input{flex-wrap:wrap}.proxy-address-input>input{flex-basis:100%}.proxy-address-input>.actions{margin-left:auto}}
+.provider-add{display:inline-flex;align-items:center;flex-shrink:0}
+.provider-add .provider-add-main{border-top-right-radius:0;border-bottom-right-radius:0}
+.provider-add .provider-add-menu{width:32px;padding:0;border-top-left-radius:0;border-bottom-left-radius:0;border-left:1px solid color-mix(in oklch,var(--primary-foreground) 25%,transparent)}
+.provider-add button:focus-visible{position:relative;z-index:1}
+.provider-add-options{min-width:200px;max-width:calc(100vw - 32px)}
+.provider-add-options [data-slot="dropdown-menu-label"]{font-size:var(--type-caption);color:var(--muted-foreground)}
+.provider-add-options [data-slot="dropdown-menu-item"]{min-height:36px;gap:10px}
+.providers-page .provider-list{display:flex;flex:1;min-height:0;flex-direction:column;overflow:auto;overscroll-behavior:contain;padding:2px}
+.providers-page .provider-list:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.providers-page .provider-panel{display:flex;flex-direction:column;flex-shrink:0;min-height:0}
+.providers-page .provider-empty{display:flex;flex:1;align-items:center;justify-content:center}
+.providers-page .provider-heading{flex-shrink:0}
+.provider-identity{display:flex;align-items:center;gap:14px;flex:1;min-width:0}
+.provider-identity>div{min-width:0}
+.provider-identity p{overflow-wrap:anywhere}
+.providers-page .provider-content{min-height:0}
+@media(max-width:760px){.mobile-topbar{display:flex;height:44px;align-items:center;padding:0 12px}.main-content{padding-top:12px;height:calc(100dvh - 44px)}.provider-identity{min-width:100%}}
+@media(max-width:760px){.collapsed .brand-full{display:inline}.collapsed .brand-short{display:none}}

@@ -25,6 +25,12 @@ client request
 
 ## Development
 
+The management UI lives in `web/` (React + Vite), and Go serves its embedded static build on a separate loopback listener. Electron has been removed.
+
+Run `npm ci --prefix web`, then `npm run dev` at the repository root. Open http://127.0.0.1:31873. Build a self-contained binary with `npm run build`, then run `core/clovapi serve` and open http://127.0.0.1:27484.
+
+`/api/admin/*` uses JSON POST requests with `X-Clovapi-Admin: 1`, exact Host/Origin checks, and loopback peer checks. The proxy remains on its independently configurable address. Management survives proxy stop and rebind.
+
 ```bash
 cd core
 go test ./...

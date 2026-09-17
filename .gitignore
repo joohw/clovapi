@@ -18,15 +18,19 @@ one-api
 new-api
 /__debug_bin*
 core/clovapi
+core/clovapi.exe~
 core/.dev/
 electron/bin/
 
 # Runtime data
 upload
 data/
+landing/.data/
 logs
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 tiktoken_cache
 
 # Caches
@@ -41,11 +45,14 @@ tiktoken_cache
 node_modules
 web/node_modules
 web/.next
+landing/.next*
 web/dist
 web/bun.lock
 electron/node_modules
 electron/dist
 electron/ui-dist
+core/internal/webui/dist/*
+!core/internal/webui/dist/.gitkeep
 
 # Embed stubs: keep index.html only
 web/build/*

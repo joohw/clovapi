@@ -2,7 +2,9 @@
 
 ## Overview
 
-clovapi is an open-source local API proxy. It saves upstream provider profiles (base URL, key, `api_style`, model), runs a local HTTP proxy, routes requests by provider id, and transcodes API formats.
+clovapi is a shared model API network. Consumers use one platform API key to discover and call models supplied by online contribution nodes and platform capacity. Consumers do not need to install the CLI or contribute a resource first.
+
+The open-source CLI is the contribution-node runtime. It keeps upstream provider profiles and credentials on the node, advertises available model IDs, executes relayed requests, and transcodes API formats. Its standalone local proxy is an advanced capability, not the product's primary identity.
 
 This repository does not own local tool configuration management. That surface lives outside clovapi.
 
@@ -10,27 +12,29 @@ This repository does not own local tool configuration management. That surface l
 
 | Directory | Role |
 | --- | --- |
-| `core/` | Go CLI + local proxy core (`cmd`, `internal/proxy`, `internal/protocol`) |
+| `core/` | Go CLI, contribution-node runtime, protocol bridge, and relay core |
 | `npm/` | npm launcher package (`@clovapi/cli`) that installs/calls the core binary |
-| `electron/` | Desktop app (Electron + Svelte 5 UI) for profiles, proxy status, and logs |
-| `landing/` | Marketing site |
+| `web/` | Browser management UI (React + Vite), embedded and served by Go |
+| `landing/` | Shared API, control plane, documentation, and marketing site |
 
 ## Tech Stack
 
-- CLI / proxy: Go 1.22+ (`core/`)
-- Desktop: Electron, Svelte 5, Vite (`electron/ui/`)
+- CLI / contribution node / relay: Go 1.22+ (`core/`)
+- Browser UI: React, Vite (`web/`); Go management server (`core/internal/webadmin/`)
 - Website: Next.js (`landing/`)
 
 ## Architecture
 
 ```text
-client -> http://127.0.0.1:{port}/{providerId}/v1/...
-       -> internal/proxy
-       -> internal/protocol
-       -> upstream provider API
+consumer -> platform /v1 API -> relay -> contribution node -> upstream provider
+                                      -> platform supply
+
+advanced local client -> local proxy -> protocol bridge -> configured upstream
 ```
 
 - Profiles: `~/.config/clovapi/profiles.json` or `%APPDATA%\clovapi\profiles.json` on Windows
+- Consumer/control plane: `landing/`
+- Persistent node transport: `core/internal/relay/` and `core/internal/sharing/`
 - Protocol bridge: `core/internal/protocol/`
 - Proxy resolve: `core/internal/proxyresolve/`
 
@@ -42,7 +46,8 @@ Core code uses standard `encoding/json`. There is no shared `common/json.go` wra
 
 ### Frontend package managers
 
-- `electron/` and `landing/`: follow each package README.
+- `web/` and `landing/`: follow each package README.
+- Build distributables with `npm run build` from the repository root (Vite assets before Go embedding).
 - `core/`: use `go build` and `go test ./...` from `core/`.
 
 ### Dev core version must advance on local changes

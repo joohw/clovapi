@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { SUPPORTED_LANGUAGES } from "@/i18n/config";
 import { BLOG_POSTS, blogPathname } from "@/lib/blog-data";
 import { getBlogPost } from "@/lib/blog-data.server";
+import { docsSource } from "@/lib/docs-source";
 import { hreflangUrl, localizedPath } from "@/lib/seo-data";
 import { PUBLIC_SITE_URL } from "@/lib/site";
 
@@ -16,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const staticPages = [
     { pathname: "/", changeFrequency: "weekly" as const, priority: 1 },
+    { pathname: "/models", changeFrequency: "daily" as const, priority: 0.9 },
     { pathname: "/skill", changeFrequency: "monthly" as const, priority: 0.7 },
     { pathname: "/blog", changeFrequency: "weekly" as const, priority: 0.85, lastModified: blogLastModified },
     { pathname: "/about", changeFrequency: "monthly" as const, priority: 0.55 },
@@ -33,7 +35,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
   ];
 
-  return pages.flatMap((page) =>
+  const localizedPages = pages.flatMap((page) =>
     SUPPORTED_LANGUAGES.map((language) => ({
       url: `${siteUrl}${localizedPath(page.pathname, language)}`,
       changeFrequency: page.changeFrequency,
@@ -48,4 +50,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
       },
     })),
   );
+
+  const docsPages = docsSource.getPages().map((page) => {
+    const pathname = `/docs${page.slugs.length ? `/${page.slugs.join("/")}` : ""}`;
+    return {
+      url: `${siteUrl}${page.url}`,
+      changeFrequency: "weekly" as const,
+      priority: page.slugs.length ? 0.75 : 0.9,
+      alternates: {
+        languages: {
+          "zh-CN": hreflangUrl(siteUrl, pathname, "zh-CN"),
+          en: hreflangUrl(siteUrl, pathname, "en"),
+          "x-default": hreflangUrl(siteUrl, pathname, "zh-CN"),
+        },
+      },
+    };
+  });
+
+  return [...localizedPages, ...docsPages];
 }

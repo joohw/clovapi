@@ -1,7 +1,7 @@
 import type { AppLanguage } from "@/i18n/config";
 import { normalizePath, SITE_NAME } from "@/lib/site";
 
-export type SeoPageKey = "home" | "skill" | "blog" | "about" | "privacy";
+export type SeoPageKey = "home" | "models" | "skill" | "blog" | "about" | "privacy";
 export type FaqItem = { question: string; answer: string };
 
 type SeoCopy = {
@@ -13,14 +13,19 @@ type SeoCopy = {
 export const SEO_COPY: Record<AppLanguage, Record<SeoPageKey, SeoCopy>> = {
   "zh-CN": {
     home: {
-      title: "本地模型 API 代理 · clovapi",
+      title: "让好模型，触手可及 · clovapi",
       description:
-        "clovapi 接入官方订阅和自定义上游，在本机提供统一的 OpenAI、Anthropic、Gemini 兼容模型 API。",
-      ogImage: "/use-case-zh.png",
+        "clovapi 是一个共享模型 API 网络：使用一个平台 API Key 发现并调用在线模型，无需安装 CLI 或先贡献资源。",
+      ogImage: "/sharing-og.png",
+    },
+    models: {
+      title: "模型 · clovapi",
+      description: "查看 clovapi 当前可调用的共享模型、可用节点与近期请求量。",
+      ogImage: "/sharing-og.png",
     },
     skill: {
       title: "Skill · clovapi",
-      description: "给 AI 助手使用的 clovapi skill，说明本地代理、订阅接入和协议转换能力。",
+      description: "给 AI 助手使用的 clovapi skill，说明共享模型发现、平台 API 调用与贡献节点接入。",
       ogImage: "/use-case-zh.png",
     },
     blog: {
@@ -30,25 +35,30 @@ export const SEO_COPY: Record<AppLanguage, Record<SeoPageKey, SeoCopy>> = {
     },
     about: {
       title: "关于 clovapi",
-      description: "了解 clovapi 开源本地模型 API 代理的定位、维护方式与隐私边界。",
-      ogImage: "/use-case-zh.png",
+      description: "了解 clovapi 的共享模型 API、积分结算机制，以及用于安全贡献资源的开源本地代理。",
+      ogImage: "/sharing-og.png",
     },
     privacy: {
       title: "隐私说明 · clovapi",
-      description: "clovapi 本地代理、桌面端和网站的数据处理与隐私说明。",
+      description: "clovapi 账户、调用凭证、贡献节点与开源本地代理的数据处理说明。",
       ogImage: "/use-case-zh.png",
     },
   },
   en: {
     home: {
-      title: "Local proxy and subscription conversion · clovapi",
+      title: "Great models, within reach · clovapi",
       description:
-        "clovapi runs a local HTTP proxy and converts official subscriptions or custom upstreams into OpenAI, Anthropic, and Gemini-compatible APIs.",
-      ogImage: "/use-case-en.png",
+        "clovapi is a shared model API network: discover and call online models with one platform API key, without installing the CLI or contributing first.",
+      ogImage: "/sharing-og.png",
+    },
+    models: {
+      title: "Models · clovapi",
+      description: "Explore available shared models, serving nodes, and recent request volume on clovapi.",
+      ogImage: "/sharing-og.png",
     },
     skill: {
       title: "Skill · clovapi",
-      description: "A clovapi skill for AI assistants covering local proxying, subscription access, and protocol conversion.",
+      description: "A clovapi skill for AI assistants covering shared-model discovery, platform API calls, and contribution nodes.",
       ogImage: "/use-case-en.png",
     },
     blog: {
@@ -58,12 +68,12 @@ export const SEO_COPY: Record<AppLanguage, Record<SeoPageKey, SeoCopy>> = {
     },
     about: {
       title: "About clovapi",
-      description: "Learn about the goals, maintainers, and privacy boundaries of the open-source clovapi local model API proxy.",
-      ogImage: "/use-case-en.png",
+      description: "Learn how clovapi shares model API capacity, settles contribution credits, and uses an open-source local proxy to contribute resources safely.",
+      ogImage: "/sharing-og.png",
     },
     privacy: {
       title: "Privacy · clovapi",
-      description: "How the clovapi local proxy, desktop app, and website handle data and protect user privacy.",
+      description: "How clovapi handles account, API credential, contribution node, and open-source local proxy data.",
       ogImage: "/use-case-en.png",
     },
   },
@@ -72,30 +82,30 @@ export const SEO_COPY: Record<AppLanguage, Record<SeoPageKey, SeoCopy>> = {
 export const FAQ_ITEMS: Record<AppLanguage, FaqItem[]> = {
   "zh-CN": [
     {
-      question: "clovapi 是什么？",
-      answer: "clovapi 是运行在本机的模型 API 代理，用来接入官方订阅和自定义上游，并转换常见 API 协议。",
+      question: "现在可以做什么？",
+      answer: "当前开发版支持创建调用凭证并调用在线模型。从控制台复制 clovapi share start --key … 命令，在本地运行后自动接入节点并同步可用模型；积分结算尚未开放。",
     },
     {
-      question: "默认监听在哪里？",
-      answer: "默认监听 http://127.0.0.1:27483，请求路径形如 /{providerId}/v1/...",
+      question: "没有 API 可以分享，也能使用吗？",
+      answer: "可以。创建平台 API Key 即可调用当前在线并开放共享的模型，无需先贡献 API。测试阶段按请求次数限额，免费额度发放尚未开放。",
     },
     {
-      question: "支持哪些协议？",
-      answer: "支持 Anthropic Messages、OpenAI Chat Completions、OpenAI Responses 和 Gemini 之间的转换。",
+      question: "贡献积分如何获得？",
+      answer: "结算服务开放后，其他用户通过你的资源完成有效调用才会产生积分。接入或在线本身不计分，贡献资源需获得共享授权。",
     },
   ],
   en: [
     {
-      question: "What is clovapi?",
-      answer: "clovapi is a local model API proxy for connecting official subscriptions and custom upstreams while converting common API protocols.",
+      question: "What’s available now?",
+      answer: "Create a platform API key to call online models. Copy the clovapi share start --key … command from the console and run it locally to connect a CLI node and sync its available models automatically. Credit settlement is not yet available.",
     },
     {
-      question: "Where does it listen?",
-      answer: "By default it listens on http://127.0.0.1:27483 with paths like /{providerId}/v1/...",
+      question: "Do I need to contribute an API?",
+      answer: "No. Create a platform API key to call models that are online and accepting requests. The beta uses request-count limits. Free allowance grants are not yet available.",
     },
     {
-      question: "Which protocols are supported?",
-      answer: "Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini-compatible requests.",
+      question: "How are contribution credits earned?",
+      answer: "Once settlement is live, valid requests completed through your resources earn credits. Connecting or staying online alone does not. You must be authorized to share the resource.",
     },
   ],
 };
@@ -150,12 +160,20 @@ export function buildBaseJsonLdGraph(options: {
       {
         "@type": "SoftwareApplication",
         "@id": `${siteUrl}/#software`,
-        name: "clovapi",
+        name: "clovapi CLI",
         applicationCategory: "DeveloperApplication",
         operatingSystem: "Windows, macOS, Linux",
-        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-        description: SEO_COPY[language].home.description,
-        url: siteUrl,
+        offers: {
+          "@type": "Offer",
+          name: language === "zh-CN" ? "开源贡献节点 CLI" : "Open-source contribution node CLI",
+          price: "0",
+          priceCurrency: "USD",
+          url: "https://www.npmjs.com/package/@clovapi/cli",
+        },
+        description: language === "zh-CN"
+          ? "clovapi 共享模型 API 网络的开源贡献节点 CLI，负责本地凭据保管、模型同步与协议转换；消费者无需安装。"
+          : "The open-source contribution node CLI for the clovapi shared model API network. It keeps upstream credentials local, syncs models, and translates protocols; consumers do not need to install it.",
+        url: "https://github.com/joohw/clovapi",
         downloadUrl: "https://www.npmjs.com/package/@clovapi/cli",
         publisher: { "@id": `${siteUrl}/#organization` },
       },

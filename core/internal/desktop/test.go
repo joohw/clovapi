@@ -43,7 +43,7 @@ func proxyConfigForTest(s *profile.Store, portOverride int) profile.ProxyConfig 
 	return cfg
 }
 
-func proxyHealthClientHost(bindHost string) string {
+func proxyTestClientHost(bindHost string) string {
 	host := strings.TrimSpace(bindHost)
 	if host == "" {
 		return "127.0.0.1"
@@ -57,7 +57,7 @@ func proxyHealthClientHost(bindHost string) string {
 }
 
 func proxyHealthURL(cfg profile.ProxyConfig) string {
-	host := proxyHealthClientHost(cfg.Host)
+	host := proxyTestClientHost(cfg.Host)
 	return "http://" + net.JoinHostPort(host, strconv.Itoa(cfg.Port)) + "/health"
 }
 
@@ -107,7 +107,7 @@ func ensureProxyForTest(cfg profile.ProxyConfig) error {
 }
 
 // TestProviderModel probes connectivity via the local proxy ingress URLs.
-// Desktop model tests intentionally hit both Responses and Messages ingress
+// Model tests intentionally hit both Responses and Messages ingress
 // routes so the call log captures the two core protocol paths.
 func TestProviderModel(providerID, modelID string, portOverride int) TestResult {
 	providerID = strings.TrimSpace(providerID)
@@ -148,10 +148,11 @@ func TestProviderModel(providerID, modelID string, portOverride int) TestResult 
 	}
 
 	pathModelID, modelWire := profile.ResolveWireModelForIngress(hit, modelID)
-	responsesBaseURL := provider.BuildProxyIngressBaseURL(proxyCfg.Port, providerID)
-	claudeBaseURL := provider.BuildProxyIngressBaseURL(proxyCfg.Port, providerID)
+	// Match the health check's host: a proxy bound to a specific LAN address
+	// does not also listen on loopback.
+	baseURL := provider.BuildProxyIngressBaseURL(proxyTestClientHost(proxyCfg.Host), proxyCfg.Port, providerID)
 
-	if err := testclient.ProbeToolRoundTrip(responsesBaseURL, claudeBaseURL, defaultModelTestAPIKey, modelWire); err != nil {
+	if err := testclient.ProbeToolRoundTrip(baseURL, baseURL, defaultModelTestAPIKey, modelWire); err != nil {
 		return TestResult{
 			OK: true, Passed: false, Summary: "Test failed",
 			Text:  fmt.Sprintf("connectivity probe failed: %v", err),

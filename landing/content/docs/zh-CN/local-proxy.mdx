@@ -1,0 +1,38 @@
+---
+title: 高级本地代理
+description: 通过 Provider 作用域 URL 调用本地模型代理，并了解协议转换入口。
+---
+
+本地代理默认地址是 `http://127.0.0.1:27483`。每个请求必须在路径中包含 Provider ID：
+
+```text
+http://127.0.0.1:27483/{providerId}/v1/...
+```
+
+## Chat Completions
+
+```bash
+curl http://127.0.0.1:27483/my-provider/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"YOUR_MODEL_ID","messages":[{"role":"user","content":"Hello"}]}'
+```
+
+## Responses API
+
+```bash
+curl http://127.0.0.1:27483/my-provider/v1/responses \
+  -H "Content-Type: application/json" \
+  -d '{"model":"YOUR_MODEL_ID","input":"Hello"}'
+```
+
+clovapi 根据 Provider profile 解析 `{providerId}`，向对应上游转发，并在入站协议与上游协议不同的情况下转换请求和响应。当前支持 OpenAI Chat Completions、OpenAI Responses、Anthropic Messages 和 Gemini 风格接口。
+
+## 查看调用日志
+
+```bash
+clovapi proxy logs list
+clovapi proxy logs read CALL_ID
+clovapi proxy logs export --out call-logs.jsonl
+```
+
+调用日志可能包含 prompt 和模型输出。导出或分享日志前，请先检查其中是否存在敏感信息。

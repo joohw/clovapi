@@ -1,0 +1,48 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${CLOVAPI_BACKEND_PORT:-3100}:3100"
+    environment:
+      CLOVAPI_BACKEND_LISTEN: ":3100"
+      CLOVAPI_DB_PATH: "/data/clovapi.db"
+      CLOVAPI_PUBLIC_ORIGIN: "${CLOVAPI_PUBLIC_ORIGIN:-https://api.clovapi.com}"
+      CLOVAPI_ALLOWED_ORIGINS: "${CLOVAPI_ALLOWED_ORIGINS:-https://clovapi.com}"
+      CLOVAPI_SECURE_COOKIES: "${CLOVAPI_SECURE_COOKIES:-true}"
+      CLOVAPI_RELAY_TRUST_PROXY: "${CLOVAPI_RELAY_TRUST_PROXY:-true}"
+      AUTH_SECRET: "${AUTH_SECRET:?Set AUTH_SECRET}"
+      RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      RESEND_FROM: "${RESEND_FROM:-}"
+    volumes:
+      - clovapi-data:/data
+
+  web:
+    build:
+      context: ..
+      dockerfile: landing/Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_CLOVAPI_API_URL: "${CLOVAPI_PUBLIC_ORIGIN:-https://api.clovapi.com}"
+    restart: unless-stopped
+    ports:
+      - "${CLOVAPI_WEB_PORT:-3000}:3000"
+
+  official-node:
+    profiles: ["official"]
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.official-node
+    restart: unless-stopped
+    environment:
+      CLOVAPI_OFFICIAL_NODE_KEY: "${CLOVAPI_OFFICIAL_NODE_KEY:-}"
+      CLOVAPI_OFFICIAL_NODE_DAILY_LIMIT: "${CLOVAPI_OFFICIAL_NODE_DAILY_LIMIT:-100000}"
+    ports:
+      - "127.0.0.1:${CLOVAPI_OFFICIAL_NODE_HOST_PORT:-28473}:28473"
+    volumes:
+      - clovapi-official-node-data:/var/lib/clovapi
+
+volumes:
+  clovapi-data:
+  clovapi-official-node-data:

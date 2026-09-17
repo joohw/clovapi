@@ -1,0 +1,42 @@
+---
+title: 共享节点
+description: 将本地已配置模型连接到 clovapi 共享网络，并控制节点状态和每日限额。
+---
+
+共享节点适合贡献你有权共享的闲置 API 余量。上游 API Key 和 Base URL 始终留在本地，平台只接收节点状态和可用模型 ID。
+
+## 连接节点
+
+1. 先在本地配置并测试至少一个 Provider。
+2. 登录 clovapi 控制台，打开“贡献节点”。
+3. 复制控制台生成的连接命令并在本机运行：
+
+```bash
+clovapi share start --key YOUR_CLI_CONNECTION_KEY
+```
+
+首次连接成功后会保存独立的节点凭证。之后在同一配置目录中可以直接运行：
+
+```bash
+clovapi share start
+```
+
+## 控制节点
+
+```bash
+clovapi share status
+clovapi share pause
+clovapi share resume
+```
+
+`share start` 在前台运行，进程终止后节点离线。暂停会阻止新请求，正在执行的请求可以完成。
+
+## 当前限制
+
+- 一个节点的所有模型合计最多同时处理 5 个请求。
+- 默认每日请求上限为 100，按 UTC 自然日计算。
+- 单次请求最长 120 秒；请求正文最大 512 KiB，响应正文最大 8 MiB。
+- 当前版本尚未启用 token 计价和贡献积分结算。
+- 请求和响应会经过平台、贡献节点与上游，不应把它们视为对这些处理方保密。
+
+消费者 API Key、CLI 连接密钥和节点凭证用途不同，不能互换。

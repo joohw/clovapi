@@ -1,0 +1,13 @@
+services:
+  relay:
+    build:
+      context: ..
+      dockerfile: relay/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${CLOVAPI_RELAY_PORT:-3100}:3100"
+    environment:
+      CLOVAPI_RELAY_LISTEN: ":3100"
+      CLOVAPI_CONTROL_PLANE_URL: "${CLOVAPI_CONTROL_PLANE_URL:?Set CLOVAPI_CONTROL_PLANE_URL}"
+      CLOVAPI_RELAY_SECRET: "${CLOVAPI_RELAY_SECRET:?Set CLOVAPI_RELAY_SECRET}"
+      CLOVAPI_RELAY_TRUST_PROXY: "${CLOVAPI_RELAY_TRUST_PROXY:-true}"

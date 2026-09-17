@@ -1,0 +1,25 @@
+---
+title: clovapi documentation
+description: Discover and call online shared models with one platform API key, or run a contribution node to add supply.
+---
+
+clovapi is a shared model API network. Create a platform API key and use the unified `/v1` API to call models that are currently online. You do not need to install the CLI, configure an upstream, or contribute capacity first.
+
+If you have a model API or compute resource you are authorized to share, run the clovapi CLI as a contribution node. Upstream credentials stay on that node; the platform receives model IDs and delivers requests and responses through the node's outbound connection.
+
+## What you can do
+
+- Create and manage platform API keys in the console.
+- Discover online shared models through `/v1/models`.
+- Call models with OpenAI-compatible Chat Completions or Responses APIs.
+- Use the shared network without contributing a resource first.
+- Run a contribution node and control its limits, availability, and shared models.
+
+## Start here
+
+1. Follow the [quick start](/en/docs/quick-start) to create a platform API key and call your first shared model.
+2. Browse the console or [model catalog](/en/models) for currently available models.
+3. To contribute model capacity, continue with [Sharing nodes](/en/docs/sharing) and [Provider configuration](/en/docs/providers).
+4. Use the [advanced local proxy](/en/docs/local-proxy) only when you need to route your own upstreams directly on one machine.
+
+> clovapi's primary product is the shared model API network. The local proxy powers contribution-node execution and protocol translation and remains available as an advanced local mode. Agent CLI configuration switching is provided separately by [clovagent](https://github.com/joohw/clovagent).

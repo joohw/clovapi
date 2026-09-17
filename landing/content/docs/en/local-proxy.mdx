@@ -1,0 +1,38 @@
+---
+title: Advanced local proxy
+description: Call a provider-scoped local endpoint and understand where protocol translation happens.
+---
+
+The proxy listens at `http://127.0.0.1:27483` by default. Every request includes the provider ID in its path:
+
+```text
+http://127.0.0.1:27483/{providerId}/v1/...
+```
+
+## Chat Completions
+
+```bash
+curl http://127.0.0.1:27483/my-provider/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"YOUR_MODEL_ID","messages":[{"role":"user","content":"Hello"}]}'
+```
+
+## Responses API
+
+```bash
+curl http://127.0.0.1:27483/my-provider/v1/responses \
+  -H "Content-Type: application/json" \
+  -d '{"model":"YOUR_MODEL_ID","input":"Hello"}'
+```
+
+clovapi resolves `{providerId}` from the saved profiles and forwards the request to that upstream. When the incoming and upstream protocols differ, it translates the request and response. Supported styles include OpenAI Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini.
+
+## Inspect calls
+
+```bash
+clovapi proxy logs list
+clovapi proxy logs read CALL_ID
+clovapi proxy logs export --out call-logs.jsonl
+```
+
+Call logs can contain prompts and model output. Review exported logs for sensitive data before sharing them.

@@ -819,8 +819,13 @@ func (s *Server) tryProxyRoute(
 
 	ctypeLower := strings.ToLower(strings.TrimSpace(upResp.Header.Get("Content-Type")))
 	buf := bufio.NewReader(plain)
-	peek, _ := buf.Peek(512)
-	streamingSSE := protocol.UpstreamResponseLooksLikeSSE(ctypeLower, peek)
+	streamingSSE := protocol.UpstreamResponseLooksLikeSSE(ctypeLower, nil)
+	if !streamingSSE {
+		// A declared SSE response can be forwarded immediately. Waiting for a
+		// 512-byte sniff would buffer short events until another event or EOF.
+		peek, _ := buf.Peek(512)
+		streamingSSE = protocol.UpstreamResponseLooksLikeSSE(ctypeLower, peek)
+	}
 
 	if streamingSSE && downstreamStream {
 		baseSan := protocol.SanitizeUpstreamResponseHeaders(upResp.Header.Clone())

@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${CLOVAPI_BACKEND_PORT:-3100}:3100"
+    environment:
+      CLOVAPI_BACKEND_LISTEN: ":3100"
+      CLOVAPI_DB_PATH: "/data/clovapi.db"
+      CLOVAPI_FRONTEND_URL: "${CLOVAPI_FRONTEND_URL:-}"
+      CLOVAPI_PUBLIC_ORIGIN: "${CLOVAPI_PUBLIC_ORIGIN:-http://127.0.0.1:3100}"
+      CLOVAPI_ALLOWED_ORIGINS: "${CLOVAPI_ALLOWED_ORIGINS:-http://127.0.0.1:3101}"
+      CLOVAPI_SECURE_COOKIES: "${CLOVAPI_SECURE_COOKIES:-false}"
+      AUTH_SECRET: "${AUTH_SECRET:?Set AUTH_SECRET}"
+      RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      RESEND_FROM: "${RESEND_FROM:-}"
+      CLOVAPI_RELAY_SECRET: "${CLOVAPI_RELAY_SECRET:-}"
+      CLOVAPI_RELAY_TRUST_PROXY: "${CLOVAPI_RELAY_TRUST_PROXY:-true}"
+    volumes:
+      - clovapi-data:/data
+
+volumes:
+  clovapi-data:

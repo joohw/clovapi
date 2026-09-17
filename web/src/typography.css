@@ -1,0 +1,21 @@
+:root {
+  --font-ui: 'Outfit Variable', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-code: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  --type-caption: 13px;
+  --type-body: 14px;
+  --type-section: 18px;
+  --type-title: 24px;
+  --type-display: 28px;
+  font-size: 16px;
+  font-family: var(--font-ui);
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--type-body);
+  line-height: 1.5;
+}
+
+button, input, select, textarea { font-family: inherit; }
+code, .mono { font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+pre { font-family: var(--font-code); font-size: var(--type-caption); line-height: 1.6; }

@@ -1,0 +1,50 @@
+---
+title: Provider 配置
+description: 配置上游 Base URL、API Key、API 风格和模型，并验证配置是否可用。
+---
+
+一个 Provider profile 描述一个可调用的上游服务，主要包含：
+
+| 字段 | 用途 |
+| --- | --- |
+| Provider ID | 本地代理 URL 中使用的稳定标识 |
+| Base URL | 上游 API 地址 |
+| API Key | 上游鉴权凭证，只保存在本地 |
+| API style | 上游使用的请求协议 |
+| Model | 实际发送给上游的模型 ID |
+
+## 使用浏览器配置
+
+运行 `clovapi serve`，打开 [http://127.0.0.1:27484](http://127.0.0.1:27484)，然后在 Provider 页面添加并测试配置。
+
+## 使用 CLI 配置
+
+下面的示例创建一个 Chat Completions 风格的 Provider：
+
+```bash
+clovapi add \
+  --name my-provider \
+  --api-style chat \
+  --base-url https://YOUR-UPSTREAM/v1 \
+  --api-key YOUR_UPSTREAM_KEY \
+  --model YOUR_MODEL_ID
+```
+
+保存后执行测试：
+
+```bash
+clovapi profiles test \
+  --provider my-provider \
+  --model YOUR_MODEL_ID \
+  --json
+```
+
+## 配置文件位置
+
+| 系统 | 路径 |
+| --- | --- |
+| Windows | `%APPDATA%\clovapi\profiles.json` |
+| macOS / Linux | `~/.config/clovapi/profiles.json` |
+| 设置了 XDG | `$XDG_CONFIG_HOME/clovapi/profiles.json` |
+
+API Key 不会因为使用本地代理而上传到 clovapi 平台。启用共享节点时，平台也只接收模型 ID，不接收上游 Base URL 或 API Key。

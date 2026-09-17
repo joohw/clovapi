@@ -2,117 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { SUPPORTED_LANGUAGES, type AppLanguage } from "@/i18n/config";
-import { GITHUB_REPO_URL } from "@/lib/site";
+import { ArrowUpRight, Moon, Sun } from "lucide-react";
+import type { AppLanguage } from "@/i18n/config";
 import { localizedPath } from "@/lib/seo-data";
-import { applyThemeMode, initThemeMode, persistThemeMode, type ThemeMode } from "@/lib/theme";
-import { cn } from "@/lib/utils";
-
-type HeaderLink = { text: string; to: string };
-
-function normalizePath(path: string) {
-  if (!path) return "/";
-  if (path.length > 1 && path.endsWith("/")) return path.slice(0, -1);
-  return path;
-}
-
-function isNavActive(currentPath: string, href: string): boolean {
-  const p = normalizePath(currentPath);
-  const t = normalizePath(href);
-  const isHome = t === "/" || SUPPORTED_LANGUAGES.some((language) => t === `/${language}`);
-  if (isHome) return p === t;
-  return p === t || p.startsWith(`${t}/`);
-}
+import { applyThemeMode, persistThemeMode } from "@/lib/theme";
+import styles from "./site-header.module.css";
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { t } = useTranslation();
-  const [theme, setTheme] = useState<ThemeMode>("light");
-
-  useEffect(() => {
-    setTheme(initThemeMode());
-  }, []);
-
   const language: AppLanguage = pathname.startsWith("/en") ? "en" : "zh-CN";
-
-  const headerLinks = useMemo<HeaderLink[]>(() => {
-    return [
-      { text: t("header.home"), to: localizedPath("/", language) },
-      { text: t("header.skill"), to: localizedPath("/skill", language) },
-      { text: t("header.blog"), to: localizedPath("/blog", language) },
-    ];
-  }, [language, t]);
-
-  const githubUrl = GITHUB_REPO_URL;
+  const english = language === "en";
+  const home = localizedPath("/", language);
+  const alternate = pathname.replace(/^\/(?:zh-CN|en)(?=\/|$)/, english ? "/zh-CN" : "/en");
 
   function toggleTheme() {
-    const nextTheme: ThemeMode = theme === "dark" ? "light" : "dark";
-    applyThemeMode(nextTheme);
-    persistThemeMode(nextTheme);
-    setTheme(nextTheme);
+    const next = document.documentElement.classList.contains("dark") ? "light" : "dark";
+    applyThemeMode(next);
+    persistThemeMode(next);
   }
 
-  function navLinkClass(active: boolean) {
-    return cn(
-      "relative inline-flex h-8 items-center justify-center rounded-md px-2.5 text-[0.8125rem] font-medium leading-none tracking-[-0.01em]",
-      "motion-safe:transition-[color,opacity] motion-safe:duration-300 motion-safe:ease-out",
-      "motion-reduce:transition-none",
-      active
-        ? "font-semibold tracking-[-0.015em] text-foreground opacity-100"
-        : cn(
-            "text-muted-foreground/80 opacity-100",
-            "hover:text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            "focus-visible:text-foreground"
-          )
-    );
-  }
-
-  return (
-    <header className="site-header fixed top-0 right-0 left-0 z-40 bg-background px-5 sm:px-6">
-      <div className="mx-auto flex h-[var(--app-header-height)] w-full max-w-6xl items-center justify-between gap-3">
-        <div className="flex h-full min-w-0 flex-1 items-center gap-5 sm:gap-6">
-          <Link
-            href={localizedPath("/", language)}
-            className="inline-flex h-8 items-center rounded-md motion-safe:transition-[opacity,transform] motion-safe:duration-300 motion-safe:ease-out hover:opacity-70 active:scale-[0.98] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            aria-label={t("header.backHome")}
-          >
-            <span className="leading-none text-[0.8125rem] font-semibold tracking-[0.12em]">CLOVAPI</span>
-          </Link>
-          <nav className="flex h-full min-w-0 flex-1 items-center justify-start gap-1 overflow-x-auto whitespace-nowrap">
-            {headerLinks.map((link) => (
-              <Link key={link.to} href={link.to} className={navLinkClass(isNavActive(pathname, link.to))}>
-                {link.text}
-              </Link>
-            ))}
-          </nav>
-        </div>
-        <div className="relative inline-flex h-full items-center gap-1">
-          <a
-            href={githubUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={t("header.github")}
-            title={t("header.github")}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm text-muted-foreground transition-[color,background-color,transform] hover:bg-muted/70 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden className="h-4 w-4 fill-current">
-              <path d="M12 1.5a10.5 10.5 0 0 0-3.32 20.46c.52.1.71-.22.71-.5v-1.78c-2.9.63-3.51-1.23-3.51-1.23-.47-1.2-1.16-1.52-1.16-1.52-.95-.64.07-.63.07-.63 1.06.08 1.61 1.09 1.61 1.09.93 1.6 2.44 1.14 3.03.87.1-.68.36-1.14.65-1.4-2.32-.26-4.75-1.16-4.75-5.17 0-1.14.4-2.08 1.09-2.82-.11-.27-.47-1.35.1-2.81 0 0 .88-.28 2.9 1.08a9.99 9.99 0 0 1 5.29 0c2.02-1.36 2.9-1.08 2.9-1.08.57 1.46.21 2.54.1 2.81.68.74 1.09 1.68 1.09 2.82 0 4.02-2.44 4.9-4.77 5.16.37.32.7.93.7 1.88v2.8c0 .28.18.61.72.5A10.5 10.5 0 0 0 12 1.5Z" />
-            </svg>
-          </a>
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm text-muted-foreground transition-[color,background-color,transform] hover:bg-muted/70 hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-            onClick={toggleTheme}
-            aria-label={theme === "dark" ? t("header.switchToLight") : t("header.switchToDark")}
-            title={theme === "dark" ? t("header.switchToLight") : t("header.switchToDark")}
-          >
-            {theme === "dark" ? "☀" : "☾"}
-          </button>
-        </div>
-      </div>
-    </header>
-  );
+  return <header className={styles.header}>
+    <div className={styles.inner}>
+      <Link href={home} className={styles.brand} aria-label={english ? "clovapi home" : "clovapi 首页"}><span>CLOVAPI</span></Link>
+      <div className={styles.actions}><Link href={localizedPath("/docs", language)} className={styles.modelsLink} aria-current={pathname.startsWith(localizedPath("/docs", language)) ? "page" : undefined}>{english ? "Docs" : "文档"}</Link><Link href={localizedPath("/models", language)} className={styles.modelsLink} aria-current={pathname === localizedPath("/models", language) ? "page" : undefined}>{english ? "Models" : "模型"}</Link><Link href={alternate} className={styles.language} aria-label={english ? "切换到中文" : "Switch to English"}>{english ? "中" : "EN"}</Link><button type="button" onClick={toggleTheme} className={styles.themeButton} aria-label={english ? "Toggle color theme" : "切换明暗主题"}><Sun size={16} className={styles.sun} /><Moon size={15} className={styles.moon} /></button><Link href={localizedPath("/console", language)} className={styles.consoleLink}>{english ? "Console" : "控制台"}<ArrowUpRight size={14} /></Link></div>
+    </div>
+  </header>;
 }

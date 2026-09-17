@@ -20,7 +20,7 @@ export function BlogPostContent({ post, related, language }: BlogPostContentProp
 
   return (
     <div className="page-wrap relative">
-      <article className="page-content page-content--with-bottom relative z-[1] mx-auto max-w-6xl px-5 sm:px-6">
+      <article className="site-container page-content page-content--with-bottom relative z-[1]">
         <nav className="text-sm text-muted-foreground">
           <Link href={localizedPath("/blog", language)} className="hover:text-foreground">
             {english ? "Articles" : "博客"}

@@ -1,69 +1,59 @@
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
-let shuttingDown = false;
-let coreWatch = null;
-let electron = null;
-
-function spawnChild(command, args) {
-  return spawn(command, args, {
-    stdio: ["ignore", "pipe", "pipe"],
-    windowsHide: true,
-    shell: process.platform === "win32",
-  });
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const statePath = path.join(root, "core/.dev/current.json");
+let server, currentBinary, quitting = false, restarting = Promise.resolve();
+function child(command, args, cwd = root, piped = false) {
+  const proc = spawn(command, args, { cwd, stdio: piped ? ["ignore", "pipe", "inherit"] : "inherit", windowsHide: true });
+  proc.on("error", error => { console.error(error); shutdown(1); });
+  return proc;
 }
-
-function pipe(prefix, stream, onText) {
-  stream.on("data", (chunk) => {
-    const text = String(chunk || "");
-    process.stdout.write(text);
-    if (onText) onText(text);
-  });
+function kill(proc) {
+  if (!proc || proc.exitCode !== null) return;
+  if (process.platform === "win32") {
+    try { execFileSync("taskkill", ["/pid", String(proc.pid), "/t", "/f"], { stdio: "ignore", windowsHide: true }); } catch {}
+  } else proc.kill("SIGTERM");
 }
-
-function killChild(child) {
-  if (!child || child.killed || child.exitCode !== null) return;
-  if (process.platform === "win32" && child.pid) {
-    spawn("taskkill", ["/pid", String(child.pid), "/t", "/f"], { windowsHide: true });
-    return;
+async function restart() {
+  if (quitting) return;
+  const next = JSON.parse(fs.readFileSync(statePath, "utf8")).path;
+  if (currentBinary === next) return;
+  if (server) {
+    try { execFileSync(currentBinary, ["proxy", "stop"], { stdio: "inherit", windowsHide: true, timeout: 15000 }); } catch (error) { console.error(error.message); }
+    const previous = server;
+    server = null;
+    kill(previous);
+    await new Promise(resolve => setTimeout(resolve, 300));
   }
-  child.kill("SIGTERM");
+  if (quitting) return;
+  currentBinary = next;
+  const proc = child(next, ["serve", "--dev"]);
+  server = proc;
+  proc.on("exit", code => { if (server === proc && !quitting) shutdown(code ?? 1); });
 }
-
-function shutdown(code = 0) {
-  if (shuttingDown) return;
-  shuttingDown = true;
-  killChild(electron);
-  killChild(coreWatch);
-  setTimeout(() => process.exit(code), 100);
+const vite = child(process.execPath, [path.join(root, "web/node_modules/vite/bin/vite.js"), "--config", "vite.config.mjs"], path.join(root, "web"));
+vite.on("exit", code => { if (!quitting) shutdown(code ?? 1); });
+const watch = child(process.execPath, [path.join(root, "scripts/watch-core.mjs")], root, true);
+let pending = "";
+watch.stdout.on("data", chunk => {
+  process.stdout.write(chunk);
+  pending += String(chunk);
+  let end;
+  while ((end = pending.indexOf("\n")) >= 0) {
+    const line = pending.slice(0, end); pending = pending.slice(end + 1);
+    if (line.startsWith("[core-watch] ready ")) restarting = restarting.then(restart).catch(error => { console.error(error); shutdown(1); });
+  }
+});
+watch.on("exit", code => { if (!quitting) shutdown(code ?? 1); });
+function shutdown(code) {
+  if (quitting) return;
+  quitting = true;
+  kill(server); kill(vite); kill(watch);
+  process.exitCode = code;
 }
-
-function startElectron() {
-  if (electron) return;
-  electron = spawn(npmCmd, ["-C", "electron", "run", "dev"], {
-    stdio: "inherit",
-    shell: process.platform === "win32",
-    windowsHide: false,
-  });
-  electron.on("close", (code) => shutdown(code ?? 0));
-  electron.on("error", (error) => {
-    console.error(error.message);
-    shutdown(1);
-  });
-}
-
-coreWatch = spawnChild(npmCmd, ["run", "core:watch"]);
-pipe("core", coreWatch.stdout, (text) => {
-  if (text.includes("CORE_WATCH_READY")) startElectron();
-});
-pipe("core", coreWatch.stderr);
-coreWatch.on("close", (code) => {
-  if (!electron) shutdown(code ?? 1);
-});
-coreWatch.on("error", (error) => {
-  console.error(error.message);
-  shutdown(1);
-});
-
-process.on("SIGINT", () => shutdown(130));
-process.on("SIGTERM", () => shutdown(143));
+process.on("SIGINT", () => shutdown(0));
+process.on("SIGTERM", () => shutdown(0));
+console.log("Development UI: http://127.0.0.1:31873 (open in your browser)");

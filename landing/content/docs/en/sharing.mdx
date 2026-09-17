@@ -1,0 +1,42 @@
+---
+title: Sharing nodes
+description: Connect locally configured models to the clovapi sharing network and control node limits.
+---
+
+A sharing node contributes spare API capacity that you are authorized to share. Upstream API keys and base URLs remain local; the platform receives node state and available model IDs.
+
+## Connect a node
+
+1. Configure and test at least one local provider.
+2. Sign in to the clovapi console and open the contribution section.
+3. Copy the generated connection command and run it locally:
+
+```bash
+clovapi share start --key YOUR_CLI_CONNECTION_KEY
+```
+
+After the first successful connection, the CLI stores a separate node credential. Later starts from the same configuration directory need only:
+
+```bash
+clovapi share start
+```
+
+## Control the node
+
+```bash
+clovapi share status
+clovapi share pause
+clovapi share resume
+```
+
+`share start` runs in the foreground. Stopping the process takes the node offline. Pausing blocks new requests while allowing in-flight requests to finish.
+
+## Current limits
+
+- All models on one node share a maximum of 5 concurrent requests.
+- The default daily limit is 100 requests, reset on UTC day boundaries.
+- A request can run for up to 120 seconds, with a 512 KiB request body and an 8 MiB response body.
+- Token pricing and contribution credit settlement are not enabled yet.
+- Requests and responses pass through the platform, contribution node, and upstream; they are not confidential from those processors.
+
+Consumer API keys, CLI connection keys, and node credentials serve different purposes and are not interchangeable.

@@ -1,0 +1,138 @@
+.landing {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.container { box-sizing: border-box; width: min(var(--app-layout-max-width), 100%); margin-inline: auto; padding-inline: 14px; }
+.landing h1, .landing h2, .landing p { margin: 0; }
+.landing h1, .landing h2 { font-weight: 500; }
+.landing a, .landing button, .landing summary { -webkit-tap-highlight-color: transparent; }
+.landing a:focus-visible, .landing button:focus-visible, .landing summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+
+.hero { padding-block: 56px 48px; }
+.heroCopy { max-width: 760px; }
+.hero h1 { font-size: 28px; line-height: 1.5; letter-spacing: -.02em; text-wrap: balance; }
+.hero .heroIntro { margin-top: 8px; font-size: 18px; color: var(--muted-foreground); text-wrap: pretty; }
+.heroActions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.primaryButton, .secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 42px;
+  padding: 8px 18px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background .15s;
+}
+.primaryButton { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
+.primaryButton:hover { background: color-mix(in srgb, var(--foreground) 85%, var(--background)); }
+.secondaryButton { background: transparent; color: var(--foreground); }
+.secondaryButton:hover { background: var(--muted); }
+
+.terminal {
+  margin-top: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--card) 88%, var(--muted));
+  overflow: hidden;
+}
+.terminalHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.terminalDots { display: inline-flex; gap: 6px; }
+.terminalDots i { width: 9px; height: 9px; border-radius: 50%; background: color-mix(in srgb, var(--muted-foreground) 30%, transparent); }
+.copyButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  margin-left: auto;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.copyButton:hover { background: var(--muted); color: var(--foreground); }
+.terminalBody { display: grid; grid-template-columns: minmax(0, 1fr) 280px; }
+.commands { display: grid; gap: 24px; padding: 28px; font-family: var(--font-mono); font-size: 14px; line-height: 1.8; }
+.commands .commandComment { margin-bottom: 4px; font-size: 12px; color: var(--muted-foreground); }
+.commandLine { display: flex; gap: 12px; }
+.prompt { color: var(--muted-foreground); user-select: none; }
+.commandLine code { min-width: 0; overflow-wrap: anywhere; }
+.commandName { font-weight: 600; }
+.terminalAside { display: flex; flex-direction: column; padding: 28px; border-left: 1px solid var(--border); }
+.terminalAside h2 { font-size: 14px; }
+.terminalAside dl { margin-top: 22px; }
+.terminalAside dl > div + div { margin-top: 20px; }
+.terminalAside dt { font-size: 12px; color: var(--muted-foreground); }
+.terminalAside dd { margin: 5px 0 0; font-family: var(--font-mono); font-size: 12px; overflow-wrap: anywhere; }
+.terminalAside .platforms { margin-top: auto; padding-top: 28px; font-size: 12px; color: var(--muted-foreground); }
+
+.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; padding-block: 36px 48px; }
+.features h2 { font-size: 16px; }
+.features p { margin-top: 8px; color: var(--muted-foreground); text-wrap: pretty; }
+.faq { display: grid; grid-template-columns: 1fr 2fr; gap: 48px; padding-block: 56px 64px; scroll-margin-top: 90px; }
+.faq > h2 { font-size: 20px; }
+.faqList summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-block: 18px; list-style: none; cursor: pointer; }
+.faqList summary::-webkit-details-marker { display: none; }
+.faqList summary svg { flex-shrink: 0; color: var(--muted-foreground); transition: transform .15s; }
+.faqList details[open] summary svg { transform: rotate(180deg); }
+.faqList p { padding: 0 32px 20px 0; color: var(--muted-foreground); }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-block: 28px; }
+.footerBrand { font-size: 12px; font-weight: 600; letter-spacing: .12em; }
+.footer nav { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; font-size: 12px; color: var(--muted-foreground); }
+.footer nav a { display: inline-flex; align-items: center; gap: 4px; }
+.footer nav a:hover { color: var(--foreground); }
+
+@media (max-width: 1100px) {
+  .container { padding-inline: 32px; }
+  .features, .faq { gap: 32px; }
+}
+@media (max-width: 760px) {
+  .hero { padding-block: 40px; }
+  .hero h1 { font-size: 26px; }
+  .hero .heroIntro { font-size: 16px; }
+  .terminalBody { grid-template-columns: 1fr; }
+  .terminalAside { border-top: 1px solid var(--border); border-left: 0; padding: 20px 24px; }
+  .terminalAside dl { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; }
+  .terminalAside dl > div + div { margin-top: 0; }
+  .terminalAside .platforms { padding-top: 18px; }
+  .features { grid-template-columns: 1fr; gap: 24px; padding-block: 32px; }
+  .features p { max-width: 540px; }
+  .faq { grid-template-columns: 1fr; gap: 24px; padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .container { padding-inline: 20px; }
+  .hero h1 { font-size: 24px; }
+  .terminal { margin-top: 28px; }
+  .terminalHeader { padding-inline: 12px; gap: 8px; }
+  .terminalDots { gap: 4px; }
+  .terminalDots i { width: 7px; height: 7px; }
+  .copyButton { padding-inline: 4px; }
+  .commands { padding: 22px 16px; font-size: 12px; gap: 20px; }
+  .commandLine { gap: 8px; }
+  .terminalAside { padding: 20px 16px; }
+  .terminalAside dl { grid-template-columns: 1fr; }
+  .footer { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .footer nav { gap: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing *, .landing *::before, .landing *::after { transition: none !important; }
+}

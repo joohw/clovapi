@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { AppShell } from "@/components/app-shell";
 import { I18nProvider } from "@/components/i18n-provider";
 import { StructuredData } from "@/components/structured-data";
+import { ThemeInitializer } from "@/components/theme-initializer";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import {
   isAppLanguage,
@@ -12,7 +13,6 @@ import {
 } from "@/i18n/config";
 import { buildBaseJsonLdGraph } from "@/lib/seo";
 import { PUBLIC_SITE_URL } from "@/lib/site";
-import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "@fontsource-variable/outfit";
 import "@/app/globals.css";
 
@@ -41,7 +41,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   return (
     <html lang={language} suppressHydrationWarning className="h-full antialiased">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        <ThemeInitializer language={language} />
       </head>
       <body className="min-h-full flex flex-col">
         <StructuredData data={jsonLd} />

@@ -157,5 +157,5 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
         run: |
           set -euo pipefail
-          curl --fail --show-error --retry 10 --retry-delay 3 --max-time 10 "http://$SSH_HOST:3100/health"
-          curl --fail --show-error --retry 10 --retry-delay 3 --max-time 10 "http://$SSH_HOST:27483/" >/dev/null
+          curl --fail --show-error --retry 10 --retry-connrefused --retry-delay 3 --max-time 10 "http://$SSH_HOST:3100/health"
+          curl --fail --show-error --retry 10 --retry-connrefused --retry-delay 3 --max-time 10 "http://$SSH_HOST:27483/" >/dev/null

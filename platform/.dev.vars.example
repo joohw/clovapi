@@ -1,0 +1,7 @@
+# Copy to .dev.vars for local development only. Never commit real values.
+PUBLIC_ORIGIN=http://127.0.0.1:8787
+ALLOWED_ORIGINS=http://127.0.0.1:3000,http://localhost:3000
+COOKIE_SECURE=false
+AUTH_SECRET=replace-with-at-least-32-random-characters
+RESEND_API_KEY=re_replace_me
+RESEND_FROM=clovapi <login@example.com>

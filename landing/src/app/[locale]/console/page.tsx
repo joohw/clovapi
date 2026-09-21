@@ -5,7 +5,6 @@ import { isAppLanguage } from "@/i18n/config";
 
 type ConsolePageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ tab?: string | string[] }>;
 };
 
 export async function generateMetadata({ params }: ConsolePageProps): Promise<Metadata> {
@@ -19,12 +18,8 @@ export async function generateMetadata({ params }: ConsolePageProps): Promise<Me
   };
 }
 
-export default async function ConsolePage({ params, searchParams }: ConsolePageProps) {
+export default async function ConsolePage({ params }: ConsolePageProps) {
   const { locale } = await params;
   if (!isAppLanguage(locale)) notFound();
-  const { tab } = await searchParams;
-  const initialSection = tab === "keys" ? "keys"
-    : tab === "contribute" || tab === "contributions" ? "contributions"
-      : tab === "ledger" ? "ledger" : "overview";
-  return <PlatformConsole key={`${locale}-${initialSection}`} language={locale} initialSection={initialSection} />;
+  return <PlatformConsole language={locale} />;
 }

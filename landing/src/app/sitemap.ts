@@ -6,6 +6,8 @@ import { docsSource } from "@/lib/docs-source";
 import { hreflangUrl, localizedPath } from "@/lib/seo-data";
 import { PUBLIC_SITE_URL } from "@/lib/site";
 
+export const dynamic = "force-static";
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = PUBLIC_SITE_URL;
   const postLastModified = BLOG_POSTS.map((post) =>

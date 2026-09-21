@@ -16,7 +16,11 @@ export default async function DocsSectionLayout({ children, params }: DocsLayout
   if (!isAppLanguage(locale)) notFound();
 
   return (
-    <RootProvider theme={{ enabled: false }} i18n={docsI18nUI.provider(locale)}>
+    <RootProvider
+      theme={{ enabled: false }}
+      i18n={docsI18nUI.provider(locale)}
+      search={{ options: { type: "static", api: "/api/docs-search" } }}
+    >
       <div className="clovapi-docs">
         <DocsLayout
           tree={docsSource.getPageTree(locale)}

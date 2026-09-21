@@ -1,0 +1,20 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/api/docs-search
+  Content-Type: application/json; charset=utf-8
+  Cache-Control: public, max-age=300
+
+/api/skill-md
+  Content-Type: text/markdown; charset=utf-8
+  Cache-Control: public, max-age=300
+  X-Robots-Tag: noindex, follow
+
+/skill.md
+  Content-Type: text/markdown; charset=utf-8
+  Cache-Control: public, max-age=300
+  X-Robots-Tag: noindex, follow

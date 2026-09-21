@@ -1,0 +1,73 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "clovapi-platform",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "api.clovapi.com",
+      "custom_domain": true
+    }
+  ],
+  "placement": {
+    "mode": "smart"
+  },
+  "limits": {
+    "cpu_ms": 30000
+  },
+  "triggers": {
+    "crons": ["17 * * * *"]
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": true,
+      "persist": true,
+      "head_sampling_rate": 0.1
+    }
+  },
+  "vars": {
+    "PUBLIC_ORIGIN": "https://api.clovapi.com",
+    "ALLOWED_ORIGINS": "https://clovapi.com,https://www.clovapi.com",
+    "COOKIE_SECURE": "true"
+  },
+  "secrets": {
+    "required": ["AUTH_SECRET", "RESEND_API_KEY", "RESEND_FROM"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "clovapi-platform",
+      "database_id": "d9474482-f215-4121-8e76-d1b065cd5a3a",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "NODE_SESSIONS",
+        "class_name": "NodeSession"
+      },
+      {
+        "name": "ACCOUNT_GATES",
+        "class_name": "AccountGate"
+      },
+      {
+        "name": "AUTH_RATE_GATES",
+        "class_name": "AuthRateGate"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["NodeSession", "AccountGate", "AuthRateGate"]
+    }
+  ]
+}

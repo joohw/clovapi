@@ -1,7 +1,8 @@
 name: release-switcher
 
 # Core CLI release only (GoReleaser, R2 CLI, npm) — v* tags or manual dispatch.
-# Desktop shell: release-desktop.yml | Landing site: deploy-landing.yml
+# Platform and Landing are deployed by Cloudflare Workers Builds on main;
+# the browser UI remains embedded in the Go binary.
 on:
   push:
     tags:
@@ -41,6 +42,19 @@ jobs:
 
       - name: Run Windows tests
         run: go test ./...
+
+      - name: Setup Node for browser UI
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Check browser UI
+        working-directory: web
+        run: |
+          npm ci
+          npm run check
+          npm test
+          npm run build
 
   goreleaser:
     needs: test-windows
@@ -107,6 +121,12 @@ jobs:
         with:
           version: "~> v2"
           install-only: true
+
+      - name: Setup Node for embedded browser UI
+        if: steps.existing_cli_release.outputs.complete != 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
 
       - name: GoReleaser release
         if: steps.existing_cli_release.outputs.complete != 'true'

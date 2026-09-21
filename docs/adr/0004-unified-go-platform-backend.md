@@ -1,5 +1,7 @@
 # 0004: 合并控制面与 Relay 为统一 Go Platform Backend
 
+> 状态：已由 [ADR-0005](0005-cloudflare-native-platform.md) 取代；本文件保留迁移前决策背景。
+
 - Status: Accepted
 - Date: 2026-09-14
 

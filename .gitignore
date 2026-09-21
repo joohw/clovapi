@@ -46,6 +46,9 @@ node_modules
 web/node_modules
 web/.next
 landing/.next*
+landing/out/
+landing/.wrangler/
+platform/.wrangler/
 web/dist
 web/bun.lock
 electron/node_modules

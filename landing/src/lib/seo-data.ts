@@ -13,7 +13,7 @@ type SeoCopy = {
 export const SEO_COPY: Record<AppLanguage, Record<SeoPageKey, SeoCopy>> = {
   "zh-CN": {
     home: {
-      title: "让好模型，触手可及 · clovapi",
+      title: "接入共享模型网络 | clovapi",
       description:
         "clovapi 是一个共享模型 API 网络：使用一个平台 API Key 发现并调用在线模型，无需安装 CLI 或先贡献资源。",
       ogImage: "/sharing-og.png",
@@ -46,7 +46,7 @@ export const SEO_COPY: Record<AppLanguage, Record<SeoPageKey, SeoCopy>> = {
   },
   en: {
     home: {
-      title: "Great models, within reach · clovapi",
+      title: "Connect to the shared model network | clovapi",
       description:
         "clovapi is a shared model API network: discover and call online models with one platform API key, without installing the CLI or contributing first.",
       ogImage: "/sharing-og.png",

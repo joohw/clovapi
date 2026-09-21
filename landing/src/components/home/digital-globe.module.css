@@ -1,0 +1,19 @@
+.globe {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--foreground) 5%, transparent), transparent 68%);
+}
+
+.globe::before {
+  content: "";
+  position: absolute;
+  inset: 9%;
+  border-radius: 50%;
+  background: linear-gradient(125deg, #efefef, #c9c9c9);
+}
+
+:global(.dark) .globe::before { background: linear-gradient(125deg, #454545, #171717); }
+.globe[data-ready="true"]::before { opacity: 0; }
+.globe canvas { position: relative; z-index: 1; display: block; width: 100%; height: 100%; }

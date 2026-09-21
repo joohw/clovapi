@@ -182,6 +182,7 @@ export function PlatformConsole({ language, initialSection = "overview" }: { lan
       setCreatedKey(null);
       setKeyDialogOpen(false);
     };
+    syncSection();
     window.addEventListener("popstate", syncSection);
     return () => window.removeEventListener("popstate", syncSection);
   }, []);

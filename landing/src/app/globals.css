@@ -15,7 +15,7 @@
   --app-primary-surface-bg: var(--card);
   --layout-page-inset: clamp(0.4rem, 1.25vw, 0.85rem);
   --main-padding-top: 1.5rem;
-  --app-header-height: 3.5rem;
+  --app-header-height: 4rem;
   --app-header-float-top: 1.25rem;
   --app-header-float-gap: 0rem;
   --app-main-padding-top: calc(

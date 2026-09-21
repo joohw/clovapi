@@ -1,9 +1,9 @@
-# clovapi Platform Backend
+# Legacy Go Platform Backend
 
-This container is the deployment target for `api.clovapi.com`. It runs the
-Relay data plane and its SQLite-backed admission controller in one Go process.
-Consumer APIs are exposed under `/v1`; contribution nodes connect at
-`/api/node/connect`.
+This container is the pre-Cloudflare rollback target. New deployments use the
+Cloudflare Worker in `platform/`, with D1 for the control plane and per-node
+Durable Objects for the relay. The Go backend remains temporarily available for
+cutover testing; it is not the target production architecture.
 
 ```sh
 cp backend/env.example backend/.env
@@ -16,7 +16,8 @@ also requires a 32-character `CLOVAPI_RELAY_SECRET`. Next.js must not receive
 `/v1` or node connection traffic.
 
 The old `relay/` image remains a migration adapter for deployments where
-admission still lives in Next.js. New deployments should use `backend/`.
+admission still lives in Next.js. Do not start either legacy service for a new
+Cloudflare deployment.
 
 To build both independent containers on one server, use:
 
@@ -34,9 +35,6 @@ new `clv_connect_` key from the official account, set
 docker compose --env-file backend/.env -f backend/compose.stack.yaml --profile official up -d --build
 ```
 
-For an existing installation, copy the current `clovapi.db` into the `/data`
-volume and keep the same `AUTH_SECRET`; otherwise encrypted connection keys
-cannot be recovered. Because the public API origin changes, the console rotates
-old `clv_connect_` keys the next time the contribution page opens. Restart each
-contribution node with the newly displayed command so it connects to
-`api.clovapi.com`.
+The Cloudflare migration intentionally starts from an empty D1 database; no
+SQLite import is provided. See `docs/cloudflare-migration.md` for the state
+mapping, validation gates and DNS cutover sequence.

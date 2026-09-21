@@ -44,7 +44,12 @@ The local proxy remains available as the contribution node's execution and proto
 | `core/` | Go CLI, contribution-node runtime, protocol bridge, and relay core |
 | `npm/` | npm launcher package (`@clovapi/cli`) |
 | `web/` | React + Vite browser management UI |
-| `landing/` | clovapi.com site |
+| `landing/` | clovapi.com site on Workers Static Assets |
+| `platform/` | Cloudflare Worker platform API, D1 control plane, and Durable Object relay |
+
+The platform no longer requires a VPS in the target architecture. See the
+[Cloudflare migration plan](docs/cloudflare-migration.md) for the service split,
+state ownership and cutover verification checklist.
 
 ## Development
 
@@ -54,3 +59,16 @@ Run `npm ci --prefix web` and `npm run dev` at the repository root, then open ht
 cd core
 go test ./...
 ```
+
+Run the Cloudflare target independently with `npm ci --prefix platform`,
+`npm run check:platform`, and `npm run dev:platform`. Use `dev` for ongoing work;
+merging and pushing to `main` triggers Cloudflare Workers Builds to deploy both
+production Workers. Non-production builds are disabled, so `dev` does not
+create a preview deployment. There is no GitHub Actions deployment, manual
+approval gate, or repository `CLOUDFLARE_API_TOKEN`. The Platform release
+validates configuration, applies D1 migrations, and deploys the Worker; the
+Landing release builds with the production API origin and deploys static assets
+onto Worker Routes over the existing DNS records. Runtime secrets remain only
+in Cloudflare. Direct Wrangler deployment remains available for rollback. The
+former VPS deployment remains only as `npm run deploy:legacy-vps` during the
+rollback window.

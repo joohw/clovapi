@@ -1,74 +1,73 @@
 .landing {
+  --foreground: #202020;
+  --muted-foreground: #686868;
+  --border: #dedede;
+  --card: #ffffff;
+  --muted: #f1f1f1;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
   font-size: 14px;
-  line-height: 1.7;
+  line-height: 1.85;
+  letter-spacing: .025em;
 }
+
+:global(.dark) .landing { --foreground: #f0f0f0; --muted-foreground: #b0b0b0; --border: #393939; --card: #202020; --muted: #2b2b2b; }
 
 .container { box-sizing: border-box; width: min(var(--app-layout-max-width), 100%); margin-inline: auto; padding-inline: 14px; }
-.landing h1, .landing h2, .landing p { margin: 0; }
-.landing h1, .landing h2 { font-weight: 500; }
+.landing h1, .landing h2, .landing h3, .landing p { margin: 0; }
+.landing h1, .landing h2, .landing h3 { font-weight: 500; }
 .landing a, .landing button, .landing summary { -webkit-tap-highlight-color: transparent; }
-.landing a:focus-visible, .landing button:focus-visible, .landing summary:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 4px;
-}
+.landing a:focus-visible, .landing button:focus-visible, .landing summary:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; }
 
-.hero { padding-block: 56px 48px; }
-.heroCopy { max-width: 760px; }
-.hero h1 { font-size: 28px; line-height: 1.5; letter-spacing: -.02em; text-wrap: balance; }
-.hero .heroIntro { margin-top: 8px; font-size: 18px; color: var(--muted-foreground); text-wrap: pretty; }
-.heroActions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
-.primaryButton, .secondaryButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  min-height: 42px;
-  padding: 8px 18px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background .15s;
-}
+.hero { position: relative; min-height: 610px; padding-block: 54px 88px; }
+.heroMain { display: grid; grid-template-columns: minmax(0, 1.06fr) minmax(0, .94fr); align-items: center; gap: 28px; }
+.heroCopy { position: relative; z-index: 2; max-width: 720px; }
+.hero h1 { max-width: 760px; font-size: clamp(52px, 6.4vw, 88px); line-height: 1.28; letter-spacing: .015em; text-wrap: balance; }
+.heroIntro { max-width: 590px; margin-top: 30px !important; color: var(--muted-foreground); font-size: clamp(17px, 1.6vw, 21px); line-height: 2; text-wrap: pretty; }
+.heroActions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
+.heroNote { margin-top: 24px !important; color: var(--muted-foreground); font-size: 12px; }
+.primaryButton, .secondaryButton { display: inline-flex; align-items: center; justify-content: center; gap: 18px; min-height: 48px; padding: 10px 19px; border: 1px solid var(--border); border-radius: 5px; font-size: 13px; font-weight: 500; transition: background .2s, transform .2s; }
 .primaryButton { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
-.primaryButton:hover { background: color-mix(in srgb, var(--foreground) 85%, var(--background)); }
+.primaryButton:hover { background: color-mix(in srgb, var(--foreground) 85%, var(--background)); transform: translateY(-2px); }
 .secondaryButton { background: transparent; color: var(--foreground); }
-.secondaryButton:hover { background: var(--muted); }
+.secondaryButton:hover { background: var(--muted); transform: translateY(-2px); }
+.heroVisual { position: relative; width: min(100%, 590px); justify-self: end; }
+.heroVisual::before { content: ""; position: absolute; inset: 10%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--foreground) 7%, transparent), transparent 70%); filter: blur(24px); }
 
-.terminal {
-  margin-top: 36px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--card) 88%, var(--muted));
-  overflow: hidden;
-}
-.terminalHeader {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 48px;
-  padding: 8px 20px;
-  border-bottom: 1px solid var(--border);
-  font-size: 12px;
-  color: var(--muted-foreground);
-}
+.sectionHeading { max-width: 780px; }
+.sectionHeading h2 { font-size: clamp(28px, 3.2vw, 44px); line-height: 1.45; letter-spacing: .012em; text-wrap: balance; }
+.sectionHeading p { max-width: 680px; margin-top: 22px; color: var(--muted-foreground); font-size: 16px; line-height: 2; text-wrap: pretty; }
+
+.network, .participate, .example, .faq { border-top: 1px solid var(--border); padding-block: 88px 100px; }
+.networkFlow { display: grid; grid-template-columns: minmax(180px, 1fr) auto minmax(190px, 1.1fr) auto minmax(180px, 1fr); align-items: center; gap: 24px; margin-top: 42px; }
+.flowSources { display: grid; gap: 10px; }
+.flowSources > div, .flowCore, .flowClient { min-height: 72px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+.flowSources > div { display: flex; align-items: center; gap: 16px; padding: 18px 20px; font-size: 15px; }
+.flowSources span, .flowClient > span { color: var(--muted-foreground); font-family: var(--font-mono); font-size: 12px; }
+.flowArrow { color: var(--muted-foreground); }
+.flowCore { display: flex; flex-direction: column; justify-content: center; min-height: 154px; padding: 22px 28px; border-color: #aaa; background: var(--muted); }
+.flowCore > span { color: var(--muted-foreground); font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+.flowCore strong { margin-top: 6px; font-family: var(--font-mono); font-size: 30px; font-weight: 500; letter-spacing: -.045em; }
+.flowCore small, .flowClient small { margin-top: 7px; color: var(--muted-foreground); font-size: 12px; }
+.flowClient { display: flex; flex-direction: column; justify-content: center; min-height: 154px; padding: 22px 28px; }
+.flowClient strong { margin-top: 10px; font-size: 18px; font-weight: 500; }
+
+.roleGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 40px; }
+.roleCard { display: flex; flex-direction: column; min-height: 395px; padding: 32px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
+.roleCard:first-child { background: var(--muted); }
+.roleCard h3 { font-size: 27px; letter-spacing: .012em; line-height: 1.5; }
+.roleCard p { max-width: 460px; margin-top: 18px; color: var(--muted-foreground); font-size: 15px; line-height: 2; }
+.roleCard ul { display: grid; gap: 8px; margin: 24px 0 28px; padding-left: 19px; color: var(--foreground); font-size: 13px; }
+.roleCard li::marker { color: var(--muted-foreground); }
+.roleCard a { display: inline-flex; align-items: center; gap: 9px; align-self: flex-start; margin-top: auto; padding-bottom: 4px; border-bottom: 1px solid currentColor; font-size: 13px; font-weight: 500; }
+.roleCard a:hover { color: var(--muted-foreground); }
+
+.terminal { margin-top: 38px; border: 1px solid var(--border); border-radius: 10px; background: color-mix(in srgb, var(--card) 88%, var(--muted)); overflow: hidden; }
+.terminalHeader { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 20px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted-foreground); }
 .terminalDots { display: inline-flex; gap: 6px; }
 .terminalDots i { width: 9px; height: 9px; border-radius: 50%; background: color-mix(in srgb, var(--muted-foreground) 30%, transparent); }
-.copyButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 32px;
-  margin-left: auto;
-  padding: 4px 8px;
-  border-radius: 4px;
-  white-space: nowrap;
-  cursor: pointer;
-}
+.copyButton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; margin-left: auto; padding: 4px 8px; border-radius: 4px; white-space: nowrap; cursor: pointer; }
 .copyButton:hover { background: var(--muted); color: var(--foreground); }
 .terminalBody { display: grid; grid-template-columns: minmax(0, 1fr) 280px; }
 .commands { display: grid; gap: 24px; padding: 28px; font-family: var(--font-mono); font-size: 14px; line-height: 1.8; }
@@ -85,17 +84,21 @@
 .terminalAside dd { margin: 5px 0 0; font-family: var(--font-mono); font-size: 12px; overflow-wrap: anywhere; }
 .terminalAside .platforms { margin-top: auto; padding-top: 28px; font-size: 12px; color: var(--muted-foreground); }
 
-.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; padding-block: 36px 48px; }
-.features h2 { font-size: 16px; }
-.features p { margin-top: 8px; color: var(--muted-foreground); text-wrap: pretty; }
-.faq { display: grid; grid-template-columns: 1fr 2fr; gap: 48px; padding-block: 56px 64px; scroll-margin-top: 90px; }
-.faq > h2 { font-size: 20px; }
-.faqList summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-block: 18px; list-style: none; cursor: pointer; }
+.faq { display: grid; grid-template-columns: 1fr 2fr; gap: 48px; scroll-margin-top: 90px; }
+.faq > div > h2 { font-size: 30px; letter-spacing: .012em; line-height: 1.45; }
+.faqList summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-block: 18px; list-style: none; cursor: pointer; font-size: 15px; }
 .faqList summary::-webkit-details-marker { display: none; }
+.faqList details { border-bottom: 1px solid var(--border); }
+.faqList details:first-child { border-top: 1px solid var(--border); }
 .faqList summary svg { flex-shrink: 0; color: var(--muted-foreground); transition: transform .15s; }
 .faqList details[open] summary svg { transform: rotate(180deg); }
 .faqList p { padding: 0 32px 20px 0; color: var(--muted-foreground); }
-.footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-block: 28px; }
+
+.finalCta { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 46px 50px; border-radius: 10px; background: var(--foreground); color: var(--background); }
+.finalCta h2 { font-size: clamp(23px, 3vw, 36px); letter-spacing: .012em; line-height: 1.5; }
+.finalCta .primaryButton { flex-shrink: 0; border-color: var(--background); background: var(--background); color: var(--foreground); }
+.finalCta .primaryButton:hover { background: color-mix(in srgb, var(--background) 85%, var(--foreground)); }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-block: 40px; }
 .footerBrand { font-size: 12px; font-weight: 600; letter-spacing: .12em; }
 .footer nav { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; font-size: 12px; color: var(--muted-foreground); }
 .footer nav a { display: inline-flex; align-items: center; gap: 4px; }
@@ -103,25 +106,45 @@
 
 @media (max-width: 1100px) {
   .container { padding-inline: 32px; }
-  .features, .faq { gap: 32px; }
+  .hero { min-height: 560px; }
+  .hero h1 { font-size: clamp(48px, 6vw, 74px); }
+  .networkFlow { gap: 14px; }
+  .faq { gap: 32px; }
 }
+
 @media (max-width: 760px) {
-  .hero { padding-block: 40px; }
-  .hero h1 { font-size: 26px; }
-  .hero .heroIntro { font-size: 16px; }
+  .hero { min-height: 0; padding-block: 48px 72px; }
+  .heroMain { grid-template-columns: 1fr; gap: 4px; }
+  .hero h1 { max-width: 620px; font-size: clamp(44px, 9vw, 65px); }
+  .heroVisual { width: min(100%, 440px); justify-self: center; margin-top: 8px; }
+  .network, .participate, .example, .faq { padding-block: 64px 76px; }
+  .networkFlow { grid-template-columns: 1fr; gap: 16px; }
+  .flowArrow { justify-self: center; transform: rotate(90deg); }
+  .flowSources { grid-template-columns: 1fr 1fr; }
+  .flowCore, .flowClient { min-height: 120px; }
+  .roleGrid { grid-template-columns: 1fr; }
+  .roleCard { min-height: 0; }
   .terminalBody { grid-template-columns: 1fr; }
   .terminalAside { border-top: 1px solid var(--border); border-left: 0; padding: 20px 24px; }
   .terminalAside dl { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; }
   .terminalAside dl > div + div { margin-top: 0; }
   .terminalAside .platforms { padding-top: 18px; }
-  .features { grid-template-columns: 1fr; gap: 24px; padding-block: 32px; }
-  .features p { max-width: 540px; }
-  .faq { grid-template-columns: 1fr; gap: 24px; padding-block: 40px; }
+  .faq { grid-template-columns: 1fr; gap: 24px; }
+  .finalCta { padding: 36px; }
 }
+
 @media (max-width: 480px) {
   .container { padding-inline: 20px; }
-  .hero h1 { font-size: 24px; }
-  .terminal { margin-top: 28px; }
+  .hero { padding-block: 38px 60px; }
+  .hero h1 { font-size: 46px; }
+  .heroIntro { margin-top: 20px !important; font-size: 16px; }
+  .heroActions { margin-top: 28px; }
+  .heroVisual { width: min(100%, 360px); }
+  .sectionHeading h2 { font-size: 29px; }
+  .sectionHeading p { font-size: 14px; }
+  .flowSources { grid-template-columns: 1fr; }
+  .roleCard { padding: 25px; }
+  .roleCard h3 { margin-top: 26px; }
   .terminalHeader { padding-inline: 12px; gap: 8px; }
   .terminalDots { gap: 4px; }
   .terminalDots i { width: 7px; height: 7px; }
@@ -130,9 +153,11 @@
   .commandLine { gap: 8px; }
   .terminalAside { padding: 20px 16px; }
   .terminalAside dl { grid-template-columns: 1fr; }
+  .finalCta { flex-direction: column; align-items: flex-start; padding: 28px; }
   .footer { align-items: flex-start; flex-direction: column; gap: 16px; }
   .footer nav { gap: 20px; }
 }
+
 @media (prefers-reduced-motion: reduce) {
   .landing *, .landing *::before, .landing *::after { transition: none !important; }
 }

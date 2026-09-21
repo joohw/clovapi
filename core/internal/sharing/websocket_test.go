@@ -25,6 +25,7 @@ type workerPeer struct {
 	conn   *websocket.Conn
 	mu     sync.Mutex
 	frames chan relaywire.Message
+	pings  chan struct{}
 }
 
 func (p *workerPeer) send(t *testing.T, message relaywire.Message) {
@@ -83,7 +84,20 @@ func startSocketWorker(t *testing.T, limit int, execute ExecuteFunc) *runningWor
 			return
 		}
 		defer conn.Close()
-		peer := &workerPeer{conn: conn, frames: make(chan relaywire.Message, 256)}
+		peer := &workerPeer{conn: conn, frames: make(chan relaywire.Message, 256), pings: make(chan struct{}, 256)}
+		conn.SetPingHandler(func(data string) error {
+			peer.mu.Lock()
+			defer peer.mu.Unlock()
+			deadline := time.Now().Add(3 * time.Second)
+			if err := conn.WriteControl(websocket.PongMessage, []byte(data), deadline); err != nil {
+				return err
+			}
+			select {
+			case peer.pings <- struct{}{}:
+			default:
+			}
+			return nil
+		})
 		defer close(peer.frames)
 		if err := conn.WriteJSON(relaywire.Message{Type: "welcome", Protocol: relaywire.Protocol, NodeID: "node-1", Concurrency: 5, DailyLimit: 100}); err != nil {
 			return
@@ -107,7 +121,7 @@ func startSocketWorker(t *testing.T, limit int, execute ExecuteFunc) *runningWor
 	}))
 	ctx, cancel := context.WithCancel(context.Background())
 	run.stop = cancel
-	run.worker = &Worker{Dir: run.dir, Client: NewClient(server.URL, "clv_node_secret"), Execute: execute, LocalCheckInterval: 20 * time.Millisecond, HeartbeatInterval: 50 * time.Millisecond, SyncInterval: 100 * time.Millisecond, ReconnectInterval: 20 * time.Millisecond}
+	run.worker = &Worker{Dir: run.dir, Client: NewClient(server.URL, "clv_node_secret"), Execute: execute, LocalCheckInterval: 20 * time.Millisecond, HeartbeatInterval: 50 * time.Millisecond, ReconnectInterval: 20 * time.Millisecond}
 	go func() { run.done <- run.worker.Run(ctx) }()
 	t.Cleanup(func() {
 		cancel()
@@ -146,6 +160,54 @@ func (r *runningWorker) peer(t *testing.T) *workerPeer {
 
 func request(id string) relaywire.Message {
 	return relaywire.Message{Type: "request", ID: id, Path: "/v1/responses", Body: json.RawMessage(`{"model":"test-model"}`), Deadline: time.Now().Add(time.Minute)}
+}
+
+func (p *workerPeer) expectNoApplicationFrame(t *testing.T, wait time.Duration) {
+	t.Helper()
+	select {
+	case frame, ok := <-p.frames:
+		if !ok {
+			t.Fatal("worker connection closed while idle")
+		}
+		t.Fatalf("unexpected application frame while state was unchanged: %+v", frame)
+	case <-time.After(wait):
+	}
+}
+
+func TestWebSocketIdleUsesControlPingWithoutPeriodicState(t *testing.T) {
+	saveUpstream(t, "http://127.0.0.1:1")
+	run := startSocketWorker(t, 10, func(_ context.Context, _ State, _ Job, w http.ResponseWriter) error {
+		_, err := w.Write([]byte("ok"))
+		return err
+	})
+	peer := run.peer(t)
+
+	// The old 100 ms sync interval emitted unchanged application state. Stay
+	// idle beyond it and verify that only control pings cross the connection.
+	peer.expectNoApplicationFrame(t, 250*time.Millisecond)
+	if len(peer.pings) < 2 {
+		t.Fatalf("control pings observed = %d, want at least 2", len(peer.pings))
+	}
+
+	// A successful state frame after multiple ping/pong exchanges proves the
+	// connection stayed alive, and unchanged state must not be repeated.
+	if err := SetPaused(run.dir, true); err != nil {
+		t.Fatal(err)
+	}
+	paused := peer.next(t, func(m relaywire.Message) bool { return m.Type == "state" })
+	if !paused.Paused {
+		t.Fatalf("paused state=%+v", paused)
+	}
+	peer.expectNoApplicationFrame(t, 150*time.Millisecond)
+
+	if err := SetPaused(run.dir, false); err != nil {
+		t.Fatal(err)
+	}
+	unpaused := peer.next(t, func(m relaywire.Message) bool { return m.Type == "state" })
+	if unpaused.Paused {
+		t.Fatalf("unpaused state=%+v", unpaused)
+	}
+	peer.expectNoApplicationFrame(t, 150*time.Millisecond)
 }
 
 func TestWebSocketFiveJobsRunConcurrentlyAndSixthIsRejected(t *testing.T) {
@@ -304,14 +366,14 @@ func TestWebSocketDropCancelsJobsBeforeReconnectAndNeverReplays(t *testing.T) {
 
 func TestWebSocketStateTracksEmptyInventoryLocalPauseAndQuota(t *testing.T) {
 	saveUpstream(t, "http://127.0.0.1:1")
-	if err := profile.Save(&profile.Store{Version: profile.StoreVersion}); err != nil {
-		t.Fatal(err)
-	}
 	run := startSocketWorker(t, 1, func(_ context.Context, _ State, _ Job, w http.ResponseWriter) error {
 		_, err := w.Write([]byte("ok"))
 		return err
 	})
 	peer := run.peer(t)
+	if err := profile.Save(&profile.Store{Version: profile.StoreVersion}); err != nil {
+		t.Fatal(err)
+	}
 	empty := peer.next(t, func(m relaywire.Message) bool { return m.Type == "state" })
 	if !empty.Paused || len(empty.Models) != 0 {
 		t.Fatalf("empty state=%+v", empty)

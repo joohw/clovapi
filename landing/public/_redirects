@@ -1,0 +1,21 @@
+# Locale-neutral and legacy paths use the Chinese experience by default.
+/ /zh-CN 308
+/about /zh-CN/about 308
+/privacy /zh-CN/privacy 308
+/docs /zh-CN/docs 308
+/pricing /zh-CN 308
+/models /zh-CN/models 308
+/personal /zh-CN 308
+/apikeys /zh-CN 308
+/token /zh-CN 307
+/dashboard/token /zh-CN 307
+/dashboard /zh-CN 308
+/blog /zh-CN/blog 308
+/guides /zh-CN/blog 308
+/skill /zh-CN/skill 308
+
+# Dynamic aliases follow static rules so the most specific match wins.
+/docs/* /zh-CN/docs/:splat 308
+/dashboard/* /zh-CN 308
+/blog/* /zh-CN/blog/:splat 308
+/guides/* /zh-CN/blog/:splat 308

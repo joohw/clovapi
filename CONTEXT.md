@@ -4,12 +4,14 @@ clovapi exists to make independently supplied model capacity available through o
 
 ## Domain Glossary
 
-- **Shared API Network**: clovapi 面向 Consumer 提供的统一模型网络，由 Platform Backend 和在线 Contribution Node 共同形成。它是产品本体；本地代理只是节点侧能力。
+- **Shared API Network**: clovapi 面向 Consumer 提供的统一模型网络，由 Platform Worker、Relay Object 和在线 Contribution Node 共同形成。它是产品本体；本地代理只是节点侧能力。
 - **Direct Use**: Consumer 创建平台调用凭证后直接选择并调用在线 Shared Model，无需安装 CLI、配置上游或先贡献资源。
-- **Platform Backend**: 统一的 Go 平台服务，拥有账户、平台凭证、节点权限、请求准入、积分账本和消费 API。它不保存贡献者的上游 API 密钥。
-- **Control Plane**: Platform Backend 中负责账户、凭证、贡献规则、准入和账本的逻辑子系统，不再是 Next.js 中单独部署的后端。
-- **Relay**: Platform Backend 中负责持有节点连接、分配 Consumer 调用并交付响应的逻辑子系统，不再作为依赖 Next.js 回调的独立平台服务。
-- **Web App**: Next.js 实现的展示层，负责网页、文档和控制台交互；平台状态与业务规则由 Platform Backend 提供的 API 负责。
+- **Platform Worker**: 部署在 Cloudflare Workers 的平台 API 入口，拥有账户、平台凭证、节点权限、请求准入、模型目录、积分账本和消费 API。它不保存贡献者的上游 API 密钥。
+- **Control Plane**: Platform Worker 中负责账户、凭证、贡献规则、目录投影和账本的逻辑子系统；持久状态保存在 D1，实时连接状态不属于 D1。
+- **Relay Object**: 一个 Contribution Node 对应的 Durable Object。它持有该节点主动建立的 WebSocket，并负责该节点的请求分配、并发、流控、取消与响应交付。
+- **Account Gate**: 一个 Account 对应的 Durable Object。它负责账户级在途请求上限、撤销传播和请求生命周期协调。
+- **Auth Rate Gate**: 以邮箱或客户端 IP 的 HMAC 为分片键的 Durable Object。它在发送登录验证码前执行原子滑动窗口限流，不保存原始邮箱或 IP。
+- **Web App**: Next.js 实现的展示层，作为独立 Cloudflare Worker 部署，负责网页、文档和控制台交互；平台状态与业务规则由 Platform Worker 提供的 API 负责。
 - **Contribution Node**: 归属于一个 Account 的贡献执行实例，当前对应一个 clovapi CLI 实例。一个节点可提供多个本地可用模型，模型共享节点的贡献规则与请求上限；节点不等同于单个模型或上游配置。
 - **Consumer**: 使用 clovapi 平台凭证调用模型的人或程序。Consumer 不需要安装 CLI。
 - **Contributor**: 有权将一项上游资源用于共享，并通过 Contribution Node 提供服务的个人或团队。
@@ -35,14 +37,16 @@ clovapi exists to make independently supplied model capacity available through o
 - 产品界面使用“贡献节点”，代码使用 `contribution_node` / `ContributionNode`。
 - 产品界面使用“基础免费额度”和“贡献积分”，避免将两者合称为“余额”。
 - “官方”只指 clovapi 运营方的 Platform Supply，不表示模型原厂的授权或背书。
-- “网页”指 Next.js Web App；涉及整个服务器进程使用“Platform Backend”，涉及授权、准入和账本时使用其“Control Plane”子系统，涉及连接和请求传输时使用其“Relay”子系统。
+- “网页”指 Next.js Web App；涉及平台 API 入口使用“Platform Worker”，涉及授权、准入和账本时使用其“Control Plane”，涉及单个节点的连接和请求传输时使用“Relay Object”。
 
 ## Stable Boundaries
 
-- Platform Backend 是 Control Plane 与 Relay 的部署和事务边界；两者在同一个 Go 进程内协作，不通过 Next.js 内部回调完成准入。
-- Control Plane 子系统拥有账户、平台凭证、准入规则、调用元数据、结算和账本。
-- Relay 子系统持有节点连接，负责按准入规则派发请求、流控和响应交付，不持久化请求正文或响应块。
-- Next.js Web App 不拥有平台数据库、认证会话或业务写入接口，只调用 Platform Backend。
+- Platform Worker 是公开平台 API 的统一入口；Web App 不承载平台业务写入，也不作为 Relay 的回调控制面。
+- Control Plane 拥有账户、平台凭证、节点静态配置、目录投影、调用审计、结算和账本；D1 不是真实在线连接或实时并发的权威来源。
+- Relay Object 持有单个节点的连接并负责该节点的强一致并发、派发、流控和响应交付；它不持久化请求正文或响应块。
+- Account Gate 负责单个账户的强一致在途请求限制；全局容量保护由 Cloudflare 平台限制和显式准入策略承担。
+- Auth Rate Gate 负责登录邮件发送前的强一致节流；Cloudflare WAF 与边缘限流是外层保护，不能替代应用内准入。
+- Next.js Web App 不拥有平台数据库、认证会话或业务写入接口，只调用 Platform Worker。
 - Contribution Node 拥有上游凭据、上游协议适配、本地预算执行和请求执行。
-- 上游凭据不从 Contribution Node 发送到 Platform Backend。
+- 上游凭据不从 Contribution Node 发送到 Platform Worker 或 Relay Object。
 - Consumer 只需要平台凭证；CLI 是 Contributor 的运行组件，不是消费 API 的前置条件。

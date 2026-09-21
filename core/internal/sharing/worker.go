@@ -29,7 +29,6 @@ type Worker struct {
 	Dialer   *websocket.Dialer
 	// Overrides keep connection lifecycle tests deterministic and fast.
 	HeartbeatInterval  time.Duration
-	SyncInterval       time.Duration
 	LocalCheckInterval time.Duration
 	ReconnectInterval  time.Duration
 }
@@ -287,21 +286,17 @@ func (s *nodeConnection) localState(kind string) (relaywire.Message, error) {
 }
 
 func (s *nodeConnection) monitor(previous relaywire.Message) {
-	checkEvery, pingEvery, stateEvery := s.worker.LocalCheckInterval, s.worker.HeartbeatInterval, s.worker.SyncInterval
+	checkEvery, pingEvery := s.worker.LocalCheckInterval, s.worker.HeartbeatInterval
 	if checkEvery <= 0 {
 		checkEvery = time.Second
 	}
 	if pingEvery <= 0 {
 		pingEvery = 10 * time.Second
 	}
-	if stateEvery <= 0 {
-		stateEvery = 10 * time.Second
-	}
 	check := time.NewTicker(checkEvery)
 	defer check.Stop()
 	ping := time.NewTicker(pingEvery)
 	defer ping.Stop()
-	lastState := time.Now()
 	for {
 		select {
 		case <-s.ctx.Done():
@@ -310,6 +305,7 @@ func (s *nodeConnection) monitor(previous relaywire.Message) {
 			if s.writeControl(websocket.PingMessage, nil) != nil {
 				return
 			}
+			continue
 		case <-check.C:
 		case <-s.stateWake:
 		}
@@ -318,11 +314,11 @@ func (s *nodeConnection) monitor(previous relaywire.Message) {
 			s.close()
 			return
 		}
-		if current.Paused != previous.Paused || current.Remaining != previous.Remaining || !slices.Equal(current.Models, previous.Models) || time.Since(lastState) >= stateEvery {
+		if current.Paused != previous.Paused || current.Remaining != previous.Remaining || !slices.Equal(current.Models, previous.Models) {
 			if s.send(s.ctx, current) != nil {
 				return
 			}
-			previous, lastState = current, time.Now()
+			previous = current
 		}
 	}
 }

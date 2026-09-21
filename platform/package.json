@@ -1,0 +1,27 @@
+{
+  "name": "@clovapi/platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "check": "npm run typecheck && npm test",
+    "build:cloudflare": "node ../scripts/validate-cloudflare-release.mjs platform && npm run check",
+    "db:migrate": "wrangler d1 migrations apply DB --remote",
+    "deploy": "node ../scripts/validate-cloudflare-release.mjs platform && npm run db:migrate && wrangler deploy --strict",
+    "deploy:bootstrap": "node scripts/deploy-production.mjs",
+    "release:manual": "npm run build:cloudflare && npm run deploy",
+    "deploy:dry-run": "wrangler deploy --dry-run",
+    "cf-typegen": "wrangler types src/generated-bindings.d.ts --env-interface CloudflareBindings --include-runtime false",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "smoke:relay": "node scripts/relay-smoke.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260920.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1",
+    "wrangler": "^4.135.0",
+    "ws": "^8.21.0"
+  }
+}

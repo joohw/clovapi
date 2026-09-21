@@ -48,13 +48,13 @@ CLI 连接密钥归属于账户，分配后保持固定，可以用于连接多�
 
 ## 消费者调用
 
-在控制台创建消费者 API Key。调用者不需要安装 CLI，使用平台的 `/v1` 作为 API Base URL。以下 `localhost:3100` 是开发平台示例地址，请替换为实际平台地址。
+在控制台创建消费者 API Key。调用者不需要安装 CLI，使用平台的 `/v1` 作为 API Base URL。以下 `localhost:8787` 是 Wrangler 本地开发地址，请替换为实际平台地址。
 
 ```bash
-curl http://localhost:3100/v1/models \
+curl http://localhost:8787/v1/models \
   -H "Authorization: Bearer YOUR_CONSUMER_API_KEY"
 
-curl http://localhost:3100/v1/chat/completions \
+curl http://localhost:8787/v1/chat/completions \
   -H "Authorization: Bearer YOUR_CONSUMER_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model":"YOUR_MODEL_ID","messages":[{"role":"user","content":"Hello"}],"stream":true}'
@@ -68,25 +68,33 @@ curl http://localhost:3100/v1/chat/completions \
 
 模型供给取自 relay 当前可接收请求的节点，按模型 ID 合并。目录不发布账户、节点身份、密钥或上游地址。页面中的调用量汇总仅针对本次快照里可用的模型；模型暂时没有可用节点时不会出现在列表里，已有使用统计仍然保留。
 
-Relay 将目录快照缓存在内存中，每 60 秒更新一次，同一轮请求共用一次更新。页面每分钟自动读取快照，并显示更新时间。短暂更新失败时最多保留 5 分钟旧快照并标明数据延迟；没有可用缓存时返回 503，不把故障显示成零模型。
+Platform Worker 从 D1 中的节点/模型投影生成目录；每个 NodeSession Durable Object 仍是节点是否真正可接收请求的最终判断者。页面每分钟自动读取快照并显示更新时间。投影短暂滞后只会产生一次候选拒绝，不会绕过节点限额。
 
 调用量在平台成功接收请求时计数，后续失败或取消仍计入；鉴权、模型、限额或并发检查拒绝的请求不计入。匿名的分钟聚合独立于原始请求记录保存至少 7 天，只包含模型 ID、时间段和请求数。近 24 小时与近 7 天的窗口截止到最近一个完整分钟，趋势按 UTC 日期展示。升级时仅回填仍保留的请求元数据，页面会说明统计开始时间，不补造更早的历史。
 
 ## 平台运行
 
-平台由两个解耦容器组成：Go Platform Backend 监听 API 域名，Next.js Web App 只提供页面。Backend 同时承载控制面、消费者 `/v1` API 和贡献节点 WebSocket，不再通过内部 HTTP 回调 Next.js 完成准入。
+平台由两个独立 Cloudflare Worker 组成：Web App Worker 提供静态导出的 Next.js 页面，Platform Worker 监听 API 域名并承载控制面、消费者 `/v1` API 和贡献节点 WebSocket 入口。D1 保存可查询的控制面数据；每个贡献节点和账户分别由命名 Durable Object 承担强一致实时状态。
+
+日常改动先进入 `dev`，合并并推送到 `main` 后由 Cloudflare Workers Builds 自动发布两个生产 Worker；`dev` 不部署预览环境。以下 Wrangler 命令仅用于首次初始化或紧急手动发布，不是日常 CI/CD 路径。
 
 ```bash
-cp backend/env.example backend/.env
-docker compose --env-file backend/.env -f backend/compose.yaml up -d --build
-docker build -f landing/Dockerfile.frontend --build-arg NEXT_PUBLIC_CLOVAPI_API_URL=https://api.clovapi.com -t clovapi-web .
+npm ci --prefix platform
+npm --prefix platform run typecheck
+npm --prefix platform test
+npm --prefix platform run deploy
+
+$env:NEXT_PUBLIC_CLOVAPI_API_URL = "https://api.clovapi.com"
+npm ci --prefix landing
+npm --prefix landing run build
+npm --prefix landing run deploy
 ```
 
-Backend 的 `/data` 卷持有 SQLite 平台状态；Next.js 不挂载数据库。生产环境将 `api.clovapi.com` 指向 Backend，将 `clovapi.com` 指向 Web App，并在 Backend 的 `CLOVAPI_ALLOWED_ORIGINS` 中允许网页 origin。
+首次部署前必须创建 D1 数据库、把实际 database ID 写入 `platform/wrangler.jsonc`、应用迁移，并通过 `wrangler secret put` 设置 `AUTH_SECRET`、`RESEND_API_KEY` 和 `RESEND_FROM`。生产环境将 `api.clovapi.com` 路由到 Platform Worker，将 `clovapi.com` 路由到 Web App Worker，并在 `ALLOWED_ORIGINS` 中精确允许网页 origin。
 
-公网 HTTPS 反向代理须为 Backend 转发原始 Host、WebSocket Upgrade，并将读取超时设为至少 130 秒。`CLOVAPI_RELAY_SECRET` 只用于迁移期旧内部事件接口；进程内控制面不需要它。
+贡献节点主动连接 `/api/node/connect`，Cloudflare 直接完成 WebSocket Upgrade，不需要自建反向代理。CLI 连接密钥内嵌公开 API origin，不能通过 30x 把携带密钥的注册或连接请求重定向到另一个域名。
 
-平台与 CLI 应一同升级到长连接版本。原有账户、连接密钥、节点身份和每日用量保留；旧轮询接口返回升级提示，旧任务及响应缓冲表会在初始化时移除。
+本次迁移不导入旧平台数据库。切换后重新登录、创建 Consumer API Key 和 CLI Connection Key，再用新命令连接贡献节点。旧轮询接口继续返回升级提示。
 
 ## 运行边界
 
@@ -97,18 +105,21 @@ Backend 的 `/data` 卷持有 SQLite 平台状态；Next.js 不挂载数据库�
 - 暂停阻止新请求，正在执行的请求可以完成；客户端取消、任务超时或凭证撤销会终止任务。上游取消取决于网络传播和上游行为。
 - 本版共享请求不扣减基础免费额度、不生成贡献积分，不进行 token 计价或结算。控制台的积分余额不代表共享请求的用量。
 - 上游密钥只供本地代理使用，不会放入平台任务或消费者响应。请求和响应经过平台、贡献节点及上游，不能视为对这些处理方保密。
-- Go relay 在内存中转发请求和流式响应；SQLite 只保存准入、用量和终态元数据，不写入请求正文或响应块。每个请求具有独立流控窗口，慢消费者和单个请求取消不阻塞同节点的其他请求。
+- NodeSession Durable Object 转发请求和流式响应；D1 和 Durable Object SQLite 都不写入请求正文或响应块。每个请求具有独立流控窗口，慢消费者和单个请求取消不阻塞同节点的其他请求。
 - 单次请求最长 120 秒，请求正文最多 512 KiB，响应正文最多 8 MiB。断线会取消在途请求；CLI 自动重连后接受新请求，不自动重放可能已经产生上游费用的请求。
-- 当前部署使用一个 relay 持有节点连接。多实例部署需要先实现连接归属和跨 relay 路由，不能将多个独立 relay 直接放在随机负载均衡后。
+- 一个节点 ID 固定映射到一个 NodeSession Durable Object，因此 Worker 实例可横向处理公开流量而不会失去连接归属。D1 目录只是候选索引，不能代替 Durable Object 的最终准入。
 
 ## 验证
 
 ```bash
 cd core
 go test ./...
+cd ../platform
+npm run typecheck
+npm test
 cd ../landing
-npm run test:sharing
-npm exec tsc -- --noEmit --incremental false
+npm run lint
+npm run build
 ```
 
-端到端测试在隔离数据库、隔离 CLI 配置和本地模拟上游之间运行真实 Go relay、CLI 与平台 Route Handler，覆盖 5 并发、流式交付、取消、动态模型、限额和断线重连，不使用真实上游密钥或发送真实模型请求。
+测试在隔离的 D1/Durable Object 存储、隔离 CLI 配置和本地模拟上游之间覆盖 5 并发、流式交付、取消、动态模型、限额、休眠恢复和断线重连，不使用真实上游密钥或发送真实模型请求。

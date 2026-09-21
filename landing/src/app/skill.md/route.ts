@@ -1,10 +1,10 @@
-import { headers } from "next/headers";
-import { buildSkillMarkdownFromRequest } from "@/lib/skill-markdown";
+import { buildSkillMarkdown } from "@/lib/skill-markdown";
+import { PUBLIC_SITE_URL } from "@/lib/site";
 
-export async function GET() {
-  const headerStore = await headers();
-  const host = headerStore.get("x-forwarded-host") || headerStore.get("host") || undefined;
-  const markdown = buildSkillMarkdownFromRequest(host);
+export const dynamic = "force-static";
+
+export function GET() {
+  const markdown = buildSkillMarkdown(PUBLIC_SITE_URL);
 
   return new Response(markdown, {
     headers: {
